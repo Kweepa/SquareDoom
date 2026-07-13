@@ -265,6 +265,44 @@ export function shiftLevel(level, dx, dy) {
   level.items.push(...kept);
 }
 
+/** All occupied map cells. */
+export function occupiedTiles(level) {
+  const out = [];
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      if (getCell(level, tx, ty)) out.push({ tx, ty });
+    }
+  }
+  return out;
+}
+
+/** Items whose containing tile is in the given tile list. */
+export function itemsInTiles(level, tiles) {
+  const keys = new Set(tiles.map(({ tx, ty }) => tileKey(tx, ty)));
+  return level.items.filter((it) => {
+    const tx = Math.floor(it.x / WORLD_PER_TILE);
+    const ty = Math.floor(it.y / WORLD_PER_TILE);
+    return keys.has(tileKey(tx, ty));
+  });
+}
+
+/**
+ * Raise/lower floor and ceiling together by delta on listed tiles.
+ * Each height is clamped independently to 0–31.
+ */
+export function nudgeTileHeights(level, tiles, delta) {
+  if (!delta) return;
+  for (const { tx, ty } of tiles) {
+    const cur = getTileProps(level, tx, ty);
+    if (!cur) continue;
+    const next = cloneSector(cur);
+    next.floorHeight = clampNum(cur.floorHeight + delta, 0, 31);
+    next.ceilingHeight = clampNum(cur.ceilingHeight + delta, 0, 31);
+    setTileProps(level, tx, ty, next);
+  }
+  rebuildSectors(level);
+}
+
 /**
  * Merge identical sectors: keep lowest id for each unique property set.
  */
@@ -299,6 +337,149 @@ export function mergeIdenticalSectors(level) {
   for (const id of ids) {
     if (remap.get(id) !== id) level.sectors.delete(id);
   }
+}
+
+/**
+ * Merge identical sectors and drop unused records.
+ * Call after any tile property edit.
+ */
+export function rebuildSectors(level) {
+  mergeIdenticalSectors(level);
+  for (const id of [...level.sectors.keys()]) {
+    if (sectorCellCount(level, id) === 0) level.sectors.delete(id);
+  }
+}
+
+export function sectorCount(level) {
+  return level.sectors.size;
+}
+
+/** All map cells that use the given sector id. */
+export function tilesInSector(level, sectorId) {
+  const out = [];
+  if (!sectorId) return out;
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      if (getCell(level, tx, ty) === sectorId) out.push({ tx, ty });
+    }
+  }
+  return out;
+}
+
+export function getTileProps(level, tx, ty) {
+  const id = getCell(level, tx, ty);
+  if (!id || !level.sectors.has(id)) return null;
+  return cloneSector(level.sectors.get(id));
+}
+
+/** Place props on a tile (allocates a fresh sector id). Returns id or 0. */
+export function setTileProps(level, tx, ty, props) {
+  const old = getCell(level, tx, ty);
+  const id = allocSectorId(level);
+  if (!id) return 0;
+  level.sectors.set(id, cloneSector(props));
+  setCell(level, tx, ty, id);
+  dropSectorIfEmpty(level, old);
+  return id;
+}
+
+/**
+ * Add a tile at (tx,ty). Uses brush props if provided, else default.
+ * Rebuilds sectors afterward. Returns true on success.
+ */
+export function addTile(level, tx, ty, brush = null) {
+  const props = brush ? cloneSector(brush) : defaultSector();
+  if (!setTileProps(level, tx, ty, props)) return false;
+  rebuildSectors(level);
+  return true;
+}
+
+/**
+ * Apply a property patch to all listed tiles. Empty tiles are skipped.
+ * Rebuilds sectors afterward.
+ */
+export function applyTilePatch(level, tiles, patch) {
+  for (const { tx, ty } of tiles) {
+    const cur = getTileProps(level, tx, ty);
+    if (!cur) continue;
+    const next = cloneSector(cur);
+    if ('floorHeight' in patch) next.floorHeight = clampNum(patch.floorHeight, 0, 31);
+    if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
+    if ('nsTexture' in patch) next.nsTexture = clampNum(patch.nsTexture, 0, 15);
+    if ('ewTexture' in patch) next.ewTexture = clampNum(patch.ewTexture, 0, 15);
+    if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 7);
+    if ('floorColor' in patch) next.floorColor = patch.floorColor;
+    if ('ceilingColor' in patch) next.ceilingColor = patch.ceilingColor;
+    setTileProps(level, tx, ty, next);
+  }
+  rebuildSectors(level);
+}
+
+/** Clear multiple tiles, then rebuild. */
+export function clearTiles(level, tiles) {
+  for (const { tx, ty } of tiles) clearTile(level, tx, ty);
+  rebuildSectors(level);
+}
+
+/**
+ * Move tiles by (dtx, dty). Off-map tiles are deleted.
+ * Returns the new tile positions that remain on the map.
+ */
+export function moveTiles(level, tiles, dtx, dty) {
+  if (!dtx && !dty) return tiles.map((t) => ({ ...t }));
+
+  const entries = [];
+  for (const { tx, ty } of tiles) {
+    const props = getTileProps(level, tx, ty);
+    if (!props) continue;
+    entries.push({ tx, ty, props });
+  }
+
+  for (const e of entries) clearTile(level, e.tx, e.ty);
+
+  const placed = [];
+  for (const e of entries) {
+    const ntx = e.tx + dtx;
+    const nty = e.ty + dty;
+    if (ntx < 0 || ntx >= MAP_SIZE || nty < 0 || nty >= MAP_SIZE) continue;
+    setTileProps(level, ntx, nty, e.props);
+    placed.push({ tx: ntx, ty: nty });
+  }
+  rebuildSectors(level);
+  return placed;
+}
+
+/**
+ * Move items by world delta. Removes items that leave the map.
+ * Returns the items that remain.
+ */
+export function moveItemsBy(level, items, dx, dy) {
+  const kept = [];
+  for (const it of items) {
+    const nx = it.x + dx;
+    const ny = it.y + dy;
+    if (nx < 0 || nx > WORLD_MAX || ny < 0 || ny > WORLD_MAX) {
+      removeItem(level, it);
+      continue;
+    }
+    it.x = nx;
+    it.y = ny;
+    kept.push(it);
+  }
+  return kept;
+}
+
+function clampNum(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, Number(v) || 0));
+}
+
+export function tileKey(tx, ty) {
+  return `${tx},${ty}`;
+}
+
+export function parseTileKey(key) {
+  const [tx, ty] = key.split(',').map(Number);
+  return { tx, ty };
 }
 
 /** Merge source sector into target (all source cells become target). */

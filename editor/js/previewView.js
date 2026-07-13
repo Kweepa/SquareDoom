@@ -17,10 +17,38 @@ const PROJ = 70;
 const ITEM_WORLD_HEIGHT = 4;
 const TAN_HALF_FOV = Math.tan(FOV / 2);
 
+/** Enemies keep full preview height; everything else is half size. */
+const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
+
 // side 0 = north/south wall, side 1 = east/west wall
 const WALL_NS = [42, 42, 42];
 const WALL_EW = [68, 68, 68];
 
+/** Cache of images with pure black (#000) keyed to transparent. */
+const transparentCache = new Map();
+
+function transparentSprite(img) {
+  if (!img?.complete || !img.naturalWidth) return null;
+  let cached = transparentCache.get(img);
+  if (cached) return cached;
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h);
+  const px = data.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i] === 0 && px[i + 1] === 0 && px[i + 2] === 0) px[i + 3] = 0;
+  }
+  ctx.putImageData(data, 0, 0);
+  transparentCache.set(img, c);
+  return c;
+}
 export class PreviewView {
   /**
    * @param {HTMLCanvasElement} canvas
@@ -120,22 +148,27 @@ export class PreviewView {
       const floorZ = sector?.floorHeight ?? 0;
       const screenX = PREVIEW_W / 2 + (lateral / depth) * (PREVIEW_W / 2) / TAN_HALF_FOV;
       const screenFloorY = HORIZON + ((eyeZ - floorZ) * PROJ) / depth;
-      const spriteH = Math.max(2, (ITEM_WORLD_HEIGHT * PROJ) / depth);
+      const sizeScale = ENEMY_TYPES.has(it.type) ? 1 : 0.5;
+      const spriteH = Math.max(1, (ITEM_WORLD_HEIGHT * PROJ * sizeScale) / depth);
       const img = this.opts.images[it.type];
+      const sprite = transparentSprite(img);
       let spriteW = spriteH * 0.75;
-      if (img?.complete && img.naturalWidth > 0) {
-        spriteW = spriteH * (img.naturalWidth / img.naturalHeight);
+      if (sprite) {
+        spriteW = spriteH * (sprite.width / sprite.height);
       }
-      const left = screenX - spriteW / 2;
-      const top = screenFloorY - spriteH;
+      const left = Math.round(screenX - spriteW / 2);
+      const top = Math.round(screenFloorY - spriteH);
+      const w = Math.max(1, Math.round(spriteW));
+      const h = Math.max(1, Math.round(spriteH));
 
-      if (left + spriteW < 0 || left > PREVIEW_W || top + spriteH < 0 || top > PREVIEW_H) continue;
+      if (left + w < 0 || left > PREVIEW_W || top + h < 0 || top > PREVIEW_H) continue;
 
-      if (img?.complete) {
-        ctx.drawImage(img, left, top, spriteW, spriteH);
+      if (sprite) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sprite, left, top, w, h);
       } else {
         ctx.fillStyle = '#c84';
-        ctx.fillRect(left, top, spriteW, spriteH);
+        ctx.fillRect(left, top, w, h);
       }
     }
   }

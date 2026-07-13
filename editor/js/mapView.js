@@ -3,6 +3,7 @@ import {
   MAP_SIZE,
   WORLD_PER_TILE,
   getCell,
+  tileKey,
 } from './model.js';
 
 export class MapView {
@@ -10,7 +11,12 @@ export class MapView {
    * @param {HTMLCanvasElement} canvas
    * @param {object} opts
    * @param {() => any} opts.getLevel
-   * @param {() => {sectorId:number, tile:{tx:number,ty:number}|null, item:any|null, hoverSector:number}} opts.getSelection
+   * @param {() => {
+   *   tiles: Set<string>,
+   *   items: Set<any>,
+   *   hoverTile: {tx:number,ty:number}|null,
+   *   box: {x0:number,y0:number,x1:number,y1:number}|null,
+   * }} opts.getSelection
    * @param {(ev: PointerEvent, info: object) => void} opts.onPointer
    * @param {(type: string, wx: number, wy: number) => void} opts.onDropItem
    * @param {Record<string, HTMLImageElement>} opts.images
@@ -139,9 +145,12 @@ export class MapView {
       ty,
       wx,
       wy,
+      px,
+      py,
       item,
       sectorId: getCell(level, tx, ty),
       shift: e.shiftKey,
+      ctrl: e.ctrlKey || e.metaKey,
     });
   }
 
@@ -181,25 +190,45 @@ export class MapView {
     }
     ctx.stroke();
 
-    const highlightId = sel.hoverSector || sel.sectorId;
-    if (highlightId) {
+    // Selected tiles
+    if (sel.tiles?.size) {
       ctx.fillStyle = 'rgba(255, 220, 80, 0.28)';
-      ctx.strokeStyle = 'rgba(255, 220, 80, 0.9)';
+      ctx.strokeStyle = 'rgba(255, 220, 80, 0.95)';
       ctx.lineWidth = Math.max(1, Math.round(c / 9));
-      for (let ty = 0; ty < MAP_SIZE; ty++) {
-        for (let tx = 0; tx < MAP_SIZE; tx++) {
-          if (getCell(level, tx, ty) !== highlightId) continue;
-          ctx.fillRect(tx * c, ty * c, c, c);
-          ctx.strokeRect(tx * c + 1, ty * c + 1, c - 2, c - 2);
-        }
+      for (const key of sel.tiles) {
+        const [tx, ty] = key.split(',').map(Number);
+        ctx.fillRect(tx * c, ty * c, c, c);
+        ctx.strokeRect(tx * c + 1, ty * c + 1, c - 2, c - 2);
       }
     }
 
-    if (sel.tile && sel.sectorId) {
-      const { tx, ty } = sel.tile;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = Math.max(1, Math.round(c / 9));
-      ctx.strokeRect(tx * c + 1.5, ty * c + 1.5, c - 3, c - 3);
+    // Marquee box
+    if (sel.box) {
+      const x0 = Math.min(sel.box.x0, sel.box.x1);
+      const y0 = Math.min(sel.box.y0, sel.box.y1);
+      const x1 = Math.max(sel.box.x0, sel.box.x1);
+      const y1 = Math.max(sel.box.y0, sel.box.y1);
+      const px = x0 * c;
+      const py = y0 * c;
+      const pw = (x1 - x0 + 1) * c;
+      const ph = (y1 - y0 + 1) * c;
+      ctx.fillStyle = 'rgba(120, 180, 255, 0.12)';
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = 'rgba(120, 180, 255, 0.95)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+      ctx.setLineDash([]);
+    }
+
+    // Hover tile
+    if (sel.hoverTile) {
+      const { tx, ty } = sel.hoverTile;
+      if (!sel.tiles?.has(tileKey(tx, ty))) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tx * c + 0.5, ty * c + 0.5, c - 1, c - 1);
+      }
     }
 
     for (const it of level.items) {
@@ -209,12 +238,13 @@ export class MapView {
       const top = iy - drawH / 2;
       const img = this.opts.images[it.type];
       if (img && img.complete) {
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, left, top, drawW, drawH);
       } else {
         ctx.fillStyle = '#fa0';
         ctx.fillRect(left, top, drawW, drawH);
       }
-      if (sel.item === it) {
+      if (sel.items?.has(it)) {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.strokeRect(left - 1, top - 1, drawW + 2, drawH + 2);

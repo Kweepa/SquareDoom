@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SquareDoom Map Editor</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=10" />
 </head>
 <body>
   <header class="toolbar">
@@ -32,13 +32,13 @@
         <canvas id="map-canvas" tabindex="0"></canvas>
       </div>
       <p class="hint">
-        Click select · Shift+click paint/split · Drag items · Del clears tile / deletes item
+        Drag box select · Ctrl+drag add · Click select · Shift+click paint · Del clears
       </p>
     </section>
 
     <aside class="right">
       <div class="right-editors">
-        <div id="sector-editor"></div>
+        <div id="tile-editor"></div>
         <div id="item-editor"></div>
       </div>
       <div id="preview-panel" class="preview-panel panel">
@@ -50,6 +50,6 @@
     </aside>
   </main>
 
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/main.js?v=10"></script>
 </body>
 </html>

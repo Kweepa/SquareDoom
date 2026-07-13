@@ -119,6 +119,7 @@ export function episodeToJSON(episode) {
   return {
     format: 'squaredoom-map',
     version: 1,
+    activeLevel: episode.activeLevel,
     levels,
   };
 }
@@ -134,6 +135,9 @@ export function episodeFromJSON(data) {
         episode.levels[name] = levelFromJSON(data.levels[name]);
       }
     }
+  }
+  if (data.activeLevel && episode.levels[data.activeLevel]) {
+    episode.activeLevel = data.activeLevel;
   }
   return episode;
 }
@@ -196,43 +200,7 @@ export function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export async function saveEpisodeJSON(episode, suggestedName = 'episode1.json') {
-  const text = JSON.stringify(episodeToJSON(episode), null, 2);
-  const blob = new Blob([text], { type: 'application/json' });
-
-  if (window.showSaveFilePicker) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName,
-        types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return;
-    } catch (e) {
-      if (e.name === 'AbortError') return;
-    }
-  }
-  downloadBlob(blob, suggestedName);
-}
-
-export async function loadEpisodeJSON() {
-  if (window.showOpenFilePicker) {
-    try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
-        multiple: false,
-      });
-      const file = await handle.getFile();
-      const text = await file.text();
-      return episodeFromJSON(JSON.parse(text));
-    } catch (e) {
-      if (e.name === 'AbortError') return null;
-      throw e;
-    }
-  }
-
+function pickJsonFile() {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -250,8 +218,77 @@ export async function loadEpisodeJSON() {
         reject(err);
       }
     };
+    // Ignore cancel (no change event in most browsers)
+    input.addEventListener('cancel', () => resolve(null));
     input.click();
   });
+}
+
+export const DEFAULT_EPISODE_PATH = 'episode1.json';
+
+export async function fetchEpisodeJSON(path = DEFAULT_EPISODE_PATH) {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Could not load ${path} (${res.status})`);
+  return episodeFromJSON(await res.json());
+}
+
+/** Write episode JSON via PUT (used by editor/serve.py). */
+export async function putEpisodeJSON(episode, path = DEFAULT_EPISODE_PATH) {
+  const text = JSON.stringify(episodeToJSON(episode), null, 2);
+  const res = await fetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: text,
+  });
+  if (!res.ok) throw new Error(`Autosave failed (${res.status})`);
+}
+
+export async function saveEpisodeJSON(episode, suggestedName = DEFAULT_EPISODE_PATH) {
+  // Prefer writing into the project file when the local editor server supports PUT
+  try {
+    await putEpisodeJSON(episode, DEFAULT_EPISODE_PATH);
+    return 'server';
+  } catch (_) {
+    // Fall through
+  }
+
+  const text = JSON.stringify(episodeToJSON(episode), null, 2);
+  const blob = new Blob([text], { type: 'application/json' });
+
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return 'picker';
+    } catch (e) {
+      if (e.name === 'AbortError') return null;
+    }
+  }
+  downloadBlob(blob, suggestedName);
+  return 'download';
+}
+
+export async function loadEpisodeJSON() {
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
+        multiple: false,
+      });
+      const file = await handle.getFile();
+      const text = await file.text();
+      return episodeFromJSON(JSON.parse(text));
+    } catch (e) {
+      if (e.name === 'AbortError') return null;
+      // Fall through to <input type="file"> on SecurityError etc.
+    }
+  }
+  return pickJsonFile();
 }
 
 export function cookAndDownload(episode, levelName) {
