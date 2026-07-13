@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SquareDoom Map Editor</title>
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <header class="toolbar">
@@ -43,13 +43,29 @@
       </div>
       <div id="preview-panel" class="preview-panel panel">
         <h2>Camera preview</h2>
-        <canvas id="preview-canvas" tabindex="0"></canvas>
+        <div class="preview-frame">
+          <canvas id="preview-canvas" tabindex="0"></canvas>
+        </div>
+        <div class="preview-res">
+          <label>
+            Rays
+            <input type="number" id="preview-rays" min="8" max="320" value="40" />
+          </label>
+          <label>
+            Col H
+            <input type="number" id="preview-col-h" min="8" max="240" value="30" />
+          </label>
+        </div>
+        <label class="preview-option">
+          <input type="checkbox" id="preview-debug-walls" />
+          Debug walls (N/S blue, E/W black)
+        </label>
         <p class="muted" id="preview-hint">Place or select a camera</p>
       </div>
       <div id="shift-controls"></div>
     </aside>
   </main>
 
-  <script type="module" src="js/main.js?v=10"></script>
+  <script type="module" src="js/main.js?v=17"></script>
 </body>
 </html>

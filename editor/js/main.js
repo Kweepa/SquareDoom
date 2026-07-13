@@ -3,6 +3,7 @@ import {
   CAMERA_TYPE,
   MAP_SIZE,
   WORLD_PER_TILE,
+  WORLD_MAX,
   activeLevel,
   addItem,
   addTile,
@@ -28,15 +29,15 @@ import {
   clampWorld,
   itemsInTiles,
   MAX_ITEMS,
-} from './model.js?v=10';
-import { MapView } from './mapView.js?v=10';
-import { ItemPalette } from './itemPalette.js?v=10';
-import { LevelList } from './levelList.js?v=10';
-import { TileEditor } from './tileEditor.js?v=10';
-import { ItemEditor } from './itemEditor.js?v=10';
-import { PreviewView } from './previewView.js?v=10';
-import { initShiftControls } from './shiftControls.js?v=10';
-import { cookAndDownload, fetchEpisodeJSON, loadEpisodeJSON, saveEpisodeJSON } from './io.js?v=10';
+} from './model.js?v=17';
+import { MapView } from './mapView.js?v=17';
+import { ItemPalette } from './itemPalette.js?v=17';
+import { LevelList } from './levelList.js?v=17';
+import { TileEditor } from './tileEditor.js?v=17';
+import { ItemEditor } from './itemEditor.js?v=17';
+import { PreviewView } from './previewView.js?v=17';
+import { initShiftControls } from './shiftControls.js?v=17';
+import { cookAndDownload, fetchEpisodeJSON, loadEpisodeJSON, saveEpisodeJSON } from './io.js?v=17';
 
 const statusEl = document.getElementById('status');
 const titleEl = document.querySelector('.toolbar h1');
@@ -261,12 +262,25 @@ initShiftControls(
 );
 
 const previewHint = document.getElementById('preview-hint');
+const previewDebugWalls = document.getElementById('preview-debug-walls');
+const previewRays = document.getElementById('preview-rays');
+const previewColH = document.getElementById('preview-col-h');
+
+function previewInt(el, fallback, lo, hi) {
+  const n = Number(el.value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+
 const previewView = new PreviewView(document.getElementById('preview-canvas'), {
   getLevel: () => activeLevel(episode),
   getCamera: () => {
     const selectedCam = [...selection.items].find((it) => isCamera(it));
     return findPreviewCamera(activeLevel(episode), selectedCam ?? null);
   },
+  getDebugWalls: () => previewDebugWalls.checked,
+  getRaycasts: () => previewInt(previewRays, 40, 8, 320),
+  getColumnHeight: () => previewInt(previewColH, 30, 8, 240),
   images,
   onRotate: (angle) => {
     const selectedCam = [...selection.items].find((it) => isCamera(it));
@@ -277,7 +291,29 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     if (selection.items.has(cam)) itemEditor.render();
     previewView.draw();
   },
+  onMove: (x, y) => {
+    const selectedCam = [...selection.items].find((it) => isCamera(it));
+    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    if (!cam) return;
+    // Keep fractional world coords while walking; |0 truncate made forward stick.
+    cam.x = Math.max(0, Math.min(WORLD_MAX, x));
+    cam.y = Math.max(0, Math.min(WORLD_MAX, y));
+    markDirty();
+    if (selection.items.has(cam)) itemEditor.render();
+    mapView.draw();
+    previewView.draw();
+  },
 });
+
+function redrawPreview() {
+  previewView.draw();
+}
+
+previewDebugWalls.addEventListener('change', redrawPreview);
+previewRays.addEventListener('change', redrawPreview);
+previewColH.addEventListener('change', redrawPreview);
+previewRays.addEventListener('input', redrawPreview);
+previewColH.addEventListener('input', redrawPreview);
 
 function updatePreviewHint() {
   const selectedCam = [...selection.items].find((it) => isCamera(it));
@@ -287,9 +323,9 @@ function updatePreviewHint() {
     return;
   }
   if (selectedCam) {
-    previewHint.textContent = 'Drag in preview to rotate';
+    previewHint.textContent = 'Drag L/R to rotate · U/D to walk';
   } else {
-    previewHint.textContent = 'Showing first camera — select one to edit angle';
+    previewHint.textContent = 'Showing first camera — select one to edit';
   }
 }
 

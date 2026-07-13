@@ -189,12 +189,22 @@ h2 {
   text-align: center;
 }
 
+.preview-frame {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  background: #0a0a0c;
+  overflow: hidden;
+}
+
 #preview-canvas {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   image-rendering: pixelated;
-  border: 1px solid var(--border);
+  -ms-interpolation-mode: nearest-neighbor;
   background: #0a0a0c;
   cursor: grab;
   touch-action: none;
@@ -204,10 +214,51 @@ h2 {
   cursor: grabbing;
 }
 
+.preview-res {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.preview-res label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.preview-res input[type="number"] {
+  width: 3.5rem;
+  min-width: 0;
+  padding: 0.2rem 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+}
+
 .preview-panel .muted {
   margin: 0.35rem 0 0;
   font-size: 0.7rem;
   text-align: center;
+}
+
+.preview-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.preview-option input {
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .center {
