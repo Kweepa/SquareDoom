@@ -1,4 +1,4 @@
-/** @typedef {'black'|'red'|'green'|'yellow'|'blue'|'magenta'|'cyan'|'white'} ColorName */
+/** @typedef {number} C64Color 0–15 Commodore 64 palette index */
 
 export const MAP_SIZE = 32;
 export const MAP_CELLS = MAP_SIZE * MAP_SIZE;
@@ -11,21 +11,70 @@ export const LEVEL_NAMES = [
   'E1M1', 'E1M2', 'E1M3', 'E1M4', 'E1M5', 'E1M6', 'E1M7', 'E1M8', 'E1M9',
 ];
 
-export const COLORS = [
-  'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+/** Pepto Commodore 64 palette (indices 0–15). */
+export const C64_HEX = [
+  '#000000', // 0 black
+  '#ffffff', // 1 white
+  '#813338', // 2 red
+  '#75cec8', // 3 cyan
+  '#8e3c97', // 4 purple
+  '#56ac4d', // 5 green
+  '#40318d', // 6 blue
+  '#bfce72', // 7 yellow
+  '#8e5029', // 8 orange
+  '#553f00', // 9 brown
+  '#c46c71', // 10 light red
+  '#4a4a4a', // 11 dark grey
+  '#7b7b7b', // 12 grey
+  '#a9ff9f', // 13 light green
+  '#706deb', // 14 light blue
+  '#b2b2b2', // 15 light grey
 ];
 
-/** CSS hex for editor display (approx VIC-20 style). */
-export const COLOR_HEX = {
-  black: '#000000',
-  red: '#c04040',
-  green: '#40a040',
-  yellow: '#c0c040',
-  blue: '#4040c0',
-  magenta: '#c040c0',
-  cyan: '#40c0c0',
-  white: '#d0d0d0',
+export const C64_NAMES = [
+  'black', 'white', 'red', 'cyan', 'purple', 'green', 'blue', 'yellow',
+  'orange', 'brown', 'light red', 'dark grey', 'grey', 'light green',
+  'light blue', 'light grey',
+];
+
+/** @deprecated old 8-colour names → C64 index (for map migration) */
+const LEGACY_COLOR_TO_C64 = {
+  black: 0,
+  red: 2,
+  green: 5,
+  yellow: 7,
+  blue: 6,
+  magenta: 4,
+  cyan: 3,
+  white: 1,
 };
+
+/** Doom-style sector specials (as used by VicDoom), plus editor Door. */
+export const DOOR_SECTOR_TYPE = 18;
+
+export const SECTOR_TYPES = [
+  { id: 0, name: 'Normal' },
+  { id: 1, name: 'Light blink random' },
+  { id: 2, name: 'Light blink 0.5s' },
+  { id: 3, name: 'Light blink 1.0s' },
+  { id: 4, name: 'Damage 20% + blink' },
+  { id: 5, name: 'Damage 10%' },
+  { id: 7, name: 'Damage 5%' },
+  { id: 8, name: 'Light oscillate' },
+  { id: 9, name: 'Secret' },
+  { id: 10, name: 'Door close (30s)' },
+  { id: 11, name: 'Damage end level' },
+  { id: 12, name: 'Light blink sync 1s' },
+  { id: 13, name: 'Light blink sync 0.5s' },
+  { id: 14, name: 'Door open (300s)' },
+  { id: 16, name: 'Damage 20%' },
+  { id: 17, name: 'Light flicker' },
+  { id: DOOR_SECTOR_TYPE, name: 'Door' },
+];
+
+export function isDoorSector(sector) {
+  return (sector?.sectorType ?? 0) === DOOR_SECTOR_TYPE;
+}
 
 export const ITEM_TYPES = [
   'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
@@ -70,19 +119,43 @@ export function findPreviewCamera(level, selectedItem) {
   return level.items.find((it) => isCamera(it)) ?? null;
 }
 
-export function colorIndex(name) {
-  const i = COLORS.indexOf(name);
-  return i < 0 ? 0 : i;
+export function colorHex(index) {
+  return C64_HEX[index & 15] || C64_HEX[0];
+}
+
+/** Normalize JSON colour (legacy name or 0–15) to a C64 index. */
+export function normalizeColor(value, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(0, Math.min(15, value | 0));
+  }
+  if (typeof value === 'string' && value in LEGACY_COLOR_TO_C64) {
+    return LEGACY_COLOR_TO_C64[value];
+  }
+  const asNum = Number(value);
+  if (Number.isFinite(asNum)) return Math.max(0, Math.min(15, asNum | 0));
+  return fallback;
+}
+
+/** @deprecated use colorHex / normalizeColor */
+export const COLORS = C64_NAMES;
+/** @deprecated use C64_HEX / colorHex */
+export const COLOR_HEX = Object.fromEntries(C64_NAMES.map((n, i) => [n, C64_HEX[i]]));
+
+export function colorIndex(value) {
+  return normalizeColor(value, 0);
 }
 
 export function defaultSector() {
   return {
     floorHeight: 8,
     ceilingHeight: 13,
-    nsTexture: 0,
-    ewTexture: 0,
-    floorColor: 'black',
-    ceilingColor: 'black',
+    sectorType: 0,
+    /** Editor-only name; baked away — used to resolve targetTag → sector id. */
+    tag: '',
+    /** Editor-only; when sectorType ≠ 0, names the target sector's tag. */
+    targetTag: '',
+    floorColor: 0,
+    ceilingColor: 0,
     brightness: 7,
   };
 }
@@ -95,12 +168,24 @@ export function sectorsEqual(a, b) {
   return (
     a.floorHeight === b.floorHeight &&
     a.ceilingHeight === b.ceilingHeight &&
-    a.nsTexture === b.nsTexture &&
-    a.ewTexture === b.ewTexture &&
+    a.sectorType === b.sectorType &&
+    (a.tag || '') === (b.tag || '') &&
+    (a.targetTag || '') === (b.targetTag || '') &&
     a.floorColor === b.floorColor &&
     a.ceilingColor === b.ceilingColor &&
     a.brightness === b.brightness
   );
+}
+
+/** Find sector id whose tag matches (first / lowest id). 0 if none. */
+export function findSectorIdByTag(level, tag) {
+  const t = String(tag || '').trim();
+  if (!t) return 0;
+  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  for (const id of ids) {
+    if ((level.sectors.get(id).tag || '').trim() === t) return id;
+  }
+  return 0;
 }
 
 export function defaultSkills() {
@@ -405,11 +490,12 @@ export function applyTilePatch(level, tiles, patch) {
     const next = cloneSector(cur);
     if ('floorHeight' in patch) next.floorHeight = clampNum(patch.floorHeight, 0, 31);
     if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
-    if ('nsTexture' in patch) next.nsTexture = clampNum(patch.nsTexture, 0, 15);
-    if ('ewTexture' in patch) next.ewTexture = clampNum(patch.ewTexture, 0, 15);
+    if ('sectorType' in patch) next.sectorType = clampNum(patch.sectorType, 0, 255);
+    if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
+    if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
     if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 7);
-    if ('floorColor' in patch) next.floorColor = patch.floorColor;
-    if ('ceilingColor' in patch) next.ceilingColor = patch.ceilingColor;
+    if ('floorColor' in patch) next.floorColor = normalizeColor(patch.floorColor);
+    if ('ceilingColor' in patch) next.ceilingColor = normalizeColor(patch.ceilingColor);
     setTileProps(level, tx, ty, next);
   }
   rebuildSectors(level);

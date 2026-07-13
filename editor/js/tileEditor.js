@@ -1,4 +1,4 @@
-import { COLORS, COLOR_HEX, sectorsEqual } from './model.js';
+import { C64_HEX, C64_NAMES, SECTOR_TYPES, sectorsEqual } from './model.js';
 
 function numInput(id, label, min, max, value, mixed) {
   const wrap = document.createElement('label');
@@ -21,6 +21,27 @@ function numInput(id, label, min, max, value, mixed) {
   return { wrap, input };
 }
 
+function textInput(id, label, value, mixed) {
+  const wrap = document.createElement('label');
+  wrap.className = 'field';
+  wrap.htmlFor = id;
+  const span = document.createElement('span');
+  span.textContent = label;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = id;
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  if (mixed) {
+    input.placeholder = 'mixed';
+    input.value = '';
+  } else {
+    input.value = value ?? '';
+  }
+  wrap.append(span, input);
+  return { wrap, input };
+}
+
 function colorPicker(id, label, value, mixed) {
   const wrap = document.createElement('div');
   wrap.className = 'field color-field';
@@ -30,13 +51,13 @@ function colorPicker(id, label, value, mixed) {
   row.className = 'color-swatches';
   /** @type {HTMLButtonElement[]} */
   const buttons = [];
-  for (const c of COLORS) {
+  for (let i = 0; i < 16; i++) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'swatch' + (!mixed && c === value ? ' selected' : '');
-    btn.title = c;
-    btn.dataset.color = c;
-    btn.style.background = COLOR_HEX[c];
+    btn.className = 'swatch' + (!mixed && i === value ? ' selected' : '');
+    btn.title = `${i}: ${C64_NAMES[i]}`;
+    btn.dataset.color = String(i);
+    btn.style.background = C64_HEX[i];
     buttons.push(btn);
     row.appendChild(btn);
   }
@@ -47,8 +68,8 @@ function colorPicker(id, label, value, mixed) {
 function summarizeProps(propList) {
   if (!propList.length) return null;
   const keys = [
-    'floorHeight', 'ceilingHeight', 'nsTexture', 'ewTexture',
-    'brightness', 'floorColor', 'ceilingColor',
+    'floorHeight', 'ceilingHeight', 'sectorType',
+    'tag', 'targetTag', 'brightness', 'floorColor', 'ceilingColor',
   ];
   const out = { ...propList[0], _mixed: {} };
   for (const key of keys) {
@@ -127,9 +148,44 @@ export class TileEditor {
 
     const floor = numInput('te-floor', 'Floor height', 0, 31, s.floorHeight, s._mixed.floorHeight);
     const ceil = numInput('te-ceil', 'Ceiling height', 0, 31, s.ceilingHeight, s._mixed.ceilingHeight);
-    const ns = numInput('te-ns', 'N/S texture', 0, 15, s.nsTexture, s._mixed.nsTexture);
-    const ew = numInput('te-ew', 'E/W texture', 0, 15, s.ewTexture, s._mixed.ewTexture);
     const bright = numInput('te-bright', 'Brightness', 0, 7, s.brightness, s._mixed.brightness);
+
+    const typeWrap = document.createElement('label');
+    typeWrap.className = 'field';
+    typeWrap.htmlFor = 'te-type';
+    const typeSpan = document.createElement('span');
+    typeSpan.textContent = s._mixed.sectorType ? 'Sector type (mixed)' : 'Sector type';
+    const typeSel = document.createElement('select');
+    typeSel.id = 'te-type';
+    for (const t of SECTOR_TYPES) {
+      const opt = document.createElement('option');
+      opt.value = String(t.id);
+      opt.textContent = `${t.id}: ${t.name}`;
+      typeSel.appendChild(opt);
+    }
+    if (!s._mixed.sectorType) typeSel.value = String(s.sectorType ?? 0);
+    else {
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = 'mixed';
+      ph.disabled = true;
+      ph.selected = true;
+      typeSel.prepend(ph);
+    }
+    typeSel.addEventListener('change', () => {
+      if (typeSel.value === '') return;
+      this.opts.onChange({ sectorType: Number(typeSel.value) });
+    });
+    typeWrap.append(typeSpan, typeSel);
+
+    const typeNum = Number(s.sectorType);
+    const showTarget = !!s._mixed.sectorType || (Number.isFinite(typeNum) && typeNum !== 0);
+
+    const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
+    tag.input.addEventListener('change', () => {
+      this.opts.onChange({ tag: tag.input.value });
+    });
+
     const floorCol = colorPicker('te-fcol', 'Floor colour', s.floorColor, s._mixed.floorColor);
     const ceilCol = colorPicker('te-ccol', 'Ceiling colour', s.ceilingColor, s._mixed.ceilingColor);
 
@@ -141,21 +197,32 @@ export class TileEditor {
     };
     bindNum(floor.input, 'floorHeight');
     bindNum(ceil.input, 'ceilingHeight');
-    bindNum(ns.input, 'nsTexture');
-    bindNum(ew.input, 'ewTexture');
     bindNum(bright.input, 'brightness');
 
     for (const btn of floorCol.buttons) {
-      btn.addEventListener('click', () => this.opts.onChange({ floorColor: btn.dataset.color }));
+      btn.addEventListener('click', () => this.opts.onChange({ floorColor: Number(btn.dataset.color) }));
     }
     for (const btn of ceilCol.buttons) {
-      btn.addEventListener('click', () => this.opts.onChange({ ceilingColor: btn.dataset.color }));
+      btn.addEventListener('click', () => this.opts.onChange({ ceilingColor: Number(btn.dataset.color) }));
     }
 
-    this.root.append(
-      floor.wrap, ceil.wrap, ns.wrap, ew.wrap, bright.wrap,
-      floorCol.wrap, ceilCol.wrap,
-    );
+    this.root.append(floor.wrap, ceil.wrap, bright.wrap, typeWrap);
+
+    if (showTarget) {
+      const target = textInput(
+        'te-target',
+        s._mixed.targetTag ? 'Target tag (mixed)' : 'Target tag',
+        s.targetTag || '',
+        s._mixed.targetTag,
+      );
+      target.input.placeholder = s._mixed.targetTag ? 'mixed' : 'tag of target sector';
+      target.input.addEventListener('change', () => {
+        this.opts.onChange({ targetTag: target.input.value });
+      });
+      this.root.appendChild(target.wrap);
+    }
+
+    this.root.append(tag.wrap, floorCol.wrap, ceilCol.wrap);
     this.#actions();
   }
 

@@ -29,15 +29,15 @@ import {
   clampWorld,
   itemsInTiles,
   MAX_ITEMS,
-} from './model.js?v=17';
-import { MapView } from './mapView.js?v=17';
-import { ItemPalette } from './itemPalette.js?v=17';
-import { LevelList } from './levelList.js?v=17';
-import { TileEditor } from './tileEditor.js?v=17';
-import { ItemEditor } from './itemEditor.js?v=17';
-import { PreviewView } from './previewView.js?v=17';
-import { initShiftControls } from './shiftControls.js?v=17';
-import { cookAndDownload, fetchEpisodeJSON, loadEpisodeJSON, saveEpisodeJSON } from './io.js?v=17';
+} from './model.js?v=24';
+import { MapView } from './mapView.js?v=24';
+import { ItemPalette } from './itemPalette.js?v=24';
+import { LevelList } from './levelList.js?v=24';
+import { TileEditor } from './tileEditor.js?v=24';
+import { ItemEditor } from './itemEditor.js?v=24';
+import { PreviewView } from './previewView.js?v=24';
+import { initShiftControls } from './shiftControls.js?v=24';
+import { cookAndDownload, fetchEpisodeJSON, loadEpisodeJSON, saveEpisodeJSON } from './io.js?v=24';
 
 const statusEl = document.getElementById('status');
 const titleEl = document.querySelector('.toolbar h1');
@@ -262,7 +262,6 @@ initShiftControls(
 );
 
 const previewHint = document.getElementById('preview-hint');
-const previewDebugWalls = document.getElementById('preview-debug-walls');
 const previewRays = document.getElementById('preview-rays');
 const previewColH = document.getElementById('preview-col-h');
 
@@ -278,9 +277,8 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     const selectedCam = [...selection.items].find((it) => isCamera(it));
     return findPreviewCamera(activeLevel(episode), selectedCam ?? null);
   },
-  getDebugWalls: () => previewDebugWalls.checked,
   getRaycasts: () => previewInt(previewRays, 40, 8, 320),
-  getColumnHeight: () => previewInt(previewColH, 30, 8, 240),
+  getColumnHeight: () => previewInt(previewColH, 25, 8, 240),
   images,
   onRotate: (angle) => {
     const selectedCam = [...selection.items].find((it) => isCamera(it));
@@ -309,7 +307,6 @@ function redrawPreview() {
   previewView.draw();
 }
 
-previewDebugWalls.addEventListener('change', redrawPreview);
 previewRays.addEventListener('change', redrawPreview);
 previewColH.addEventListener('change', redrawPreview);
 previewRays.addEventListener('input', redrawPreview);
@@ -816,8 +813,12 @@ document.getElementById('btn-load').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-cook').addEventListener('click', () => {
-  cookAndDownload(episode, episode.activeLevel);
-  setStatus(`Cooked ${episode.activeLevel}`);
+  const warnings = cookAndDownload(episode, episode.activeLevel);
+  if (warnings?.length) {
+    setStatus(`Cooked ${episode.activeLevel} — ${warnings[0]}`, true);
+  } else {
+    setStatus(`Cooked ${episode.activeLevel}`);
+  }
 });
 
 async function boot() {

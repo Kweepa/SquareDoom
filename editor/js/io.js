@@ -1,19 +1,21 @@
 /**
  * Cooked binary layout (no header), per level:
  *   1. Sector table: 255 * 7 bytes (sectors 1..255; unused slots zeroed)
- *      each: floor, ceil, ns, ew, floorColor, ceilingColor, brightness
+ *      each: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
+ *      targetSector is the resolved sector id (from editor targetTag); 0 if type is 0 / unresolved
+ *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Items: 48 * 4 bytes: typeId, x, y, skillBits
  *      skillBits: bit0=easy, bit1=normal, bit2=hard
  *      unused item slots: typeId=0xFF
- * Colors: 0..7 = black,red,green,yellow,blue,magenta,cyan,white
+ * Colors: 0..15 = Commodore 64 palette
  * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
  */
 
 import {
-  COLORS,
   ITEM_TYPES,
   CAMERA_TYPE,
+  DOOR_SECTOR_TYPE,
   isGameItem,
   LEVEL_NAMES,
   MAP_CELLS,
@@ -23,7 +25,9 @@ import {
   createEmptyLevel,
   createEpisode,
   defaultSector,
+  findSectorIdByTag,
   gameItemCount,
+  normalizeColor,
 } from './model.js';
 
 const SECTOR_BYTES = 7;
@@ -36,8 +40,9 @@ export function levelToJSON(level) {
     sectorObj[String(id)] = {
       floorHeight: s.floorHeight,
       ceilingHeight: s.ceilingHeight,
-      nsTexture: s.nsTexture,
-      ewTexture: s.ewTexture,
+      sectorType: s.sectorType ?? 0,
+      tag: s.tag || '',
+      targetTag: s.targetTag || '',
       floorColor: s.floorColor,
       ceilingColor: s.ceilingColor,
       brightness: s.brightness,
@@ -67,13 +72,17 @@ export function levelFromJSON(data) {
       const id = Number(key);
       if (id < 1 || id > MAX_SECTORS) continue;
       const d = defaultSector();
+      let sectorType = clamp(s.sectorType ?? d.sectorType, 0, 255);
+      // Migrate legacy door checkbox → Door sector type
+      if (s.door && sectorType === 0) sectorType = DOOR_SECTOR_TYPE;
       level.sectors.set(id, {
         floorHeight: clamp(s.floorHeight ?? d.floorHeight, 0, 31),
         ceilingHeight: clamp(s.ceilingHeight ?? d.ceilingHeight, 0, 31),
-        nsTexture: clamp(s.nsTexture ?? d.nsTexture, 0, 15),
-        ewTexture: clamp(s.ewTexture ?? d.ewTexture, 0, 15),
-        floorColor: COLORS.includes(s.floorColor) ? s.floorColor : d.floorColor,
-        ceilingColor: COLORS.includes(s.ceilingColor) ? s.ceilingColor : d.ceilingColor,
+        sectorType,
+        tag: String(s.tag ?? d.tag ?? '').trim(),
+        targetTag: String(s.targetTag ?? d.targetTag ?? '').trim(),
+        floorColor: normalizeColor(s.floorColor, d.floorColor),
+        ceilingColor: normalizeColor(s.ceilingColor, d.ceilingColor),
         brightness: clamp(s.brightness ?? d.brightness, 0, 7),
       });
     }
@@ -143,17 +152,32 @@ export function episodeFromJSON(data) {
 }
 
 export function cookLevel(level) {
+  /** @type {string[]} */
+  const warnings = [];
   const sectorTable = new Uint8Array(MAX_SECTORS * SECTOR_BYTES);
   for (let id = 1; id <= MAX_SECTORS; id++) {
     const s = level.sectors.get(id);
     const off = (id - 1) * SECTOR_BYTES;
     if (!s) continue;
+    const type = (s.sectorType ?? 0) & 0xff;
+    let targetId = 0;
+    if (type !== 0) {
+      const tag = (s.targetTag || '').trim();
+      if (!tag) {
+        warnings.push(`Sector ${id}: type ${type} has empty target tag`);
+      } else {
+        targetId = findSectorIdByTag(level, tag);
+        if (!targetId) {
+          warnings.push(`Sector ${id}: target tag "${tag}" not found`);
+        }
+      }
+    }
     sectorTable[off] = s.floorHeight & 31;
     sectorTable[off + 1] = s.ceilingHeight & 31;
-    sectorTable[off + 2] = s.nsTexture & 15;
-    sectorTable[off + 3] = s.ewTexture & 15;
-    sectorTable[off + 4] = colorIndex(s.floorColor);
-    sectorTable[off + 5] = colorIndex(s.ceilingColor);
+    sectorTable[off + 2] = type;
+    sectorTable[off + 3] = targetId & 0xff;
+    sectorTable[off + 4] = colorIndex(s.floorColor) & 15;
+    sectorTable[off + 5] = colorIndex(s.ceilingColor) & 15;
     sectorTable[off + 6] = s.brightness & 7;
   }
 
@@ -183,7 +207,7 @@ export function cookLevel(level) {
   out.set(sectorTable, 0);
   out.set(mapBytes, sectorTable.length);
   out.set(itemTable, sectorTable.length + mapBytes.length);
-  return out;
+  return { bytes: out, warnings };
 }
 
 function clamp(v, lo, hi) {
@@ -293,7 +317,8 @@ export async function loadEpisodeJSON() {
 
 export function cookAndDownload(episode, levelName) {
   const level = episode.levels[levelName];
-  const bytes = cookLevel(level);
+  const { bytes, warnings } = cookLevel(level);
   const blob = new Blob([bytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${levelName.toLowerCase()}.bin`);
+  return warnings;
 }

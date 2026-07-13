@@ -1,15 +1,17 @@
 import {
-  COLOR_HEX,
+  C64_HEX,
   MAP_SIZE,
   WORLD_PER_TILE,
   getCell,
   getCameraEyeHeight,
   getSectorAtWorld,
   isCamera,
+  isDoorSector,
+  colorHex,
 } from './model.js';
 
 const DEFAULT_RAYS = 40;
-const DEFAULT_COL_H = 30;
+const DEFAULT_COL_H = 25;
 const FOV = Math.PI / 2.1;
 const MAX_DEPTH = 128;
 /** Projection scale so default height ≈ previous 70px feel. */
@@ -20,11 +22,9 @@ const TAN_HALF_FOV = Math.tan(FOV / 2);
 /** Enemies keep full preview height; everything else is half size. */
 const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
-// side 0 = north/south wall, side 1 = east/west wall
-const WALL_NS = [42, 42, 42];
-const WALL_EW = [68, 68, 68];
-const WALL_NS_DEBUG = COLOR_HEX.blue;
-const WALL_EW_DEBUG = COLOR_HEX.black;
+// side 0 = north/south wall (orange), side 1 = east/west wall (brown)
+const WALL_NS = 8;
+const WALL_EW = 9;
 
 /** Cache of images with pure black (#000) keyed to transparent. */
 const transparentCache = new Map();
@@ -60,7 +60,6 @@ export class PreviewView {
    *   onRotate: (angle: number) => void,
    *   onMove: (x: number, y: number) => void,
    *   images: Record<string, HTMLImageElement>,
-   *   getDebugWalls?: () => boolean,
    *   getRaycasts?: () => number,
    *   getColumnHeight?: () => number,
    * }} opts
@@ -137,7 +136,6 @@ export class PreviewView {
     const ctx = this.ctx;
     const level = this.opts.getLevel();
     const cam = this.opts.getCamera();
-    const debugWalls = !!this.opts.getDebugWalls?.();
     const view = viewParams(
       this.opts.getRaycasts?.() ?? DEFAULT_RAYS,
       this.opts.getColumnHeight?.() ?? DEFAULT_COL_H,
@@ -156,10 +154,18 @@ export class PreviewView {
       const ox = cam.x + 0.5;
       const oy = cam.y + 0.5;
       const eyeZ = getCameraEyeHeight(level, cam.x, cam.y);
+      // Camera-plane rays (perspective): equal screen-X spacing, not equal angle.
+      // dir = facing, plane = right * tan(FOV/2) — avoids fish-eye floor curves.
+      const dirX = Math.sin(cam.angle);
+      const dirY = -Math.cos(cam.angle);
+      const planeX = Math.cos(cam.angle) * TAN_HALF_FOV;
+      const planeY = Math.sin(cam.angle) * TAN_HALF_FOV;
 
       for (let col = 0; col < view.w; col++) {
-        const rayAngle = cam.angle - FOV / 2 + (FOV * col) / view.w;
-        castColumn(ctx, level, ox, oy, eyeZ, cam.angle, rayAngle, col, debugWalls, view);
+        const cameraX = (2 * col + 1) / view.w - 1;
+        const rayDirX = dirX + planeX * cameraX;
+        const rayDirY = dirY + planeY * cameraX;
+        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view);
       }
 
       this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view);
@@ -265,13 +271,12 @@ function sectorAtTile(level, tx, ty) {
  * into the open clip, draw upper/lower walls if heights change, then narrow
  * the clip. Farther sectors only paint into what's still open.
  */
-function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWalls, view) {
-  const rayDirX = Math.sin(rayAngle);
-  const rayDirY = -Math.cos(rayAngle);
-  const fish = Math.cos(camAngle - rayAngle);
+function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
+  const posX = ox / WORLD_PER_TILE;
+  const posY = oy / WORLD_PER_TILE;
 
-  let mapX = Math.floor(ox / WORLD_PER_TILE);
-  let mapY = Math.floor(oy / WORLD_PER_TILE);
+  let mapX = Math.floor(posX);
+  let mapY = Math.floor(posY);
 
   const deltaDistX = Math.abs(rayDirX) < 1e-8 ? 1e30 : Math.abs(1 / rayDirX);
   const deltaDistY = Math.abs(rayDirY) < 1e-8 ? 1e30 : Math.abs(1 / rayDirY);
@@ -283,17 +288,17 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
 
   if (rayDirX < 0) {
     stepX = -1;
-    sideDistX = (ox / WORLD_PER_TILE - mapX) * deltaDistX;
+    sideDistX = (posX - mapX) * deltaDistX;
   } else {
     stepX = 1;
-    sideDistX = (mapX + 1 - ox / WORLD_PER_TILE) * deltaDistX;
+    sideDistX = (mapX + 1 - posX) * deltaDistX;
   }
   if (rayDirY < 0) {
     stepY = -1;
-    sideDistY = (oy / WORLD_PER_TILE - mapY) * deltaDistY;
+    sideDistY = (posY - mapY) * deltaDistY;
   } else {
     stepY = 1;
-    sideDistY = (mapY + 1 - oy / WORLD_PER_TILE) * deltaDistY;
+    sideDistY = (mapY + 1 - posY) * deltaDistY;
   }
 
   let yTop = 0;
@@ -302,21 +307,24 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
   let side = 0;
 
   for (let step = 0; step < MAX_DEPTH && yTop < yBot; step++) {
-    let dist;
     if (sideDistX < sideDistY) {
-      dist = sideDistX;
       sideDistX += deltaDistX;
       mapX += stepX;
       side = 0;
     } else {
-      dist = sideDistY;
       sideDistY += deltaDistY;
       mapY += stepY;
       side = 1;
     }
 
-    const perpTiles = Math.max(0.05, dist * fish);
-    const perpDist = perpTiles * WORLD_PER_TILE;
+    // Perpendicular distance in tiles (Lodev) — already fish-eye free
+    let perpTiles;
+    if (side === 0) {
+      perpTiles = (mapX - posX + (1 - stepX) / 2) / rayDirX;
+    } else {
+      perpTiles = (mapY - posY + (1 - stepY) / 2) / rayDirY;
+    }
+    const perpDist = Math.max(0.05, Math.abs(perpTiles)) * WORLD_PER_TILE;
     const outOfBounds = mapX < 0 || mapY < 0 || mapX >= MAP_SIZE || mapY >= MAP_SIZE;
     const next = outOfBounds ? null : sectorAtTile(level, mapX, mapY);
 
@@ -338,7 +346,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
     if (cur) {
       const ceilEnd = clampSpan(yTop, yBot, nearCeilY);
       if (ceilEnd > yTop) {
-        ctx.fillStyle = COLOR_HEX[cur.sector.ceilingColor] || '#222';
+        ctx.fillStyle = colorHex(cur.sector.ceilingColor);
         ctx.fillRect(col, yTop, 1, ceilEnd - yTop);
         yTop = ceilEnd;
       }
@@ -348,7 +356,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
     if (cur) {
       const floorStart = clampSpan(yTop, yBot, nearFloorY);
       if (floorStart < yBot) {
-        ctx.fillStyle = COLOR_HEX[cur.sector.floorColor] || '#111';
+        ctx.fillStyle = colorHex(cur.sector.floorColor);
         ctx.fillRect(col, floorStart, 1, yBot - floorStart);
         yBot = floorStart;
       }
@@ -359,12 +367,16 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
     // Solid wall — fill remaining portal and stop (nothing farther may draw)
     if (!next) {
       if (yBot > yTop) {
-        ctx.fillStyle = wallColor(side, perpDist, debugWalls);
+        ctx.fillStyle = wallColor(side);
         ctx.fillRect(col, yTop, 1, yBot - yTop);
       }
       break;
     }
 
+    // Into a door: door ceiling colour. Out of a door / normal: N/S–E/W walls.
+    const portalFill = isDoorSector(next.sector)
+      ? colorHex(next.sector.ceilingColor)
+      : wallColor(side);
     const farFloor = next.sector.floorHeight;
     const farCeil = next.sector.ceilingHeight;
     const farCeilY = projectY(farCeil, eyeZ, perpDist, view);
@@ -375,7 +387,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
       const wallTop = clampSpan(yTop, yBot, nearCeilY);
       const wallBot = clampSpan(yTop, yBot, farCeilY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = wallColor(side, perpDist, debugWalls);
+        ctx.fillStyle = portalFill;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yTop = Math.max(yTop, wallBot);
@@ -388,7 +400,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, camAngle, rayAngle, col, debugWall
       const wallTop = clampSpan(yTop, yBot, farFloorY);
       const wallBot = clampSpan(yTop, yBot, nearFloorY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = wallColor(side, perpDist, debugWalls);
+        ctx.fillStyle = portalFill;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yBot = Math.min(yBot, wallTop);
@@ -408,12 +420,6 @@ function projectY(height, eyeZ, perpDist, view) {
   return Math.round(view.horizon - ((height - eyeZ) * view.proj) / Math.max(0.5, perpDist));
 }
 
-function wallColor(side, dist, debugWalls = false) {
-  if (debugWalls) return side === 0 ? WALL_NS_DEBUG : WALL_EW_DEBUG;
-  const shade = Math.max(0.45, 1 - dist / 110);
-  const base = side === 0 ? WALL_NS : WALL_EW;
-  const r = Math.floor(base[0] * shade);
-  const g = Math.floor(base[1] * shade);
-  const b = Math.floor(base[2] * shade);
-  return `rgb(${r},${g},${b})`;
+function wallColor(side) {
+  return C64_HEX[side === 0 ? WALL_NS : WALL_EW];
 }

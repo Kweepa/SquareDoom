@@ -245,22 +245,6 @@ h2 {
   text-align: center;
 }
 
-.preview-option {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.45rem 0 0;
-  font-size: 0.72rem;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.preview-option input {
-  margin: 0;
-  accent-color: var(--accent);
-}
-
 .center {
   padding: 0.75rem 1rem;
   display: flex;
@@ -389,6 +373,7 @@ button.danger {
 }
 
 .field input[type="number"],
+.field input[type="text"],
 .field select {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -401,22 +386,48 @@ button.danger {
 .color-swatches {
   display: flex;
   flex-wrap: nowrap;
-  gap: 3px;
+  gap: 2px;
+  width: 100%;
 }
 
 .swatch {
   flex: 1 1 0;
   width: auto;
   min-width: 0;
-  aspect-ratio: 1;
+  height: 14px;
+  aspect-ratio: auto;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: 1px;
 }
 
 .swatch.selected {
   border-color: #fff;
   outline: 1px solid var(--accent);
+  outline-offset: 0;
+  z-index: 1;
+}
+
+.check-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.check-field input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
 }
 
 .btn-row {

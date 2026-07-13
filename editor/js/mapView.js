@@ -1,9 +1,9 @@
 import {
-  COLOR_HEX,
   MAP_SIZE,
   WORLD_PER_TILE,
   getCell,
   tileKey,
+  colorHex,
 } from './model.js';
 
 export class MapView {
@@ -158,7 +158,7 @@ export class MapView {
     if (id === 0) return '#1a1a1e';
     const s = level.sectors.get(id);
     if (!s) return '#333';
-    const base = COLOR_HEX[s.floorColor] || '#444';
+    const base = colorHex(s.floorColor) || '#444';
     return mixHex(base, 0.35 + (s.floorHeight / 31) * 0.25 + ((id * 17) % 7) * 0.03);
   }
 

@@ -6,10 +6,12 @@ A 32x32 map. Each entry in the map points to a sector, max 255.
 Each sector has the following data:
 - floor height (0-31)
 - ceiling height (0-31)
-- north/south wall texture (0-15)
-- east/west wall texture (0-15)
-- floor/ceiling colour (red/green/blue/black)
-- brightness? (0-7)
+- door flag
+- sector type (Doom/VicDoom specials + Door)
+- target sector (editor: tag string; cooked: sector id of the tagged sector; only when type ≠ 0)
+- sector tag (editor-only; used to resolve targets when cooking — not stored in binary)
+- floor/ceiling colour (0-15, Commodore 64 palette)
+- brightness (0-7)
 
 Items in the map have a x,y 0-255, so each map square is 8 units.
 Player height is 4 height units.
