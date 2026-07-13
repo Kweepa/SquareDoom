@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SquareDoom Map Editor</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <h1>SquareDoom</h1>
+    <div class="toolbar-actions">
+      <button type="button" id="btn-save">Save</button>
+      <button type="button" id="btn-load">Load</button>
+      <button type="button" id="btn-cook">Cook</button>
+    </div>
+    <p id="status" class="status" role="status"></p>
+  </header>
+
+  <main class="layout">
+    <aside class="left">
+      <section id="level-list"></section>
+      <section>
+        <h2>Items</h2>
+        <div id="item-palette"></div>
+      </section>
+    </aside>
+
+    <section class="center">
+      <h2>Map <span id="map-level-label"></span></h2>
+      <div class="map-stage" id="map-stage">
+        <canvas id="map-canvas" tabindex="0"></canvas>
+      </div>
+      <p class="hint">
+        Click select · Shift+click paint/split · Drag items · Del clears tile / deletes item
+      </p>
+    </section>
+
+    <aside class="right">
+      <div class="right-editors">
+        <div id="sector-editor"></div>
+        <div id="item-editor"></div>
+      </div>
+      <div id="preview-panel" class="preview-panel panel">
+        <h2>Camera preview</h2>
+        <canvas id="preview-canvas" tabindex="0"></canvas>
+        <p class="muted" id="preview-hint">Place or select a camera</p>
+      </div>
+      <div id="shift-controls"></div>
+    </aside>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

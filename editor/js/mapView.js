@@ -1,0 +1,237 @@
+import {
+  COLOR_HEX,
+  MAP_SIZE,
+  WORLD_PER_TILE,
+  getCell,
+} from './model.js';
+
+export class MapView {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {object} opts
+   * @param {() => any} opts.getLevel
+   * @param {() => {sectorId:number, tile:{tx:number,ty:number}|null, item:any|null, hoverSector:number}} opts.getSelection
+   * @param {(ev: PointerEvent, info: object) => void} opts.onPointer
+   * @param {(type: string, wx: number, wy: number) => void} opts.onDropItem
+   * @param {Record<string, HTMLImageElement>} opts.images
+   * @param {HTMLElement} [opts.stage]
+   */
+  constructor(canvas, opts) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.opts = opts;
+    this.cell = 18;
+    this.stage = opts.stage || canvas.parentElement;
+    this._ro = null;
+    this.dragGrab = null;
+
+    this.resize();
+    this._ro = new ResizeObserver(() => this.resize());
+    if (this.stage) this._ro.observe(this.stage);
+
+    canvas.addEventListener('pointerdown', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointermove', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointerup', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointerleave', (e) => this.#onPointer(e));
+    canvas.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const type = e.dataTransfer.getData('text/item-type') || e.dataTransfer.getData('text/plain');
+      if (!type) return;
+      const { wx, wy } = this.#eventWorld(e);
+      this.opts.onDropItem(type, wx, wy);
+    });
+  }
+
+  resize() {
+    if (!this.stage) return;
+    const rect = this.stage.getBoundingClientRect();
+    const pad = 2;
+    const side = Math.max(64, Math.floor(Math.min(rect.width, rect.height) - pad));
+    const cell = Math.max(4, Math.floor(side / MAP_SIZE));
+    const px = cell * MAP_SIZE;
+    if (cell === this.cell && this.canvas.width === px) return;
+    this.cell = cell;
+    this.canvas.width = px;
+    this.canvas.height = px;
+    this.canvas.style.width = `${px}px`;
+    this.canvas.style.height = `${px}px`;
+    this.draw();
+  }
+
+  #eventCanvas(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * this.canvas.width;
+    const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
+    return { x, y };
+  }
+
+  #canvasToWorld(x, y) {
+    const c = this.cell;
+    return {
+      wx: Math.max(0, Math.min(255, Math.round((x / c) * WORLD_PER_TILE))),
+      wy: Math.max(0, Math.min(255, Math.round((y / c) * WORLD_PER_TILE))),
+    };
+  }
+
+  #eventCell(e) {
+    const { x, y } = this.#eventCanvas(e);
+    const tx = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(x / this.cell)));
+    const ty = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(y / this.cell)));
+    return { tx, ty, px: x, py: y };
+  }
+
+  #eventWorld(e) {
+    const { x, y } = this.#eventCanvas(e);
+    return this.#canvasToWorld(x, y);
+  }
+
+  #itemDrawPos(it, c) {
+    const ix = (it.x / WORLD_PER_TILE) * c;
+    const iy = (it.y / WORLD_PER_TILE) * c;
+    const spriteSize = Math.max(6, Math.round(c * 0.45));
+    return { ix, iy, spriteSize };
+  }
+
+  #spriteSize(it, baseSize) {
+    const img = this.opts.images[it.type];
+    let drawW = baseSize;
+    const drawH = baseSize;
+    if (img?.complete && img.naturalWidth > 0) {
+      drawW = drawH * (img.naturalWidth / img.naturalHeight);
+    }
+    return { drawW, drawH };
+  }
+
+  #hitItem(level, px, py) {
+    for (let i = level.items.length - 1; i >= 0; i--) {
+      const it = level.items[i];
+      const { ix, iy, spriteSize } = this.#itemDrawPos(it, this.cell);
+      const { drawW, drawH } = this.#spriteSize(it, spriteSize);
+      const left = ix - drawW / 2;
+      const top = iy - drawH / 2;
+      if (px >= left && px <= left + drawW && py >= top && py <= top + drawH) return it;
+    }
+    return null;
+  }
+
+  #onPointer(e) {
+    const { tx, ty, px, py } = this.#eventCell(e);
+    const level = this.opts.getLevel();
+    const item = this.#hitItem(level, px, py);
+
+    if (e.type === 'pointerdown' && item) {
+      const pos = this.#itemDrawPos(item, this.cell);
+      this.dragGrab = { x: px - pos.ix, y: py - pos.iy };
+    }
+    if (e.type === 'pointerup' || e.type === 'pointerleave') {
+      this.dragGrab = null;
+    }
+
+    const grab = this.dragGrab ?? { x: 0, y: 0 };
+    const { wx, wy } = this.#canvasToWorld(px - grab.x, py - grab.y);
+
+    this.opts.onPointer(e, {
+      tx,
+      ty,
+      wx,
+      wy,
+      item,
+      sectorId: getCell(level, tx, ty),
+      shift: e.shiftKey,
+    });
+  }
+
+  #sectorFill(level, id) {
+    if (id === 0) return '#1a1a1e';
+    const s = level.sectors.get(id);
+    if (!s) return '#333';
+    const base = COLOR_HEX[s.floorColor] || '#444';
+    return mixHex(base, 0.35 + (s.floorHeight / 31) * 0.25 + ((id * 17) % 7) * 0.03);
+  }
+
+  draw() {
+    const level = this.opts.getLevel();
+    const sel = this.opts.getSelection();
+    const ctx = this.ctx;
+    const c = this.cell;
+    if (!c) return;
+
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    for (let ty = 0; ty < MAP_SIZE; ty++) {
+      for (let tx = 0; tx < MAP_SIZE; tx++) {
+        const id = getCell(level, tx, ty);
+        ctx.fillStyle = this.#sectorFill(level, id);
+        ctx.fillRect(tx * c, ty * c, c, c);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= MAP_SIZE; i++) {
+      ctx.moveTo(i * c + 0.5, 0);
+      ctx.lineTo(i * c + 0.5, MAP_SIZE * c);
+      ctx.moveTo(0, i * c + 0.5);
+      ctx.lineTo(MAP_SIZE * c, i * c + 0.5);
+    }
+    ctx.stroke();
+
+    const highlightId = sel.hoverSector || sel.sectorId;
+    if (highlightId) {
+      ctx.fillStyle = 'rgba(255, 220, 80, 0.28)';
+      ctx.strokeStyle = 'rgba(255, 220, 80, 0.9)';
+      ctx.lineWidth = Math.max(1, Math.round(c / 9));
+      for (let ty = 0; ty < MAP_SIZE; ty++) {
+        for (let tx = 0; tx < MAP_SIZE; tx++) {
+          if (getCell(level, tx, ty) !== highlightId) continue;
+          ctx.fillRect(tx * c, ty * c, c, c);
+          ctx.strokeRect(tx * c + 1, ty * c + 1, c - 2, c - 2);
+        }
+      }
+    }
+
+    if (sel.tile && sel.sectorId) {
+      const { tx, ty } = sel.tile;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(1, Math.round(c / 9));
+      ctx.strokeRect(tx * c + 1.5, ty * c + 1.5, c - 3, c - 3);
+    }
+
+    for (const it of level.items) {
+      const { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
+      const { drawW, drawH } = this.#spriteSize(it, spriteSize);
+      const left = ix - drawW / 2;
+      const top = iy - drawH / 2;
+      const img = this.opts.images[it.type];
+      if (img && img.complete) {
+        ctx.drawImage(img, left, top, drawW, drawH);
+      } else {
+        ctx.fillStyle = '#fa0';
+        ctx.fillRect(left, top, drawW, drawH);
+      }
+      if (sel.item === it) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(left - 1, top - 1, drawW + 2, drawH + 2);
+      }
+    }
+  }
+}
+
+function mixHex(a, t) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(a);
+  if (!m) return a;
+  let r = parseInt(m[1], 16);
+  let g = parseInt(m[2], 16);
+  let b = parseInt(m[3], 16);
+  const lift = Math.floor(40 * t);
+  r = Math.min(255, r + lift);
+  g = Math.min(255, g + lift);
+  b = Math.min(255, b + lift);
+  return `rgb(${r},${g},${b})`;
+}

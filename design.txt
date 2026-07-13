@@ -1,0 +1,50 @@
+A doom raycaster on the VIC-20.
+Let's make the gameplay part as flexible as possible so it can potentially run on bbc micro too.
+
+A 32x32 map. Each entry in the map points to a sector, max 255.
+
+Each sector has the following data:
+- floor height (0-31)
+- ceiling height (0-31)
+- north/south wall texture (0-15)
+- east/west wall texture (0-15)
+- floor/ceiling colour (red/green/blue/black)
+- brightness? (0-7)
+
+Items in the map have a x,y 0-255, so each map square is 8 units.
+Player height is 4 height units.
+
+The idea is to combine the rendering concept from https://github.com/Kweepa/thekeep (the raycasting core)
+with the gameplay concepts and music from https://github.com/Kweepa/vicdoom.
+
+The screen is 22x23. That's the resolution of the view (I think).
+For the bbc port, I'm considering 64x64 on a hacked mode2 screen (using mode 8 style tricks).
+
+But, obviously we'll need to expand on thekeep to step across sector boundaries and narrow
+the view limits as we go until the view limits collapse or go off screen.
+
+We'll start with a map editor, which will run in an html canvas.
+
+On the left we'll have the level list (E1M1 - E1M9) up top, then a new item collection below.
+In the middle, the map editor.
+On the right, the item editor.
+
+The map editor should show the whole 32x32 map as blocks. Hovering over a sector should highlight all the
+blocks that make up the sector. Clicking on it should allow you to edit the sector. Holding shift + click
+breaks the current sector off into a new sector. A button in the sector item editor will allow you to merge
+any identical sectors. A second button will allow you to merge the last selected sector with the sector
+that is selected next.
+Shift click on an empty sector with nothing selected should produce a default sector.
+Shift click on an empty sector with a sector selected should make that tile part of the selected sector.
+
+It should save and load text based maps, and cook down to something that can be loaded from disk on the target
+device.
+
+Drag from the new item collection and drop onto the map should work, as should select and drag of items
+already on the map.
+
+The items are typical doom items. Graphics for these are in editor/itemgraphics.
+
+For the item editor, just need x, y, type and skill (checkboxes for each of easy, normal, hard,
+default to all). Height is inferred from the sector it's in. Orientation won't do anything, so forget that.
+Only one spawn point should be allowed.
