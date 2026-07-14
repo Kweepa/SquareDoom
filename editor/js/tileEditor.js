@@ -128,6 +128,18 @@ export class TileEditor {
       : `${tiles.length} empty tile${tiles.length === 1 ? '' : 's'} selected`;
     this.root.appendChild(selLine);
 
+    if (occupied) {
+      const ids = [...new Set(propsList.map((p) => p.id).filter((id) => id > 0))];
+      const idLine = document.createElement('p');
+      idLine.className = 'muted';
+      if (ids.length === 1) {
+        idLine.textContent = `Sector id: ${ids[0]}`;
+      } else if (ids.length > 1) {
+        idLine.textContent = `Sector ids: mixed (${ids.slice().sort((a, b) => a - b).join(', ')})`;
+      }
+      if (ids.length) this.root.appendChild(idLine);
+    }
+
     if (!occupied) {
       const p = document.createElement('p');
       p.className = 'muted';

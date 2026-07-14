@@ -13,6 +13,7 @@ import {
   defaultSkills,
   findPreviewCamera,
   gameItemCount,
+  getCell,
   getTileProps,
   hasSpawn,
   isCamera,
@@ -33,7 +34,7 @@ import {
 import { MapView } from './mapView.js?v=24';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
-import { TileEditor } from './tileEditor.js?v=24';
+import { TileEditor } from './tileEditor.js?v=25';
 import { ItemEditor } from './itemEditor.js?v=24';
 import { PreviewView } from './previewView.js?v=28';
 import { initShiftControls } from './shiftControls.js?v=24';
@@ -179,7 +180,11 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
     const level = activeLevel(episode);
     return [...selection.tiles]
       .map(parseTileKey)
-      .map(({ tx, ty }) => getTileProps(level, tx, ty))
+      .map(({ tx, ty }) => {
+        const id = getCell(level, tx, ty);
+        const props = getTileProps(level, tx, ty);
+        return props ? { ...props, id } : null;
+      })
       .filter(Boolean);
   },
   sectorCount: () => sectorCount(activeLevel(episode)),
