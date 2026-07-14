@@ -36,6 +36,7 @@ warmstart
 	inx
 	bne .fill_col
 
+	jsr init_sqtabs
 	jsr find_spawn
 	jsr update_eye
 	jmp gameloop

@@ -5,6 +5,10 @@ where acme >nul 2>&1 && set ACME=acme && goto run
 echo ACME assembler not found. Install ACME or set path in build.bat
 exit /b 1
 :run
+node tools\gentables.js
+if errorlevel 1 exit /b 1
+node tools\genblit.js
+if errorlevel 1 exit /b 1
 "%ACME%" -v3 squaredoom.asm
 if errorlevel 1 exit /b 1
 echo Built squaredoom.prg

@@ -56,15 +56,35 @@ near_ccol	= $30
 wall_col	= $31
 turn		= $32
 
-prodl		= $33
-prodh		= $34
-aux_l		= $35
-aux_h		= $36
-mac_h		= $37
+; Judd/Arndt square-table pointers (lo set per mul_8x8; hi set in init)
+sq1_l		= $33
+sq1_h		= $34
+sq2_l		= $35
+sq2_h		= $36
+sq3_l		= $37
+sq3_h		= $38
+sq4_l		= $39
+sq4_h		= $3a
 
-fracx		= $38
-fracy		= $39
-span_a		= $3a
-span_b		= $3b
-fill_row	= $3c
-py_row		= $3d
+aux_l		= $3b
+aux_h		= $3c
+mul_fac		= $3d
+
+fracx		= $3e
+fracy		= $3f
+span_a		= $40
+span_b		= $41
+fill_row	= $42
+py_row		= $43
+
+; This-frame walk deltas (signed 8-bit, added into 8.8 player pos)
+wish_x		= $44
+wish_y		= $45
+save_xl		= $46
+save_xh		= $47
+save_yl		= $48
+save_yh		= $49
+
+; Base of current column in transposed framebuffer (25 bytes)
+col_base_l	= $4a
+col_base_h	= $4b

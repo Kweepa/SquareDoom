@@ -2,6 +2,9 @@
 !cpu 6502
 !to "squaredoom.prg", cbm
 
+; Column-major colour buffer (40×25), after Judd tabs at $C000–$C7FF
+FRAMEBUFFER = $c800
+
 !source "zeropage.asm"
 !source "basicstub.asm"
 !source "warmstart.asm"
@@ -9,6 +12,7 @@
 !source "util.asm"
 !source "input.asm"
 !source "render.asm"
+!source "blit.asm"
 !source "gameloop.asm"
 
 ; ------------------------------------------------------------------

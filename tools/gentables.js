@@ -45,29 +45,45 @@ function secantTable() {
   return { lo, hi };
 }
 
-function row40() {
+function colBaseTable(fb) {
   const lo = [];
   const hi = [];
-  for (let r = 0; r < 25; r++) {
-    const v = r * 40;
-    lo.push(v & 0xff);
-    hi.push(v >> 8);
+  for (let col = 0; col < COLS; col++) {
+    const addr = fb + col * 25;
+    lo.push(addr & 0xff);
+    hi.push(addr >> 8);
   }
   return { lo, hi };
 }
 
+/** Signed 8-bit sin for walk/strafe (amp fits comfy step in 8.8 world). */
+function sinTable() {
+  const AMP = 40;
+  const out = [];
+  for (let i = 0; i < 256; i++) {
+    const s = Math.round(AMP * Math.sin((i * 2 * Math.PI) / 256));
+    out.push(s & 0xff);
+  }
+  return out;
+}
+
+// Must match FRAMEBUFFER in squaredoom.asm / genblit.js
+const FRAMEBUFFER = 0xc800;
+
 const angles = anglesTable();
 const fishes = fishesTable(angles);
 const { lo: secl, hi: sech } = secantTable();
-const { lo: r40lo, hi: r40hi } = row40();
+const { lo: cblo, hi: cbhi } = colBaseTable(FRAMEBUFFER);
+const sins = sinTable();
 
-let asm = `; Auto-generated — TheKeep DDA tables\n`;
+let asm = `; Auto-generated — TheKeep DDA tables + sintab + col bases\n`;
 asm += emitBytes('angtab', angles);
 asm += emitBytes('fishtab', fishes);
 asm += emitBytes('fixsecl', secl);
 asm += emitBytes('fixsech', sech);
-asm += emitBytes('row40lo', r40lo);
-asm += emitBytes('row40hi', r40hi);
+asm += emitBytes('colbaselo', cblo);
+asm += emitBytes('colbasehi', cbhi);
+asm += emitBytes('sintab', sins);
 
 writeFileSync(new URL('../tables.asm', import.meta.url), asm);
-console.log('wrote Keep tables');
+console.log('wrote Keep tables + sintab + colbase');

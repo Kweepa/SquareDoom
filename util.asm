@@ -111,28 +111,26 @@ sector_ccol
 	lda (ptr_l),y
 	rts
 
-; Fill colour column: X = colour, ytop..ybot-1 rows at current col
-; Uses tmp0=colour, fill_row=row (must not touch tmp1–tmp5 / span_*)
+; Fill colour column: X = colour, ytop..ybot-1 into transposed fb at col_base
+; Column is contiguous — Y is simply the row index.
 fill_col_span
 	stx tmp0
-	lda ytop
-	sta fill_row
+	ldy ytop
 .fcs_loop
-	lda fill_row
-	cmp ybot
+	cpy ybot
 	bcs .fcs_done
-	tay
-	lda row40lo,y
-	clc
-	adc col
-	sta ptr_l
-	lda row40hi,y
-	adc #$d8
-	sta ptr_h
-	ldy #0
 	lda tmp0
-	sta (ptr_l),y
-	inc fill_row
+	sta (col_base_l),y
+	iny
 	bne .fcs_loop
 .fcs_done
+	rts
+
+; col_base = FRAMEBUFFER + col * 25 (from colbaselo/hi)
+set_col_base
+	ldy col
+	lda colbaselo,y
+	sta col_base_l
+	lda colbasehi,y
+	sta col_base_h
 	rts

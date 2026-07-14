@@ -5,7 +5,7 @@
 ;  - lookang−64 maps editor north onto Keep axes
 ;  - target = |Δh|, texstep = wallz>>2 (×4/×8 targets made full-screen flats)
 ;  - overflow ends ray on both axes
-;  - fill_col_span must not clobber span edge temps (util fill_row)
+;  - paints into transposed FRAMEBUFFER; blit_fb_to_color copies to $D800
 
 WALL_NS = 8
 WALL_EW = 9
@@ -18,12 +18,13 @@ render
 	lda #0
 	sta col
 .col_loop
+	jsr set_col_base
 	jsr cast_column
 	inc col
 	lda col
 	cmp #40
 	bcc .col_loop
-	rts
+	jmp blit_fb_to_color
 
 ; ------------------------------------------------------------------
 cast_column
