@@ -11,9 +11,12 @@ What the histograms showed
 
 What helped P
 -------------
-- Lo-only sum when texstep_h=0: keep A=acc_l, Y=|Δh| countdown on
-  carry (skip 16-bit acc). Helped ~$224 → ~$1F0 on one pose.
-- Polarity walk: start X=HORIZON; DEX (ceil) / INX (floor) each add;
+- Lo-only sum when texstep_h=0: keep A=acc_l; DEC (up) / INC (down)
+  signed remaining Δh on carry until 0 — no absolute value on that path.
+- Hi / one-step: need a positive CMP target. Going_up already has Δh>0;
+  going_down takes |Δh| once into tmp1 only when texstep_h≠0, then the
+  same cheap `cmp` per iter (avoids per-iter `tmp3+acc_h` when down).
+- Polarity walk: start X=HORIZON; DEX (Δh>0) / INX (Δh<0) each add;
   stop on coverage or screen edge 0/25; py_row=X. Drops the cheap
   post-sum HORIZON±n epilogue and free-stops at screen rails.
   Measured ~P $01E1 on the same style of pose (better than sum+epilogue).

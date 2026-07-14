@@ -1,127 +1,122 @@
 !zone project_y
 
-; Count screen rows until tex covers |Δh| (Keep-style yloop).
-; Walk from HORIZON: ceil DEX / floor INX each add; stop at coverage or screen edge (0 / 25).
-; Simplified lo path: A contains acc_l throughout loop, Y=|Δh| countdown on carry.
-; On entry A = world y to project
+; Project world height → screen row (Keep-style texstep walk from HORIZON).
+; On entry A = world y. Signed Δh = height − eyeheight:
+;   Δh > 0 → walk up  (DEX): lo DECs remaining Δh to 0
+;   Δh < 0 → walk down (INX): lo INCs remaining Δh to 0
+;   Δh = 0 → HORIZON
+; Hybrid: lo paths never take |Δh| (DEC/INC signed remaining). Hi / one-step
+; need a positive target for CMP — going_up already has one; going_down pays
+; abs once into tmp1 only when texstep_h ≠ 0.
+; tmp3 = signed remaining (lo). tmp1 = |Δh| (hi-down only). Lo: A = acc_l.
 project_y
 	sec
 	sbc eyeheight
-	sta tmp1
-	lda #0
-	sta tmp2
-	lda tmp1
-	bpl .pyp
-	eor #$ff
-	clc
-	adc #1
-	sta tmp1
-	lda #1
-	sta tmp2
-.pyp
-	lda tmp1
-	bne .py_nz
-	jmp .py_zero			; height == eye → horizon
-.py_nz
-	sta tmp3			; target = |Δh|
+	beq .py_at_eye
+	bmi .py_going_down
+	jmp .py_going_up
 
-	lda texstep_h
-	cmp tmp3
-	bcc .py_sum
-	; n=1: one screen step from horizon
-	ldx #HORIZON
-	lda tmp2
-	bne .py_n1_dn
-	dex
-	jmp .py_have_row
-.py_n1_dn
-	inx
-	jmp .py_have_row
-
-.py_sum
-	lda tmp2
-	bne .py_dn				; below eye → floor
-	; ----- ceiling: walk X down from HORIZON -----
-	lda texstep_h
-	beq .py_lo_up
-	lda #0
-	sta acc_l
-	sta acc_h
-	ldx #HORIZON
-.py_hi_up
-	cpx #0
-	beq .py_have_row
-	dex
-	clc
-	lda acc_l
-	adc texstep_l
-	sta acc_l
-	lda acc_h
-	adc texstep_h
-	sta acc_h
-	cmp tmp3
-	bcc .py_hi_up
-	bcs .py_have_row
-
-.py_lo_up
-	ldx #HORIZON
-	ldy tmp3
-	lda #0					; acc_l
-.py_lo_up_lp
-	cpx #0
-	beq .py_have_row
-	dex
-	clc
-	adc texstep_l
-	bcc .py_lo_up_lp
-	dey
-	bne .py_lo_up_lp
-	beq .py_have_row
-
-	; ----- floor: walk X up from HORIZON -----
-.py_dn
-	lda texstep_h
-	beq .py_lo_dn
-	lda #0
-	sta acc_l
-	sta acc_h
-	ldx #HORIZON
-.py_hi_dn
-	cpx #25
-	beq .py_have_row
-	inx
-	clc
-	lda acc_l
-	adc texstep_l
-	sta acc_l
-	lda acc_h
-	adc texstep_h
-	sta acc_h
-	cmp tmp3
-	bcc .py_hi_dn
-	bcs .py_have_row
-
-.py_lo_dn
-	ldx #HORIZON
-	ldy tmp3
-	lda #0
-.py_lo_dn_lp
-	cpx #25
-	beq .py_have_row
-	inx
-	clc
-	adc texstep_l
-	bcc .py_lo_dn_lp
-	dey
-	bne .py_lo_dn_lp
-	; fall through
-
-.py_have_row
-	stx py_row
-	rts
-
-.py_zero
+.py_at_eye
 	lda #HORIZON
 	sta py_row
 	rts
 
+	; ----- Δh < 0 -----
+.py_going_down
+	sta tmp3
+	lda texstep_h
+	beq .py_lo_going_down
+	lda tmp3
+	eor #$ff
+	clc
+	adc #1
+	sta tmp1				; |Δh| once for one-step + hi
+	lda texstep_h
+	cmp tmp1
+	bcc .py_hi_going_down
+	ldx #HORIZON
+	inx
+	jmp .py_store_row
+
+.py_hi_going_down
+	lda #0
+	sta acc_l
+	sta acc_h
+	ldx #HORIZON
+.py_hi_going_down_lp
+	cpx #25
+	beq .py_store_row
+	inx
+	clc
+	lda acc_l
+	adc texstep_l
+	sta acc_l
+	lda acc_h
+	adc texstep_h
+	sta acc_h
+	cmp tmp1				; same cheap test as going_up
+	bcc .py_hi_going_down_lp
+	bcs .py_store_row
+
+.py_lo_going_down
+	ldx #HORIZON
+	lda #0
+.py_lo_going_down_lp
+	cpx #25
+	beq .py_store_row
+	inx
+	clc
+	adc texstep_l
+	bcc .py_lo_going_down_lp
+	inc tmp3
+	bne .py_lo_going_down_lp
+	beq .py_store_row
+
+	; ----- Δh > 0 -----
+.py_going_up
+	sta tmp3
+	lda texstep_h
+	beq .py_lo_going_up
+	cmp tmp3
+	bcc .py_hi_going_up
+	ldx #HORIZON
+	dex
+	jmp .py_store_row
+
+.py_hi_going_up
+	lda #0
+	sta acc_l
+	sta acc_h
+	ldx #HORIZON
+.py_hi_going_up_lp
+	cpx #0
+	beq .py_store_row
+	dex
+	clc
+	lda acc_l
+	adc texstep_l
+	sta acc_l
+	lda acc_h
+	adc texstep_h
+	sta acc_h
+	cmp tmp3
+	bcc .py_hi_going_up_lp
+	bcs .py_store_row
+
+.py_lo_going_up
+	ldx #HORIZON
+	lda #0
+.py_lo_going_up_lp
+	cpx #0
+	beq .py_store_row
+	dex
+	clc
+	adc texstep_l
+	bcc .py_lo_going_up_lp
+	dec tmp3
+	bne .py_lo_going_up_lp
+	; fall through
+
+.py_store_row
+	stx py_row
+	rts
