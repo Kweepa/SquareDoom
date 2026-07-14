@@ -35,7 +35,6 @@ CIA2_CRA	= $dd0e
 CIA2_CRB	= $dd0f
 
 PROF_SCR	= $0403
-PROF_COL	= $d803
 
 prof_init
 	lda #$7f
@@ -170,13 +169,11 @@ prof_add_py
 }
 
 ; Print F (always). With PROFILE=1 also S D N L P.
-; Values ≈ ms = (cycles>>8)/4, 3 decimal digits (JSW-Tape PrintDec3 style).
+; Values ≈ ms = (cycles>>8)/4, 3 decimal digits. Chars only — colour from blit.
 prof_print
 	ldx #0
 	lda #$86			; inverse 'F'
 	sta PROF_SCR,x
-	lda #1
-	sta PROF_COL,x
 	inx
 	lda frame_cy + 2
 	ldy frame_cy + 1
@@ -189,8 +186,6 @@ prof_print
 	pha
 	lda .pp_letter,y
 	sta PROF_SCR,x
-	lda #1
-	sta PROF_COL,x
 	inx
 	lda .pp_id,y
 	tay
@@ -300,19 +295,13 @@ pp_dig_t	= prof_now_h
 	tax
 	lda pp_dig_h
 	sta PROF_SCR,x
-	lda #1
-	sta PROF_COL,x
 	inx
 	lda pp_dig_t
 	sta PROF_SCR,x
-	lda #1
-	sta PROF_COL,x
 	inx
 	lda pp_tmp_l
 	clc
 	adc #SCREEN_DIGIT_BASE
 	sta PROF_SCR,x
-	lda #1
-	sta PROF_COL,x
 	inx
 	rts

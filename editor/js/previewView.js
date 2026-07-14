@@ -342,7 +342,9 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
     const nearCeilY = projectY(nearCeil, eyeZ, perpDist, view);
     const nearFloorY = projectY(nearFloor, eyeZ, perpDist, view);
 
-    // Near-sector ceiling strip above the portal (front-to-back; only open clip)
+    // Near-sector ceiling strip above the portal (front-to-back; only open clip).
+    // When nearCeilY clamps to yBot, still fill and close — leaves no false
+    // opening for a solid wall (C64 paint_near must match).
     if (cur) {
       const ceilEnd = clampSpan(yTop, yBot, nearCeilY);
       if (ceilEnd > yTop) {
@@ -352,8 +354,9 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       }
     }
 
-    // Near-sector floor strip below the portal
-    if (cur) {
+    // Near-sector floor strip below the portal (only when floor is at/below
+    // the horizon — floors above the eye must not yank yBot into the sky).
+    if (cur && nearFloorY >= view.horizon) {
       const floorStart = clampSpan(yTop, yBot, nearFloorY);
       if (floorStart < yBot) {
         ctx.fillStyle = colorHex(cur.sector.floorColor);
@@ -403,6 +406,8 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
         ctx.fillStyle = portalFill;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
+      // Portal opening is [yTop, farFloorY) even when the raised floor
+      // projects above the horizon (looking up stairs).
       yBot = Math.min(yBot, wallTop);
     }
 

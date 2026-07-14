@@ -17,6 +17,11 @@ TEXSTEP_SHIFT = 2
 render
 	lda #0
 	sta dda_peak
+!if DBG_PORTAL = 1 {
+	sta dbg_n
+	lda #255
+	sta dbg_far_y
+}
 !if PROFILE = 1 {
 	jsr prof_reset_frame
 }
@@ -32,6 +37,9 @@ render
 	jsr blit_fb_to_color
 	jsr prof_frame_sample
 	jsr prof_print
+!if DBG_PORTAL = 1 {
+	jsr dbg_portal_flush
+}
 	jmp print_dda_peak
 
 ; ------------------------------------------------------------------
@@ -355,6 +363,7 @@ fill_open_remainder
 	rts
 
 ; Two inverse digits of dda_peak at $0400/$0401; leave $0402 blank before stats
+; (chars only — colour from blit)
 print_dda_peak
 	lda dda_peak
 	ldx #0
@@ -370,13 +379,7 @@ print_dda_peak
 	txa
 	ora #$b0
 	sta $0400
-	lda #1				; white
-	sta $d800
-	sta $d801
-	lda #$20			; gap before F/S/D/N/L/P stats
-	sta $0402
-	lda #1
-	sta $d802
+	; leave $0402 untouched (gap before F — colour shows through)
 	rts
 
 ; C=1 stop column
@@ -404,6 +407,9 @@ on_cell
 	lda ytop
 	cmp ybot
 	bcc .edge
+!if DBG_PORTAL = 1 {
+	jsr dbg_portal_log
+}
 	sec
 	rts
 .void_enter
@@ -424,6 +430,9 @@ on_cell
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
 }
+!if DBG_PORTAL = 1 {
+	jsr dbg_portal_log
+}
 	sec
 	rts
 .portal
@@ -431,6 +440,9 @@ on_cell
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
+}
+!if DBG_PORTAL = 1 {
+	jsr dbg_portal_log
 }
 	lda ytop
 	cmp ybot
@@ -621,7 +633,11 @@ project_y
 paint_near
 	lda ytop
 	cmp ybot
-	bcs .pnd
+	bcc .pn_go
+	lda #255
+	sta span_b
+	rts
+.pn_go
 !if PROFILE = 1 {
 	ldy #PROF_NEAR
 	jsr prof_add_bucket			; load_near + preamble → N
@@ -636,11 +652,12 @@ paint_near
 
 	jsr clamp_span
 	sta tmp1
+	; Editor: ceilEnd = clamp(nearCeilY); if ceilEnd > yTop fill and
+	; yTop = ceilEnd — including when ceilEnd == yBot (closes portal).
+	; Old bcs-skip when == ybot left a false opening for solid wall.
 	cmp ytop
 	beq .nc
 	bcc .nc
-	cmp ybot
-	bcs .nc
 	lda ybot
 	pha
 	lda tmp1
@@ -654,7 +671,11 @@ paint_near
 .nc
 	lda ytop
 	cmp ybot
-	bcs .pnd				; clip closed — skip floor project
+	bcc .pn_floor
+	lda #255				; no floor project this call
+	sta span_b
+	rts
+.pn_floor
 !if PROFILE = 1 {
 	ldy #PROF_NEAR
 	jsr prof_add_bucket			; ceil fill → N
@@ -666,6 +687,10 @@ paint_near
 }
 	lda py_row
 	sta span_b
+	; Floor above eye → above HORIZON: keep span_b for ledges but do not
+	; paint a floor strip / yank ybot into the upper half.
+	cmp #HORIZON
+	bcc .pnd
 	jsr clamp_span
 	sta tmp1
 	cmp ybot
@@ -702,6 +727,10 @@ paint_portal
 	sta far_floor
 	lda SEC_CEIL,x
 	sta far_ceil
+!if DBG_PORTAL = 1 {
+	lda #255
+	sta dbg_far_y
+}
 
 	; No ledge if far contained in near heights — span_a/b from paint_near
 	cmp near_ceil
@@ -739,6 +768,9 @@ paint_portal
 }
 	lda py_row
 	sta tmp5
+!if DBG_PORTAL = 1 {
+	sta dbg_far_y
+}
 	jsr .pp_draw_u
 	jmp .pp_do_l
 
@@ -759,6 +791,9 @@ paint_portal
 }
 	lda py_row
 	sta tmp5
+!if DBG_PORTAL = 1 {
+	sta dbg_far_y
+}
 .pp_do_l
 	lda ytop
 	cmp ybot
@@ -787,6 +822,9 @@ paint_portal
 	sta ybot
 	pla
 	sta ytop
+	; Open continues as [ytop, farFloorY). Always advance ybot — even when
+	; farFloorY sits above HORIZON (raised floor above eye). Raising ytop
+	; to nearFloorY closes the stair portal early on straddling steps.
 	lda tmp1
 	cmp ybot
 	bcs .ppd
@@ -860,3 +898,174 @@ clamp_span
 	lda ybot
 .c2
 	rts
+
+!if DBG_PORTAL = 1 {
+; Center-column portal dump (chars after blit; colour shows through).
+; Per line: id ytop ybot span_a span_b near_floor above_eye farFloorY texstep_h
+; farFloorY=$FF if this edge did not project far floor (solid / no lower)
+DBG_BUF		= $2e00			; 24 × 9 bytes
+DBG_MAX		= 24
+DBG_STRIDE	= 9
+
+; If col == CENTER_COL, append post-paint debug fields.
+dbg_portal_log
+	lda col
+	cmp #CENTER_COL
+	bne .dpl_out
+	lda dbg_n
+	cmp #DBG_MAX
+	bcs .dpl_out
+	sta tmp0
+	asl				; *2
+	sta tmp1
+	asl				; *4
+	asl				; *8
+	clc
+	adc tmp0			; *9
+	tax
+	lda next_id
+	sta DBG_BUF,x
+	lda ytop
+	sta DBG_BUF + 1,x
+	lda ybot
+	sta DBG_BUF + 2,x
+	lda span_a
+	sta DBG_BUF + 3,x
+	lda span_b
+	sta DBG_BUF + 4,x
+	lda near_floor
+	sta DBG_BUF + 5,x
+	lda #0
+	sta DBG_BUF + 6,x
+	lda near_floor
+	cmp eyeheight
+	bcc .dpl_far
+	beq .dpl_far
+	lda #1
+	sta DBG_BUF + 6,x
+.dpl_far
+	lda dbg_far_y
+	sta DBG_BUF + 7,x
+	lda texstep_h
+	sta DBG_BUF + 8,x
+	lda #255
+	sta dbg_far_y			; consume — solid edges leave $FF
+	inc dbg_n
+.dpl_out
+	rts
+
+; Print 9×3-digit groups with skipped-column gaps (no colour / no $20).
+dbg_portal_flush
+	lda #0
+	sta tmp2			; entry index
+	lda #1
+	sta tmp3			; screen row
+.dpf_lp
+	lda tmp2
+	cmp dbg_n
+	bcs .dpf_done
+	sta tmp0
+	asl
+	sta tmp1
+	asl
+	asl				; *8
+	clc
+	adc tmp0			; *9
+	pha
+	lda tmp3
+	jsr .dpf_row_ptr
+	pla
+	sta tmp1
+	ldx #0				; field 0..8
+.dpf_fields
+	txa
+	pha
+	clc
+	adc tmp1
+	tay
+	lda DBG_BUF,y
+	jsr .dpf_u8_3
+	pla
+	tax
+	inx
+	cpx #DBG_STRIDE
+	bcs .dpf_next
+	inc fill_row			; gap
+	jmp .dpf_fields
+.dpf_next
+	inc tmp2
+	inc tmp3
+	lda tmp3
+	cmp #25
+	bcc .dpf_lp
+.dpf_done
+	rts
+
+; A = screen row 0..24 → ptr = $0400+40*A
+.dpf_row_ptr
+	sta tmp0
+	lda #0
+	sta ptr_h
+	lda tmp0
+	asl
+	asl
+	asl				; *8
+	sta tmp1
+	asl				; *16
+	rol ptr_h
+	asl				; *32
+	rol ptr_h
+	clc
+	adc tmp1			; *40
+	sta ptr_l
+	bcc .dpf_r1
+	inc ptr_h
+.dpf_r1
+	clc
+	lda ptr_l
+	adc #<$0400
+	sta ptr_l
+	lda ptr_h
+	adc #>$0400
+	sta ptr_h
+	lda #0
+	sta fill_row			; column within row
+	rts
+
+; A = char at (ptr)+fill_row; leave colour RAM alone; inc fill_row
+.dpf_ch
+	ldy fill_row
+	sta (ptr_l),y
+	inc fill_row
+	rts
+
+; A = 0..255 → three inverse digits at current fill_row (Willy PrintDec3)
+.dpf_u8_3
+	ldx #SCREEN_DIGIT_BASE
+.dpf_h
+	cmp #100
+	bcc .dpf_t
+	sbc #100
+	inx
+	bcs .dpf_h
+.dpf_t
+	ldy #SCREEN_DIGIT_BASE
+.dpf_tl
+	cmp #10
+	bcc .dpf_o
+	sbc #10
+	iny
+	bne .dpf_tl
+.dpf_o
+	pha				; ones
+	tya
+	pha				; tens screen code
+	txa
+	jsr .dpf_ch
+	pla
+	jsr .dpf_ch
+	pla
+	clc
+	adc #SCREEN_DIGIT_BASE
+	jmp .dpf_ch
+}

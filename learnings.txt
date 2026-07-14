@@ -44,3 +44,40 @@ Profiling pitfalls
 - F = full loop via CIA2 Timer B cascaded off Timer A (32-bit).
 - Consistency check: F should be ≥ S+D+N+L+P (those miss blit/input/gaps).
 - Labels: build with --vicelabels + tools/sort_lbl.py (Deathchase-style).
+- PROFILE=1 bucket hooks add ~160 ms/frame vs F-only; use F without
+  PROFILE for real fps, PROFILE for relative region costs.
+
+Level / sector ids
+------------------
+- Map bytes store sector id directly; that id indexes the SoA attr tables
+  (SEC_FLOOR[id], …). No extra indirection.
+- Tables are 7×256 (id 0 unused). Cook fills only ids present in the
+  editor Map; other slots stay 0 — sparse *usage*, fixed layout.
+- Cook does not densify to 1..N. Editor allocSectorId takes lowest free
+  1..255; deletes/splits leave holes, so E1M1 can show ~25 live sectors
+  with ids like 1..22, 53, 108, 150. Portal dump “108” is a real tile id.
+
+Portal clip / rising floors
+---------------------------
+- Flat ceil along a stair still shows orange bands when floors rise above
+  eyeheight: project_y puts those floors above HORIZON, so lower-ledge
+  risers paint in the upper half (easy to misread as a ceiling wall).
+- Open portal after step-up is [ytop, farFloorY). Always ybot = farFloorY
+  (even when that Y is above HORIZON). That aperture is the gap between
+  ceiling and the raised floor surface.
+- Wrong fix (reverted): if farFloorY < HORIZON then ytop = nearFloorY.
+  On steps that straddle the horizon that snaps ytop to below-horizon
+  nearFloorY and closes the clip (dump: 013 open → 008 015/015 stop)
+  so only ~2 sectors appear when looking up stairs. Do not revive that.
+- paint_near: if floor projects above HORIZON (floor > eye), still store
+  span_b for ledges but do not fill floor-to-bottom or set ybot = that
+  row — that made the floor join sit too high. Same guard in editor.
+- Close look-up “raised wall”: dump ytop=2 is ceil (span_a), NOT farFloorY.
+  Close vs pulled-back dumps barely differ (ybot 6 vs 7 after into 6). When
+  near ceil clamps to ybot, must still fill [ytop,ybot) with ceil and close
+  (editor ceilEnd > yTop). Old `cmp ybot / bcs skip` left a false opening;
+  solid into void painted that band WALL_NS orange. Fix: allow ceil fill when
+  clamp(ceil) == ybot.
+- DBG_PORTAL line: id ytop ybot span_a span_b near_floor above_eye
+  farFloorY texstep_h. farFloorY=$FF if not projected; span_b=$FF if floor
+  skip. above_eye = 1 if near_floor > eyeheight. Do not read ytop as floor.

@@ -106,3 +106,8 @@ prof_now_l	= $52
 prof_now_h	= $53
 prof_dt_l	= $54
 prof_dt_h	= $55
+
+!if DBG_PORTAL = 1 {
+dbg_n		= $56			; # portal dump lines this frame (0..24)
+dbg_far_y	= $57			; raw project_y(far_floor); $FF if none
+}
