@@ -6,7 +6,7 @@
 FRAMEBUFFER = $c800
 
 MAX_DDA = 64
-PROFILE = 1
+PROFILE = 0
 
 !source "zeropage.asm"
 !source "basicstub.asm"

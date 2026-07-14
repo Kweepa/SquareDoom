@@ -38,8 +38,9 @@ Profiling pitfalls
 - prof_add_bucket must not touch paint tmp* (tmp4/tmp5 etc.). Use
   dedicated ZP (prof_now_*, prof_dt_*). Clobbering tmp mid-paint
   silently broke the frame.
-- HUD: F S D N L P in decimal ms (3 digits): (cycles>>8)/4, PrintDec3-style
-  from JSW-Tape. Clamp 999. fps ≈ 1000 / F.
+- HUD F is always on (even PROFILE=0): frame ms via cascade timers.
+  PROFILE=1 adds S D N L P. Values ≈ ms = (cycles>>8)/4, 3 digits
+  (JSW-Tape PrintDec3). Clamp 999. fps ≈ 1000 / F.
 - F = full loop via CIA2 Timer B cascaded off Timer A (32-bit).
 - Consistency check: F should be ≥ S+D+N+L+P (those miss blit/input/gaps).
 - Labels: build with --vicelabels + tools/sort_lbl.py (Deathchase-style).

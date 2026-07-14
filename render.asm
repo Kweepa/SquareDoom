@@ -30,10 +30,8 @@ render
 	cmp #40
 	bcc .col_loop
 	jsr blit_fb_to_color
-!if PROFILE = 1 {
 	jsr prof_frame_sample
 	jsr prof_print
-}
 	jmp print_dda_peak
 
 ; ------------------------------------------------------------------

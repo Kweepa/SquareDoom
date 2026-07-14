@@ -1,11 +1,10 @@
 !zone profil
 
-; CIA2 Timer A: free-running ϕ2 for in-frame bucket deltas.
-; CIA2 Timer B: cascaded (counts TA underflows) → with A, a 32-bit clock
-; for whole-frame period (input + render + HUD), shown as F.
-; Buckets: cycles accumulated per frame (24-bit each).
-; HUD: F S D N L P (W collected, not printed). Scratch uses prof_* ZP only.
+; CIA2 Timer A: ϕ2 free-run (buckets when PROFILE; cascade base always).
+; CIA2 Timer B: cascaded off TA → 32-bit clock for frame period (F).
+; PROFILE=1 HUD: F S D N L P. PROFILE=0 HUD: F only (still ≈ ms).
 
+!if PROFILE = 1 {
 PROF_SETUP  = 0
 PROF_DDA    = 1
 PROF_WALLZ  = 2
@@ -14,15 +13,17 @@ PROF_LEDGE  = 4
 PROF_PROJECT_Y = 5
 PROF_NBUCKET = 6
 
-; 24-bit buckets in free RAM (id-indexed)
 prof_lo		= $2d00
 prof_mid	= $2d00 + PROF_NBUCKET
 prof_hi		= $2d00 + PROF_NBUCKET * 2
-
-; Cascade samples / frame period (cycles). HUD prints (period>>8)/4 ≈ ms.
-frame_t0	= $2d12			; 4 bytes: TA_L, TA_H, TB_L, TB_H
-frame_cy	= $2d16			; 4 bytes: last full-frame period
-casc_now	= $2d1a			; 4 bytes: scratch sample
+frame_t0	= $2d12
+frame_cy	= $2d16
+casc_now	= $2d1a
+} else {
+frame_t0	= $2d00
+frame_cy	= $2d04
+casc_now	= $2d08
+}
 
 ; CIA2
 CIA2_TA_LO	= $dd04
@@ -35,7 +36,6 @@ CIA2_CRB	= $dd0f
 
 PROF_SCR	= $0403
 PROF_COL	= $d803
-PROF_SHOW	= 5				; S D N L P (F printed first)
 
 prof_init
 	lda #$7f
@@ -59,14 +59,6 @@ prof_init
 	sta frame_cy + 1
 	sta frame_cy + 2
 	sta frame_cy + 3
-	rts
-
-; Read Timer A into A=hi X=lo (retry if HI changes mid-read).
-prof_read_cia
-	lda CIA2_TA_HI
-	ldx CIA2_TA_LO
-	cmp CIA2_TA_HI
-	bne prof_read_cia
 	rts
 
 ; Consistent 32-bit cascade sample → casc_now.
@@ -117,6 +109,15 @@ prof_frame_sample
 	sta frame_cy + 3
 	jmp prof_store_t0
 
+!if PROFILE = 1 {
+; Read Timer A into A=hi X=lo (retry if HI changes mid-read).
+prof_read_cia
+	lda CIA2_TA_HI
+	ldx CIA2_TA_LO
+	cmp CIA2_TA_HI
+	bne prof_read_cia
+	rts
+
 prof_snap
 	jsr prof_read_cia
 	stx prof_snap_l
@@ -163,13 +164,13 @@ prof_add_bucket
 	sta prof_hi,y
 	rts
 
-; Charge elapsed since snap to P. Does not preserve A/X/Y.
 prof_add_py
 	ldy #PROF_PROJECT_Y
 	jmp prof_add_bucket
+}
 
-; Print F then S D N L P. Each value is (cycles>>8)/4 ≈ ms, 3 decimal digits.
-; Digit conversion borrowed from JSW-Tape PrintDec3 (rope_test.asm).
+; Print F (always). With PROFILE=1 also S D N L P.
+; Values ≈ ms = (cycles>>8)/4, 3 decimal digits (JSW-Tape PrintDec3 style).
 prof_print
 	ldx #0
 	lda #$86			; inverse 'F'
@@ -180,8 +181,8 @@ prof_print
 	lda frame_cy + 2
 	ldy frame_cy + 1
 	jsr .pp_ms3
+!if PROFILE = 1 {
 	inx				; gap
-
 	ldy #0
 .pp_buck
 	tya
@@ -203,10 +204,12 @@ prof_print
 	pla
 	tay
 	iny
-	cpy #PROF_SHOW
+	cpy #5				; S D N L P
 	bcc .pp_buck
+}
 	rts
 
+!if PROFILE = 1 {
 .pp_id
 	!byte PROF_SETUP
 	!byte PROF_DDA
@@ -220,83 +223,92 @@ prof_print
 	!byte $8e			; N
 	!byte $8c			; L
 	!byte $90			; P
+}
 
 SCREEN_DIGIT_BASE = $b0
 
+; Frame print scratch when PROFILE=0 (no prof_now_*/prof_dt_* from buckets).
+!if PROFILE = 0 {
+pp_tmp_l	= $2d0c
+pp_tmp_h	= $2d0d
+pp_dig_h	= $2d0e
+pp_dig_t	= $2d0f
+} else {
+pp_tmp_l	= prof_dt_l
+pp_tmp_h	= prof_dt_h
+pp_dig_h	= prof_now_l
+pp_dig_t	= prof_now_h
+}
+
 ; A:Y = hi:mid (cycles>>8) → (A:Y)>>2 ≈ ms → 3 decimal digits at PROF_SCR,x
-; Uses prof_dt_*; advances X by 3.
 .pp_ms3
-	sta prof_dt_h
-	sty prof_dt_l
-	lsr prof_dt_h
-	ror prof_dt_l
-	lsr prof_dt_h
-	ror prof_dt_l
-	; clamp to 999
-	lda prof_dt_h
+	sta pp_tmp_h
+	sty pp_tmp_l
+	lsr pp_tmp_h
+	ror pp_tmp_l
+	lsr pp_tmp_h
+	ror pp_tmp_l
+	lda pp_tmp_h
 	beq .pp_dec3
 	cmp #4
 	bcs .pp_sat
 	cmp #3
 	bcc .pp_dec3
-	lda prof_dt_l
-	cmp #$e8			; $03E8 = 1000
+	lda pp_tmp_l
+	cmp #$e8
 	bcc .pp_dec3
 .pp_sat
 	lda #3
-	sta prof_dt_h
-	lda #$e7			; 999
-	sta prof_dt_l
+	sta pp_tmp_h
+	lda #$e7
+	sta pp_tmp_l
 
-; 0..999 in prof_dt_h:l → three inverse digits (Willy-Tape PrintDec3 style)
 .pp_dec3
 	txa
 	pha
 	ldx #SCREEN_DIGIT_BASE
 .pp_hund
-	lda prof_dt_h
+	lda pp_tmp_h
 	bne .pp_sub100
-	lda prof_dt_l
+	lda pp_tmp_l
 	cmp #100
 	bcc .pp_tens
 .pp_sub100
 	sec
-	lda prof_dt_l
+	lda pp_tmp_l
 	sbc #100
-	sta prof_dt_l
-	lda prof_dt_h
+	sta pp_tmp_l
+	lda pp_tmp_h
 	sbc #0
-	sta prof_dt_h
+	sta pp_tmp_h
 	inx
 	bne .pp_hund
 .pp_tens
 	ldy #SCREEN_DIGIT_BASE
 .pp_tenlp
-	lda prof_dt_l
+	lda pp_tmp_l
 	cmp #10
 	bcc .pp_ones
 	sbc #10
-	sta prof_dt_l
+	sta pp_tmp_l
 	iny
 	bne .pp_tenlp
 .pp_ones
-	; X = hundreds screen code, Y = tens, prof_dt_l = ones (0-9)
-	; stack: dest index
-	stx prof_now_l			; hundreds (reuse scratch; print-only)
-	sty prof_now_h			; tens
-	pla				; dest index
+	stx pp_dig_h
+	sty pp_dig_t
+	pla
 	tax
-	lda prof_now_l
+	lda pp_dig_h
 	sta PROF_SCR,x
 	lda #1
 	sta PROF_COL,x
 	inx
-	lda prof_now_h
+	lda pp_dig_t
 	sta PROF_SCR,x
 	lda #1
 	sta PROF_COL,x
 	inx
-	lda prof_dt_l
+	lda pp_tmp_l
 	clc
 	adc #SCREEN_DIGIT_BASE
 	sta PROF_SCR,x

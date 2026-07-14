@@ -37,9 +37,7 @@ warmstart
 	bne .fill_col
 
 	jsr init_sqtabs
-!if PROFILE = 1 {
 	jsr prof_init
-}
 	jsr find_spawn
 	jsr update_eye
 	jmp gameloop
