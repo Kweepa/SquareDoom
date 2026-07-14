@@ -88,3 +88,14 @@ save_yh		= $49
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
 col_base_h	= $4b
+
+dda_steps	= $4c
+dda_peak	= $4d
+
+; CIA profiler snap
+prof_snap_l	= $4e
+prof_snap_h	= $4f
+
+; Keep-style marching pointer into level_map
+tile_l		= $50
+tile_h		= $51

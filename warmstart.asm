@@ -37,6 +37,9 @@ warmstart
 	bne .fill_col
 
 	jsr init_sqtabs
+!if PROFILE = 1 {
+	jsr prof_init
+}
 	jsr find_spawn
 	jsr update_eye
 	jmp gameloop
@@ -94,7 +97,8 @@ update_eye
 	jsr player_tile
 	jsr map_sector_id
 	beq .ue_empty
-	jsr sector_floor
+	tax
+	lda SEC_FLOOR,x
 	clc
 	adc #3
 	sta eyeheight

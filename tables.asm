@@ -1,4 +1,4 @@
-; Auto-generated — TheKeep DDA tables + sintab + col bases
+; Auto-generated — TheKeep DDA tables + sintab + col/map bases
 angtab
 	!byte $e3,$e4,$e6,$e7,$e9,$ea,$ec,$ed,$ef,$f0,$f2,$f3,$f5,$f6,$f8,$f9
 	!byte $fb,$fc,$fe,$ff,$01,$02,$04,$05,$07,$08,$0a,$0b,$0d,$0e,$10,$11
@@ -27,6 +27,12 @@ colbasehi
 	!byte $c8,$c8,$c8,$c8,$c8,$c8,$c8,$c8,$c8,$c8,$c8,$c9,$c9,$c9,$c9,$c9
 	!byte $c9,$c9,$c9,$c9,$c9,$ca,$ca,$ca,$ca,$ca,$ca,$ca,$ca,$ca,$ca,$cb
 	!byte $cb,$cb,$cb,$cb,$cb,$cb,$cb,$cb
+maprowlo
+	!byte $00,$20,$40,$60,$80,$a0,$c0,$e0,$00,$20,$40,$60,$80,$a0,$c0,$e0
+	!byte $00,$20,$40,$60,$80,$a0,$c0,$e0,$00,$20,$40,$60,$80,$a0,$c0,$e0
+maprowhi
+	!byte $a7,$a7,$a7,$a7,$a7,$a7,$a7,$a7,$a8,$a8,$a8,$a8,$a8,$a8,$a8,$a8
+	!byte $a9,$a9,$a9,$a9,$a9,$a9,$a9,$a9,$aa,$aa,$aa,$aa,$aa,$aa,$aa,$aa
 sintab
 	!byte $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$0a,$0b,$0c,$0d,$0d,$0e
 	!byte $0f,$10,$11,$12,$13,$14,$15,$15,$16,$17,$18,$19,$19,$1a,$1b,$1c

@@ -5,34 +5,46 @@
 ; Column-major colour buffer (40×25), after Judd tabs at $C000–$C7FF
 FRAMEBUFFER = $c800
 
+MAX_DDA = 64
+PROFILE = 1
+
 !source "zeropage.asm"
 !source "basicstub.asm"
 !source "warmstart.asm"
 !source "multiply.asm"
 !source "util.asm"
 !source "input.asm"
+!source "profil.asm"
 !source "render.asm"
 !source "blit.asm"
 !source "gameloop.asm"
 
 ; ------------------------------------------------------------------
 ; Level + tables under BASIC ROM ($A000), visible after $01=$36
+; SoA layout: 7×256 sector attr tables (id-indexed), map, items
 ; ------------------------------------------------------------------
 *=$a000
 level_data
 	!binary "levels/e1m1.bin"
 
-; Offsets into level_data
-SECTOR_BYTES = 7
 MAP_SIZE = 32
 MAP_CELLS = 1024
 MAX_SECTORS = 255
 MAX_ITEMS = 48
 ITEM_BYTES = 4
 DOOR_TYPE = 18
+SEC_TABLE_SIZE = 256
 
-level_sectors = level_data
-level_map = level_data + MAX_SECTORS * SECTOR_BYTES
+; Attribute tables (index = sector id; [0] unused)
+SEC_FLOOR  = level_data
+SEC_CEIL   = SEC_FLOOR + SEC_TABLE_SIZE
+SEC_TYPE   = SEC_CEIL + SEC_TABLE_SIZE
+SEC_TARGET = SEC_TYPE + SEC_TABLE_SIZE
+SEC_FCOL   = SEC_TARGET + SEC_TABLE_SIZE
+SEC_CCOL   = SEC_FCOL + SEC_TABLE_SIZE
+SEC_BRIGHT = SEC_CCOL + SEC_TABLE_SIZE
+
+level_map = SEC_BRIGHT + SEC_TABLE_SIZE
 level_items = level_map + MAP_CELLS
 
 !source "tables.asm"

@@ -56,6 +56,17 @@ function colBaseTable(fb) {
   return { lo, hi };
 }
 
+function mapRowTable(levelMap) {
+  const lo = [];
+  const hi = [];
+  for (let y = 0; y < 32; y++) {
+    const addr = levelMap + y * 32;
+    lo.push(addr & 0xff);
+    hi.push(addr >> 8);
+  }
+  return { lo, hi };
+}
+
 /** Signed 8-bit sin for walk/strafe (amp fits comfy step in 8.8 world). */
 function sinTable() {
   const AMP = 40;
@@ -69,21 +80,26 @@ function sinTable() {
 
 // Must match FRAMEBUFFER in squaredoom.asm / genblit.js
 const FRAMEBUFFER = 0xc800;
+// Must match squaredoom.asm: level_data=$a000, 7×256 SoA tables then map
+const LEVEL_MAP = 0xa000 + 7 * 256;
 
 const angles = anglesTable();
 const fishes = fishesTable(angles);
 const { lo: secl, hi: sech } = secantTable();
 const { lo: cblo, hi: cbhi } = colBaseTable(FRAMEBUFFER);
+const { lo: mrlo, hi: mrhi } = mapRowTable(LEVEL_MAP);
 const sins = sinTable();
 
-let asm = `; Auto-generated — TheKeep DDA tables + sintab + col bases\n`;
+let asm = `; Auto-generated — TheKeep DDA tables + sintab + col/map bases\n`;
 asm += emitBytes('angtab', angles);
 asm += emitBytes('fishtab', fishes);
 asm += emitBytes('fixsecl', secl);
 asm += emitBytes('fixsech', sech);
 asm += emitBytes('colbaselo', cblo);
 asm += emitBytes('colbasehi', cbhi);
+asm += emitBytes('maprowlo', mrlo);
+asm += emitBytes('maprowhi', mrhi);
 asm += emitBytes('sintab', sins);
 
 writeFileSync(new URL('../tables.asm', import.meta.url), asm);
-console.log('wrote Keep tables + sintab + colbase');
+console.log('wrote Keep tables + sintab + colbase + maprow');

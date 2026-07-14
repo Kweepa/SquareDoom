@@ -1,7 +1,7 @@
 /**
- * Cooked binary layout (no header), per level:
- *   1. Sector table: 255 * 7 bytes (sectors 1..255; unused slots zeroed)
- *      each: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
+ * Cooked binary layout (no header), per level — structure-of-arrays:
+ *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
+ *      order: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
  *      targetSector is the resolved sector id (from editor targetTag); 0 if type is 0 / unresolved
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
@@ -30,7 +30,8 @@ import {
   normalizeColor,
 } from './model.js';
 
-const SECTOR_BYTES = 7;
+const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
+const SECTOR_TABLE_SIZE = 256;		 // index = sector id; [0] unused
 const ITEM_BYTES = 4;
 const EMPTY_ITEM_TYPE = 0xff;
 
@@ -154,10 +155,16 @@ export function episodeFromJSON(data) {
 export function cookLevel(level) {
   /** @type {string[]} */
   const warnings = [];
-  const sectorTable = new Uint8Array(MAX_SECTORS * SECTOR_BYTES);
+  const floors = new Uint8Array(SECTOR_TABLE_SIZE);
+  const ceils = new Uint8Array(SECTOR_TABLE_SIZE);
+  const types = new Uint8Array(SECTOR_TABLE_SIZE);
+  const targets = new Uint8Array(SECTOR_TABLE_SIZE);
+  const fcols = new Uint8Array(SECTOR_TABLE_SIZE);
+  const ccols = new Uint8Array(SECTOR_TABLE_SIZE);
+  const brights = new Uint8Array(SECTOR_TABLE_SIZE);
+
   for (let id = 1; id <= MAX_SECTORS; id++) {
     const s = level.sectors.get(id);
-    const off = (id - 1) * SECTOR_BYTES;
     if (!s) continue;
     const type = (s.sectorType ?? 0) & 0xff;
     let targetId = 0;
@@ -172,13 +179,13 @@ export function cookLevel(level) {
         }
       }
     }
-    sectorTable[off] = s.floorHeight & 31;
-    sectorTable[off + 1] = s.ceilingHeight & 31;
-    sectorTable[off + 2] = type;
-    sectorTable[off + 3] = targetId & 0xff;
-    sectorTable[off + 4] = colorIndex(s.floorColor) & 15;
-    sectorTable[off + 5] = colorIndex(s.ceilingColor) & 15;
-    sectorTable[off + 6] = s.brightness & 7;
+    floors[id] = s.floorHeight & 31;
+    ceils[id] = s.ceilingHeight & 31;
+    types[id] = type;
+    targets[id] = targetId & 0xff;
+    fcols[id] = colorIndex(s.floorColor) & 15;
+    ccols[id] = colorIndex(s.ceilingColor) & 15;
+    brights[id] = s.brightness & 7;
   }
 
   const mapBytes = new Uint8Array(level.map);
@@ -203,10 +210,18 @@ export function cookLevel(level) {
     itemTable[off + 3] = bits;
   }
 
-  const out = new Uint8Array(sectorTable.length + mapBytes.length + itemTable.length);
-  out.set(sectorTable, 0);
-  out.set(mapBytes, sectorTable.length);
-  out.set(itemTable, sectorTable.length + mapBytes.length);
+  const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
+  const out = new Uint8Array(sectorBytes + mapBytes.length + itemTable.length);
+  let o = 0;
+  out.set(floors, o); o += SECTOR_TABLE_SIZE;
+  out.set(ceils, o); o += SECTOR_TABLE_SIZE;
+  out.set(types, o); o += SECTOR_TABLE_SIZE;
+  out.set(targets, o); o += SECTOR_TABLE_SIZE;
+  out.set(fcols, o); o += SECTOR_TABLE_SIZE;
+  out.set(ccols, o); o += SECTOR_TABLE_SIZE;
+  out.set(brights, o); o += SECTOR_TABLE_SIZE;
+  out.set(mapBytes, o); o += mapBytes.length;
+  out.set(itemTable, o);
   return { bytes: out, warnings };
 }
 

@@ -16,6 +16,11 @@ TEXSTEP_SHIFT = 2
 
 render
 	lda #0
+	sta dda_peak
+!if PROFILE = 1 {
+	jsr prof_reset_frame
+}
+	lda #0
 	sta col
 .col_loop
 	jsr set_col_base
@@ -24,10 +29,22 @@ render
 	lda col
 	cmp #40
 	bcc .col_loop
-	jmp blit_fb_to_color
+!if PROFILE = 1 {
+	jsr prof_snap
+}
+	jsr blit_fb_to_color
+!if PROFILE = 1 {
+	ldy #PROF_BLIT
+	jsr prof_add_bucket
+	jsr prof_print
+}
+	jmp print_dda_peak
 
 ; ------------------------------------------------------------------
 cast_column
+!if PROFILE = 1 {
+	jsr prof_snap
+}
 	; Keep angle = column + look − 64 (editor sin/−cos north ↔ Keep)
 	ldy col
 	lda angtab,y
@@ -149,14 +166,29 @@ cast_column
 	sta ytop
 	lda #25
 	sta ybot
+	lda #0
+	sta dda_steps
 	jsr map_sector_id
 	sta cur_id
+	; Keep tile pointer at current cell (map_sector_id left ptr_*)
+	lda ptr_l
+	sta tile_l
+	lda ptr_h
+	sta tile_h
+!if PROFILE = 1 {
+	ldy #PROF_SETUP
+	jsr prof_add_bucket
+}
 
-; ----- Keep innerloop -----
+; ----- Keep-style innerloop: tile ptr + skip on_cell when same id -----
 .inner
 	lda ytop
 	cmp ybot
 	bcc .igo
+!if PROFILE = 1 {
+	ldy #PROF_DDA
+	jsr prof_add_bucket
+}
 	rts
 .igo
 	lda sdx_h
@@ -168,16 +200,112 @@ cast_column
 	bcs .adv_y
 
 .adv_x
-	clc
-	lda mapx
-	adc xstep
-	sta mapx
 	lda #0
 	sta side
-	jsr map_sector_id
+	ldx #0
+	lda xstep
+	bpl .axp
+	dex				; X = $ff sign-extend
+.axp
+	clc
+	adc mapx
+	sta mapx
+	cmp #MAP_SIZE
+	bcs .ax_oob
+	; tile += xstep (sign-extended)
+	clc
+	lda tile_l
+	adc xstep
+	sta tile_l
+	txa
+	adc tile_h
+	sta tile_h
+	ldy #0
+	lda (tile_l),y
 	sta next_id
+	cmp cur_id
+	bne .ax_cell
+	; empty same-sector step — Keep-cheap
+	jsr dda_bump
+	bcs .ax_done
+	jsr .add_sdx
+	bcs .ax_done
+	jmp .inner
+.ax_done
+	jmp .done
+.ax_oob
+	lda #0
+	sta next_id
+.ax_cell
+!if PROFILE = 1 {
+	ldy #PROF_DDA
+	jsr prof_add_bucket
+}
 	jsr on_cell
-	bcs .done
+	bcs .ax_done
+	jsr dda_bump
+	bcs .ax_done
+	jsr .add_sdx
+	bcs .ax_done
+	jmp .inner
+
+.adv_y
+	lda #1
+	sta side
+	clc
+	lda mapy
+	adc ystep
+	sta mapy
+	cmp #MAP_SIZE
+	bcs .ay_oob
+	lda ystep
+	bmi .ay_n
+	clc
+	lda tile_l
+	adc #MAP_SIZE
+	sta tile_l
+	lda tile_h
+	adc #0
+	sta tile_h
+	jmp .ay_rd
+.ay_n
+	sec
+	lda tile_l
+	sbc #MAP_SIZE
+	sta tile_l
+	lda tile_h
+	sbc #0
+	sta tile_h
+.ay_rd
+	ldy #0
+	lda (tile_l),y
+	sta next_id
+	cmp cur_id
+	bne .ay_cell
+	jsr dda_bump
+	bcs .ay_done
+	jsr .add_sdy
+	bcs .ay_done
+	jmp .inner
+.ay_done
+	jmp .done
+.ay_oob
+	lda #0
+	sta next_id
+.ay_cell
+!if PROFILE = 1 {
+	ldy #PROF_DDA
+	jsr prof_add_bucket
+}
+	jsr on_cell
+	bcs .ay_done
+	jsr dda_bump
+	bcs .ay_done
+	jsr .add_sdy
+	bcs .ay_done
+	jmp .inner
+
+.add_sdx
 	clc
 	lda sdx_l
 	adc ddx_l
@@ -185,21 +313,9 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
-	bcc .inner
-.done
 	rts
 
-.adv_y
-	clc
-	lda mapy
-	adc ystep
-	sta mapy
-	lda #1
-	sta side
-	jsr map_sector_id
-	sta next_id
-	jsr on_cell
-	bcs .done
+.add_sdy
 	clc
 	lda sdy_l
 	adc ddy_l
@@ -207,10 +323,70 @@ cast_column
 	lda sdy_h
 	adc ddy_h
 	sta sdy_h
-	bcc .inner
+	rts
+
+.done
+!if PROFILE = 1 {
+	ldy #PROF_DDA
+	jsr prof_add_bucket
+}
+	jmp fill_open_remainder
+
+; Inc step count; update peak; C=1 if >= MAX_DDA
+dda_bump
+	inc dda_steps
+	lda dda_steps
+	cmp dda_peak
+	bcc .dc_chk
+	sta dda_peak
+.dc_chk
+	cmp #MAX_DDA
+	rts
+
+; If clip still open after ray stop: fill with near floor colour (no project —
+; wallz/texstep may be stale when stopping on overflow/cap).
+fill_open_remainder
+	lda ytop
+	cmp ybot
+	bcc .for_go
+	rts
+.for_go
+	lda cur_id
+	beq .for_done
+	tax
+	lda SEC_FCOL,x
+	tax
+	jsr fill_col_span
+.for_done
+	rts
+
+; Two inverse digits of dda_peak at $0400/$0401; leave $0402 blank before stats
+print_dda_peak
+	lda dda_peak
+	ldx #0
+.pdp_tens
+	cmp #10
+	bcc .pdp_ones
+	sbc #10
+	inx
+	bne .pdp_tens
+.pdp_ones
+	ora #$b0			; inverse screen codes for '0'..'9'
+	sta $0401
+	txa
+	ora #$b0
+	sta $0400
+	lda #1				; white
+	sta $d800
+	sta $d801
+	lda #$20			; gap before S/D/P/B stats
+	sta $0402
+	lda #1
+	sta $d802
 	rts
 
 ; C=1 stop column
+; PROFILE marks: W=calc_wallz, N=paint_near, L=solid fill or paint_portal
 on_cell
 	lda next_id
 	cmp cur_id
@@ -219,10 +395,18 @@ on_cell
 	rts
 .chg
 	jsr calc_wallz
+!if PROFILE = 1 {
+	ldy #PROF_WALLZ
+	jsr prof_add_bucket
+}
 	lda cur_id
 	beq .void_enter
 	jsr load_near_sector
 	jsr paint_near
+!if PROFILE = 1 {
+	ldy #PROF_NEAR
+	jsr prof_add_bucket
+}
 	lda ytop
 	cmp ybot
 	bcc .edge
@@ -240,10 +424,20 @@ on_cell
 	jsr wall_colour_ns_ew
 	ldx wall_col
 	jsr fill_col_span
+	lda ybot			; close clip — prevent fill_open_remainder wiping the wall
+	sta ytop
+!if PROFILE = 1 {
+	ldy #PROF_LEDGE
+	jsr prof_add_bucket
+}
 	sec
 	rts
 .portal
 	jsr paint_portal
+!if PROFILE = 1 {
+	ldy #PROF_LEDGE
+	jsr prof_add_bucket
+}
 	lda ytop
 	cmp ybot
 	bcc .cont
@@ -255,6 +449,9 @@ on_cell
 	clc
 	rts
 .stop
+	; void→void: nothing to draw; close clip if somehow open
+	lda ybot
+	sta ytop
 	sec
 	rts
 
@@ -300,8 +497,10 @@ calc_wallz
 .czok
 	rts
 
-; Count screen rows by summing texstep until covers |Δh| world units
-; (Keep yloop: rows = how far tex advances over pixels; no divide).
+; Count screen rows until tex covers |Δh| (Keep yloop).
+; Early-out: n=1 when texstep_h >= |Δh|.
+; Distant (texstep_h=0): exact ceil((target<<8)/texstep_l) via 16÷8.
+; Else: sum loop (proven; do not approx÷hi).
 project_y
 	sec
 	sbc eyeheight
@@ -319,7 +518,16 @@ project_y
 .pyp
 	lda tmp1
 	beq .py_zero			; height == eye → horizon
-	sta tmp3			; target = |Δh| (matches mid-product wallz scale)
+	sta tmp3			; target = |Δh|
+
+	lda texstep_h
+	beq .py_to_lo			; distant — fixed-cost divide
+	cmp tmp3
+	bcc .py_sum
+	ldx #1				; first add's hi alone covers |Δh|
+	bne .py_have
+
+.py_sum
 	lda #0
 	sta acc_l
 	sta acc_h
@@ -337,6 +545,7 @@ project_y
 	inx
 	cmp tmp3
 	bcc .py_loop
+
 .py_have
 	stx tmp5
 	lda tmp2
@@ -366,21 +575,93 @@ project_y
 	sta py_row
 	rts
 
+.py_to_lo
+	jmp .py_lo_div
+
+; n = min(40, ceil((tmp3<<8) / texstep_l))
+; Restoring 16÷8: rem tmp4:tmp0, dividend/quot aux_h:aux_l
+.py_lo_div
+	lda #0
+	sta aux_l
+	lda tmp3
+	sta aux_h
+	lda #0
+	sta tmp0
+	sta tmp4
+	ldx #16
+.py_dbit
+	asl aux_l
+	rol aux_h
+	rol tmp0
+	rol tmp4
+	lda tmp4
+	beq .py_dcmp
+	sec
+	bne .py_dsub
+.py_dcmp
+	lda tmp0
+	cmp texstep_l
+	bcc .py_dnxt
+.py_dsub
+	lda tmp0
+	sbc texstep_l
+	sta tmp0
+	lda tmp4
+	sbc #0
+	sta tmp4
+	lda aux_l
+	ora #$01
+	sta aux_l
+.py_dnxt
+	dex
+	bne .py_dbit
+	lda aux_h
+	bne .py_cap
+	lda aux_l
+	beq .py_ceil1
+	ldx tmp0
+	bne .py_ceil
+	ldx tmp4
+	bne .py_ceil
+	jmp .py_quot
+.py_ceil
+	clc
+	adc #1
+	bcs .py_cap
+.py_quot
+	cmp #40
+	bcc .py_qok
+	beq .py_qok
+.py_cap
+	lda #40
+.py_qok
+	tax
+	jmp .py_have
+.py_ceil1
+	lda tmp0
+	ora tmp4
+	bne .py_cap
+	ldx #1
+	jmp .py_have
+
 ; ------------------------------------------------------------------
+; Ceil first; only project floor if clip still open (saves project_y when
+; near ceil eats the column — on_cell then skips paint_portal).
 paint_near
+	lda ytop
+	cmp ybot
+	bcs .pnd
 	lda near_ceil
 	jsr project_y
 	sta span_a
-	lda near_floor
-	jsr project_y
-	sta span_b
 
-	lda span_a
 	jsr clamp_span
 	sta tmp1
 	cmp ytop
 	beq .nc
 	bcc .nc
+	cmp ybot
+	bcs .nc
 	lda ybot
 	pha
 	lda tmp1
@@ -394,12 +675,17 @@ paint_near
 .nc
 	lda ytop
 	cmp ybot
-	bcs .pnd
-	lda span_b
+	bcs .pnd				; clip closed — skip floor project
+	lda near_floor
+	jsr project_y
+	sta span_b
 	jsr clamp_span
 	sta tmp1
 	cmp ybot
 	bcs .pnd
+	cmp ytop
+	bcc .pnd
+	beq .pnd
 	lda ytop
 	pha
 	lda tmp1
@@ -414,76 +700,58 @@ paint_near
 	rts
 
 paint_portal
-	lda next_id
-	jsr sector_type
+	ldx next_id
+	lda SEC_TYPE,x
 	cmp #DOOR_TYPE
 	bne .pn
-	lda next_id
-	jsr sector_ccol
+	lda SEC_CCOL,x
 	sta wall_col
 	jmp .pg
 .pn
 	jsr wall_colour_ns_ew
 .pg
-	lda next_id
-	jsr sector_floor
+	ldx next_id
+	lda SEC_FLOOR,x
 	sta far_floor
-	lda next_id
-	jsr sector_ceil
+	lda SEC_CEIL,x
 	sta far_ceil
 
-	lda near_ceil
-	jsr project_y
-	sta span_a
-	lda near_floor
-	jsr project_y
-	sta span_b
-	lda far_ceil
-	jsr project_y
-	sta tmp4
-	lda far_floor
-	jsr project_y
-	sta tmp5
-
-	lda far_ceil
+	; No ledge if far contained in near heights — span_a/b from paint_near
 	cmp near_ceil
-	bcs .pu
-	lda span_a
-	jsr clamp_span
-	sta tmp1
-	lda tmp4
-	jsr clamp_span
-	sta tmp2
-	lda tmp2
-	cmp tmp1
-	bcc .pu
-	beq .pu
-	lda ytop
-	pha
-	lda ybot
-	pha
-	lda tmp1
-	sta ytop
-	lda tmp2
-	sta ybot
-	ldx wall_col
-	jsr fill_col_span
-	pla
-	sta ybot
-	pla
-	sta ytop
-	lda tmp2
-	cmp ytop
-	bcc .pu
-	sta ytop
-.pu
-	lda ytop
-	cmp ybot
-	bcs .ppd
+	bcc .pp_upper			; far_ceil < near_ceil
 	lda far_floor
 	cmp near_floor
 	bcc .ppd
 	beq .ppd
+	jmp .pp_lower			; only lower ledge
+
+.pp_upper
+	lda far_ceil
+	jsr project_y
+	sta tmp4
+	lda far_floor
+	cmp near_floor
+	bcc .pp_do_u
+	beq .pp_do_u
+	lda far_floor
+	jsr project_y
+	sta tmp5
+	jsr .pp_draw_u
+	jmp .pp_do_l
+
+.pp_do_u
+	jsr .pp_draw_u
+.ppd
+	rts
+
+.pp_lower
+	lda far_floor
+	jsr project_y
+	sta tmp5
+.pp_do_l
+	lda ytop
+	cmp ybot
+	bcs .ppd
 	lda tmp5
 	jsr clamp_span
 	sta tmp1
@@ -512,21 +780,50 @@ paint_portal
 	cmp ybot
 	bcs .ppd
 	sta ybot
-.ppd
+	rts
+
+; Draw upper ledge using span_a / tmp4; advances ytop. Clobbers tmp1/tmp2.
+.pp_draw_u
+	lda span_a
+	jsr clamp_span
+	sta tmp1
+	lda tmp4
+	jsr clamp_span
+	sta tmp2
+	lda tmp2
+	cmp tmp1
+	bcc .pdu_r
+	beq .pdu_r
+	lda ytop
+	pha
+	lda ybot
+	pha
+	lda tmp1
+	sta ytop
+	lda tmp2
+	sta ybot
+	ldx wall_col
+	jsr fill_col_span
+	pla
+	sta ybot
+	pla
+	sta ytop
+	lda tmp2
+	cmp ytop
+	bcc .pdu_r
+	sta ytop
+.pdu_r
 	rts
 
 load_near_sector
-	lda cur_id
-	jsr sector_floor
+	ldx cur_id
+	lda SEC_FLOOR,x
 	sta near_floor
-	lda cur_id
-	jsr sector_ceil
+	lda SEC_CEIL,x
 	sta near_ceil
-	lda cur_id
-	jsr sector_fcol
+	lda SEC_FCOL,x
 	sta near_fcol
-	lda cur_id
-	jsr sector_ccol
+	lda SEC_CCOL,x
 	sta near_ccol
 	rts
 
