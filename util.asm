@@ -37,16 +37,15 @@ player_tile
 	sta mapy
 	rts
 
-; Fill colour column: X = colour, ytop..ybot-1 into transposed fb at col_base
+; Fill colour column: A = colour, ytop..ybot-1 into transposed fb at col_base
 fill_col_span
-	stx tmp0
 	ldy ytop
+    jmp .fcs_loop_test
 .fcs_loop
-	cpy ybot
-	bcs .fcs_done
-	lda tmp0
 	sta (col_base_l),y
 	iny
+.fcs_loop_test
+    cpy ybot
 	bne .fcs_loop
 .fcs_done
 	rts

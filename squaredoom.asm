@@ -5,8 +5,8 @@
 ; Column-major colour buffer (40×25), after Judd tabs at $C000–$C7FF
 FRAMEBUFFER = $c800
 
-MAX_DDA = 64
-PROFILE = 0
+MAX_DDA = 24
+PROFILE = 1
 DBG_PORTAL = 0
 CENTER_COL = 19
 
@@ -20,6 +20,8 @@ CENTER_COL = 19
 !source "render.asm"
 !source "blit.asm"
 !source "gameloop.asm"
+!source "debug.asm"
+!source "project_y.asm"
 
 ; ------------------------------------------------------------------
 ; Level + tables under BASIC ROM ($A000), visible after $01=$36
