@@ -499,8 +499,7 @@ calc_wallz
 
 ; Count screen rows until tex covers |Δh| (Keep yloop).
 ; Early-out: n=1 when texstep_h >= |Δh|.
-; Distant (texstep_h=0): exact ceil((target<<8)/texstep_l) via 16÷8.
-; Else: sum loop (proven; do not approx÷hi).
+; Else: sum loop (fixed 16÷8 was slower than typical short sums).
 project_y
 	sec
 	sbc eyeheight
@@ -521,7 +520,6 @@ project_y
 	sta tmp3			; target = |Δh|
 
 	lda texstep_h
-	beq .py_to_lo			; distant — fixed-cost divide
 	cmp tmp3
 	bcc .py_sum
 	ldx #1				; first add's hi alone covers |Δh|
@@ -574,75 +572,6 @@ project_y
 	lda #HORIZON
 	sta py_row
 	rts
-
-.py_to_lo
-	jmp .py_lo_div
-
-; n = min(40, ceil((tmp3<<8) / texstep_l))
-; Restoring 16÷8: rem tmp4:tmp0, dividend/quot aux_h:aux_l
-.py_lo_div
-	lda #0
-	sta aux_l
-	lda tmp3
-	sta aux_h
-	lda #0
-	sta tmp0
-	sta tmp4
-	ldx #16
-.py_dbit
-	asl aux_l
-	rol aux_h
-	rol tmp0
-	rol tmp4
-	lda tmp4
-	beq .py_dcmp
-	sec
-	bne .py_dsub
-.py_dcmp
-	lda tmp0
-	cmp texstep_l
-	bcc .py_dnxt
-.py_dsub
-	lda tmp0
-	sbc texstep_l
-	sta tmp0
-	lda tmp4
-	sbc #0
-	sta tmp4
-	lda aux_l
-	ora #$01
-	sta aux_l
-.py_dnxt
-	dex
-	bne .py_dbit
-	lda aux_h
-	bne .py_cap
-	lda aux_l
-	beq .py_ceil1
-	ldx tmp0
-	bne .py_ceil
-	ldx tmp4
-	bne .py_ceil
-	jmp .py_quot
-.py_ceil
-	clc
-	adc #1
-	bcs .py_cap
-.py_quot
-	cmp #40
-	bcc .py_qok
-	beq .py_qok
-.py_cap
-	lda #40
-.py_qok
-	tax
-	jmp .py_have
-.py_ceil1
-	lda tmp0
-	ora tmp4
-	bne .py_cap
-	ldx #1
-	jmp .py_have
 
 ; ------------------------------------------------------------------
 ; Ceil first; only project floor if clip still open (saves project_y when
