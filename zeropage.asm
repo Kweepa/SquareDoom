@@ -99,3 +99,10 @@ prof_snap_h	= $4f
 ; Keep-style marching pointer into level_map
 tile_l		= $50
 tile_h		= $51
+
+; Profiler scratch — must NOT share tmp0..tmp5 (paint_portal keeps
+; live values in tmp4/tmp5 across project_y calls).
+prof_now_l	= $52
+prof_now_h	= $53
+prof_dt_l	= $54
+prof_dt_h	= $55

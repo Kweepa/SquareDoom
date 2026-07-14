@@ -1,0 +1,45 @@
+SquareDoom — project_y / paint perf learnings
+=============================================
+(E1M1 spawn / similar poses; PROFILE HUD P = project_y cycle sum)
+
+What the histograms showed
+--------------------------
+- Most project_y calls: n = 2..7 adds; |Δh| targets mostly 1..5.
+- Large-n tails are rare on typical E1M1 views.
+- |Δh| is world height vs eyeheight, not on-screen wall size.
+- Walls do not call project_y (only ceil/floor near + portal flats).
+
+What helped P
+-------------
+- Lo-only sum when texstep_h=0: keep A=acc_l, Y=|Δh| countdown on
+  carry (skip 16-bit acc). Helped ~$224 → ~$1F0 on one pose.
+- Polarity walk: start X=HORIZON; DEX (ceil) / INX (floor) each add;
+  stop on coverage or screen edge 0/25; py_row=X. Drops the cheap
+  post-sum HORIZON±n epilogue and free-stops at screen rails.
+  Measured ~P $01E1 on the same style of pose (better than sum+epilogue).
+- Callers still clamp_span against ytop/ybot after project_y.
+
+What hurt or was not worth it
+-----------------------------
+- Always using exact 16÷8 for “distant” / long-n: tax dominates because
+  short-n calls are the common case → N/P worse; reverted.
+- Hybrid probe then 16÷8 (PY_PROBE=8): P rose ~$224 → ~$282; reverted.
+- Fill span unroll ×4: first attempt broke empty-span semantics / tmp1;
+  “safe” variant was slower; keep simple (zp),Y fill.
+- Self-mod STA abs,Y fill: tiny win, not worth complexity.
+- In-loop stop on ytop/ybot each add: correct and can skip dead iters
+  past a tight clip, but per-iter CPX+branch (~5–8 cy) on every add.
+  With hist (short n, first paint usually ytop=0/ybot=25) you almost
+  never early-exit → pure tax vs one post clamp_span. Do not prioritize
+  as a P win; if retested, gate behind a build flag and compare P.
+
+Profiling pitfalls
+------------------
+- prof_add_bucket must not touch paint tmp* (tmp4/tmp5 etc.). Use
+  dedicated ZP (prof_now_*, prof_dt_*). Clobbering tmp mid-paint
+  silently broke the frame.
+- HUD: F S D N L P in decimal ms (3 digits): (cycles>>8)/4, PrintDec3-style
+  from JSW-Tape. Clamp 999. fps ≈ 1000 / F.
+- F = full loop via CIA2 Timer B cascaded off Timer A (32-bit).
+- Consistency check: F should be ≥ S+D+N+L+P (those miss blit/input/gaps).
+- Labels: build with --vicelabels + tools/sort_lbl.py (Deathchase-style).

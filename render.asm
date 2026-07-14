@@ -31,6 +31,7 @@ render
 	bcc .col_loop
 	jsr blit_fb_to_color
 !if PROFILE = 1 {
+	jsr prof_frame_sample
 	jsr prof_print
 }
 	jmp print_dda_peak
@@ -374,14 +375,14 @@ print_dda_peak
 	lda #1				; white
 	sta $d800
 	sta $d801
-	lda #$20			; gap before S/D/P/B stats
+	lda #$20			; gap before F/S/D/N/L/P stats
 	sta $0402
 	lda #1
 	sta $d802
 	rts
 
 ; C=1 stop column
-; PROFILE marks: W=calc_wallz, N=paint_near, L=solid fill or paint_portal
+; PROFILE: F=frame, W=wallz, N=near fills, L=portal/solid, P=project_y
 on_cell
 	lda next_id
 	cmp cur_id
@@ -493,8 +494,8 @@ calc_wallz
 	rts
 
 ; Count screen rows until tex covers |Δh| (Keep yloop).
-; Early-out: n=1 when texstep_h >= |Δh|.
-; Else: sum loop (fixed 16÷8 was slower than typical short sums).
+; Walk from HORIZON: ceil DEX / floor INX each add; stop at coverage or
+; screen edge (0 / 25). Lo path: A=acc_l, Y=|Δh| countdown on carry.
 project_y
 	sec
 	sbc eyeheight
@@ -511,23 +512,38 @@ project_y
 	sta tmp2
 .pyp
 	lda tmp1
-	beq .py_zero			; height == eye → horizon
+	bne .py_nz
+	jmp .py_zero			; height == eye → horizon
+.py_nz
 	sta tmp3			; target = |Δh|
 
 	lda texstep_h
 	cmp tmp3
 	bcc .py_sum
-	ldx #1				; first add's hi alone covers |Δh|
-	bne .py_have
+	; n=1: one screen step from horizon
+	ldx #HORIZON
+	lda tmp2
+	bne .py_n1_dn
+	dex
+	jmp .py_have_row
+.py_n1_dn
+	inx
+	jmp .py_have_row
 
 .py_sum
+	lda tmp2
+	bne .py_dn				; below eye → floor
+	; ----- ceiling: walk X down from HORIZON -----
+	lda texstep_h
+	beq .py_lo_up
 	lda #0
 	sta acc_l
 	sta acc_h
-	tax
-.py_loop
-	cpx #40
-	bcs .py_have
+	ldx #HORIZON
+.py_hi_up
+	cpx #0
+	beq .py_have_row
+	dex
 	clc
 	lda acc_l
 	adc texstep_l
@@ -535,34 +551,67 @@ project_y
 	lda acc_h
 	adc texstep_h
 	sta acc_h
-	inx
 	cmp tmp3
-	bcc .py_loop
+	bcc .py_hi_up
+	bcs .py_have_row
 
-.py_have
-	stx tmp5
-	lda tmp2
-	bne .pyn
-	sec
-	lda #HORIZON
-	sbc tmp5
-	bcs .pyh
-	lda #0
-.pyh
-	jmp .pyc
-.pyn
+.py_lo_up
+	ldx #HORIZON
+	ldy tmp3
+	lda #0					; acc_l
+.py_lo_up_lp
+	cpx #0
+	beq .py_have_row
+	dex
 	clc
-	lda #HORIZON
-	adc tmp5
-	bcc .pyc
-	lda #25
-.pyc
-	cmp #26
-	bcc .pys
-	lda #25
-.pys
-	sta py_row
+	adc texstep_l
+	bcc .py_lo_up_lp
+	dey
+	bne .py_lo_up_lp
+	beq .py_have_row
+
+	; ----- floor: walk X up from HORIZON -----
+.py_dn
+	lda texstep_h
+	beq .py_lo_dn
+	lda #0
+	sta acc_l
+	sta acc_h
+	ldx #HORIZON
+.py_hi_dn
+	cpx #25
+	beq .py_have_row
+	inx
+	clc
+	lda acc_l
+	adc texstep_l
+	sta acc_l
+	lda acc_h
+	adc texstep_h
+	sta acc_h
+	cmp tmp3
+	bcc .py_hi_dn
+	bcs .py_have_row
+
+.py_lo_dn
+	ldx #HORIZON
+	ldy tmp3
+	lda #0
+.py_lo_dn_lp
+	cpx #25
+	beq .py_have_row
+	inx
+	clc
+	adc texstep_l
+	bcc .py_lo_dn_lp
+	dey
+	bne .py_lo_dn_lp
+	; fall through
+
+.py_have_row
+	stx py_row
 	rts
+
 .py_zero
 	lda #HORIZON
 	sta py_row
@@ -575,8 +624,16 @@ paint_near
 	lda ytop
 	cmp ybot
 	bcs .pnd
+!if PROFILE = 1 {
+	ldy #PROF_NEAR
+	jsr prof_add_bucket			; load_near + preamble → N
+}
 	lda near_ceil
 	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
 	sta span_a
 
 	jsr clamp_span
@@ -600,8 +657,16 @@ paint_near
 	lda ytop
 	cmp ybot
 	bcs .pnd				; clip closed — skip floor project
+!if PROFILE = 1 {
+	ldy #PROF_NEAR
+	jsr prof_add_bucket			; ceil fill → N
+}
 	lda near_floor
 	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
 	sta span_b
 	jsr clamp_span
 	sta tmp1
@@ -650,15 +715,31 @@ paint_portal
 	jmp .pp_lower			; only lower ledge
 
 .pp_upper
+!if PROFILE = 1 {
+	ldy #PROF_LEDGE
+	jsr prof_add_bucket
+}
 	lda far_ceil
 	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
 	sta tmp4
 	lda far_floor
 	cmp near_floor
 	bcc .pp_do_u
 	beq .pp_do_u
+!if PROFILE = 1 {
+	ldy #PROF_LEDGE
+	jsr prof_add_bucket
+}
 	lda far_floor
 	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
 	sta tmp5
 	jsr .pp_draw_u
 	jmp .pp_do_l
@@ -669,8 +750,16 @@ paint_portal
 	rts
 
 .pp_lower
+!if PROFILE = 1 {
+	ldy #PROF_LEDGE
+	jsr prof_add_bucket
+}
 	lda far_floor
 	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
 	sta tmp5
 .pp_do_l
 	lda ytop
