@@ -8,8 +8,7 @@ PROF_DDA    = 1
 PROF_WALLZ  = 2
 PROF_NEAR   = 3
 PROF_LEDGE  = 4
-PROF_BLIT   = 5
-PROF_NBUCKET = 6
+PROF_NBUCKET = 5
 
 ; 24-bit buckets in free RAM (id-indexed)
 prof_lo		= $2d00
@@ -91,7 +90,7 @@ prof_add_bucket
 	sta prof_hi,y
 	rts
 
-; Print cycles>>8 for S D W N L B at $0403..; peak at $0400/$0401; blank at $0402
+; Print cycles>>8 for S D W N L at $0403..; peak at $0400/$0401; blank at $0402
 prof_print
 	ldy #0
 	ldx #0			; screen offset from $0403
@@ -117,7 +116,6 @@ prof_print
 	!byte $97			; inverse 'W'
 	!byte $8e			; inverse 'N'
 	!byte $8c			; inverse 'L'
-	!byte $82			; inverse 'B'
 
 ; A = byte → 2 inverse hex digits at $0403,x ; advances X
 .pp_byte
