@@ -132,6 +132,17 @@ proc_count_free
 	clc
 	rts
 
+; NESW facing tables (index = (playera+32)>>6 & 3)
+;   0=N 1=E 2=S 3=W
+tu_dx
+	!byte 0, 1, 0, $ff			; neighbour Δmapx
+tu_dy
+	!byte $ff, 0, 1, 0			; neighbour Δmapy
+tu_axis
+	!byte 1, 0, 1, 0			; 0 = X local, 1 = Y local
+tu_face
+	!byte 0, 1, 1, 0			; 0 = near_lo (≤2), 1 = near_hi (≥6)
+
 ; ------------------------------------------------------------------
 ; try_use — K held: NESW neighbour door within 2u → raise + reclose timer
 ; ------------------------------------------------------------------
@@ -154,75 +165,45 @@ try_use
 	lsr
 	lsr
 	and #3
+	sta tmp5
+	tax
 
-	cmp #0
-	beq .tu_n
-	cmp #1
-	beq .tu_e
-	cmp #2
-	beq .tu_s
-	jmp .tu_w
-
-.tu_n
-	jsr .tu_get_y
-	jsr .tu_near_lo
-	bcs .tu_n_ok
-	jmp .tu_far
-.tu_n_ok
-	lda mapy
-	bne .tu_n_map
-	jmp .tu_far
-.tu_n_map
-	sec
-	sbc #1
-	sta mapy
-	jmp .tu_have_cell
-
-.tu_e
+	; local along approach axis
+	lda tu_axis,x
+	bne .tu_ly
 	jsr .tu_get_x
-	jsr .tu_near_hi
-	bcs .tu_e_ok
-	jmp .tu_far
-.tu_e_ok
-	lda mapx
-	cmp #MAP_SIZE - 1
-	bcc .tu_e_map
-	jmp .tu_far
-.tu_e_map
-	clc
-	adc #1
-	sta mapx
-	jmp .tu_have_cell
-
-.tu_s
+	jmp .tu_near
+.tu_ly
 	jsr .tu_get_y
-	jsr .tu_near_hi
-	bcs .tu_s_ok
-	jmp .tu_far
-.tu_s_ok
-	lda mapy
-	cmp #MAP_SIZE - 1
-	bcc .tu_s_map
-	jmp .tu_far
-.tu_s_map
-	clc
-	adc #1
-	sta mapy
-	jmp .tu_have_cell
-
-.tu_w
-	jsr .tu_get_x
+.tu_near
+	ldx tmp5
+	lda tu_face,x
+	bne .tu_nh
 	jsr .tu_near_lo
-	bcs .tu_w_ok
+	jmp .tu_near_done
+.tu_nh
+	jsr .tu_near_hi
+.tu_near_done
+	bcs .tu_near_ok
 	jmp .tu_far
-.tu_w_ok
+.tu_near_ok
+	; neighbour cell; any axis overflow (≥ MAP_SIZE, incl. wrap from 0−1) → far
+	ldx tmp5
 	lda mapx
-	bne .tu_w_map
-	jmp .tu_far
-.tu_w_map
-	sec
-	sbc #1
+	clc
+	adc tu_dx,x
 	sta mapx
+	cmp #MAP_SIZE
+	bcc .tu_x_ok
+	jmp .tu_far
+.tu_x_ok
+	lda mapy
+	clc
+	adc tu_dy,x
+	sta mapy
+	cmp #MAP_SIZE
+	bcc .tu_have_cell
+	jmp .tu_far
 
 .tu_have_cell
 	jsr sector_at_map
@@ -279,31 +260,34 @@ try_use
 	jmp proc_alloc
 
 ; ------------------------------------------------------------------
-; proc_update — tick all slots
+; proc_update — tick all slots (SMC jump table by PROC_KIND)
 ; ------------------------------------------------------------------
 proc_update
 	ldx #0
 .pu_loop
 	lda PROC_KIND,x
-	beq .pu_next
-	cmp #PROC_TIMER
-	beq .pu_timer
-	cmp #PROC_RAISE_CEIL
-	beq .pu_raise_c
-	cmp #PROC_LOWER_CEIL
-	beq .pu_lower_c
-	cmp #PROC_RAISE_FLOOR
-	beq .pu_raise_f_j
-	cmp #PROC_LOWER_FLOOR
-	bne .pu_next
-	jmp .pu_lower_f
-.pu_raise_f_j
-	jmp .pu_raise_f
+	asl					; kind*2
+	tay
+	lda .pu_jmptab,y
+	sta .pu_smc + 1
+	lda .pu_jmptab + 1,y
+	sta .pu_smc + 2
+.pu_smc
+	jmp $ffff				; patched per kind
 .pu_next
 	inx
 	cpx #PROC_NUM
 	bne .pu_loop
 	rts
+
+; lo/hi interleaved; index = kind*2 (0=FREE → next)
+.pu_jmptab
+	!word .pu_next
+	!word .pu_timer
+	!word .pu_raise_c
+	!word .pu_lower_c
+	!word .pu_raise_f
+	!word .pu_lower_f
 
 .pu_to_next
 	jmp .pu_next
