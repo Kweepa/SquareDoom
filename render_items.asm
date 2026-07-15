@@ -491,10 +491,10 @@ item_draw_one
 	bcc .id_half
 	cmp #ITEM_TYPE_ENEMY_HI+1
 	bcs .id_half
-	lda #100
+	lda #128			; worldH 4 × proj 32
 	bne .id_hd
 .id_half
-	lda #50
+	lda #64				; half-height pickups
 .id_hd
 	sta aux_l
 	lda #0
@@ -511,6 +511,7 @@ item_draw_one
 .id_h2
 	sta last_near_ok
 	sta tmp5
+	; Feet at floor: same scale as walls (Δh·4/tiles ≡ Δh·32/(tiles·8))
 	lda eyeheight
 	sec
 	sbc near_floor
@@ -519,7 +520,7 @@ item_draw_one
 	sta aux_l
 	sta aux_h
 	lda tmp2
-	ldy #25
+	ldy #32
 	jsr smul_aux_add
 	jsr sdiv_aux_depth
 	clc
