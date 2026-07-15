@@ -60,6 +60,10 @@ Profiling pitfalls
   ledge, still refresh_near_spans (span_a/b at current wallz).
 - N ≈ near fills + bookkeeping (not project_y — that is P). fill_span takes
   fill_y0/fill_y1 so paint_* need not PHA/PLA ytop/ybot around fills.
+- Incremental fish wallz: Keep muls sdx*fish once per hit; we hit every
+  portal. Cache mid(ddx/ddy*fish) in rebuild_col_rays; per column
+  wz = mid(s*fish); each DDA step wz += dd*w. calc_wallz is >> only (W≈0).
+  Slight mid-product drift vs remul each edge — acceptable for untextured.
 
 Level / sector ids
 ------------------

@@ -105,7 +105,7 @@ setup_player_tile
 .fs_ok
 	rts
 
-; Rebuild per-column ddx/ddy + steps when playera changes.
+; Rebuild per-column ddx/ddy + steps + mid(dd*fish) when playera changes.
 rebuild_col_rays
 	lda #0
 	sta col
@@ -124,10 +124,18 @@ rebuild_col_rays
 	lda fixsecl,y
 	ldy col
 	sta COL_DDX_L,y
+	sta aux_l
 	ldy dxindex
 	lda fixsech,y
 	ldy col
 	sta COL_DDX_H,y
+	sta aux_h
+	lda fishtab,y
+	jsr mul_16x8
+	ldy col
+	sta COL_DDWX_L,y
+	txa
+	sta COL_DDWX_H,y
 
 	lda angle
 	clc
@@ -139,10 +147,18 @@ rebuild_col_rays
 	lda fixsecl,y
 	ldy col
 	sta COL_DDY_L,y
+	sta aux_l
 	ldy dyindex
 	lda fixsech,y
 	ldy col
 	sta COL_DDY_H,y
+	sta aux_h
+	lda fishtab,y
+	jsr mul_16x8
+	ldy col
+	sta COL_DDWY_L,y
+	txa
+	sta COL_DDWY_H,y
 
 	; xstep / Keep +X factor polarity from angle+64
 	lda tmp0
@@ -168,7 +184,9 @@ rebuild_col_rays
 	inc col
 	lda col
 	cmp #40
-	bcc .rcr_lp
+	bcs .rcr_done
+	jmp .rcr_lp
+.rcr_done
 	rts
 
 ; ------------------------------------------------------------------
@@ -191,6 +209,14 @@ cast_column
 	sta ddy_l
 	lda COL_DDY_H,y
 	sta ddy_h
+	lda COL_DDWX_L,y
+	sta ddwx_l
+	lda COL_DDWX_H,y
+	sta ddwx_h
+	lda COL_DDWY_L,y
+	sta ddwy_l
+	lda COL_DDWY_H,y
+	sta ddwy_h
 	lda COL_XSTEP,y
 	sta xstep
 	lda COL_YSTEP,y
@@ -210,10 +236,31 @@ cast_column
 	bmi .ym_raw
 	lda fracy_inv
 	jsr calc_sdy
-	jmp .cc_init
+	jmp .cc_wz
 .ym_raw
 	lda fracy
 	jsr calc_sdy
+.cc_wz
+	; wz = mid(s * fish); then DDA adds mid(dd * fish)
+	ldy col
+	lda fishtab,y
+	sta tmp0
+	lda sdx_l
+	sta aux_l
+	lda sdx_h
+	sta aux_h
+	lda tmp0
+	jsr mul_16x8
+	sta wz_x_l
+	stx wz_x_h
+	lda sdy_l
+	sta aux_l
+	lda sdy_h
+	sta aux_h
+	lda tmp0
+	jsr mul_16x8
+	sta wz_y_l
+	stx wz_y_h
 .cc_init
 	lda #0
 	sta ytop
@@ -365,6 +412,15 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
+	php				; preserve sdx overflow for ray end
+	clc
+	lda wz_x_l
+	adc ddwx_l
+	sta wz_x_l
+	lda wz_x_h
+	adc ddwx_h
+	sta wz_x_h
+	plp
 	rts
 
 .add_sdy
@@ -375,6 +431,15 @@ cast_column
 	lda sdy_h
 	adc ddy_h
 	sta sdy_h
+	php
+	clc
+	lda wz_y_l
+	adc ddwy_l
+	sta wz_y_l
+	lda wz_y_h
+	adc ddwy_h
+	sta wz_y_h
+	plp
 	rts
 
 .done
@@ -532,30 +597,24 @@ on_cell
 	sec
 	rts
 
-; wallz = depth*fish; texstep = wallz >> TEXSTEP_SHIFT
+; texstep = wz_{side} >> TEXSTEP_SHIFT (wz maintained incrementally; no mul)
 calc_wallz
 	lda side
 	bne .czy
-	lda sdx_l
-	ldx sdx_h
-	jmp .czm
+	lda wz_x_l
+	ldx wz_x_h
+	jmp .czn
 .czy
-	lda sdy_l
-	ldx sdy_h
-.czm
-	sta aux_l
-	stx aux_h
-	ldy col
-	lda fishtab,y
-	jsr mul_16x8
+	lda wz_y_l
+	ldx wz_y_h
+.czn
 	sta wallz_l
 	stx wallz_h
-	lda wallz_h
-	ora wallz_l
-	bne .czn
+	ora wallz_h
+	bne .czok0
 	lda #1
 	sta wallz_l
-.czn
+.czok0
 	lda wallz_l
 	ldx wallz_h
 	stx texstep_h

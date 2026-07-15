@@ -68,7 +68,7 @@ mul_8x8
 	rts
 
 ; Keep API: aux * A → A=lo X=hi (middle 16 of 24-bit product).
-; Used by wallz (fish × sdx/sdy).
+; Used for mid(dd*fish) cache + initial wz = mid(s*fish).
 mul_16x8
 	sta mul_fac
 	jmp .mid

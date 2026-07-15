@@ -133,6 +133,16 @@ span_hi		= $66
 fill_y0		= $67			; fill_span start (inclusive)
 fill_y1		= $68			; fill_span end (exclusive)
 
+; Incremental fish-scaled distance (wz += dd*w each DDA step)
+wz_x_l		= $69
+wz_x_h		= $6a
+wz_y_l		= $6b
+wz_y_h		= $6c
+ddwx_l		= $6d			; mid(ddx * fish)
+ddwx_h		= $6e
+ddwy_l		= $6f
+ddwy_h		= $70
+
 ; Per-column ray cache (rebuilt when playera changes). $2f00–$2fef
 COL_DDX_L	= $2f00
 COL_DDX_H	= $2f28
@@ -140,3 +150,8 @@ COL_DDY_L	= $2f50
 COL_DDY_H	= $2f78
 COL_XSTEP	= $2fa0
 COL_YSTEP	= $2fc8
+; mid(ddx/ddy * fish) — fish is per-column fixed
+COL_DDWX_L	= $3000
+COL_DDWX_H	= $3028
+COL_DDWY_L	= $3050
+COL_DDWY_H	= $3078
