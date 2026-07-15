@@ -3,8 +3,8 @@
 ; ============================================================================
 ; render.asm — frame driver + sector-edge orchestration
 ; ============================================================================
-; TheKeep-style secant DDA with portal height clipping into a transposed
-; colour framebuffer (blit_fb_to_color → $D800).
+; TheKeep-style secant DDA with portal height clipping into transposed
+; colour ($C800→$D800) and lighting ($CC00→$0400) framebuffers.
 ;
 ; Sources (PROFILE HUD letter when PROFILE=1):
 ;   render_setup.asm      S — player tile + ray cache
@@ -61,6 +61,7 @@ render
 	cmp #40
 	bcc .col_loop
 	jsr blit_fb_to_color
+	jsr blit_fb_to_chars
 	jsr prof_frame_sample
 	jsr prof_print
 !if DBG_PORTAL = 1 {
@@ -86,6 +87,7 @@ on_cell
 	rts
 .chg
 	jsr calc_wallz			; W: side's wz → texstep for project_y
+	jsr set_wall_pat		; wall_pat = min(7, wallz_h)
 !if PROFILE = 1 {
 	ldy #PROF_WALLZ
 	jsr prof_add_bucket
@@ -158,6 +160,8 @@ on_cell
 	bne .portal
 	; Solid wall (next_id=0): flood remaining clip, then force-close
 	jsr wall_colour_ns_ew
+	lda wall_pat
+	sta fill_pat
 	lda wall_col
 	jsr fill_col_span
 	lda ybot
@@ -172,6 +176,8 @@ on_cell
 	sec
 	rts
 .portal
+	lda wall_pat
+	sta fill_pat
 	jsr paint_portal			; L: upper/lower ledges + ybot shrink
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE

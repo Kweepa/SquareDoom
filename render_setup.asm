@@ -3,7 +3,7 @@
 ; ============================================================================
 ; render_setup.asm — PROFILE S (frame + angle setup)
 ; ============================================================================
-; Once per frame: derive map cell / frac / sector from world-byte player.
+; Once per frame: derive map cell / frac / sector from world 8.8 player.
 ; When playera changes: rebuild per-column ray cache (ddx/ddy, fish-scaled
 ; ddwx/ddwy, xstep/ystep) at $2f00 / $3000.
 ;
@@ -14,41 +14,38 @@
 ; ---------------------------------------------------------------------------
 ; setup_player_tile — once per frame
 ;
-; World byte → map = world>>3, frac = (world&7)<<5; also frac*_inv for +axis
-; TheKeep first-hit distance. Caches plr_mapx/y, plr_id, plr_tile_* so each
+; World 8.8 >> 3 → tile 8.8: map = high, frac = low (TheKeep first-hit).
+; Also frac*_inv for +axis. Caches plr_mapx/y, plr_id, plr_tile_* so each
 ; column can restore after DDA mutates map*/tile*.
 ; ---------------------------------------------------------------------------
 setup_player_tile
-	; mapx = playerx_h >> 3 (8 subcells per tile)
+	; tile 8.8 = world 8.8 / 8
+	lda playerx
+	sta fracx
 	lda playerx_h
 	lsr
+	ror fracx
 	lsr
+	ror fracx
 	lsr
+	ror fracx
 	sta plr_mapx
 	sta mapx
-	; fracx = (playerx_h & 7) << 5  → 0..224 in steps of 32
-	lda playerx_h
-	asl
-	asl
-	asl
-	asl
-	asl
-	sta fracx
+	lda fracx
 	eor #$ff
 	sta fracx_inv			; distance to +X gridline for first hit
+	lda playery
+	sta fracy
 	lda playery_h
 	lsr
+	ror fracy
 	lsr
+	ror fracy
 	lsr
+	ror fracy
 	sta plr_mapy
 	sta mapy
-	lda playery_h
-	asl
-	asl
-	asl
-	asl
-	asl
-	sta fracy
+	lda fracy
 	eor #$ff
 	sta fracy_inv
 	jsr map_sector_id		; also leaves tile ptr in ptr_l/h

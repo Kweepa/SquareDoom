@@ -1,7 +1,7 @@
 !zone zeropage
 
-; World-byte position (1 unit = 1/8 tile). Lows unused / kept 0.
-playerx		= $02			; unused (was 8.8 frac)
+; World 8.8 (1.0 = 1 world unit; 8 units = 1 tile)
+playerx		= $02			; frac
 playerx_h	= $03			; world X 0..255
 playery		= $04
 playery_h	= $05			; world Y 0..255
@@ -79,15 +79,22 @@ span_b		= $41
 fill_row	= $42
 py_row		= $43
 
-; Walk deltas (signed) added into world-byte player*_h
-wish_x		= $44
-wish_y		= $45
-save_xh		= $47
-save_yh		= $49
+; Walk wish 8.8 (dt-scaled); save_* for void revert
+wish_x_l	= $44
+wish_x_h	= $45
+wish_y_l	= $46
+wish_y_h	= $47
+save_xl		= $48
+save_xh		= $49
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
 col_base_h	= $4b
+; Matching column base in LIGHTFRAME ($CC00 = FRAMEBUFFER+$400)
+pat_base_l	= $76
+pat_base_h	= $77
+fill_pat	= $78			; screen code written with colour fills
+wall_pat	= $79			; min(7, wallz_h) for wall strips
 
 dda_steps	= $4c
 dda_peak	= $4d
@@ -143,15 +150,23 @@ ddwx_h		= $6e
 ddwy_l		= $6f
 ddwy_h		= $70
 
-; Per-column ray cache (rebuilt when playera changes). $2f00–$2fef
-COL_DDX_L	= $2f00
-COL_DDX_H	= $2f28
-COL_DDY_L	= $2f50
-COL_DDY_H	= $2f78
-COL_XSTEP	= $2fa0
-COL_YSTEP	= $2fc8
+; Frame-time move/turn (binary ms: dt = frame_cy >> 10)
+save_yl		= $71
+save_yh		= $72
+dt_ms		= $73			; last frame period ≈ ms, 1..255
+turn_acc_l	= $74			; angle×1024 remainder
+turn_acc_h	= $75
+
+; Per-column ray cache (rebuilt when playera changes).
+; After colour blit (~$2A7C), before charset at $3800.
+COL_DDX_L	= $2b00
+COL_DDX_H	= $2b28
+COL_DDY_L	= $2b50
+COL_DDY_H	= $2b78
+COL_XSTEP	= $2ba0
+COL_YSTEP	= $2bc8
 ; mid(ddx/ddy * fish) — fish is per-column fixed
-COL_DDWX_L	= $3000
-COL_DDWX_H	= $3028
-COL_DDWY_L	= $3050
-COL_DDWY_H	= $3078
+COL_DDWX_L	= $2c00
+COL_DDWX_H	= $2c28
+COL_DDWY_L	= $2c50
+COL_DDWY_H	= $2c78

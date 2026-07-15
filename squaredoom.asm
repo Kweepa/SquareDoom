@@ -4,6 +4,10 @@
 
 ; Column-major colour buffer (40×25), after Judd tabs at $C000–$C7FF
 FRAMEBUFFER = $c800
+; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
+LIGHTFRAME = $cc00
+CHARSET = $3800
+FLOOR_PAT = $08			; dither tile #2 rotated 90° (flats)
 
 MAX_DDA = 24
 PROFILE = 0
@@ -19,8 +23,12 @@ CENTER_COL = 19
 !source "profil.asm"
 !source "render.asm"
 !source "blit.asm"
+; Char blit + rest after charset window $3800–$3FFF
+*=$4000
+!source "blit_chars.asm"
 !source "gameloop.asm"
 !source "debug.asm"
+!source "ditherchars.asm"
 
 ; ------------------------------------------------------------------
 ; Level + tables under BASIC ROM ($A000), visible after $01=$36

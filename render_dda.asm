@@ -308,6 +308,8 @@ fill_open_remainder
 	lda cur_id
 	beq .for_done
 	tax
+	lda #FLOOR_PAT
+	sta fill_pat
 	lda SEC_FCOL,x
 	jsr fill_col_span
 .for_done

@@ -30,6 +30,8 @@ paint_near
 	ldy #PROF_NEAR
 	jsr prof_add_bucket
 }
+	lda #FLOOR_PAT			; flats: fully lit horizontal dither
+	sta fill_pat
 	; --- Ceiling strip ---
 	lda near_ceil
 	jsr project_y

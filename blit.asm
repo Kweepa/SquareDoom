@@ -1,6 +1,6 @@
 ; Auto-generated — unrolled transposed framebuffer → colour RAM
-; Source: FRAMEBUFFER (col-major, 40×25) at $c800
-!zone blit
+; Source: col-major 40×25 at $c800
+!zone blit_fb_to_color
 
 blit_fb_to_color
 	; column 0

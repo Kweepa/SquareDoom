@@ -1,5 +1,7 @@
 !zone warmstart
 
+CHARSET_PTR = $1e			; $D018: screen $0400, charset $3800
+
 warmstart
 	sei
 	lda #$36		; BASIC out, KERNAL+I/O in
@@ -14,18 +16,9 @@ warmstart
 	sta $d020		; border black
 	sta $d021		; background black
 
-	; Fill screen with inverse space ($a0)
-	lda #$a0
-	ldx #0
-.fill_scr
-	sta $0400,x
-	sta $0500,x
-	sta $0600,x
-	sta $06e8,x
-	inx
-	bne .fill_scr
+	jsr init_charset		; ROM font @ $3800 + dither UDGs
 
-	; Clear colour RAM
+	; Clear colour RAM (chars filled by blit_fb_to_chars)
 	lda #0
 	ldx #0
 .fill_col
@@ -43,6 +36,48 @@ warmstart
 	sta last_playera			; force rebuild_col_rays
 	jsr update_eye
 	jmp gameloop
+
+; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
+init_charset
+	lda $01
+	pha
+	lda #$33			; CHARROM visible at $D000
+	sta $01
+	ldx #0
+.copy0
+	lda $d000,x
+	sta CHARSET,x
+	lda $d100,x
+	sta CHARSET+$100,x
+	lda $d200,x
+	sta CHARSET+$200,x
+	lda $d300,x
+	sta CHARSET+$300,x
+	lda $d400,x
+	sta CHARSET+$400,x
+	lda $d500,x
+	sta CHARSET+$500,x
+	lda $d600,x
+	sta CHARSET+$600,x
+	lda $d700,x
+	sta CHARSET+$700,x
+	inx
+	bne .copy0
+	pla
+	sta $01				; restore $36 (I/O in)
+
+	; Patch light UDGs $00–$08 (8 wall tiles + floor = 72 bytes)
+	ldx #0
+.patch
+	lda dither_wall_glyphs,x
+	sta CHARSET,x
+	inx
+	cpx #72
+	bcc .patch
+
+	lda #CHARSET_PTR
+	sta $d018
+	rts
 
 ; Scan item table for type 0 (spawn); set world-byte player*_h
 find_spawn

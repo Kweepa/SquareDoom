@@ -58,6 +58,32 @@ prof_init
 	sta frame_cy + 1
 	sta frame_cy + 2
 	sta frame_cy + 3
+	sta turn_acc_l
+	sta turn_acc_h
+	lda #20
+	sta dt_ms
+	rts
+
+; frame_cy >> 10 → dt_ms (HUD binary-ms). 0 → 20; saturate at 255.
+calc_frame_dt
+	lda frame_cy + 1
+	sta tmp0
+	lda frame_cy + 2
+	lsr
+	ror tmp0
+	lsr
+	ror tmp0
+	tay				; hi after >>2
+	bne .cfd_sat
+	lda tmp0
+	bne .cfd_ok
+	lda #20
+.cfd_ok
+	sta dt_ms
+	rts
+.cfd_sat
+	lda #255
+	sta dt_ms
 	rts
 
 ; Consistent 32-bit cascade sample → casc_now.

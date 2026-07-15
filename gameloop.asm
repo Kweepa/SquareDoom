@@ -2,6 +2,7 @@
 
 gameloop
 .frame
+	jsr calc_frame_dt
 	jsr read_input
 	clc
 	lda playera
