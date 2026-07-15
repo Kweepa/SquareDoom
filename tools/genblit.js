@@ -10,7 +10,7 @@ import { dirname, join } from 'path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const COLS = 40;
 const ROWS = 25;
-const FB = 0xc800; // after Judd square tabs at $C000–$C7FF
+const FB = 0xc800; // CPU colour FB; Judd SQTAB under KERNAL at $E000
 const LIGHT = 0xcc00;
 const CRAM = 0xd800;
 const SCREEN = 0x0400;

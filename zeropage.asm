@@ -79,13 +79,14 @@ span_b		= $41
 fill_row	= $42
 py_row		= $43
 
-; Walk wish 8.8 (dt-scaled); save_* for void revert
+; Walk wish 8.8 (dt-scaled); save_* = pre-move XY for collision resolve
 wish_x_l	= $44
 wish_x_h	= $45
 wish_y_l	= $46
 wish_y_h	= $47
 save_xl		= $48
 save_xh		= $49
+old_floor	= $7a			; SEC_FLOOR at move start (step-up gate)
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
@@ -157,16 +158,28 @@ dt_ms		= $73			; last frame period ≈ ms, 1..255
 turn_acc_l	= $74			; angle×1024 remainder
 turn_acc_h	= $75
 
-; Per-column ray cache (rebuilt when playera changes).
-; After colour blit (~$2A7C), before charset at $3800.
-COL_DDX_L	= $2b00
-COL_DDX_H	= $2b28
-COL_DDY_L	= $2b50
-COL_DDY_H	= $2b78
-COL_XSTEP	= $2ba0
-COL_YSTEP	= $2bc8
+; Under-KERNAL RAM ($01=$35): runtime tables / BSS (not in PRG image)
+; Judd square tabs $e000–$e7ff; COL ray cache; profiler BSS
+SQTAB1		= $e000
+SQTAB2		= $e200
+SQTAB3		= $e400
+SQTAB4		= $e600
+
+; Per-column ray cache (rebuilt when playera changes), 10×40 = 400 bytes
+COL_NUM		= 40
+COL_DDX_L	= $e800
+COL_DDX_H	= COL_DDX_L + COL_NUM
+COL_DDY_L	= COL_DDX_H + COL_NUM
+COL_DDY_H	= COL_DDY_L + COL_NUM
+COL_XSTEP	= COL_DDY_H + COL_NUM
+COL_YSTEP	= COL_XSTEP + COL_NUM
 ; mid(ddx/ddy * fish) — fish is per-column fixed
-COL_DDWX_L	= $2c00
-COL_DDWX_H	= $2c28
-COL_DDWY_L	= $2c50
-COL_DDWY_H	= $2c78
+COL_DDWX_L	= COL_YSTEP + COL_NUM
+COL_DDWX_H	= COL_DDWX_L + COL_NUM
+COL_DDWY_L	= COL_DDWX_H + COL_NUM
+COL_DDWY_H	= COL_DDWY_L + COL_NUM
+COL_END		= COL_DDWY_H + COL_NUM	; first byte after ray cache
+
+PROF_BSS	= COL_END		; CIA cascade / PROFILE buckets (must be ≥ COL_END)
+PROF_BSS_SIZE	= $20			; reserved (PROFILE=0/1 scratch)
+PROF_END	= PROF_BSS + PROF_BSS_SIZE

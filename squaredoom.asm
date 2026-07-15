@@ -2,7 +2,7 @@
 !cpu 6502
 !to "squaredoom.prg", cbm
 
-; Column-major colour buffer (40×25), after Judd tabs at $C000–$C7FF
+; Column-major colour buffer (40×25); Judd tabs live under KERNAL at $E000
 FRAMEBUFFER = $c800
 ; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
 LIGHTFRAME = $cc00
@@ -14,6 +14,13 @@ PROFILE = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
 
+; Memory ceilings:
+;   low  → CHARSET at $3800 (COL/SQTAB/profil are under KERNAL $E000+)
+;   mid  → level_data at $a000 (BASIC ROM area, RAM with $01=$35)
+;   high → FRAMEBUFFER at $c800 ($c000–$c7ff free after SQTAB move)
+MEM_MID_LIMIT = $a000
+MEM_HIGH_LIMIT = FRAMEBUFFER
+
 !source "zeropage.asm"
 !source "basicstub.asm"
 !source "warmstart.asm"
@@ -23,6 +30,14 @@ CENTER_COL = 19
 !source "profil.asm"
 !source "render.asm"
 !source "blit.asm"
+
+end_low = *
+free_low = CHARSET - end_low
+!if free_low < 0 {
+	!error "Low code overlaps CHARSET at $3800; overshoot=", end_low - CHARSET
+}
+!warn "mem: low  end=$", end_low, " free to CHARSET $3800 =", free_low
+
 ; Char blit + rest after charset window $3800–$3FFF
 *=$4000
 !source "blit_chars.asm"
@@ -30,8 +45,15 @@ CENTER_COL = 19
 !source "debug.asm"
 !source "ditherchars.asm"
 
+end_mid = *
+free_mid = MEM_MID_LIMIT - end_mid
+!if free_mid < 0 {
+	!error "Mid code overlaps level at $a000; overshoot=", end_mid - MEM_MID_LIMIT
+}
+!warn "mem: mid  end=$", end_mid, " free to $a000 =", free_mid
+
 ; ------------------------------------------------------------------
-; Level + tables under BASIC ROM ($A000), visible after $01=$36
+; Level + tables under BASIC ROM ($A000), RAM with $01=$35
 ; SoA layout: 7×256 sector attr tables (id-indexed), map, items
 ; ------------------------------------------------------------------
 *=$a000
@@ -59,3 +81,16 @@ level_map = SEC_BRIGHT + SEC_TABLE_SIZE
 level_items = level_map + MAP_CELLS
 
 !source "tables.asm"
+
+end_high = *
+free_high = MEM_HIGH_LIMIT - end_high
+!if free_high < 0 {
+	!error "High data overlaps FRAMEBUFFER at $c800; overshoot=", end_high - MEM_HIGH_LIMIT
+}
+!warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
+
+; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF; tail free to $10000
+free_kernal = $10000 - PROF_END
+free_total = free_low + free_mid + free_high + free_kernal
+!warn "mem: kernal BSS $e000..$", PROF_END - 1, " free tail =", free_kernal
+!warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"

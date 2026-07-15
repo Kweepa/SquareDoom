@@ -230,7 +230,8 @@ neg_a
 	adc #1
 	rts
 
-; Apply wish 8.8 into player; revert both axes if new tile is void
+; Apply wish 8.8; push 1 unit from blocking faces (slide); axis fallback
+; Blocking = void/OOB, headroom < 4, or step-up > 2 height vs old_floor.
 apply_move
 	lda wish_x_l
 	ora wish_x_h
@@ -248,6 +249,17 @@ apply_move
 	lda playery_h
 	sta save_yh
 
+	jsr player_tile
+	jsr map_sector_id
+	beq .am_void_fl
+	tax
+	lda SEC_FLOOR,x
+	sta old_floor
+	jmp .am_have_fl
+.am_void_fl
+	lda #0
+	sta old_floor
+.am_have_fl
 	clc
 	lda playerx
 	adc wish_x_l
@@ -263,9 +275,46 @@ apply_move
 	adc wish_y_h
 	sta playery_h
 
-	jsr player_tile
-	jsr map_sector_id
-	bne .am_ok
+	; Wish consumed — reuse wish_* as post-wish XY for axis fallback
+	lda playerx
+	sta wish_x_l
+	lda playerx_h
+	sta wish_x_h
+	lda playery
+	sta wish_y_l
+	lda playery_h
+	sta wish_y_h
+
+	jsr push_walls
+	jsr standing_blocked
+	bcc .am_ok
+
+	; X-new + Y-old
+	lda wish_x_l
+	sta playerx
+	lda wish_x_h
+	sta playerx_h
+	lda save_yl
+	sta playery
+	lda save_yh
+	sta playery_h
+	jsr push_walls
+	jsr standing_blocked
+	bcc .am_ok
+
+	; X-old + Y-new
+	lda save_xl
+	sta playerx
+	lda save_xh
+	sta playerx_h
+	lda wish_y_l
+	sta playery
+	lda wish_y_h
+	sta playery_h
+	jsr push_walls
+	jsr standing_blocked
+	bcc .am_ok
+
 	lda save_xl
 	sta playerx
 	lda save_xh
@@ -275,4 +324,153 @@ apply_move
 	lda save_yh
 	sta playery_h
 .am_ok
+	rts
+
+; A = sector id → C=1 blocked, C=0 walkable (vs old_floor)
+tile_blocked
+	cmp #0
+	beq .tb_yes
+	tax
+	lda SEC_CEIL,x
+	sec
+	sbc SEC_FLOOR,x
+	cmp #4
+	bcc .tb_yes
+	lda SEC_FLOOR,x
+	cmp old_floor
+	bcc .tb_no
+	beq .tb_no
+	sec
+	sbc old_floor
+	cmp #3
+	bcs .tb_yes
+.tb_no
+	clc
+	rts
+.tb_yes
+	sec
+	rts
+
+; mapx/mapy → A = sector id; OOB → 0
+sector_at_map
+	lda mapx
+	cmp #MAP_SIZE
+	bcs .sam_oob
+	lda mapy
+	cmp #MAP_SIZE
+	bcs .sam_oob
+	jmp map_sector_id
+.sam_oob
+	lda #0
+	rts
+
+; C=1 if player tile blocking
+standing_blocked
+	jsr player_tile
+	jsr sector_at_map
+	jmp tile_blocked
+
+; Push player 1 world unit away from each adjacent blocking face
+push_walls
+	jsr player_tile
+	lda mapx
+	sta tmp4
+	lda mapy
+	sta tmp5
+
+	; West: neighbor (mapx-1, mapy)
+	lda tmp4
+	sec
+	sbc #1
+	sta mapx
+	lda tmp5
+	sta mapy
+	jsr sector_at_map
+	jsr tile_blocked
+	bcc .pw_east
+	lda playerx_h
+	and #7
+	bne .pw_east			; local_x >= 1.0
+	lda tmp4
+	asl
+	asl
+	asl
+	ora #1
+	sta playerx_h
+	lda #0
+	sta playerx
+
+.pw_east
+	lda tmp4
+	clc
+	adc #1
+	sta mapx
+	lda tmp5
+	sta mapy
+	jsr sector_at_map
+	jsr tile_blocked
+	bcc .pw_north
+	lda playerx_h
+	and #7
+	cmp #7
+	bne .pw_north
+	lda playerx
+	beq .pw_north			; local_x == 7.0 exactly
+	lda tmp4
+	asl
+	asl
+	asl
+	ora #7
+	sta playerx_h
+	lda #0
+	sta playerx
+
+.pw_north
+	; map Y−1 (smaller playery)
+	lda tmp4
+	sta mapx
+	lda tmp5
+	sec
+	sbc #1
+	sta mapy
+	jsr sector_at_map
+	jsr tile_blocked
+	bcc .pw_south
+	lda playery_h
+	and #7
+	bne .pw_south
+	lda tmp5
+	asl
+	asl
+	asl
+	ora #1
+	sta playery_h
+	lda #0
+	sta playery
+
+.pw_south
+	lda tmp4
+	sta mapx
+	lda tmp5
+	clc
+	adc #1
+	sta mapy
+	jsr sector_at_map
+	jsr tile_blocked
+	bcc .pw_done
+	lda playery_h
+	and #7
+	cmp #7
+	bne .pw_done
+	lda playery
+	beq .pw_done
+	lda tmp5
+	asl
+	asl
+	asl
+	ora #7
+	sta playery_h
+	lda #0
+	sta playery
+.pw_done
 	rts

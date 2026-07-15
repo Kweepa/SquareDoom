@@ -4,7 +4,7 @@ CHARSET_PTR = $1e			; $D018: screen $0400, charset $3800
 
 warmstart
 	sei
-	lda #$36		; BASIC out, KERNAL+I/O in
+	lda #$35		; BASIC+KERNAL out, I/O in (RAM under $A000/$E000)
 	sta $01
 
 	lda #$ff
@@ -64,7 +64,7 @@ init_charset
 	inx
 	bne .copy0
 	pla
-	sta $01				; restore $36 (I/O in)
+	sta $01				; restore $35 (KERNAL out, I/O in)
 
 	; Patch light UDGs $00–$08 (8 wall tiles + floor = 72 bytes)
 	ldx #0

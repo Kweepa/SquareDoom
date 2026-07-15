@@ -14,8 +14,15 @@ if errorlevel 1 exit /b 1
 node tools\gendither.js
 if errorlevel 1 exit /b 1
 "%ACME%" -v3 --vicelabels squaredoom.lbl squaredoom.asm
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+  echo.
+  echo Assemble failed — check mem: warnings above for free bytes / overlaps.
+  echo Ceilings: low^<$3800 CHARSET  mid^<$a000 level  high^<$c800 FB
+  echo Under-KERNAL BSS: $e000 SQTAB / COL_* / PROF  ^($01=$35^)
+  exit /b 1
+)
 python tools\sort_lbl.py squaredoom.lbl
 if errorlevel 1 exit /b 1
 echo Built squaredoom.prg
+echo Memory: see mem: TOTAL free warn above ^(low+mid+high+kernal-tail^)
 dir squaredoom.prg

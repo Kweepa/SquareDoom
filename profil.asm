@@ -13,16 +13,16 @@ PROF_LEDGE  = 4
 PROF_PROJECT_Y = 5
 PROF_NBUCKET = 6
 
-prof_lo		= $2d00
-prof_mid	= $2d00 + PROF_NBUCKET
-prof_hi		= $2d00 + PROF_NBUCKET * 2
-frame_t0	= $2d12
-frame_cy	= $2d16
-casc_now	= $2d1a
+prof_lo		= PROF_BSS
+prof_mid	= PROF_BSS + PROF_NBUCKET
+prof_hi		= PROF_BSS + PROF_NBUCKET * 2
+frame_t0	= PROF_BSS + $12
+frame_cy	= PROF_BSS + $16
+casc_now	= PROF_BSS + $1a
 } else {
-frame_t0	= $2d00
-frame_cy	= $2d04
-casc_now	= $2d08
+frame_t0	= PROF_BSS
+frame_cy	= PROF_BSS + 4
+casc_now	= PROF_BSS + 8
 }
 
 ; CIA2
@@ -260,10 +260,10 @@ SCREEN_DIGIT_BASE = $b0
 
 ; Frame print scratch when PROFILE=0 (no prof_now_*/prof_dt_* from buckets).
 !if PROFILE = 0 {
-pp_tmp_l	= $2d0c
-pp_tmp_h	= $2d0d
-pp_dig_h	= $2d0e
-pp_dig_t	= $2d0f
+pp_tmp_l	= PROF_BSS + $0c
+pp_tmp_h	= PROF_BSS + $0d
+pp_dig_h	= PROF_BSS + $0e
+pp_dig_t	= PROF_BSS + $0f
 } else {
 pp_tmp_l	= prof_dt_l
 pp_tmp_h	= prof_dt_h
