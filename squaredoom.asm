@@ -7,6 +7,7 @@ FRAMEBUFFER = $c800
 ; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
 LIGHTFRAME = $cc00
 CHARSET = $3800
+PISTOL_SPRITES = $3700		; 4×64-byte hi-res pistol overlays (VIC bank 0)
 FLOOR_PAT = $08			; dither tile #2 rotated 90° (flats)
 
 MAX_DDA = 24
@@ -32,11 +33,15 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "blit.asm"
 
 end_low = *
-free_low = CHARSET - end_low
+free_low = PISTOL_SPRITES - end_low
 !if free_low < 0 {
-	!error "Low code overlaps CHARSET at $3800; overshoot=", end_low - CHARSET
+	!error "Low code overlaps pistol sprites at $3700; overshoot=", end_low - PISTOL_SPRITES
 }
-!warn "mem: low  end=$", end_low, " free to CHARSET $3800 =", free_low
+!warn "mem: low  end=$", end_low, " free to pistol $3700 =", free_low
+
+; Pistol weapon sprites (4×64 bytes) in VIC bank 0, before charset
+*=PISTOL_SPRITES
+!source "pistol_sprites.asm"
 
 ; Char blit + rest after charset window $3800–$3FFF
 *=$4000
