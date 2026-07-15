@@ -9,6 +9,8 @@ gameloop
 	adc turn
 	sta playera
 	jsr apply_move
+	jsr try_use
+	jsr proc_update
 	jsr update_eye
 	jsr render
 	jmp .frame

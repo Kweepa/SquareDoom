@@ -2,6 +2,7 @@
 
 ; CIA1 keys:
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
+;   K = use (PA4/PB5) — open door
 ;   W/A/S = PA1 column; D = PA2 column
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
@@ -20,23 +21,31 @@ read_input
 	sta wish_x_h
 	sta wish_y_l
 	sta wish_y_h
+	sta key_use
 
 	lda #$ff
 	sta $dc02
 	lda #0
 	sta $dc03
 
-	; --- turn J / L (one deliver per frame) ---
+	; --- turn J / L (one deliver per frame); K = use on same col as J ---
 	lda #0
 	sta tmp3				; turn_dir: 0 none, $ff left, 1 right
 	lda #$ef
 	sta $dc00
 	lda $dc01
+	tax
 	and #$04
 	bne .no_j
 	lda #$ff
 	sta tmp3
 .no_j
+	txa
+	and #$20				; K = PB5
+	bne .no_k
+	lda #1
+	sta key_use
+.no_k
 	lda #$df
 	sta $dc00
 	lda $dc01

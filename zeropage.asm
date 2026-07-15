@@ -93,6 +93,7 @@ ammo		= $7b			; 0–255, shown as 3 digits
 health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
+key_use		= $7f			; 1 = K held (use / open door)
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
@@ -189,3 +190,19 @@ COL_END		= COL_DDWY_H + COL_NUM	; first byte after ray cache
 PROF_BSS	= COL_END		; CIA cascade / PROFILE buckets (must be ≥ COL_END)
 PROF_BSS_SIZE	= $20			; reserved (PROFILE=0/1 scratch)
 PROF_END	= PROF_BSS + PROF_BSS_SIZE
+
+; Door / sector processes (SoA, max 8)
+PROC_NUM	= 8
+PROC_FREE	= 0
+PROC_TIMER	= 1
+PROC_RAISE_CEIL	= 2
+PROC_LOWER_CEIL	= 3
+PROC_RAISE_FLOOR = 4
+PROC_LOWER_FLOOR = 5
+
+PROC_KIND	= PROF_END		; 0 = free
+PROC_A		= PROC_KIND + PROC_NUM	; sector id
+PROC_B		= PROC_A + PROC_NUM	; target height / next kind
+PROC_C		= PROC_B + PROC_NUM	; timer/accum lo
+PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
+PROC_END	= PROC_D + PROC_NUM

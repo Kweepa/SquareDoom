@@ -32,6 +32,7 @@ warmstart
 
 	jsr init_sqtabs
 	jsr prof_init
+	jsr proc_init
 	jsr find_spawn
 	jsr init_hud_state
 	lda #$ff
