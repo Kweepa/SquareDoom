@@ -2117,6 +2117,15 @@ class MapView {
     }
     ctx.stroke();
 
+    // Lightly hatch all tiles in the selection's shared sector
+    const sectorId = sharedSelectionSector(level, sel.tiles);
+    if (sectorId) {
+      ctx.fillStyle = whiteHatchPattern(ctx);
+      for (const { tx, ty } of tilesInSector(level, sectorId)) {
+        ctx.fillRect(tx * c, ty * c, c, c);
+      }
+    }
+
     // Selected tiles
     if (sel.tiles?.size) {
       ctx.fillStyle = 'rgba(255, 220, 80, 0.28)';
@@ -2191,6 +2200,45 @@ function mixHex(a, t) {
   g = Math.min(255, g + lift);
   b = Math.min(255, b + lift);
   return `rgb(${r},${g},${b})`;
+}
+
+let _hatchPattern = null;
+
+function whiteHatchPattern(ctx) {
+  if (_hatchPattern) return _hatchPattern;
+  const size = 6;
+  const off = document.createElement('canvas');
+  off.width = size;
+  off.height = size;
+  const o = off.getContext('2d');
+  o.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+  o.lineWidth = 1;
+  o.beginPath();
+  o.moveTo(-1, size - 1);
+  o.lineTo(size - 1, -1);
+  o.moveTo(0, size + 1);
+  o.lineTo(size + 1, 0);
+  o.stroke();
+  _hatchPattern = ctx.createPattern(off, 'repeat');
+  return _hatchPattern;
+}
+
+/** Sector id shared by every selected tile, or 0 if empty/mixed/void. */
+function sharedSelectionSector(level, tiles) {
+  if (!tiles?.size) return 0;
+  let sectorId = 0;
+  let first = true;
+  for (const key of tiles) {
+    const [tx, ty] = key.split(',').map(Number);
+    const id = getCell(level, tx, ty);
+    if (first) {
+      sectorId = id;
+      first = false;
+    } else if (id !== sectorId) {
+      return 0;
+    }
+  }
+  return sectorId;
 }
 
 // ---- js/previewView.js ----
