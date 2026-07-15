@@ -1,6 +1,6 @@
 !zone project_y
 
-; Project world height → screen row (Keep-style texstep walk from HORIZON).
+; Project world height → screen row (TheKeep-style texstep walk from HORIZON).
 ; On entry A = world y. Signed Δh = height − eyeheight:
 ;   Δh > 0 → walk up  (DEX): lo DECs remaining Δh to 0
 ;   Δh < 0 → walk down (INX): lo INCs remaining Δh to 0

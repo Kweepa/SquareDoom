@@ -22,7 +22,7 @@ with the gameplay concepts and music from https://github.com/Kweepa/vicdoom.
 The screen is 22x23. That's the resolution of the view (I think).
 For the bbc port, I'm considering 64x64 on a hacked mode2 screen (using mode 8 style tricks).
 
-But, obviously we'll need to expand on thekeep to step across sector boundaries and narrow
+But, obviously we'll need to expand on TheKeep to step across sector boundaries and narrow
 the view limits as we go until the view limits collapse or go off screen.
 
 We'll start with a map editor, which will run in an html canvas.
@@ -50,3 +50,9 @@ The items are typical doom items. Graphics for these are in editor/itemgraphics.
 For the item editor, just need x, y, type and skill (checkboxes for each of easy, normal, hard,
 default to all). Height is inferred from the sector it's in. Orientation won't do anything, so forget that.
 Only one spawn point should be allowed.
+
+If we're going to do lighting, we can't colour the floor and ceiling unless those are full bright
+sectors, eg lava or acid, or illuminated. I think that's going to be fine though.
+For lighting, have dithered blocks. For floors, have horizontal dashes or bubbles etc.
+For walls the dithering should be vertical. Maybe a few pattern options. Hopefully will only
+add a few ms. (The pattern blit is 6ms, the walls do a lookup per wall strip.)

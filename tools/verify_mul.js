@@ -1,5 +1,5 @@
 /**
- * Verify Judd/Arndt square tables + Keep mid-product vs (aux*fac)>>8.
+ * Verify Judd/Arndt square tables + TheKeep mid-product vs (aux*fac)>>8.
  */
 function buildTabs() {
   const T = new Uint8Array(0x800);

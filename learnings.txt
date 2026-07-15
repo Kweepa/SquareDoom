@@ -40,7 +40,7 @@ Profiling pitfalls
 ------------------
 - Column setup (HUD S): world-byte player (frac=(world&7)<<5); 16-bit
   fixsec/dd + mid(16×8) calc_sdx/sdy. 8-bit fixsec crushed near-axis
-  variation and broke Keep wallz — reverted. sintab amp=2. Remaining S
+  variation and broke TheKeep wallz — reverted. sintab amp=2. Remaining S
   is mostly 2× mid-products × 40 columns.
 - prof_add_bucket must not touch paint tmp* (tmp4/tmp5 etc.). Use
   dedicated ZP (prof_now_*, prof_dt_*). Clobbering tmp mid-paint
@@ -60,7 +60,7 @@ Profiling pitfalls
   ledge, still refresh_near_spans (span_a/b at current wallz).
 - N ≈ near fills + bookkeeping (not project_y — that is P). fill_span takes
   fill_y0/fill_y1 so paint_* need not PHA/PLA ytop/ybot around fills.
-- Incremental fish wallz: Keep muls sdx*fish once per hit; we hit every
+- Incremental fish wallz: TheKeep muls sdx*fish once per hit; we hit every
   portal. Cache mid(ddx/ddy*fish) in rebuild_col_rays; per column
   wz = mid(s*fish); each DDA step wz += dd*w. calc_wallz is >> only (W≈0).
   Slight mid-product drift vs remul each edge — acceptable for untextured.

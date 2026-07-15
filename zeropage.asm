@@ -15,7 +15,7 @@ dyindex		= $0b
 xstep		= $0c
 ystep		= $0d
 
-; 16-bit Keep dd (fixsec); sdx/sdy 16-bit
+; 16-bit TheKeep dd (fixsec); sdx/sdy 16-bit
 ddx_l		= $0e
 ddx_h		= $0f
 ddy_l		= $10
@@ -96,7 +96,7 @@ dda_peak	= $4d
 prof_snap_l	= $4e
 prof_snap_h	= $4f
 
-; Keep-style marching pointer into level_map
+; TheKeep-style marching pointer into level_map
 tile_l		= $50
 tile_h		= $51
 
@@ -113,7 +113,7 @@ plr_mapy	= $57
 plr_id		= $58
 plr_tile_l	= $59
 plr_tile_h	= $5a
-fracx_inv	= $5d			; fracx ^ $FF (Keep +X/+Y distance factor)
+fracx_inv	= $5d			; fracx ^ $FF (TheKeep +X/+Y distance factor)
 fracy_inv	= $5e
 last_playera	= $5f			; $FF = force rebuild_col_rays
 

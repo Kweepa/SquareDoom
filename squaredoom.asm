@@ -21,7 +21,6 @@ CENTER_COL = 19
 !source "blit.asm"
 !source "gameloop.asm"
 !source "debug.asm"
-!source "project_y.asm"
 
 ; ------------------------------------------------------------------
 ; Level + tables under BASIC ROM ($A000), visible after $01=$36

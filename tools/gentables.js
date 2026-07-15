@@ -102,4 +102,4 @@ asm += emitBytes('maprowhi', mrhi);
 asm += emitBytes('sintab', sins);
 
 writeFileSync(new URL('../tables.asm', import.meta.url), asm);
-console.log('wrote Keep tables + sintab + colbase + maprow');
+console.log('wrote TheKeep tables + sintab + colbase + maprow');
