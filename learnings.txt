@@ -35,6 +35,12 @@ What hurt or was not worth it
   With hist (short n, first paint usually ytop=0/ybot=25) you almost
   never early-exit → pure tax vs one post clamp_span. Do not prioritize
   as a P win; if retested, gate behind a build flag and compare P.
+- Incremental project_y (min(|h−eye|, |h−h_ref|) from last row at same
+  texstep): theoretically good for small ledges, but preamble (ref ok,
+  two abs, compare) taxes every call. Short-n / single-project / first-
+  at-wallz cases dominate → worst-case P worse; reverted. Do not revive
+  without a caller-gated “second height at this wallz” path that skips
+  the min check on the common first project.
 
 Profiling pitfalls
 ------------------
