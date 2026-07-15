@@ -33,10 +33,23 @@ warmstart
 	jsr init_sqtabs
 	jsr prof_init
 	jsr find_spawn
+	jsr init_hud_state
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr update_eye
 	jmp gameloop
+
+; Default status values (placeholder until pickups work)
+init_hud_state
+	lda #50
+	sta ammo
+	lda #100
+	sta health
+	lda #0
+	sta armor
+	lda #$07			; red+yellow+blue — show key layout
+	sta keys
+	rts
 
 ; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
 init_charset
@@ -67,7 +80,18 @@ init_charset
 	pla
 	sta $01				; restore $35 (KERNAL out, I/O in)
 
+	; Overlay VicDoom doomfont glyphs 0–63 (digits, HUD icons)
+	ldx #0
+.copy_df
+	lda doomfont_udgs,x
+	sta CHARSET,x
+	lda doomfont_udgs+$100,x
+	sta CHARSET+$100,x
+	inx
+	bne .copy_df
+
 	; Patch light UDGs $00–$08 (8 wall tiles + floor = 72 bytes)
+	; overwrites doomfont chars 0–8 (unused by HUD)
 	ldx #0
 .patch
 	lda dither_wall_glyphs,x

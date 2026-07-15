@@ -52,8 +52,6 @@ blit_fb_to_chars
 	sta $770
 	lda $cc17
 	sta $798
-	lda $cc18
-	sta $7c0
 	; column 1
 	lda $cc19
 	sta $401
@@ -103,8 +101,6 @@ blit_fb_to_chars
 	sta $771
 	lda $cc30
 	sta $799
-	lda $cc31
-	sta $7c1
 	; column 2
 	lda $cc32
 	sta $402
@@ -154,8 +150,6 @@ blit_fb_to_chars
 	sta $772
 	lda $cc49
 	sta $79a
-	lda $cc4a
-	sta $7c2
 	; column 3
 	lda $cc4b
 	sta $403
@@ -205,8 +199,6 @@ blit_fb_to_chars
 	sta $773
 	lda $cc62
 	sta $79b
-	lda $cc63
-	sta $7c3
 	; column 4
 	lda $cc64
 	sta $404
@@ -256,8 +248,6 @@ blit_fb_to_chars
 	sta $774
 	lda $cc7b
 	sta $79c
-	lda $cc7c
-	sta $7c4
 	; column 5
 	lda $cc7d
 	sta $405
@@ -307,8 +297,6 @@ blit_fb_to_chars
 	sta $775
 	lda $cc94
 	sta $79d
-	lda $cc95
-	sta $7c5
 	; column 6
 	lda $cc96
 	sta $406
@@ -358,8 +346,6 @@ blit_fb_to_chars
 	sta $776
 	lda $ccad
 	sta $79e
-	lda $ccae
-	sta $7c6
 	; column 7
 	lda $ccaf
 	sta $407
@@ -409,8 +395,6 @@ blit_fb_to_chars
 	sta $777
 	lda $ccc6
 	sta $79f
-	lda $ccc7
-	sta $7c7
 	; column 8
 	lda $ccc8
 	sta $408
@@ -1684,8 +1668,6 @@ blit_fb_to_chars
 	sta $790
 	lda $cf37
 	sta $7b8
-	lda $cf38
-	sta $7e0
 	; column 33
 	lda $cf39
 	sta $421
@@ -1735,8 +1717,6 @@ blit_fb_to_chars
 	sta $791
 	lda $cf50
 	sta $7b9
-	lda $cf51
-	sta $7e1
 	; column 34
 	lda $cf52
 	sta $422
@@ -1786,8 +1766,6 @@ blit_fb_to_chars
 	sta $792
 	lda $cf69
 	sta $7ba
-	lda $cf6a
-	sta $7e2
 	; column 35
 	lda $cf6b
 	sta $423
@@ -1837,8 +1815,6 @@ blit_fb_to_chars
 	sta $793
 	lda $cf82
 	sta $7bb
-	lda $cf83
-	sta $7e3
 	; column 36
 	lda $cf84
 	sta $424
@@ -1888,8 +1864,6 @@ blit_fb_to_chars
 	sta $794
 	lda $cf9b
 	sta $7bc
-	lda $cf9c
-	sta $7e4
 	; column 37
 	lda $cf9d
 	sta $425
@@ -1939,8 +1913,6 @@ blit_fb_to_chars
 	sta $795
 	lda $cfb4
 	sta $7bd
-	lda $cfb5
-	sta $7e5
 	; column 38
 	lda $cfb6
 	sta $426
@@ -1990,8 +1962,6 @@ blit_fb_to_chars
 	sta $796
 	lda $cfcd
 	sta $7be
-	lda $cfce
-	sta $7e6
 	; column 39
 	lda $cfcf
 	sta $427
@@ -2041,6 +2011,4 @@ blit_fb_to_chars
 	sta $797
 	lda $cfe6
 	sta $7bf
-	lda $cfe7
-	sta $7e7
 	rts

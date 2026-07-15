@@ -92,12 +92,20 @@ cast_column
 	sta wz_y_l
 	stx wz_y_h
 .cc_init
-	; Open clip [0,25); start in player sector; clear same-flat cache
+	; Open clip [0,25); HUD columns leave row 24 untouched
 	lda #0
 	sta ytop
 	sta dda_steps
 	sta last_near_ok
 	lda #25
+	ldx col
+	cpx #8
+	bcc .hud_ybot			; cols 0–7
+	cpx #32
+	bcc .ybot_set			; cols 8–31: full height
+.hud_ybot
+	lda #24				; cols 0–7 and 32–39: rows 0–23 only
+.ybot_set
 	sta ybot
 	lda plr_id
 	sta cur_id

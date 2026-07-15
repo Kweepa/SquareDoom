@@ -62,12 +62,13 @@ render
 	bcc .col_loop
 	jsr blit_fb_to_color
 	jsr blit_fb_to_chars
+	jsr draw_hud
 	jsr prof_frame_sample
 	jsr prof_print
 !if DBG_PORTAL = 1 {
-	jsr dbg_portal_flush
+	jmp dbg_portal_flush
 }
-	jmp print_dda_peak
+	rts
 
 ; ---------------------------------------------------------------------------
 ; on_cell — sector id change on the current column ray

@@ -24,6 +24,8 @@ function emitBlit(name, srcBase, dstBase, comment) {
   for (let col = 0; col < COLS; col++) {
     asm += `\t; column ${col}\n`;
     for (let row = 0; row < ROWS; row++) {
+      // Leave HUD strip alone: row 24 of cols 0–7 and 32–39
+      if (row === 24 && (col < 8 || col >= 32)) continue;
       const src = srcBase + col * ROWS + row;
       const dst = dstBase + row * COLS + col;
       asm += `\tlda $${src.toString(16)}\n`;
@@ -43,4 +45,8 @@ writeFileSync(
   join(root, 'blit_chars.asm'),
   emitBlit('blit_fb_to_chars', LIGHT, SCREEN, 'screen')
 );
-console.log('wrote blit.asm + blit_chars.asm', COLS * ROWS, 'pixel pairs each');
+console.log(
+  'wrote blit.asm + blit_chars.asm',
+  COLS * ROWS - 16,
+  'pixel pairs each (skip HUD row24 × 16 cols)'
+);

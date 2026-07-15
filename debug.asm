@@ -1,25 +1,5 @@
 !zone debug
 
-; Two inverse digits of dda_peak at $0400/$0401; leave $0402 blank before stats
-; (chars only — colour from blit)
-print_dda_peak
-	lda dda_peak
-	ldx #0
-.pdp_tens
-	cmp #10
-	bcc .pdp_ones
-	sbc #10
-	inx
-	bne .pdp_tens
-.pdp_ones
-	ora #$b0			; inverse screen codes for '0'..'9'
-	sta $0401
-	txa
-	ora #$b0
-	sta $0400
-	; leave $0402 untouched (gap before F — colour shows through)
-	rts
-
 !if DBG_PORTAL = 1 {
 ; Center-column portal dump (chars after blit; colour shows through).
 ; Per line: id ytop ybot span_a span_b near_floor above_eye farFloorY texstep_h

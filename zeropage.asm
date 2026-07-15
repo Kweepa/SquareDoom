@@ -88,6 +88,12 @@ save_xl		= $48
 save_xh		= $49
 old_floor	= $7a			; SEC_FLOOR at move start (step-up gate)
 
+; Status bar (drawn post-blit on row 24)
+ammo		= $7b			; 0–255, shown as 3 digits
+health		= $7c
+armor		= $7d
+keys		= $7e			; bit0=red bit1=yellow bit2=blue
+
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
 col_base_h	= $4b

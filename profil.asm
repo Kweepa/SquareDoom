@@ -2,7 +2,7 @@
 
 ; CIA2 Timer A: ϕ2 free-run (buckets when PROFILE; cascade base always).
 ; CIA2 Timer B: cascaded off TA → 32-bit clock for frame period (F).
-; PROFILE=1 HUD: F S D N L P. PROFILE=0 HUD: F only (still ≈ ms).
+; DBG_FPS=1: print F (≈ ms). PROFILE=1: also S D W N L P buckets.
 
 !if PROFILE = 1 {
 PROF_SETUP  = 0
@@ -34,7 +34,7 @@ CIA2_ICR	= $dd0d
 CIA2_CRA	= $dd0e
 CIA2_CRB	= $dd0f
 
-PROF_SCR	= $0403
+PROF_SCR	= $0400
 
 prof_init
 	lda #$7f
@@ -194,18 +194,22 @@ prof_add_py
 	jmp prof_add_bucket
 }
 
-; Print F (always). PROFILE=1: S D W N L P (ms). PROFILE=0: C = span count.
+; DBG_FPS: F (≈ ms). PROFILE: S D W N L P (ms).
 ; Bucket ms ≈ (cycles>>8)/4, 3 decimal digits. Chars only — colour from blit.
 prof_print
 	ldx #0
+!if DBG_FPS = 1 {
 	lda #$86			; inverse 'F'
 	sta PROF_SCR,x
 	inx
 	lda frame_cy + 2
 	ldy frame_cy + 1
 	jsr .pp_ms3
+}
 !if PROFILE = 1 {
-	inx				; gap
+!if DBG_FPS = 1 {
+	inx				; gap after F
+}
 	ldy #0
 .pp_buck
 	tya
@@ -227,14 +231,6 @@ prof_print
 	iny
 	cpy #6				; S D W N L P
 	bcc .pp_buck
-} else {
-	inx				; gap
-	lda #$83			; inverse 'C'
-	sta PROF_SCR,x
-	inx
-	lda span_hi
-	ldy span_lo
-	jsr .pp_u16_3
 }
 	rts
 

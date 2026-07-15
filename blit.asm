@@ -52,8 +52,6 @@ blit_fb_to_color
 	sta $db70
 	lda $c817
 	sta $db98
-	lda $c818
-	sta $dbc0
 	; column 1
 	lda $c819
 	sta $d801
@@ -103,8 +101,6 @@ blit_fb_to_color
 	sta $db71
 	lda $c830
 	sta $db99
-	lda $c831
-	sta $dbc1
 	; column 2
 	lda $c832
 	sta $d802
@@ -154,8 +150,6 @@ blit_fb_to_color
 	sta $db72
 	lda $c849
 	sta $db9a
-	lda $c84a
-	sta $dbc2
 	; column 3
 	lda $c84b
 	sta $d803
@@ -205,8 +199,6 @@ blit_fb_to_color
 	sta $db73
 	lda $c862
 	sta $db9b
-	lda $c863
-	sta $dbc3
 	; column 4
 	lda $c864
 	sta $d804
@@ -256,8 +248,6 @@ blit_fb_to_color
 	sta $db74
 	lda $c87b
 	sta $db9c
-	lda $c87c
-	sta $dbc4
 	; column 5
 	lda $c87d
 	sta $d805
@@ -307,8 +297,6 @@ blit_fb_to_color
 	sta $db75
 	lda $c894
 	sta $db9d
-	lda $c895
-	sta $dbc5
 	; column 6
 	lda $c896
 	sta $d806
@@ -358,8 +346,6 @@ blit_fb_to_color
 	sta $db76
 	lda $c8ad
 	sta $db9e
-	lda $c8ae
-	sta $dbc6
 	; column 7
 	lda $c8af
 	sta $d807
@@ -409,8 +395,6 @@ blit_fb_to_color
 	sta $db77
 	lda $c8c6
 	sta $db9f
-	lda $c8c7
-	sta $dbc7
 	; column 8
 	lda $c8c8
 	sta $d808
@@ -1684,8 +1668,6 @@ blit_fb_to_color
 	sta $db90
 	lda $cb37
 	sta $dbb8
-	lda $cb38
-	sta $dbe0
 	; column 33
 	lda $cb39
 	sta $d821
@@ -1735,8 +1717,6 @@ blit_fb_to_color
 	sta $db91
 	lda $cb50
 	sta $dbb9
-	lda $cb51
-	sta $dbe1
 	; column 34
 	lda $cb52
 	sta $d822
@@ -1786,8 +1766,6 @@ blit_fb_to_color
 	sta $db92
 	lda $cb69
 	sta $dbba
-	lda $cb6a
-	sta $dbe2
 	; column 35
 	lda $cb6b
 	sta $d823
@@ -1837,8 +1815,6 @@ blit_fb_to_color
 	sta $db93
 	lda $cb82
 	sta $dbbb
-	lda $cb83
-	sta $dbe3
 	; column 36
 	lda $cb84
 	sta $d824
@@ -1888,8 +1864,6 @@ blit_fb_to_color
 	sta $db94
 	lda $cb9b
 	sta $dbbc
-	lda $cb9c
-	sta $dbe4
 	; column 37
 	lda $cb9d
 	sta $d825
@@ -1939,8 +1913,6 @@ blit_fb_to_color
 	sta $db95
 	lda $cbb4
 	sta $dbbd
-	lda $cbb5
-	sta $dbe5
 	; column 38
 	lda $cbb6
 	sta $d826
@@ -1990,8 +1962,6 @@ blit_fb_to_color
 	sta $db96
 	lda $cbcd
 	sta $dbbe
-	lda $cbce
-	sta $dbe6
 	; column 39
 	lda $cbcf
 	sta $d827
@@ -2041,6 +2011,4 @@ blit_fb_to_color
 	sta $db97
 	lda $cbe6
 	sta $dbbf
-	lda $cbe7
-	sta $dbe7
 	rts

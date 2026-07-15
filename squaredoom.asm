@@ -12,6 +12,7 @@ FLOOR_PAT = $08			; dither tile #2 rotated 90° (flats)
 
 MAX_DDA = 24
 PROFILE = 0
+DBG_FPS = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
 
@@ -49,6 +50,8 @@ free_low = PISTOL_SPRITES - end_low
 !source "gameloop.asm"
 !source "debug.asm"
 !source "ditherchars.asm"
+!source "doomfont.asm"
+!source "hud.asm"
 
 end_mid = *
 free_mid = MEM_MID_LIMIT - end_mid
