@@ -265,34 +265,135 @@ function pickJsonFile() {
 
 export const DEFAULT_EPISODE_PATH = 'episode1.json';
 
-export async function fetchEpisodeJSON(path = DEFAULT_EPISODE_PATH) {
-  const res = await fetch(path, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Could not load ${path} (${res.status})`);
-  return episodeFromJSON(await res.json());
+const HANDLE_DB = 'squaredoom-editor';
+const HANDLE_STORE = 'handles';
+const HANDLE_KEY = 'episode';
+
+/** @type {FileSystemFileHandle | null} */
+let episodeFileHandle = null;
+
+export function episodeFileName() {
+  return episodeFileHandle?.name || DEFAULT_EPISODE_PATH;
 }
 
-/** Write episode JSON via PUT (used by editor/serve.py). */
-export async function putEpisodeJSON(episode, path = DEFAULT_EPISODE_PATH) {
-  const text = JSON.stringify(episodeToJSON(episode), null, 2);
-  const res = await fetch(path, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: text,
+export function hasEpisodeFileHandle() {
+  return !!episodeFileHandle;
+}
+
+function openHandleDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HANDLE_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(HANDLE_STORE)) {
+        db.createObjectStore(HANDLE_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
-  if (!res.ok) throw new Error(`Autosave failed (${res.status})`);
+}
+
+async function storeEpisodeHandle(handle) {
+  episodeFileHandle = handle;
+  if (!window.indexedDB || !handle) return;
+  const db = await openHandleDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(HANDLE_STORE, 'readwrite');
+    tx.objectStore(HANDLE_STORE).put(handle, HANDLE_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function loadStoredEpisodeHandle() {
+  if (!window.indexedDB) return null;
+  try {
+    const db = await openHandleDb();
+    const handle = await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_STORE, 'readonly');
+      const req = tx.objectStore(HANDLE_STORE).get(HANDLE_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return handle || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function queryPermission(handle, mode = 'readwrite') {
+  if (!handle?.queryPermission) return 'granted';
+  return handle.queryPermission({ mode });
+}
+
+async function ensurePermission(handle, mode = 'readwrite') {
+  if (!handle?.queryPermission || !handle?.requestPermission) return true;
+  const opts = { mode };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  // Shows the browser Allow/Deny prompt (must run from a user gesture).
+  return (await handle.requestPermission(opts)) === 'granted';
+}
+
+async function writeEpisodeToHandle(handle, episode) {
+  const text = JSON.stringify(episodeToJSON(episode), null, 2);
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+async function readEpisodeFromHandle(handle) {
+  const file = await handle.getFile();
+  return episodeFromJSON(JSON.parse(await file.text()));
+}
+
+/** Previously chosen episode file, if any (may still need an Allow click). */
+export async function getStoredEpisodeHandle() {
+  return loadStoredEpisodeHandle();
+}
+
+/** Load without prompting — only when permission is already granted. */
+export async function tryRestoreEpisodeFile() {
+  const handle = await loadStoredEpisodeHandle();
+  if (!handle) return null;
+  const writeState = await queryPermission(handle, 'readwrite');
+  const readState = writeState === 'granted' ? 'granted' : await queryPermission(handle, 'read');
+  if (readState !== 'granted') return null;
+  episodeFileHandle = handle;
+  return readEpisodeFromHandle(handle);
+}
+
+/**
+ * Request Allow for a stored handle (call from a click), then load it.
+ * @returns {Promise<object|null>}
+ */
+export async function allowStoredEpisodeFile(handle) {
+  if (!handle) return null;
+  if (!(await ensurePermission(handle, 'readwrite'))) {
+    if (!(await ensurePermission(handle, 'read'))) return null;
+  }
+  await storeEpisodeHandle(handle);
+  return readEpisodeFromHandle(handle);
+}
+
+export async function autosaveEpisodeJSON(episode) {
+  if (!episodeFileHandle) {
+    throw new Error(`Load ${DEFAULT_EPISODE_PATH} once so autosave can write it`);
+  }
+  if (!(await ensurePermission(episodeFileHandle, 'readwrite'))) {
+    throw new Error(`No write permission for ${episodeFileHandle.name}`);
+  }
+  await writeEpisodeToHandle(episodeFileHandle, episode);
+  return 'file';
 }
 
 export async function saveEpisodeJSON(episode, suggestedName = DEFAULT_EPISODE_PATH) {
-  // Prefer writing into the project file when the local editor server supports PUT
-  try {
-    await putEpisodeJSON(episode, DEFAULT_EPISODE_PATH);
-    return 'server';
-  } catch (_) {
-    // Fall through
+  if (episodeFileHandle && (await ensurePermission(episodeFileHandle, 'readwrite'))) {
+    await writeEpisodeToHandle(episodeFileHandle, episode);
+    return 'file';
   }
-
-  const text = JSON.stringify(episodeToJSON(episode), null, 2);
-  const blob = new Blob([text], { type: 'application/json' });
 
   if (window.showSaveFilePicker) {
     try {
@@ -300,15 +401,16 @@ export async function saveEpisodeJSON(episode, suggestedName = DEFAULT_EPISODE_P
         suggestedName,
         types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
       });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return 'picker';
+      await storeEpisodeHandle(handle);
+      await writeEpisodeToHandle(handle, episode);
+      return 'file';
     } catch (e) {
       if (e.name === 'AbortError') return null;
     }
   }
-  downloadBlob(blob, suggestedName);
+
+  const text = JSON.stringify(episodeToJSON(episode), null, 2);
+  downloadBlob(new Blob([text], { type: 'application/json' }), suggestedName);
   return 'download';
 }
 
@@ -319,9 +421,8 @@ export async function loadEpisodeJSON() {
         types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
         multiple: false,
       });
-      const file = await handle.getFile();
-      const text = await file.text();
-      return episodeFromJSON(JSON.parse(text));
+      await storeEpisodeHandle(handle);
+      return readEpisodeFromHandle(handle);
     } catch (e) {
       if (e.name === 'AbortError') return null;
       // Fall through to <input type="file"> on SecurityError etc.

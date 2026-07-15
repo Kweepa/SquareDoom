@@ -38,7 +38,17 @@ import { TileEditor } from './tileEditor.js?v=25';
 import { ItemEditor } from './itemEditor.js?v=24';
 import { PreviewView } from './previewView.js?v=28';
 import { initShiftControls } from './shiftControls.js?v=24';
-import { cookAndDownload, fetchEpisodeJSON, loadEpisodeJSON, saveEpisodeJSON } from './io.js?v=24';
+import {
+  allowStoredEpisodeFile,
+  autosaveEpisodeJSON,
+  cookAndDownload,
+  episodeFileName,
+  getStoredEpisodeHandle,
+  hasEpisodeFileHandle,
+  loadEpisodeJSON,
+  saveEpisodeJSON,
+  tryRestoreEpisodeFile,
+} from './io.js?v=24';
 
 const statusEl = document.getElementById('status');
 const titleEl = document.querySelector('.toolbar h1');
@@ -86,7 +96,7 @@ function scheduleAutosave() {
 }
 
 async function runAutosave() {
-  if (!dirty || saving) return;
+  if (!dirty || saving || !hasEpisodeFileHandle()) return;
   await saveNow('Autosaved');
 }
 
@@ -95,12 +105,14 @@ async function saveNow(okMsg = 'Saved') {
   saving = true;
   setStatus('Saving…');
   try {
-    const how = await saveEpisodeJSON(episode, EPISODE_FILE);
+    const how = hasEpisodeFileHandle()
+      ? await autosaveEpisodeJSON(episode)
+      : await saveEpisodeJSON(episode, EPISODE_FILE);
     if (how == null) {
       setStatus('Save cancelled', true);
     } else {
       markClean();
-      setStatus(`${okMsg} ${EPISODE_FILE}`);
+      setStatus(`${okMsg} ${episodeFileName()}`);
     }
   } catch (err) {
     setStatus(String(err.message || err), true);
@@ -116,8 +128,12 @@ async function loadImages() {
     EDITOR_ITEM_TYPES.map(
       (type) =>
         new Promise((resolve) => {
+          const data =
+            typeof ITEM_IMAGE_DATA !== 'undefined' && ITEM_IMAGE_DATA
+              ? ITEM_IMAGE_DATA[type]
+              : null;
           const img = new Image();
-          img.src = `itemgraphics/${type}.png`;
+          img.src = data || `itemgraphics/${type}.png`;
           img.onload = () => {
             images[type] = img;
             resolve();
@@ -800,18 +816,78 @@ document.getElementById('btn-save').addEventListener('click', async () => {
   await saveNow('Saved');
 });
 
+function applyLoadedEpisode(loaded) {
+  Object.assign(episode.levels, loaded.levels);
+  if (loaded.activeLevel && episode.levels[loaded.activeLevel]) {
+    episode.activeLevel = loaded.activeLevel;
+  }
+  clearSelection();
+  markClean();
+  setStatus(`Loaded ${episodeFileName()}`);
+  refreshAll();
+}
+
+function showFileAccessGate(storedHandle) {
+  const overlay = document.createElement('div');
+  overlay.className = 'file-gate';
+  overlay.innerHTML = `
+    <div class="file-gate-card" role="dialog" aria-modal="true" aria-labelledby="file-gate-title">
+      <h2 id="file-gate-title">Open map file</h2>
+      <p class="muted">
+        ${
+          storedHandle
+            ? `Browser needs permission to read/write <strong>${storedHandle.name}</strong>.`
+            : `Choose project file <strong>${EPISODE_FILE}</strong> (usually in the editor folder).`
+        }
+      </p>
+      <div class="btn-row">
+        <button type="button" class="file-gate-primary" id="file-gate-ok">
+          ${storedHandle ? `Allow ${storedHandle.name}` : `Open ${EPISODE_FILE}…`}
+        </button>
+        ${storedHandle ? `<button type="button" id="file-gate-other">Choose different file…</button>` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const ok = overlay.querySelector('#file-gate-ok');
+  const other = overlay.querySelector('#file-gate-other');
+  ok.focus();
+
+  const finish = async (loader) => {
+    ok.disabled = true;
+    if (other) other.disabled = true;
+    try {
+      const loaded = await loader();
+      if (!loaded) {
+        ok.disabled = false;
+        if (other) other.disabled = false;
+        setStatus('Open cancelled', true);
+        return;
+      }
+      overlay.remove();
+      applyLoadedEpisode(loaded);
+    } catch (err) {
+      ok.disabled = false;
+      if (other) other.disabled = false;
+      setStatus(String(err.message || err), true);
+    }
+  };
+
+  ok.addEventListener('click', () => {
+    void finish(() =>
+      storedHandle ? allowStoredEpisodeFile(storedHandle) : loadEpisodeJSON(),
+    );
+  });
+  other?.addEventListener('click', () => {
+    void finish(() => loadEpisodeJSON());
+  });
+}
+
 document.getElementById('btn-load').addEventListener('click', async () => {
   try {
     const loaded = await loadEpisodeJSON();
     if (!loaded) return;
-    Object.assign(episode.levels, loaded.levels);
-    if (loaded.activeLevel && episode.levels[loaded.activeLevel]) {
-      episode.activeLevel = loaded.activeLevel;
-    }
-    clearSelection();
-    markClean();
-    setStatus('Loaded');
-    refreshAll();
+    applyLoadedEpisode(loaded);
   } catch (err) {
     setStatus(String(err.message || err), true);
   }
@@ -828,18 +904,24 @@ document.getElementById('btn-cook').addEventListener('click', () => {
 
 async function boot() {
   updateDirtyIndicator();
-  try {
-    const loaded = await fetchEpisodeJSON(EPISODE_FILE);
-    Object.assign(episode.levels, loaded.levels);
-    if (loaded.activeLevel && episode.levels[loaded.activeLevel]) {
-      episode.activeLevel = loaded.activeLevel;
-    }
-    markClean();
-    setStatus(`Loaded ${EPISODE_FILE}`);
-  } catch (err) {
-    setStatus(`No ${EPISODE_FILE} yet — editing blank episode`, false);
-  }
   refreshAll();
+  try {
+    const loaded = await tryRestoreEpisodeFile();
+    if (loaded) {
+      applyLoadedEpisode(loaded);
+      return;
+    }
+    const stored = await getStoredEpisodeHandle();
+    showFileAccessGate(stored);
+    setStatus(
+      stored
+        ? `Click Allow to open ${stored.name}`
+        : `Open ${EPISODE_FILE} to edit the project map`,
+      false,
+    );
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  }
 }
 
 boot();

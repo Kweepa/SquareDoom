@@ -4,7 +4,514 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SquareDoom Map Editor</title>
-  <link rel="stylesheet" href="styles.css?v=23" />
+  <style>
+:root {
+  --bg: #12141a;
+  --panel: #1c1f28;
+  --border: #2e3340;
+  --text: #e4e6eb;
+  --muted: #8b91a0;
+  --accent: #d4a017;
+  --danger: #c44;
+  --btn: #2a3040;
+  --btn-hover: #3a4258;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex: 1;
+  text-align: right;
+}
+
+.status.error {
+  color: #f88;
+}
+
+.file-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.file-gate-card {
+  width: min(22rem, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 1.1rem 1.2rem 1.2rem;
+}
+
+.file-gate-card h2 {
+  margin-bottom: 0.65rem;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.file-gate-card .muted {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.file-gate-card .btn-row {
+  margin-top: 0;
+}
+
+.file-gate-primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 200px 1fr 240px;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.left,
+.right {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 0.75rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.right {
+  border-right: none;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 0.75rem;
+}
+
+.right-editors {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+}
+
+.shift-controls {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.shift-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 auto 0.5rem;
+}
+
+.shift-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 2rem);
+  grid-template-rows: repeat(2, 2rem);
+  gap: 4px;
+}
+
+.shift-height {
+  display: grid;
+  grid-template-rows: repeat(2, 2rem);
+  gap: 4px;
+}
+
+.shift-btn.shift-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.shift-btn.shift-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.shift-btn.shift-down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.shift-btn.shift-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.shift-btn {
+  width: 2rem;
+  height: 2rem;
+  min-height: 0;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.shift-btn.height {
+  width: 2rem;
+  height: 2rem;
+}
+
+.shift-controls .muted {
+  margin: 0;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.preview-panel {
+  flex: 0 0 auto;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.preview-panel h2 {
+  text-align: center;
+}
+
+.preview-frame {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  background: #0a0a0c;
+  overflow: hidden;
+}
+
+#preview-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  background: #0a0a0c;
+  cursor: grab;
+  touch-action: none;
+}
+
+#preview-canvas:active {
+  cursor: grabbing;
+}
+
+.preview-res {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.preview-res label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.preview-res input[type="number"] {
+  width: 3.5rem;
+  min-width: 0;
+  padding: 0.2rem 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+}
+
+.preview-panel .muted {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.center {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.center > h2 {
+  flex: 0 0 auto;
+}
+
+.map-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#map-canvas {
+  image-rendering: pixelated;
+  cursor: crosshair;
+  border: 1px solid var(--border);
+  background: #0a0a0c;
+  outline: none;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.hint {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+  text-align: center;
+}
+
+button {
+  background: var(--btn);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+button:hover {
+  background: var(--btn-hover);
+}
+
+button.active,
+button.armed {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button.danger {
+  border-color: var(--danger);
+  color: #f99;
+}
+
+.level-list ul {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.level-list button {
+  width: 100%;
+  text-align: left;
+}
+
+.item-palette {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.palette-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  cursor: grab;
+  font-size: 0.65rem;
+  color: var(--muted);
+  user-select: none;
+}
+
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.palette-item img {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+}
+
+.panel .muted {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.8rem;
+}
+
+.field > span {
+  color: var(--muted);
+}
+
+.field input[type="number"],
+.field input[type="text"],
+.field select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  width: 100%;
+}
+
+.swatch {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  height: 14px;
+  aspect-ratio: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 1px;
+}
+
+.swatch.selected {
+  border-color: #fff;
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  z-index: 1;
+}
+
+.check-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.check-field input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.skill-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.skill-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .left,
+  .right {
+    max-height: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+  </style>
 </head>
 <body>
   <header class="toolbar">
@@ -62,6 +569,3208 @@
     </aside>
   </main>
 
-  <script type="module" src="js/main.js?v=24"></script>
+  <script>
+const ITEM_IMAGE_DATA = {
+  "acid": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRFAAAATP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZmfEcAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAjSURBVBhXY2CAAUYGRiAA8UA0mAVjQGigEJQAS4FVgjWDSAAFQAAkiZHR2AAAAABJRU5ErkJggg==",
+  "backpack": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAA8SURBVChTY2RgYPgPxHgBSAEYV2gqgTGMD9OMIolFEapumAlIJkGMRrYGjY2wG914qEbsClCsQPYBuikAVR9NWpa9QukAAAAASUVORK5CYII=",
+  "baron": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRFAAAATP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZmfEcAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAfSURBVBhXY2BgYAQjEGCE0nAGTIoRJAKRhKmB64IwAALHABMjfxjoAAAAAElFTkSuQmCC",
+  "barrel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAAzSURBVChTY2RgYPgv1aQGpHCD/1BFYBqGgZpgbLAJODHIXMImoFsBMxGqmQwT0EzE70gAkBhMfdLp4f8AAAAASUVORK5CYII=",
+  "bluearmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAABGdBTUEAALGPC/xhBQAAAwBQTFRFAAAAjnDvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAajm+MgAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAiSURBVBhXY2BkZGRgABFADAYgHgQDAYwCMcAiEBVAGk0EAAXoACU3JAsHAAAAAElFTkSuQmCC",
+  "bluecard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGDgYNgLY6LQIAX/gZJgDGMj0aiSUBORFUIUIOuEKYKKIxSgScA0YlqBZiKmFVgVwHyBTgMAq7JVjzLB+isAAAAASUVORK5CYII=",
+  "caco": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABKSURBVChTY2RgYPgPxAwVmkogCg46rt+Ds/8DJcEYqhiVD5PEpgAsBpNAVogshqIAZgWyVXAF6JIgPtQkOAPsSBTjoT6ES2BzMABmd1Ed8DzHkQAAAABJRU5ErkJggg==",
+  "camera": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAAD//xtBqzAAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAGAAAAABAAAAYAAAAAEAAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADZp5qVybcLXwAAACBJREFUGFdjYIADRkZGBgZGKAPEBjHAgigMuBREMRQAAASFAB9sgapfAAAAAElFTkSuQmCC",
+  "chaingun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAAN0lEQVQoU2NkYGD4D8R4wX+GKf8hGKQYnYZLwhSh03gVQK1HWIGhG+Q+ZEG8boAYhw3jlAArBgA4CGspijHAXgAAAABJRU5ErkJggg==",
+  "chainsaw": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAANElEQVQoU2NkYGD4D8R4wX+GKf9BinBgmCRORSAJXBhsKrIkujVgU0lSgG4V1Id4fMDwHwBY2GAkmPIKogAAAABJRU5ErkJggg==",
+  "cursor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRF/wAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAw8+BvgAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAmSURBVChTY2CEAAYoDWfQQoABYToDGIAshgKYM2D2otM0dRjC+wB4ogDj8+mE8gAAAABJRU5ErkJggg==",
+  "greenarmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAABGdBTUEAALGPC/xhBQAAAwBQTFRFAAAAqeVMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASha6+wAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAiSURBVBhXY2BkZGRgABFADAYgHgQDAYwCMcAiEBVAGk0EAAXoACU3JAsHAAAAAElFTkSuQmCC",
+  "health": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAA1SURBVChTY2RgYPgPxHgBSMF/dADVCNaMIQkTgJkOVwDThVUBkpFwK0kzAZtD4CagG4/MBwCz74Z7GeAxogAAAABJRU5ErkJggg==",
+  "imp": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGBQoakEpjuu34MJgen/QAmQIjCNzIZphktCBeCKwHx03cimwE0gygp0N8CsAzsSl0OJciQAEsRMi5MST+IAAAAASUVORK5CYII=",
+  "pinky": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABISURBVChTY2RgYPgPxAyr4reBKDgIW+gFZ/8HSmLFMM34FYB0g1TCaBgbZirIbrgCZKuQNIEdiWECXgVQx8E0QXTD7YR4G44BeT5x6pQGoHMAAAAASUVORK5CYII=",
+  "redcard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGBQoakEY6LQIAX/gZJgDGMj0aiSUBORFUIUIOuEKYKKIxSgScA0YlqBZiKmFVgVwHyBTgMA/iJO4Dom4N8AAAAASUVORK5CYII=",
+  "shells": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAAoSURBVChTY2RgYPgPxHgBSAE+zPC/QlMJJwYZDdYNUoSNpqcCXD4BAB9nR0L3C/f+AAAAAElFTkSuQmCC",
+  "shotgun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAANElEQVQoU2NkYGD4D8R4AUgBPgyUnPKfgAKQCSBF2DCKIMwqmEIwH4WD1S14HQj2IV5fAAAqV07TIDhfPgAAAABJRU5ErkJggg==",
+  "skullpile": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRFAAAA/9gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAR1k+bwAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAkSURBVBhXY2BgYGBkBBIgCs6AiQElIGKMQAgBUDVw1SBdQDEAA7gAHMKiUicAAAAASUVORK5CYII=",
+  "soldier": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABDSURBVChTY2RgYPgPxGAg1aQGpp/V3YIJgWmQAjAGKgBjZDG4AmQJNEWourGYAjEa3Qq4KehGE3QDVitgxiP7BsYGAId/SvGLiS63AAAAAElFTkSuQmCC",
+  "spawn": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABJSURBVChTY2RgYPgPxAz7zxWBKDhwNOqDs/8DJeEYpAHGh2kGC0A5GIpBRoMlkXUhi4EVoJuApgGhG9ktSJowHIXpSGQj0a0EACQ+faihsYgcAAAAAElFTkSuQmCC",
+  "techcolumn": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAAqSURBVChTY2BgYPjffu3ufxCNjJHEIAqwYagGiE5kU9BMpIsCgo7EpwAAumR+GebHMr0AAAAASUVORK5CYII=",
+  "yellowcard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGCw/1wRjIlCgxT8B0qCMYyNRKNKQk1EVghRgKwTpggqjlCAJgHTiGkFmomYVmBVAPMFOg0At8ZyrJoNx5wAAAAASUVORK5CYII="
+};
+
+// ---- js/model.js ----
+/** @typedef {number} C64Color 0–15 Commodore 64 palette index */
+
+const MAP_SIZE = 32;
+const MAP_CELLS = MAP_SIZE * MAP_SIZE;
+const MAX_SECTORS = 255;
+const MAX_ITEMS = 48;
+const WORLD_PER_TILE = 8;
+const WORLD_MAX = MAP_SIZE * WORLD_PER_TILE - 1; // 255
+
+const LEVEL_NAMES = [
+  'E1M1', 'E1M2', 'E1M3', 'E1M4', 'E1M5', 'E1M6', 'E1M7', 'E1M8', 'E1M9',
+];
+
+/** Pepto Commodore 64 palette (indices 0–15). */
+const C64_HEX = [
+  '#000000', // 0 black
+  '#ffffff', // 1 white
+  '#813338', // 2 red
+  '#75cec8', // 3 cyan
+  '#8e3c97', // 4 purple
+  '#56ac4d', // 5 green
+  '#40318d', // 6 blue
+  '#bfce72', // 7 yellow
+  '#8e5029', // 8 orange
+  '#553f00', // 9 brown
+  '#c46c71', // 10 light red
+  '#4a4a4a', // 11 dark grey
+  '#7b7b7b', // 12 grey
+  '#a9ff9f', // 13 light green
+  '#706deb', // 14 light blue
+  '#b2b2b2', // 15 light grey
+];
+
+const C64_NAMES = [
+  'black', 'white', 'red', 'cyan', 'purple', 'green', 'blue', 'yellow',
+  'orange', 'brown', 'light red', 'dark grey', 'grey', 'light green',
+  'light blue', 'light grey',
+];
+
+/** @deprecated old 8-colour names → C64 index (for map migration) */
+const LEGACY_COLOR_TO_C64 = {
+  black: 0,
+  red: 2,
+  green: 5,
+  yellow: 7,
+  blue: 6,
+  magenta: 4,
+  cyan: 3,
+  white: 1,
+};
+
+/** Doom-style sector specials (as used by VicDoom), plus editor Door. */
+const DOOR_SECTOR_TYPE = 18;
+
+const SECTOR_TYPES = [
+  { id: 0, name: 'Normal' },
+  { id: 1, name: 'Light blink random' },
+  { id: 2, name: 'Light blink 0.5s' },
+  { id: 3, name: 'Light blink 1.0s' },
+  { id: 4, name: 'Damage 20% + blink' },
+  { id: 5, name: 'Damage 10%' },
+  { id: 7, name: 'Damage 5%' },
+  { id: 8, name: 'Light oscillate' },
+  { id: 9, name: 'Secret' },
+  { id: 10, name: 'Door close (30s)' },
+  { id: 11, name: 'Damage end level' },
+  { id: 12, name: 'Light blink sync 1s' },
+  { id: 13, name: 'Light blink sync 0.5s' },
+  { id: 14, name: 'Door open (300s)' },
+  { id: 16, name: 'Damage 20%' },
+  { id: 17, name: 'Light flicker' },
+  { id: DOOR_SECTOR_TYPE, name: 'Door' },
+];
+
+function isDoorSector(sector) {
+  return (sector?.sectorType ?? 0) === DOOR_SECTOR_TYPE;
+}
+
+const ITEM_TYPES = [
+  'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
+  'health', 'shells', 'shotgun', 'chaingun', 'chainsaw',
+  'greenarmor', 'bluearmor', 'backpack',
+  'redcard', 'bluecard', 'yellowcard',
+  'acid', 'skullpile', 'techcolumn',
+];
+
+const CAMERA_TYPE = 'camera';
+
+/** Palette + map placement (includes editor-only camera). */
+const EDITOR_ITEM_TYPES = [...ITEM_TYPES, CAMERA_TYPE];
+
+function isGameItem(type) {
+  return type !== CAMERA_TYPE;
+}
+
+function isCamera(item) {
+  return item?.type === CAMERA_TYPE;
+}
+
+function gameItemCount(level) {
+  return level.items.filter((it) => isGameItem(it.type)).length;
+}
+
+function getSectorAtWorld(level, wx, wy) {
+  const { tx, ty } = worldToTile(wx, wy);
+  const id = getCell(level, tx, ty);
+  if (!id || !level.sectors.has(id)) return null;
+  return level.sectors.get(id);
+}
+
+/** Eye height for a camera at world coords: sector floor + 3. */
+function getCameraEyeHeight(level, wx, wy) {
+  const sector = getSectorAtWorld(level, wx, wy);
+  return (sector?.floorHeight ?? 0) + 3;
+}
+
+function findPreviewCamera(level, selectedItem) {
+  if (isCamera(selectedItem)) return selectedItem;
+  return level.items.find((it) => isCamera(it)) ?? null;
+}
+
+function colorHex(index) {
+  return C64_HEX[index & 15] || C64_HEX[0];
+}
+
+/** Normalize JSON colour (legacy name or 0–15) to a C64 index. */
+function normalizeColor(value, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(0, Math.min(15, value | 0));
+  }
+  if (typeof value === 'string' && value in LEGACY_COLOR_TO_C64) {
+    return LEGACY_COLOR_TO_C64[value];
+  }
+  const asNum = Number(value);
+  if (Number.isFinite(asNum)) return Math.max(0, Math.min(15, asNum | 0));
+  return fallback;
+}
+
+/** @deprecated use colorHex / normalizeColor */
+const COLORS = C64_NAMES;
+/** @deprecated use C64_HEX / colorHex */
+const COLOR_HEX = Object.fromEntries(C64_NAMES.map((n, i) => [n, C64_HEX[i]]));
+
+function colorIndex(value) {
+  return normalizeColor(value, 0);
+}
+
+function defaultSector() {
+  return {
+    floorHeight: 8,
+    ceilingHeight: 13,
+    sectorType: 0,
+    /** Editor-only name; baked away — used to resolve targetTag → sector id. */
+    tag: '',
+    /** Editor-only; when sectorType ≠ 0, names the target sector's tag. */
+    targetTag: '',
+    floorColor: 0,
+    ceilingColor: 0,
+    brightness: 7,
+  };
+}
+
+function cloneSector(s) {
+  return { ...s };
+}
+
+function sectorsEqual(a, b) {
+  return (
+    a.floorHeight === b.floorHeight &&
+    a.ceilingHeight === b.ceilingHeight &&
+    a.sectorType === b.sectorType &&
+    (a.tag || '') === (b.tag || '') &&
+    (a.targetTag || '') === (b.targetTag || '') &&
+    a.floorColor === b.floorColor &&
+    a.ceilingColor === b.ceilingColor &&
+    a.brightness === b.brightness
+  );
+}
+
+/** Find sector id whose tag matches (first / lowest id). 0 if none. */
+function findSectorIdByTag(level, tag) {
+  const t = String(tag || '').trim();
+  if (!t) return 0;
+  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  for (const id of ids) {
+    if ((level.sectors.get(id).tag || '').trim() === t) return id;
+  }
+  return 0;
+}
+
+function defaultSkills() {
+  return { easy: true, normal: true, hard: true };
+}
+
+function createEmptyLevel() {
+  return {
+    /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..255) */
+    sectors: new Map(),
+    /** @type {Uint8Array} */
+    map: new Uint8Array(MAP_CELLS),
+    /** @type {Array<{type:string,x:number,y:number,skills:{easy:boolean,normal:boolean,hard:boolean}}>} */
+    items: [],
+  };
+}
+
+function createEpisode() {
+  /** @type {Record<string, ReturnType<typeof createEmptyLevel>>} */
+  const levels = {};
+  for (const name of LEVEL_NAMES) {
+    levels[name] = createEmptyLevel();
+  }
+  return {
+    levels,
+    activeLevel: 'E1M1',
+  };
+}
+
+function cellIndex(tx, ty) {
+  return ty * MAP_SIZE + tx;
+}
+
+function getCell(level, tx, ty) {
+  if (tx < 0 || ty < 0 || tx >= MAP_SIZE || ty >= MAP_SIZE) return 0;
+  return level.map[cellIndex(tx, ty)];
+}
+
+function setCell(level, tx, ty, sectorId) {
+  level.map[cellIndex(tx, ty)] = sectorId;
+}
+
+function worldToTile(wx, wy) {
+  return {
+    tx: Math.max(0, Math.min(MAP_SIZE - 1, wx >> 3)),
+    ty: Math.max(0, Math.min(MAP_SIZE - 1, wy >> 3)),
+  };
+}
+
+function clampWorld(v) {
+  return Math.max(0, Math.min(WORLD_MAX, v | 0));
+}
+
+/** Allocate next free sector id 1..255, or 0 if full. */
+function allocSectorId(level) {
+  for (let id = 1; id <= MAX_SECTORS; id++) {
+    if (!level.sectors.has(id)) return id;
+  }
+  return 0;
+}
+
+function sectorCellCount(level, sectorId) {
+  let n = 0;
+  for (let i = 0; i < MAP_CELLS; i++) {
+    if (level.map[i] === sectorId) n++;
+  }
+  return n;
+}
+
+function dropSectorIfEmpty(level, sectorId) {
+  if (sectorId === 0) return;
+  if (sectorCellCount(level, sectorId) === 0) {
+    level.sectors.delete(sectorId);
+  }
+}
+
+/** Create default sector on empty cell; returns new id or 0. */
+function paintDefaultSector(level, tx, ty) {
+  const id = allocSectorId(level);
+  if (!id) return 0;
+  level.sectors.set(id, defaultSector());
+  setCell(level, tx, ty, id);
+  return id;
+}
+
+/** Paint existing sector onto a cell. */
+function paintSector(level, tx, ty, sectorId) {
+  if (!level.sectors.has(sectorId)) return false;
+  const old = getCell(level, tx, ty);
+  setCell(level, tx, ty, sectorId);
+  dropSectorIfEmpty(level, old);
+  return true;
+}
+
+/**
+ * Split: copy sector data into a new id for this cell only.
+ * Returns new id or 0.
+ */
+function splitSectorAt(level, tx, ty) {
+  const old = getCell(level, tx, ty);
+  if (old === 0 || !level.sectors.has(old)) return 0;
+  const id = allocSectorId(level);
+  if (!id) return 0;
+  level.sectors.set(id, cloneSector(level.sectors.get(old)));
+  setCell(level, tx, ty, id);
+  dropSectorIfEmpty(level, old);
+  return id;
+}
+
+/** Clear a single tile. */
+function clearTile(level, tx, ty) {
+  const old = getCell(level, tx, ty);
+  setCell(level, tx, ty, 0);
+  dropSectorIfEmpty(level, old);
+  return old;
+}
+
+/** Delete all tiles of a sector. */
+function deleteSector(level, sectorId) {
+  if (sectorId === 0) return;
+  for (let i = 0; i < MAP_CELLS; i++) {
+    if (level.map[i] === sectorId) level.map[i] = 0;
+  }
+  level.sectors.delete(sectorId);
+}
+
+/**
+ * Shift all map tiles and items by dx/dy tile steps.
+ * Content that moves off the map is discarded.
+ */
+function shiftLevel(level, dx, dy) {
+  const old = level.map;
+  const next = new Uint8Array(MAP_CELLS);
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      const id = old[cellIndex(tx, ty)];
+      if (!id) continue;
+      const ntx = tx + dx;
+      const nty = ty + dy;
+      if (ntx >= 0 && ntx < MAP_SIZE && nty >= 0 && nty < MAP_SIZE) {
+        next[cellIndex(ntx, nty)] = id;
+      }
+    }
+  }
+  level.map = next;
+
+  for (const id of [...level.sectors.keys()]) {
+    if (sectorCellCount(level, id) === 0) level.sectors.delete(id);
+  }
+
+  const kept = [];
+  for (const it of level.items) {
+    const nx = it.x + dx * WORLD_PER_TILE;
+    const ny = it.y + dy * WORLD_PER_TILE;
+    if (nx >= 0 && nx <= WORLD_MAX && ny >= 0 && ny <= WORLD_MAX) {
+      it.x = nx;
+      it.y = ny;
+      kept.push(it);
+    }
+  }
+  level.items.length = 0;
+  level.items.push(...kept);
+}
+
+/** All occupied map cells. */
+function occupiedTiles(level) {
+  const out = [];
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      if (getCell(level, tx, ty)) out.push({ tx, ty });
+    }
+  }
+  return out;
+}
+
+/** Items whose containing tile is in the given tile list. */
+function itemsInTiles(level, tiles) {
+  const keys = new Set(tiles.map(({ tx, ty }) => tileKey(tx, ty)));
+  return level.items.filter((it) => {
+    const tx = Math.floor(it.x / WORLD_PER_TILE);
+    const ty = Math.floor(it.y / WORLD_PER_TILE);
+    return keys.has(tileKey(tx, ty));
+  });
+}
+
+/**
+ * Raise/lower floor and ceiling together by delta on listed tiles.
+ * Each height is clamped independently to 0–31.
+ */
+function nudgeTileHeights(level, tiles, delta) {
+  if (!delta) return;
+  for (const { tx, ty } of tiles) {
+    const cur = getTileProps(level, tx, ty);
+    if (!cur) continue;
+    const next = cloneSector(cur);
+    next.floorHeight = clampNum(cur.floorHeight + delta, 0, 31);
+    next.ceilingHeight = clampNum(cur.ceilingHeight + delta, 0, 31);
+    setTileProps(level, tx, ty, next);
+  }
+  rebuildSectors(level);
+}
+
+/**
+ * Merge identical sectors: keep lowest id for each unique property set.
+ */
+function mergeIdenticalSectors(level) {
+  const reps = []; // { sector, id }
+  /** @type {Map<number, number>} oldId -> newId */
+  const remap = new Map();
+
+  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  for (const id of ids) {
+    const s = level.sectors.get(id);
+    let found = null;
+    for (const r of reps) {
+      if (sectorsEqual(r.sector, s)) {
+        found = r.id;
+        break;
+      }
+    }
+    if (found != null) {
+      remap.set(id, found);
+    } else {
+      reps.push({ sector: s, id });
+      remap.set(id, id);
+    }
+  }
+
+  for (let i = 0; i < MAP_CELLS; i++) {
+    const id = level.map[i];
+    if (id && remap.has(id)) level.map[i] = remap.get(id);
+  }
+
+  for (const id of ids) {
+    if (remap.get(id) !== id) level.sectors.delete(id);
+  }
+}
+
+/**
+ * Merge identical sectors and drop unused records.
+ * Call after any tile property edit.
+ */
+function rebuildSectors(level) {
+  mergeIdenticalSectors(level);
+  for (const id of [...level.sectors.keys()]) {
+    if (sectorCellCount(level, id) === 0) level.sectors.delete(id);
+  }
+}
+
+function sectorCount(level) {
+  return level.sectors.size;
+}
+
+/** All map cells that use the given sector id. */
+function tilesInSector(level, sectorId) {
+  const out = [];
+  if (!sectorId) return out;
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      if (getCell(level, tx, ty) === sectorId) out.push({ tx, ty });
+    }
+  }
+  return out;
+}
+
+function getTileProps(level, tx, ty) {
+  const id = getCell(level, tx, ty);
+  if (!id || !level.sectors.has(id)) return null;
+  return cloneSector(level.sectors.get(id));
+}
+
+/** Place props on a tile (allocates a fresh sector id). Returns id or 0. */
+function setTileProps(level, tx, ty, props) {
+  const old = getCell(level, tx, ty);
+  const id = allocSectorId(level);
+  if (!id) return 0;
+  level.sectors.set(id, cloneSector(props));
+  setCell(level, tx, ty, id);
+  dropSectorIfEmpty(level, old);
+  return id;
+}
+
+/**
+ * Add a tile at (tx,ty). Uses brush props if provided, else default.
+ * Rebuilds sectors afterward. Returns true on success.
+ */
+function addTile(level, tx, ty, brush = null) {
+  const props = brush ? cloneSector(brush) : defaultSector();
+  if (!setTileProps(level, tx, ty, props)) return false;
+  rebuildSectors(level);
+  return true;
+}
+
+/**
+ * Apply a property patch to all listed tiles. Empty tiles are skipped.
+ * Rebuilds sectors afterward.
+ */
+function applyTilePatch(level, tiles, patch) {
+  for (const { tx, ty } of tiles) {
+    const cur = getTileProps(level, tx, ty);
+    if (!cur) continue;
+    const next = cloneSector(cur);
+    if ('floorHeight' in patch) next.floorHeight = clampNum(patch.floorHeight, 0, 31);
+    if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
+    if ('sectorType' in patch) next.sectorType = clampNum(patch.sectorType, 0, 255);
+    if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
+    if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
+    if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 7);
+    if ('floorColor' in patch) next.floorColor = normalizeColor(patch.floorColor);
+    if ('ceilingColor' in patch) next.ceilingColor = normalizeColor(patch.ceilingColor);
+    setTileProps(level, tx, ty, next);
+  }
+  rebuildSectors(level);
+}
+
+/** Clear multiple tiles, then rebuild. */
+function clearTiles(level, tiles) {
+  for (const { tx, ty } of tiles) clearTile(level, tx, ty);
+  rebuildSectors(level);
+}
+
+/**
+ * Move tiles by (dtx, dty). Off-map tiles are deleted.
+ * Returns the new tile positions that remain on the map.
+ */
+function moveTiles(level, tiles, dtx, dty) {
+  if (!dtx && !dty) return tiles.map((t) => ({ ...t }));
+
+  const entries = [];
+  for (const { tx, ty } of tiles) {
+    const props = getTileProps(level, tx, ty);
+    if (!props) continue;
+    entries.push({ tx, ty, props });
+  }
+
+  for (const e of entries) clearTile(level, e.tx, e.ty);
+
+  const placed = [];
+  for (const e of entries) {
+    const ntx = e.tx + dtx;
+    const nty = e.ty + dty;
+    if (ntx < 0 || ntx >= MAP_SIZE || nty < 0 || nty >= MAP_SIZE) continue;
+    setTileProps(level, ntx, nty, e.props);
+    placed.push({ tx: ntx, ty: nty });
+  }
+  rebuildSectors(level);
+  return placed;
+}
+
+/**
+ * Move items by world delta. Removes items that leave the map.
+ * Returns the items that remain.
+ */
+function moveItemsBy(level, items, dx, dy) {
+  const kept = [];
+  for (const it of items) {
+    const nx = it.x + dx;
+    const ny = it.y + dy;
+    if (nx < 0 || nx > WORLD_MAX || ny < 0 || ny > WORLD_MAX) {
+      removeItem(level, it);
+      continue;
+    }
+    it.x = nx;
+    it.y = ny;
+    kept.push(it);
+  }
+  return kept;
+}
+
+function clampNum(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, Number(v) || 0));
+}
+
+function tileKey(tx, ty) {
+  return `${tx},${ty}`;
+}
+
+function parseTileKey(key) {
+  const [tx, ty] = key.split(',').map(Number);
+  return { tx, ty };
+}
+
+/** Merge source sector into target (all source cells become target). */
+function mergeSectors(level, targetId, sourceId) {
+  if (targetId === sourceId || !targetId || !sourceId) return;
+  if (!level.sectors.has(targetId) || !level.sectors.has(sourceId)) return;
+  for (let i = 0; i < MAP_CELLS; i++) {
+    if (level.map[i] === sourceId) level.map[i] = targetId;
+  }
+  level.sectors.delete(sourceId);
+}
+
+function hasSpawn(level) {
+  return level.items.some((it) => it.type === 'spawn');
+}
+
+function addItem(level, type, x, y, skills = defaultSkills()) {
+  if (type === CAMERA_TYPE) {
+    const item = {
+      type: CAMERA_TYPE,
+      x: clampWorld(x),
+      y: clampWorld(y),
+      angle: 0,
+    };
+    level.items.push(item);
+    return item;
+  }
+  if (gameItemCount(level) >= MAX_ITEMS) return null;
+  if (type === 'spawn' && hasSpawn(level)) return null;
+  const item = {
+    type,
+    x: clampWorld(x),
+    y: clampWorld(y),
+    skills: { ...skills },
+  };
+  level.items.push(item);
+  return item;
+}
+
+function removeItem(level, item) {
+  const i = level.items.indexOf(item);
+  if (i >= 0) level.items.splice(i, 1);
+}
+
+function moveItem(level, item, x, y) {
+  item.x = clampWorld(x);
+  item.y = clampWorld(y);
+}
+
+function activeLevel(episode) {
+  return episode.levels[episode.activeLevel];
+}
+
+// ---- js/io.js ----
+/**
+ * Cooked binary layout (no header), per level — structure-of-arrays:
+ *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
+ *      order: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
+ *      targetSector is the resolved sector id (from editor targetTag); 0 if type is 0 / unresolved
+ *      editor tag strings are not stored in the binary
+ *   2. Map: 1024 bytes sector ids
+ *   3. Items: 48 * 4 bytes: typeId, x, y, skillBits
+ *      skillBits: bit0=easy, bit1=normal, bit2=hard
+ *      unused item slots: typeId=0xFF
+ * Colors: 0..15 = Commodore 64 palette
+ * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
+ */
+
+const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
+const SECTOR_TABLE_SIZE = 256;		 // index = sector id; [0] unused
+const ITEM_BYTES = 4;
+const EMPTY_ITEM_TYPE = 0xff;
+
+function levelToJSON(level) {
+  const sectorObj = {};
+  for (const [id, s] of level.sectors) {
+    sectorObj[String(id)] = {
+      floorHeight: s.floorHeight,
+      ceilingHeight: s.ceilingHeight,
+      sectorType: s.sectorType ?? 0,
+      tag: s.tag || '',
+      targetTag: s.targetTag || '',
+      floorColor: s.floorColor,
+      ceilingColor: s.ceilingColor,
+      brightness: s.brightness,
+    };
+  }
+  return {
+    sectors: sectorObj,
+    map: Array.from(level.map),
+    items: level.items.map((it) => {
+      const base = {
+        type: it.type,
+        x: it.x,
+        y: it.y,
+      };
+      if (it.type === CAMERA_TYPE) {
+        return { ...base, angle: it.angle ?? 0 };
+      }
+      return { ...base, skills: { ...it.skills } };
+    }),
+  };
+}
+
+function levelFromJSON(data) {
+  const level = createEmptyLevel();
+  if (data.sectors) {
+    for (const [key, s] of Object.entries(data.sectors)) {
+      const id = Number(key);
+      if (id < 1 || id > MAX_SECTORS) continue;
+      const d = defaultSector();
+      let sectorType = clamp(s.sectorType ?? d.sectorType, 0, 255);
+      // Migrate legacy door checkbox → Door sector type
+      if (s.door && sectorType === 0) sectorType = DOOR_SECTOR_TYPE;
+      level.sectors.set(id, {
+        floorHeight: clamp(s.floorHeight ?? d.floorHeight, 0, 31),
+        ceilingHeight: clamp(s.ceilingHeight ?? d.ceilingHeight, 0, 31),
+        sectorType,
+        tag: String(s.tag ?? d.tag ?? '').trim(),
+        targetTag: String(s.targetTag ?? d.targetTag ?? '').trim(),
+        floorColor: normalizeColor(s.floorColor, d.floorColor),
+        ceilingColor: normalizeColor(s.ceilingColor, d.ceilingColor),
+        brightness: clamp(s.brightness ?? d.brightness, 0, 7),
+      });
+    }
+  }
+  if (Array.isArray(data.map) && data.map.length === MAP_CELLS) {
+    for (let i = 0; i < MAP_CELLS; i++) {
+      level.map[i] = data.map[i] & 0xff;
+    }
+  }
+  if (Array.isArray(data.items)) {
+    for (const it of data.items) {
+      if (it.type === CAMERA_TYPE) {
+        level.items.push({
+          type: CAMERA_TYPE,
+          x: clamp(it.x ?? 0, 0, 255),
+          y: clamp(it.y ?? 0, 0, 255),
+          angle: Number(it.angle) || 0,
+        });
+        continue;
+      }
+      if (!ITEM_TYPES.includes(it.type)) continue;
+      if (gameItemCount(level) >= MAX_ITEMS) break;
+      level.items.push({
+        type: it.type,
+        x: clamp(it.x ?? 0, 0, 255),
+        y: clamp(it.y ?? 0, 0, 255),
+        skills: {
+          easy: it.skills?.easy !== false,
+          normal: it.skills?.normal !== false,
+          hard: it.skills?.hard !== false,
+        },
+      });
+    }
+  }
+  return level;
+}
+
+function episodeToJSON(episode) {
+  const levels = {};
+  for (const name of LEVEL_NAMES) {
+    levels[name] = levelToJSON(episode.levels[name]);
+  }
+  return {
+    format: 'squaredoom-map',
+    version: 1,
+    activeLevel: episode.activeLevel,
+    levels,
+  };
+}
+
+function episodeFromJSON(data) {
+  const episode = createEpisode();
+  if (data?.format !== 'squaredoom-map') {
+    throw new Error('Unrecognized map format');
+  }
+  if (data.levels) {
+    for (const name of LEVEL_NAMES) {
+      if (data.levels[name]) {
+        episode.levels[name] = levelFromJSON(data.levels[name]);
+      }
+    }
+  }
+  if (data.activeLevel && episode.levels[data.activeLevel]) {
+    episode.activeLevel = data.activeLevel;
+  }
+  return episode;
+}
+
+function cookLevel(level) {
+  /** @type {string[]} */
+  const warnings = [];
+  const floors = new Uint8Array(SECTOR_TABLE_SIZE);
+  const ceils = new Uint8Array(SECTOR_TABLE_SIZE);
+  const types = new Uint8Array(SECTOR_TABLE_SIZE);
+  const targets = new Uint8Array(SECTOR_TABLE_SIZE);
+  const fcols = new Uint8Array(SECTOR_TABLE_SIZE);
+  const ccols = new Uint8Array(SECTOR_TABLE_SIZE);
+  const brights = new Uint8Array(SECTOR_TABLE_SIZE);
+
+  for (let id = 1; id <= MAX_SECTORS; id++) {
+    const s = level.sectors.get(id);
+    if (!s) continue;
+    const type = (s.sectorType ?? 0) & 0xff;
+    let targetId = 0;
+    if (type !== 0) {
+      const tag = (s.targetTag || '').trim();
+      if (!tag) {
+        warnings.push(`Sector ${id}: type ${type} has empty target tag`);
+      } else {
+        targetId = findSectorIdByTag(level, tag);
+        if (!targetId) {
+          warnings.push(`Sector ${id}: target tag "${tag}" not found`);
+        }
+      }
+    }
+    floors[id] = s.floorHeight & 31;
+    ceils[id] = s.ceilingHeight & 31;
+    types[id] = type;
+    targets[id] = targetId & 0xff;
+    fcols[id] = colorIndex(s.floorColor) & 15;
+    ccols[id] = colorIndex(s.ceilingColor) & 15;
+    brights[id] = s.brightness & 7;
+  }
+
+  const mapBytes = new Uint8Array(level.map);
+
+  const gameItems = level.items.filter((it) => isGameItem(it.type));
+  const itemTable = new Uint8Array(MAX_ITEMS * ITEM_BYTES);
+  for (let i = 0; i < MAX_ITEMS; i++) {
+    const off = i * ITEM_BYTES;
+    const it = gameItems[i];
+    if (!it) {
+      itemTable[off] = EMPTY_ITEM_TYPE;
+      continue;
+    }
+    const typeId = ITEM_TYPES.indexOf(it.type);
+    itemTable[off] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
+    itemTable[off + 1] = it.x & 0xff;
+    itemTable[off + 2] = it.y & 0xff;
+    let bits = 0;
+    if (it.skills.easy) bits |= 1;
+    if (it.skills.normal) bits |= 2;
+    if (it.skills.hard) bits |= 4;
+    itemTable[off + 3] = bits;
+  }
+
+  const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
+  const out = new Uint8Array(sectorBytes + mapBytes.length + itemTable.length);
+  let o = 0;
+  out.set(floors, o); o += SECTOR_TABLE_SIZE;
+  out.set(ceils, o); o += SECTOR_TABLE_SIZE;
+  out.set(types, o); o += SECTOR_TABLE_SIZE;
+  out.set(targets, o); o += SECTOR_TABLE_SIZE;
+  out.set(fcols, o); o += SECTOR_TABLE_SIZE;
+  out.set(ccols, o); o += SECTOR_TABLE_SIZE;
+  out.set(brights, o); o += SECTOR_TABLE_SIZE;
+  out.set(mapBytes, o); o += mapBytes.length;
+  out.set(itemTable, o);
+  return { bytes: out, warnings };
+}
+
+function clamp(v, lo, hi) {
+  v = Number(v) || 0;
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function pickJsonFile() {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      try {
+        const text = await file.text();
+        resolve(episodeFromJSON(JSON.parse(text)));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    // Ignore cancel (no change event in most browsers)
+    input.addEventListener('cancel', () => resolve(null));
+    input.click();
+  });
+}
+
+const DEFAULT_EPISODE_PATH = 'episode1.json';
+
+const HANDLE_DB = 'squaredoom-editor';
+const HANDLE_STORE = 'handles';
+const HANDLE_KEY = 'episode';
+
+/** @type {FileSystemFileHandle | null} */
+let episodeFileHandle = null;
+
+function episodeFileName() {
+  return episodeFileHandle?.name || DEFAULT_EPISODE_PATH;
+}
+
+function hasEpisodeFileHandle() {
+  return !!episodeFileHandle;
+}
+
+function openHandleDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HANDLE_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(HANDLE_STORE)) {
+        db.createObjectStore(HANDLE_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function storeEpisodeHandle(handle) {
+  episodeFileHandle = handle;
+  if (!window.indexedDB || !handle) return;
+  const db = await openHandleDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(HANDLE_STORE, 'readwrite');
+    tx.objectStore(HANDLE_STORE).put(handle, HANDLE_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function loadStoredEpisodeHandle() {
+  if (!window.indexedDB) return null;
+  try {
+    const db = await openHandleDb();
+    const handle = await new Promise((resolve, reject) => {
+      const tx = db.transaction(HANDLE_STORE, 'readonly');
+      const req = tx.objectStore(HANDLE_STORE).get(HANDLE_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return handle || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function queryPermission(handle, mode = 'readwrite') {
+  if (!handle?.queryPermission) return 'granted';
+  return handle.queryPermission({ mode });
+}
+
+async function ensurePermission(handle, mode = 'readwrite') {
+  if (!handle?.queryPermission || !handle?.requestPermission) return true;
+  const opts = { mode };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  // Shows the browser Allow/Deny prompt (must run from a user gesture).
+  return (await handle.requestPermission(opts)) === 'granted';
+}
+
+async function writeEpisodeToHandle(handle, episode) {
+  const text = JSON.stringify(episodeToJSON(episode), null, 2);
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+async function readEpisodeFromHandle(handle) {
+  const file = await handle.getFile();
+  return episodeFromJSON(JSON.parse(await file.text()));
+}
+
+/** Previously chosen episode file, if any (may still need an Allow click). */
+async function getStoredEpisodeHandle() {
+  return loadStoredEpisodeHandle();
+}
+
+/** Load without prompting — only when permission is already granted. */
+async function tryRestoreEpisodeFile() {
+  const handle = await loadStoredEpisodeHandle();
+  if (!handle) return null;
+  const writeState = await queryPermission(handle, 'readwrite');
+  const readState = writeState === 'granted' ? 'granted' : await queryPermission(handle, 'read');
+  if (readState !== 'granted') return null;
+  episodeFileHandle = handle;
+  return readEpisodeFromHandle(handle);
+}
+
+/**
+ * Request Allow for a stored handle (call from a click), then load it.
+ * @returns {Promise<object|null>}
+ */
+async function allowStoredEpisodeFile(handle) {
+  if (!handle) return null;
+  if (!(await ensurePermission(handle, 'readwrite'))) {
+    if (!(await ensurePermission(handle, 'read'))) return null;
+  }
+  await storeEpisodeHandle(handle);
+  return readEpisodeFromHandle(handle);
+}
+
+async function autosaveEpisodeJSON(episode) {
+  if (!episodeFileHandle) {
+    throw new Error(`Load ${DEFAULT_EPISODE_PATH} once so autosave can write it`);
+  }
+  if (!(await ensurePermission(episodeFileHandle, 'readwrite'))) {
+    throw new Error(`No write permission for ${episodeFileHandle.name}`);
+  }
+  await writeEpisodeToHandle(episodeFileHandle, episode);
+  return 'file';
+}
+
+async function saveEpisodeJSON(episode, suggestedName = DEFAULT_EPISODE_PATH) {
+  if (episodeFileHandle && (await ensurePermission(episodeFileHandle, 'readwrite'))) {
+    await writeEpisodeToHandle(episodeFileHandle, episode);
+    return 'file';
+  }
+
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
+      });
+      await storeEpisodeHandle(handle);
+      await writeEpisodeToHandle(handle, episode);
+      return 'file';
+    } catch (e) {
+      if (e.name === 'AbortError') return null;
+    }
+  }
+
+  const text = JSON.stringify(episodeToJSON(episode), null, 2);
+  downloadBlob(new Blob([text], { type: 'application/json' }), suggestedName);
+  return 'download';
+}
+
+async function loadEpisodeJSON() {
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'SquareDoom Map', accept: { 'application/json': ['.json'] } }],
+        multiple: false,
+      });
+      await storeEpisodeHandle(handle);
+      return readEpisodeFromHandle(handle);
+    } catch (e) {
+      if (e.name === 'AbortError') return null;
+      // Fall through to <input type="file"> on SecurityError etc.
+    }
+  }
+  return pickJsonFile();
+}
+
+function cookAndDownload(episode, levelName) {
+  const level = episode.levels[levelName];
+  const { bytes, warnings } = cookLevel(level);
+  const blob = new Blob([bytes], { type: 'application/octet-stream' });
+  downloadBlob(blob, `${levelName.toLowerCase()}.bin`);
+  return warnings;
+}
+
+// ---- js/mapView.js ----
+class MapView {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {object} opts
+   * @param {() => any} opts.getLevel
+   * @param {() => {
+   *   tiles: Set<string>,
+   *   items: Set<any>,
+   *   hoverTile: {tx:number,ty:number}|null,
+   *   box: {x0:number,y0:number,x1:number,y1:number}|null,
+   * }} opts.getSelection
+   * @param {(ev: PointerEvent, info: object) => void} opts.onPointer
+   * @param {(type: string, wx: number, wy: number) => void} opts.onDropItem
+   * @param {Record<string, HTMLImageElement>} opts.images
+   * @param {HTMLElement} [opts.stage]
+   */
+  constructor(canvas, opts) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.opts = opts;
+    this.cell = 18;
+    this.stage = opts.stage || canvas.parentElement;
+    this._ro = null;
+    this.dragGrab = null;
+
+    this.resize();
+    this._ro = new ResizeObserver(() => this.resize());
+    if (this.stage) this._ro.observe(this.stage);
+
+    canvas.addEventListener('pointerdown', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointermove', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointerup', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointerleave', (e) => this.#onPointer(e));
+    canvas.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const type = e.dataTransfer.getData('text/item-type') || e.dataTransfer.getData('text/plain');
+      if (!type) return;
+      const { wx, wy } = this.#eventWorld(e);
+      this.opts.onDropItem(type, wx, wy);
+    });
+  }
+
+  resize() {
+    if (!this.stage) return;
+    const rect = this.stage.getBoundingClientRect();
+    const pad = 2;
+    const side = Math.max(64, Math.floor(Math.min(rect.width, rect.height) - pad));
+    const cell = Math.max(4, Math.floor(side / MAP_SIZE));
+    const px = cell * MAP_SIZE;
+    if (cell === this.cell && this.canvas.width === px) return;
+    this.cell = cell;
+    this.canvas.width = px;
+    this.canvas.height = px;
+    this.canvas.style.width = `${px}px`;
+    this.canvas.style.height = `${px}px`;
+    this.draw();
+  }
+
+  #eventCanvas(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * this.canvas.width;
+    const y = ((e.clientY - rect.top) / rect.height) * this.canvas.height;
+    return { x, y };
+  }
+
+  #canvasToWorld(x, y) {
+    const c = this.cell;
+    return {
+      wx: Math.max(0, Math.min(255, Math.round((x / c) * WORLD_PER_TILE))),
+      wy: Math.max(0, Math.min(255, Math.round((y / c) * WORLD_PER_TILE))),
+    };
+  }
+
+  #eventCell(e) {
+    const { x, y } = this.#eventCanvas(e);
+    const tx = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(x / this.cell)));
+    const ty = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(y / this.cell)));
+    return { tx, ty, px: x, py: y };
+  }
+
+  #eventWorld(e) {
+    const { x, y } = this.#eventCanvas(e);
+    return this.#canvasToWorld(x, y);
+  }
+
+  #itemDrawPos(it, c) {
+    const ix = (it.x / WORLD_PER_TILE) * c;
+    const iy = (it.y / WORLD_PER_TILE) * c;
+    const spriteSize = Math.max(6, Math.round(c * 0.45));
+    return { ix, iy, spriteSize };
+  }
+
+  #spriteSize(it, baseSize) {
+    const img = this.opts.images[it.type];
+    let drawW = baseSize;
+    const drawH = baseSize;
+    if (img?.complete && img.naturalWidth > 0) {
+      drawW = drawH * (img.naturalWidth / img.naturalHeight);
+    }
+    return { drawW, drawH };
+  }
+
+  #hitItem(level, px, py) {
+    for (let i = level.items.length - 1; i >= 0; i--) {
+      const it = level.items[i];
+      const { ix, iy, spriteSize } = this.#itemDrawPos(it, this.cell);
+      const { drawW, drawH } = this.#spriteSize(it, spriteSize);
+      const left = ix - drawW / 2;
+      const top = iy - drawH / 2;
+      if (px >= left && px <= left + drawW && py >= top && py <= top + drawH) return it;
+    }
+    return null;
+  }
+
+  #onPointer(e) {
+    const { tx, ty, px, py } = this.#eventCell(e);
+    const level = this.opts.getLevel();
+    const item = this.#hitItem(level, px, py);
+
+    if (e.type === 'pointerdown' && item) {
+      const pos = this.#itemDrawPos(item, this.cell);
+      this.dragGrab = { x: px - pos.ix, y: py - pos.iy };
+    }
+    if (e.type === 'pointerup' || e.type === 'pointerleave') {
+      this.dragGrab = null;
+    }
+
+    const grab = this.dragGrab ?? { x: 0, y: 0 };
+    const { wx, wy } = this.#canvasToWorld(px - grab.x, py - grab.y);
+
+    this.opts.onPointer(e, {
+      tx,
+      ty,
+      wx,
+      wy,
+      px,
+      py,
+      item,
+      sectorId: getCell(level, tx, ty),
+      shift: e.shiftKey,
+      ctrl: e.ctrlKey || e.metaKey,
+    });
+  }
+
+  #sectorFill(level, id) {
+    if (id === 0) return '#1a1a1e';
+    const s = level.sectors.get(id);
+    if (!s) return '#333';
+    const base = colorHex(s.floorColor) || '#444';
+    return mixHex(base, 0.35 + (s.floorHeight / 31) * 0.25 + ((id * 17) % 7) * 0.03);
+  }
+
+  draw() {
+    const level = this.opts.getLevel();
+    const sel = this.opts.getSelection();
+    const ctx = this.ctx;
+    const c = this.cell;
+    if (!c) return;
+
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    for (let ty = 0; ty < MAP_SIZE; ty++) {
+      for (let tx = 0; tx < MAP_SIZE; tx++) {
+        const id = getCell(level, tx, ty);
+        ctx.fillStyle = this.#sectorFill(level, id);
+        ctx.fillRect(tx * c, ty * c, c, c);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= MAP_SIZE; i++) {
+      ctx.moveTo(i * c + 0.5, 0);
+      ctx.lineTo(i * c + 0.5, MAP_SIZE * c);
+      ctx.moveTo(0, i * c + 0.5);
+      ctx.lineTo(MAP_SIZE * c, i * c + 0.5);
+    }
+    ctx.stroke();
+
+    // Selected tiles
+    if (sel.tiles?.size) {
+      ctx.fillStyle = 'rgba(255, 220, 80, 0.28)';
+      ctx.strokeStyle = 'rgba(255, 220, 80, 0.95)';
+      ctx.lineWidth = Math.max(1, Math.round(c / 9));
+      for (const key of sel.tiles) {
+        const [tx, ty] = key.split(',').map(Number);
+        ctx.fillRect(tx * c, ty * c, c, c);
+        ctx.strokeRect(tx * c + 1, ty * c + 1, c - 2, c - 2);
+      }
+    }
+
+    // Marquee box
+    if (sel.box) {
+      const x0 = Math.min(sel.box.x0, sel.box.x1);
+      const y0 = Math.min(sel.box.y0, sel.box.y1);
+      const x1 = Math.max(sel.box.x0, sel.box.x1);
+      const y1 = Math.max(sel.box.y0, sel.box.y1);
+      const px = x0 * c;
+      const py = y0 * c;
+      const pw = (x1 - x0 + 1) * c;
+      const ph = (y1 - y0 + 1) * c;
+      ctx.fillStyle = 'rgba(120, 180, 255, 0.12)';
+      ctx.fillRect(px, py, pw, ph);
+      ctx.strokeStyle = 'rgba(120, 180, 255, 0.95)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+      ctx.setLineDash([]);
+    }
+
+    // Hover tile
+    if (sel.hoverTile) {
+      const { tx, ty } = sel.hoverTile;
+      if (!sel.tiles?.has(tileKey(tx, ty))) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tx * c + 0.5, ty * c + 0.5, c - 1, c - 1);
+      }
+    }
+
+    for (const it of level.items) {
+      const { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
+      const { drawW, drawH } = this.#spriteSize(it, spriteSize);
+      const left = ix - drawW / 2;
+      const top = iy - drawH / 2;
+      const img = this.opts.images[it.type];
+      if (img && img.complete) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, left, top, drawW, drawH);
+      } else {
+        ctx.fillStyle = '#fa0';
+        ctx.fillRect(left, top, drawW, drawH);
+      }
+      if (sel.items?.has(it)) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(left - 1, top - 1, drawW + 2, drawH + 2);
+      }
+    }
+  }
+}
+
+function mixHex(a, t) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(a);
+  if (!m) return a;
+  let r = parseInt(m[1], 16);
+  let g = parseInt(m[2], 16);
+  let b = parseInt(m[3], 16);
+  const lift = Math.floor(40 * t);
+  r = Math.min(255, r + lift);
+  g = Math.min(255, g + lift);
+  b = Math.min(255, b + lift);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ---- js/previewView.js ----
+const DEFAULT_RAYS = 40;
+const DEFAULT_COL_H = 25;
+const FOV = Math.PI / 2.1;
+const MAX_DEPTH = 128;
+/** Projection scale so default height ≈ previous 70px feel. */
+const PROJ_SCALE = 70 / 69;
+const ITEM_WORLD_HEIGHT = 4;
+const TAN_HALF_FOV = Math.tan(FOV / 2);
+
+/** Enemies keep full preview height; everything else is half size. */
+const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
+
+// side 0 = north/south wall (orange), side 1 = east/west wall (brown)
+const WALL_NS = 8;
+const WALL_EW = 9;
+
+/** Cache of images with pure black (#000) keyed to transparent. */
+const transparentCache = new Map();
+
+function transparentSprite(img) {
+  if (!img?.complete || !img.naturalWidth) return null;
+  let cached = transparentCache.get(img);
+  if (cached) return cached;
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h);
+  const px = data.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i] === 0 && px[i + 1] === 0 && px[i + 2] === 0) px[i + 3] = 0;
+  }
+  ctx.putImageData(data, 0, 0);
+  transparentCache.set(img, c);
+  return c;
+}
+class PreviewView {
+  /**
+   * @param {HTMLCanvasElement} canvas Display canvas (scaled up from the render buffer).
+   * @param {{
+   *   getLevel: () => any,
+   *   getCamera: () => {x:number,y:number,angle:number}|null,
+   *   onRotate: (angle: number) => void,
+   *   onMove: (x: number, y: number) => void,
+   *   images: Record<string, HTMLImageElement>,
+   *   getRaycasts?: () => number,
+   *   getColumnHeight?: () => number,
+   * }} opts
+   */
+  constructor(canvas, opts) {
+    this.display = canvas;
+    this.frame = canvas.parentElement;
+    this.dctx = canvas.getContext('2d', { alpha: false });
+    this.buffer = document.createElement('canvas');
+    this.ctx = this.buffer.getContext('2d', { alpha: false });
+    this.opts = opts;
+    this.dragging = false;
+    this.lastX = 0;
+    this.lastY = 0;
+    this.buffer.width = DEFAULT_RAYS;
+    this.buffer.height = DEFAULT_COL_H;
+    this.ctx.imageSmoothingEnabled = false;
+    disableSmoothing(this.dctx);
+
+    canvas.addEventListener('pointerdown', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointermove', (e) => this.#onPointer(e));
+    canvas.addEventListener('pointerup', (e) => this.#onPointer(e));
+    canvas.addEventListener('lostpointercapture', (e) => this.#onPointer(e));
+
+    this._ro = new ResizeObserver(() => this.draw());
+    if (this.frame) this._ro.observe(this.frame);
+  }
+
+  #onPointer(e) {
+    const cam = this.opts.getCamera();
+    if (!cam) return;
+
+    if (e.type === 'pointerdown') {
+      this.dragging = true;
+      this.lastX = e.clientX;
+      this.lastY = e.clientY;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (_) { /* ignore */ }
+      return;
+    }
+
+    if (e.type === 'pointerup' || e.type === 'lostpointercapture') {
+      this.dragging = false;
+      return;
+    }
+
+    if (e.type === 'pointermove' && this.dragging) {
+      const dx = e.clientX - this.lastX;
+      const dy = e.clientY - this.lastY;
+      this.lastX = e.clientX;
+      this.lastY = e.clientY;
+      const rect = this.display.getBoundingClientRect();
+      const w = rect.width || DEFAULT_RAYS;
+      const h = rect.height || DEFAULT_COL_H;
+
+      if (dx) {
+        const turnSens = Math.PI / w;
+        this.opts.onRotate(cam.angle + dx * turnSens);
+      }
+      if (dy) {
+        // Drag up = forward. Facing matches ray dir: (sin θ, −cos θ).
+        const walkSens = (WORLD_PER_TILE * 2) / h;
+        const forward = -dy * walkSens;
+        const nx = cam.x + Math.sin(cam.angle) * forward;
+        const ny = cam.y - Math.cos(cam.angle) * forward;
+        this.opts.onMove(nx, ny);
+      }
+      this.draw();
+    }
+  }
+
+  draw() {
+    const ctx = this.ctx;
+    const level = this.opts.getLevel();
+    const cam = this.opts.getCamera();
+    const view = viewParams(
+      this.opts.getRaycasts?.() ?? DEFAULT_RAYS,
+      this.opts.getColumnHeight?.() ?? DEFAULT_COL_H,
+    );
+
+    if (this.buffer.width !== view.w || this.buffer.height !== view.h) {
+      this.buffer.width = view.w;
+      this.buffer.height = view.h;
+    }
+    disableSmoothing(ctx);
+
+    ctx.fillStyle = '#0a0a0c';
+    ctx.fillRect(0, 0, view.w, view.h);
+
+    if (cam) {
+      const ox = cam.x + 0.5;
+      const oy = cam.y + 0.5;
+      const eyeZ = getCameraEyeHeight(level, cam.x, cam.y);
+      // Camera-plane rays (perspective): equal screen-X spacing, not equal angle.
+      // dir = facing, plane = right * tan(FOV/2) — avoids fish-eye floor curves.
+      const dirX = Math.sin(cam.angle);
+      const dirY = -Math.cos(cam.angle);
+      const planeX = Math.cos(cam.angle) * TAN_HALF_FOV;
+      const planeY = Math.sin(cam.angle) * TAN_HALF_FOV;
+
+      for (let col = 0; col < view.w; col++) {
+        const cameraX = (2 * col + 1) / view.w - 1;
+        const rayDirX = dirX + planeX * cameraX;
+        const rayDirY = dirY + planeY * cameraX;
+        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view);
+      }
+
+      this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view);
+    }
+
+    this.#present(view);
+  }
+
+  /** Nearest-neighbor blit buffer → display at frame size (no CSS stretch filtering). */
+  #present(view) {
+    const frame = this.frame || this.display;
+    const rect = frame.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const outW = Math.max(1, Math.round(rect.width * dpr));
+    const outH = Math.max(1, Math.round(rect.height * dpr));
+    if (this.display.width !== outW || this.display.height !== outH) {
+      this.display.width = outW;
+      this.display.height = outH;
+    }
+    const dctx = this.dctx;
+    disableSmoothing(dctx);
+    dctx.fillStyle = '#0a0a0c';
+    dctx.fillRect(0, 0, outW, outH);
+    dctx.drawImage(this.buffer, 0, 0, view.w, view.h, 0, 0, outW, outH);
+  }
+
+  #drawItems(ctx, level, cam, ox, oy, eyeZ, view) {
+    const sin = Math.sin(cam.angle);
+    const cos = Math.cos(cam.angle);
+    const sprites = [];
+
+    for (const it of level.items) {
+      if (isCamera(it)) continue;
+      const ix = it.x + 0.5;
+      const iy = it.y + 0.5;
+      const dx = ix - ox;
+      const dy = iy - oy;
+      const depth = dx * sin - dy * cos;
+      if (depth < 0.8) continue;
+      const lateral = dx * cos + dy * sin;
+      sprites.push({ it, depth, lateral });
+    }
+
+    sprites.sort((a, b) => b.depth - a.depth);
+
+    for (const { it, depth, lateral } of sprites) {
+      const sector = getSectorAtWorld(level, it.x, it.y);
+      const floorZ = sector?.floorHeight ?? 0;
+      const screenX = view.w / 2 + (lateral / depth) * (view.w / 2) / TAN_HALF_FOV;
+      const screenFloorY = view.horizon + ((eyeZ - floorZ) * view.proj) / depth;
+      const sizeScale = ENEMY_TYPES.has(it.type) ? 1 : 0.5;
+      const spriteH = Math.max(1, (ITEM_WORLD_HEIGHT * view.proj * sizeScale) / depth);
+      const img = this.opts.images[it.type];
+      const sprite = transparentSprite(img);
+      let spriteW = spriteH * 0.75;
+      if (sprite) {
+        spriteW = spriteH * (sprite.width / sprite.height);
+      }
+      const left = Math.round(screenX - spriteW / 2);
+      const top = Math.round(screenFloorY - spriteH);
+      const w = Math.max(1, Math.round(spriteW));
+      const h = Math.max(1, Math.round(spriteH));
+
+      if (left + w < 0 || left > view.w || top + h < 0 || top > view.h) continue;
+
+      if (sprite) {
+        disableSmoothing(ctx);
+        ctx.drawImage(sprite, left, top, w, h);
+      } else {
+        ctx.fillStyle = '#c84';
+        ctx.fillRect(left, top, w, h);
+      }
+    }
+  }
+}
+
+function viewParams(raycasts, columnHeight) {
+  const w = Math.max(8, Math.min(320, Math.round(Number(raycasts) || DEFAULT_RAYS)));
+  const h = Math.max(8, Math.min(240, Math.round(Number(columnHeight) || DEFAULT_COL_H)));
+  return {
+    w,
+    h,
+    horizon: h / 2,
+    proj: h * PROJ_SCALE,
+  };
+}
+
+function disableSmoothing(ctx) {
+  ctx.imageSmoothingEnabled = false;
+  ctx.mozImageSmoothingEnabled = false;
+  ctx.webkitImageSmoothingEnabled = false;
+  ctx.msImageSmoothingEnabled = false;
+}
+
+function sectorAtTile(level, tx, ty) {
+  const id = getCell(level, tx, ty);
+  if (!id || !level.sectors.has(id)) return null;
+  return { id, sector: level.sectors.get(id) };
+}
+
+/**
+ * Multi-sector column cast: at each portal, paint near-sector floor/ceiling
+ * into the open clip, draw upper/lower walls if heights change, then narrow
+ * the clip. Farther sectors only paint into what's still open.
+ */
+function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
+  const posX = ox / WORLD_PER_TILE;
+  const posY = oy / WORLD_PER_TILE;
+
+  let mapX = Math.floor(posX);
+  let mapY = Math.floor(posY);
+
+  const deltaDistX = Math.abs(rayDirX) < 1e-8 ? 1e30 : Math.abs(1 / rayDirX);
+  const deltaDistY = Math.abs(rayDirY) < 1e-8 ? 1e30 : Math.abs(1 / rayDirY);
+
+  let stepX;
+  let stepY;
+  let sideDistX;
+  let sideDistY;
+
+  if (rayDirX < 0) {
+    stepX = -1;
+    sideDistX = (posX - mapX) * deltaDistX;
+  } else {
+    stepX = 1;
+    sideDistX = (mapX + 1 - posX) * deltaDistX;
+  }
+  if (rayDirY < 0) {
+    stepY = -1;
+    sideDistY = (posY - mapY) * deltaDistY;
+  } else {
+    stepY = 1;
+    sideDistY = (mapY + 1 - posY) * deltaDistY;
+  }
+
+  let yTop = 0;
+  let yBot = view.h;
+  let cur = sectorAtTile(level, mapX, mapY);
+  let side = 0;
+
+  for (let step = 0; step < MAX_DEPTH && yTop < yBot; step++) {
+    if (sideDistX < sideDistY) {
+      sideDistX += deltaDistX;
+      mapX += stepX;
+      side = 0;
+    } else {
+      sideDistY += deltaDistY;
+      mapY += stepY;
+      side = 1;
+    }
+
+    // Perpendicular distance in tiles (Lodev) — already fish-eye free
+    let perpTiles;
+    if (side === 0) {
+      perpTiles = (mapX - posX + (1 - stepX) / 2) / rayDirX;
+    } else {
+      perpTiles = (mapY - posY + (1 - stepY) / 2) / rayDirY;
+    }
+    const perpDist = Math.max(0.05, Math.abs(perpTiles)) * WORLD_PER_TILE;
+    const outOfBounds = mapX < 0 || mapY < 0 || mapX >= MAP_SIZE || mapY >= MAP_SIZE;
+    const next = outOfBounds ? null : sectorAtTile(level, mapX, mapY);
+
+    // Same sector — keep walking
+    if (cur && next && cur.id === next.id) continue;
+
+    // Entering geometry from void
+    if (!cur && next) {
+      cur = next;
+      continue;
+    }
+
+    const nearFloor = cur?.sector.floorHeight ?? 0;
+    const nearCeil = cur?.sector.ceilingHeight ?? 31;
+    const nearCeilY = projectY(nearCeil, eyeZ, perpDist, view);
+    const nearFloorY = projectY(nearFloor, eyeZ, perpDist, view);
+
+    // Near-sector ceiling strip above the portal (front-to-back; only open clip).
+    // When nearCeilY clamps to yBot, still fill and close — leaves no false
+    // opening for a solid wall (C64 paint_near must match).
+    if (cur) {
+      const ceilEnd = clampSpan(yTop, yBot, nearCeilY);
+      if (ceilEnd > yTop) {
+        ctx.fillStyle = colorHex(cur.sector.ceilingColor);
+        ctx.fillRect(col, yTop, 1, ceilEnd - yTop);
+        yTop = ceilEnd;
+      }
+    }
+
+    // Near-sector floor strip below the portal (only when floor is at/below
+    // the horizon — floors above the eye must not yank yBot into the sky).
+    if (cur && nearFloorY >= view.horizon) {
+      const floorStart = clampSpan(yTop, yBot, nearFloorY);
+      if (floorStart < yBot) {
+        ctx.fillStyle = colorHex(cur.sector.floorColor);
+        ctx.fillRect(col, floorStart, 1, yBot - floorStart);
+        yBot = floorStart;
+      }
+    }
+
+    if (yTop >= yBot) break;
+
+    // Solid wall — fill remaining portal and stop (nothing farther may draw)
+    if (!next) {
+      if (yBot > yTop) {
+        ctx.fillStyle = wallColor(side);
+        ctx.fillRect(col, yTop, 1, yBot - yTop);
+      }
+      break;
+    }
+
+    // Into a door: door ceiling colour. Out of a door / normal: N/S–E/W walls.
+    const portalFill = isDoorSector(next.sector)
+      ? colorHex(next.sector.ceilingColor)
+      : wallColor(side);
+    const farFloor = next.sector.floorHeight;
+    const farCeil = next.sector.ceilingHeight;
+    const farCeilY = projectY(farCeil, eyeZ, perpDist, view);
+    const farFloorY = projectY(farFloor, eyeZ, perpDist, view);
+
+    // Upper wall
+    if (farCeil < nearCeil) {
+      const wallTop = clampSpan(yTop, yBot, nearCeilY);
+      const wallBot = clampSpan(yTop, yBot, farCeilY);
+      if (wallBot > wallTop) {
+        ctx.fillStyle = portalFill;
+        ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
+      }
+      yTop = Math.max(yTop, wallBot);
+    }
+
+    if (yTop >= yBot) break;
+
+    // Lower wall
+    if (farFloor > nearFloor) {
+      const wallTop = clampSpan(yTop, yBot, farFloorY);
+      const wallBot = clampSpan(yTop, yBot, nearFloorY);
+      if (wallBot > wallTop) {
+        ctx.fillStyle = portalFill;
+        ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
+      }
+      // Portal opening is [yTop, farFloorY) even when the raised floor
+      // projects above the horizon (looking up stairs).
+      yBot = Math.min(yBot, wallTop);
+    }
+
+    if (yTop >= yBot) break;
+
+    cur = next;
+  }
+}
+
+function clampSpan(yTop, yBot, y) {
+  return Math.max(yTop, Math.min(yBot, Math.round(y)));
+}
+
+function projectY(height, eyeZ, perpDist, view) {
+  return Math.round(view.horizon - ((height - eyeZ) * view.proj) / Math.max(0.5, perpDist));
+}
+
+function wallColor(side) {
+  return C64_HEX[side === 0 ? WALL_NS : WALL_EW];
+}
+
+// ---- js/tileEditor.js ----
+function numInput(id, label, min, max, value, mixed) {
+  const wrap = document.createElement('label');
+  wrap.className = 'field';
+  wrap.htmlFor = id;
+  const span = document.createElement('span');
+  span.textContent = label;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.id = id;
+  input.min = String(min);
+  input.max = String(max);
+  if (mixed) {
+    input.placeholder = 'mixed';
+    input.value = '';
+  } else {
+    input.value = String(value);
+  }
+  wrap.append(span, input);
+  return { wrap, input };
+}
+
+function textInput(id, label, value, mixed) {
+  const wrap = document.createElement('label');
+  wrap.className = 'field';
+  wrap.htmlFor = id;
+  const span = document.createElement('span');
+  span.textContent = label;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = id;
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  if (mixed) {
+    input.placeholder = 'mixed';
+    input.value = '';
+  } else {
+    input.value = value ?? '';
+  }
+  wrap.append(span, input);
+  return { wrap, input };
+}
+
+function colorPicker(id, label, value, mixed) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field color-field';
+  const span = document.createElement('span');
+  span.textContent = label + (mixed ? ' (mixed)' : '');
+  const row = document.createElement('div');
+  row.className = 'color-swatches';
+  /** @type {HTMLButtonElement[]} */
+  const buttons = [];
+  for (let i = 0; i < 16; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'swatch' + (!mixed && i === value ? ' selected' : '');
+    btn.title = `${i}: ${C64_NAMES[i]}`;
+    btn.dataset.color = String(i);
+    btn.style.background = C64_HEX[i];
+    buttons.push(btn);
+    row.appendChild(btn);
+  }
+  wrap.append(span, row);
+  return { wrap, buttons };
+}
+
+function summarizeProps(propList) {
+  if (!propList.length) return null;
+  const keys = [
+    'floorHeight', 'ceilingHeight', 'sectorType',
+    'tag', 'targetTag', 'brightness', 'floorColor', 'ceilingColor',
+  ];
+  const out = { ...propList[0], _mixed: {} };
+  for (const key of keys) {
+    const first = propList[0][key];
+    out._mixed[key] = propList.some((p) => p[key] !== first);
+  }
+  return out;
+}
+
+class TileEditor {
+  /**
+   * @param {HTMLElement} root
+   * @param {{
+   *   getTiles: () => Array<{tx:number,ty:number}>,
+   *   getProps: () => Array<object>,
+   *   sectorCount: () => number,
+   *   onChange: (patch: object) => void,
+   *   onClear: () => void,
+   *   onSelectSector: () => void,
+   * }} opts
+   */
+  constructor(root, opts) {
+    this.root = root;
+    this.opts = opts;
+    this.render();
+  }
+
+  render() {
+    const tiles = this.opts.getTiles();
+    const propsList = this.opts.getProps();
+    this.root.innerHTML = '';
+    this.root.classList.add('panel', 'tile-editor');
+
+    const h = document.createElement('h2');
+    h.textContent = 'Tile';
+    this.root.appendChild(h);
+
+    const countLine = document.createElement('p');
+    countLine.className = 'muted';
+    countLine.textContent = `Sectors: ${this.opts.sectorCount()}`;
+    this.root.appendChild(countLine);
+
+    if (!tiles.length) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = 'Select tiles on the map. Shift+click empty to add.';
+      this.root.appendChild(p);
+      return;
+    }
+
+    const occupied = propsList.length;
+    const selLine = document.createElement('p');
+    selLine.className = 'muted';
+    selLine.textContent = occupied
+      ? `${tiles.length} tile${tiles.length === 1 ? '' : 's'} selected`
+      : `${tiles.length} empty tile${tiles.length === 1 ? '' : 's'} selected`;
+    this.root.appendChild(selLine);
+
+    if (occupied) {
+      const ids = [...new Set(propsList.map((p) => p.id).filter((id) => id > 0))];
+      const idLine = document.createElement('p');
+      idLine.className = 'muted';
+      if (ids.length === 1) {
+        idLine.textContent = `Sector id: ${ids[0]}`;
+      } else if (ids.length > 1) {
+        idLine.textContent = `Sector ids: mixed (${ids.slice().sort((a, b) => a - b).join(', ')})`;
+      }
+      if (ids.length) this.root.appendChild(idLine);
+    }
+
+    if (!occupied) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = 'No properties — Shift+click to paint, or select occupied tiles.';
+      this.root.appendChild(p);
+      this.#actions();
+      return;
+    }
+
+    const s = summarizeProps(propsList);
+    const allSame = propsList.every((p) => sectorsEqual(p, propsList[0]));
+    if (!allSame) {
+      const note = document.createElement('p');
+      note.className = 'muted';
+      note.textContent = 'Mixed values — edits apply to all selected tiles.';
+      this.root.appendChild(note);
+    }
+
+    const floor = numInput('te-floor', 'Floor height', 0, 31, s.floorHeight, s._mixed.floorHeight);
+    const ceil = numInput('te-ceil', 'Ceiling height', 0, 31, s.ceilingHeight, s._mixed.ceilingHeight);
+    const bright = numInput('te-bright', 'Brightness', 0, 7, s.brightness, s._mixed.brightness);
+
+    const typeWrap = document.createElement('label');
+    typeWrap.className = 'field';
+    typeWrap.htmlFor = 'te-type';
+    const typeSpan = document.createElement('span');
+    typeSpan.textContent = s._mixed.sectorType ? 'Sector type (mixed)' : 'Sector type';
+    const typeSel = document.createElement('select');
+    typeSel.id = 'te-type';
+    for (const t of SECTOR_TYPES) {
+      const opt = document.createElement('option');
+      opt.value = String(t.id);
+      opt.textContent = `${t.id}: ${t.name}`;
+      typeSel.appendChild(opt);
+    }
+    if (!s._mixed.sectorType) typeSel.value = String(s.sectorType ?? 0);
+    else {
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = 'mixed';
+      ph.disabled = true;
+      ph.selected = true;
+      typeSel.prepend(ph);
+    }
+    typeSel.addEventListener('change', () => {
+      if (typeSel.value === '') return;
+      this.opts.onChange({ sectorType: Number(typeSel.value) });
+    });
+    typeWrap.append(typeSpan, typeSel);
+
+    const typeNum = Number(s.sectorType);
+    const showTarget = !!s._mixed.sectorType || (Number.isFinite(typeNum) && typeNum !== 0);
+
+    const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
+    tag.input.addEventListener('change', () => {
+      this.opts.onChange({ tag: tag.input.value });
+    });
+
+    const floorCol = colorPicker('te-fcol', 'Floor colour', s.floorColor, s._mixed.floorColor);
+    const ceilCol = colorPicker('te-ccol', 'Ceiling colour', s.ceilingColor, s._mixed.ceilingColor);
+
+    const bindNum = (input, key) => {
+      input.addEventListener('change', () => {
+        if (input.value === '') return;
+        this.opts.onChange({ [key]: Number(input.value) });
+      });
+    };
+    bindNum(floor.input, 'floorHeight');
+    bindNum(ceil.input, 'ceilingHeight');
+    bindNum(bright.input, 'brightness');
+
+    for (const btn of floorCol.buttons) {
+      btn.addEventListener('click', () => this.opts.onChange({ floorColor: Number(btn.dataset.color) }));
+    }
+    for (const btn of ceilCol.buttons) {
+      btn.addEventListener('click', () => this.opts.onChange({ ceilingColor: Number(btn.dataset.color) }));
+    }
+
+    this.root.append(floor.wrap, ceil.wrap, bright.wrap, typeWrap);
+
+    if (showTarget) {
+      const target = textInput(
+        'te-target',
+        s._mixed.targetTag ? 'Target tag (mixed)' : 'Target tag',
+        s.targetTag || '',
+        s._mixed.targetTag,
+      );
+      target.input.placeholder = s._mixed.targetTag ? 'mixed' : 'tag of target sector';
+      target.input.addEventListener('change', () => {
+        this.opts.onChange({ targetTag: target.input.value });
+      });
+      this.root.appendChild(target.wrap);
+    }
+
+    this.root.append(tag.wrap, floorCol.wrap, ceilCol.wrap);
+    this.#actions();
+  }
+
+  #actions() {
+    const actions = document.createElement('div');
+    actions.className = 'btn-row';
+
+    const selectSector = document.createElement('button');
+    selectSector.type = 'button';
+    selectSector.textContent = 'Select sector';
+    selectSector.title = 'Select all tiles in the sector of the primary selected tile';
+    selectSector.addEventListener('click', () => this.opts.onSelectSector());
+    actions.appendChild(selectSector);
+
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'danger';
+    clear.textContent = 'Clear tiles';
+    clear.addEventListener('click', () => this.opts.onClear());
+    actions.appendChild(clear);
+
+    this.root.appendChild(actions);
+  }
+}
+
+// ---- js/itemEditor.js ----
+class ItemEditor {
+  /**
+   * @param {HTMLElement} root
+   * @param {{
+   *   getItems: () => any[],
+   *   onChange: (patch: object) => void,
+   *   onDelete: () => void,
+   * }} opts
+   */
+  constructor(root, opts) {
+    this.root = root;
+    this.opts = opts;
+    this.render();
+  }
+
+  render() {
+    const items = this.opts.getItems();
+    this.root.innerHTML = '';
+    this.root.classList.add('panel', 'item-editor');
+
+    const h = document.createElement('h2');
+    h.textContent = 'Item';
+    this.root.appendChild(h);
+
+    if (!items.length) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = 'Select items on the map.';
+      this.root.appendChild(p);
+      return;
+    }
+
+    const item = items[0];
+    const multi = items.length > 1;
+
+    const selLine = document.createElement('p');
+    selLine.className = 'muted';
+    selLine.textContent = multi
+      ? `${items.length} items selected — edits apply to all`
+      : (isCamera(item) ? 'Editor only — not included in cooked binary.' : item.type);
+    this.root.appendChild(selLine);
+
+    const typesSame = items.every((it) => it.type === item.type);
+    const typeLab = document.createElement('label');
+    typeLab.className = 'field';
+    typeLab.innerHTML = '<span>Type</span>';
+    const typeSel = document.createElement('select');
+    if (!typesSame) {
+      const mixed = document.createElement('option');
+      mixed.value = '';
+      mixed.textContent = '(mixed)';
+      mixed.selected = true;
+      typeSel.appendChild(mixed);
+    }
+    const types = [...ITEM_TYPES, CAMERA_TYPE];
+    for (const t of types) {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      if (typesSame && t === item.type) opt.selected = true;
+      typeSel.appendChild(opt);
+    }
+    typeSel.addEventListener('change', () => {
+      if (!typeSel.value) return;
+      this.opts.onChange({ type: typeSel.value });
+    });
+    typeLab.appendChild(typeSel);
+    this.root.appendChild(typeLab);
+
+    const xSame = items.every((it) => it.x === item.x);
+    const ySame = items.every((it) => it.y === item.y);
+    this.#numField('X', 'x', 0, WORLD_MAX, xSame ? item.x : null);
+    this.#numField('Y', 'y', 0, WORLD_MAX, ySame ? item.y : null);
+
+    const allCameras = items.every((it) => isCamera(it));
+    const noCameras = items.every((it) => !isCamera(it));
+
+    if (allCameras) {
+      const deg = Math.round(((item.angle ?? 0) * 180) / Math.PI);
+      const angleSame = items.every(
+        (it) => Math.round(((it.angle ?? 0) * 180) / Math.PI) === deg,
+      );
+      const angleLab = document.createElement('label');
+      angleLab.className = 'field';
+      const span = document.createElement('span');
+      span.textContent = 'Angle (deg)';
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '-180';
+      input.max = '180';
+      input.step = '1';
+      if (angleSame) input.value = String(deg);
+      else {
+        input.placeholder = 'mixed';
+        input.value = '';
+      }
+      input.addEventListener('change', () => {
+        if (input.value === '') return;
+        this.opts.onChange({ angle: (Number(input.value) * Math.PI) / 180 });
+      });
+      angleLab.append(span, input);
+      this.root.appendChild(angleLab);
+    } else if (noCameras) {
+      const skills = document.createElement('div');
+      skills.className = 'field skills';
+      const skillLabel = document.createElement('span');
+      skillLabel.textContent = 'Skill';
+      skills.appendChild(skillLabel);
+      const row = document.createElement('div');
+      row.className = 'skill-row';
+      for (const key of ['easy', 'normal', 'hard']) {
+        const allOn = items.every((it) => it.skills?.[key]);
+        const allOff = items.every((it) => !it.skills?.[key]);
+        const lab = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = allOn;
+        cb.indeterminate = !allOn && !allOff;
+        cb.addEventListener('change', () => {
+          this.opts.onChange({ skillKey: key, skillValue: cb.checked });
+        });
+        lab.append(cb, document.createTextNode(key));
+        row.appendChild(lab);
+      }
+      skills.appendChild(row);
+      this.root.appendChild(skills);
+    }
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'danger';
+    del.textContent = multi ? 'Delete items' : 'Delete item';
+    del.addEventListener('click', () => this.opts.onDelete());
+    this.root.appendChild(del);
+  }
+
+  #numField(label, key, min, max, value) {
+    const lab = document.createElement('label');
+    lab.className = 'field';
+    const span = document.createElement('span');
+    span.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = String(min);
+    input.max = String(max);
+    if (value == null) {
+      input.placeholder = 'mixed';
+      input.value = '';
+    } else {
+      input.value = String(value);
+    }
+    input.addEventListener('change', () => {
+      if (input.value === '') return;
+      this.opts.onChange({ [key]: Number(input.value) });
+    });
+    lab.append(span, input);
+    this.root.appendChild(lab);
+  }
+}
+
+// ---- js/itemPalette.js ----
+class ItemPalette {
+  /**
+   * @param {HTMLElement} root
+   * @param {Record<string, HTMLImageElement>} images
+   */
+  constructor(root, images) {
+    this.root = root;
+    root.classList.add('item-palette');
+    root.innerHTML = '';
+
+    for (const type of EDITOR_ITEM_TYPES) {
+      const el = document.createElement('div');
+      el.className = 'palette-item';
+      el.draggable = true;
+      el.title = type;
+      el.dataset.type = type;
+
+      const img = images[type];
+      if (img) {
+        const clone = img.cloneNode(true);
+        clone.draggable = false;
+        el.appendChild(clone);
+      } else {
+        el.textContent = type.slice(0, 2);
+      }
+
+      const label = document.createElement('span');
+      label.textContent = type;
+      el.appendChild(label);
+
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/item-type', type);
+        e.dataTransfer.setData('text/plain', type);
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+
+      root.appendChild(el);
+    }
+  }
+}
+
+// ---- js/levelList.js ----
+class LevelList {
+  /**
+   * @param {HTMLElement} root
+   * @param {{ getActive: () => string, onSelect: (name: string) => void }} opts
+   */
+  constructor(root, opts) {
+    this.root = root;
+    this.opts = opts;
+    root.classList.add('level-list');
+    this.render();
+  }
+
+  render() {
+    const active = this.opts.getActive();
+    this.root.innerHTML = '';
+    const title = document.createElement('h2');
+    title.textContent = 'Levels';
+    this.root.appendChild(title);
+
+    const ul = document.createElement('ul');
+    for (const name of LEVEL_NAMES) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = name;
+      btn.className = name === active ? 'active' : '';
+      btn.addEventListener('click', () => this.opts.onSelect(name));
+      li.appendChild(btn);
+      ul.appendChild(li);
+    }
+    this.root.appendChild(ul);
+  }
+}
+
+// ---- js/shiftControls.js ----
+/**
+ * @param {HTMLElement} root
+ * @param {(dx: number, dy: number) => void} onShift
+ * @param {(delta: number) => void} onHeight
+ */
+function initShiftControls(root, onShift, onHeight) {
+  root.className = 'shift-controls panel';
+  root.innerHTML = '';
+
+  const h = document.createElement('h2');
+  h.textContent = 'Shift';
+  root.appendChild(h);
+
+  const row = document.createElement('div');
+  row.className = 'shift-row';
+
+  const pad = document.createElement('div');
+  pad.className = 'shift-pad';
+
+  const mk = (label, dx, dy, cls) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `shift-btn shift-${cls}`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.textContent = cls === 'up' ? '↑' : cls === 'down' ? '↓' : cls === 'left' ? '←' : '→';
+    btn.addEventListener('click', () => onShift(dx, dy));
+    return btn;
+  };
+
+  pad.append(
+    mk('Shift up', 0, -1, 'up'),
+    mk('Shift left', -1, 0, 'left'),
+    mk('Shift down', 0, 1, 'down'),
+    mk('Shift right', 1, 0, 'right'),
+  );
+  row.appendChild(pad);
+
+  const height = document.createElement('div');
+  height.className = 'shift-height';
+
+  const mkH = (label, delta, cls) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `shift-btn height ${cls}`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.textContent = delta > 0 ? '↑' : '↓';
+    btn.addEventListener('click', () => onHeight(delta));
+    return btn;
+  };
+
+  height.append(
+    mkH('Raise floor & ceiling', 1, 'raise'),
+    mkH('Lower floor & ceiling', -1, 'lower'),
+  );
+  row.appendChild(height);
+  root.appendChild(row);
+
+  const hint = document.createElement('p');
+  hint.className = 'muted';
+  hint.textContent =
+    'Selection if any (tiles + items in them), else whole map. Height arrows move floor & ceiling together.';
+  root.appendChild(hint);
+}
+
+// ---- js/main.js ----
+const statusEl = document.getElementById('status');
+const titleEl = document.querySelector('.toolbar h1');
+const AUTOSAVE_MS = 10000;
+const EPISODE_FILE = 'episode1.json';
+
+let dirty = false;
+let autosaveTimer = null;
+let saving = false;
+
+function setStatus(msg, isError = false) {
+  statusEl.textContent = msg || '';
+  statusEl.classList.toggle('error', isError);
+}
+
+function updateDirtyIndicator() {
+  const star = dirty ? '*' : '';
+  if (titleEl) titleEl.textContent = `SquareDoom${star}`;
+  document.title = dirty ? 'SquareDoom *' : 'SquareDoom Map Editor';
+}
+
+function markDirty() {
+  if (!dirty) {
+    dirty = true;
+    updateDirtyIndicator();
+  }
+  scheduleAutosave();
+}
+
+function markClean() {
+  dirty = false;
+  updateDirtyIndicator();
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
+}
+
+function scheduleAutosave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    void runAutosave();
+  }, AUTOSAVE_MS);
+}
+
+async function runAutosave() {
+  if (!dirty || saving || !hasEpisodeFileHandle()) return;
+  await saveNow('Autosaved');
+}
+
+async function saveNow(okMsg = 'Saved') {
+  if (saving) return;
+  saving = true;
+  setStatus('Saving…');
+  try {
+    const how = hasEpisodeFileHandle()
+      ? await autosaveEpisodeJSON(episode)
+      : await saveEpisodeJSON(episode, EPISODE_FILE);
+    if (how == null) {
+      setStatus('Save cancelled', true);
+    } else {
+      markClean();
+      setStatus(`${okMsg} ${episodeFileName()}`);
+    }
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  } finally {
+    saving = false;
+  }
+}
+
+async function loadImages() {
+  /** @type {Record<string, HTMLImageElement>} */
+  const images = {};
+  await Promise.all(
+    EDITOR_ITEM_TYPES.map(
+      (type) =>
+        new Promise((resolve) => {
+          const data =
+            typeof ITEM_IMAGE_DATA !== 'undefined' && ITEM_IMAGE_DATA
+              ? ITEM_IMAGE_DATA[type]
+              : null;
+          const img = new Image();
+          img.src = data || `itemgraphics/${type}.png`;
+          img.onload = () => {
+            images[type] = img;
+            resolve();
+          };
+          img.onerror = () => resolve();
+        }),
+    ),
+  );
+  return images;
+}
+
+const episode = createEpisode();
+
+/** @type {{
+ *   tiles: Set<string>,
+ *   items: Set<any>,
+ *   primaryTile: {tx:number,ty:number}|null,
+ *   hoverTile: {tx:number,ty:number}|null,
+ * }} */
+const selection = {
+  tiles: new Set(),
+  items: new Set(),
+  primaryTile: null,
+  hoverTile: null,
+  box: null,
+};
+
+/** @type {null | {
+ *   mode: 'items' | 'box',
+ *   lastTx: number,
+ *   lastTy: number,
+ *   lastWx: number,
+ *   lastWy: number,
+ *   additive?: boolean,
+ *   startTx?: number,
+ *   startTy?: number,
+ *   startPx?: number,
+ *   startPy?: number,
+ *   moved?: boolean,
+ *   baseTiles?: Set<string>,
+ * }} */
+let drag = null;
+
+(async () => {
+const images = await loadImages();
+
+const levelList = new LevelList(document.getElementById('level-list'), {
+  getActive: () => episode.activeLevel,
+  onSelect: (name) => {
+    episode.activeLevel = name;
+    clearSelection();
+    refreshAll();
+  },
+});
+
+new ItemPalette(document.getElementById('item-palette'), images);
+
+const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
+  getTiles: () => [...selection.tiles].map(parseTileKey),
+  getProps: () => {
+    const level = activeLevel(episode);
+    return [...selection.tiles]
+      .map(parseTileKey)
+      .map(({ tx, ty }) => {
+        const id = getCell(level, tx, ty);
+        const props = getTileProps(level, tx, ty);
+        return props ? { ...props, id } : null;
+      })
+      .filter(Boolean);
+  },
+  sectorCount: () => sectorCount(activeLevel(episode)),
+  onChange: (patch) => {
+    const level = activeLevel(episode);
+    const tiles = [...selection.tiles].map(parseTileKey);
+    applyTilePatch(level, tiles, patch);
+    markDirty();
+    setStatus(`Updated ${tiles.length} tile(s) · ${sectorCount(level)} sectors`);
+    refreshAll();
+  },
+  onClear: () => {
+    doClearTiles();
+  },
+  onSelectSector: () => {
+    doSelectSector();
+  },
+});
+
+const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
+  getItems: () => [...selection.items],
+  onChange: (patch) => {
+    const items = [...selection.items];
+    for (const item of items) {
+      if ('type' in patch) {
+        if (patch.type === 'spawn' && item.type !== 'spawn' && hasSpawn(activeLevel(episode))) {
+          setStatus('Only one spawn allowed', true);
+          continue;
+        }
+        if (patch.type === CAMERA_TYPE && !isCamera(item)) {
+          item.type = CAMERA_TYPE;
+          item.angle = 0;
+          delete item.skills;
+        } else if (patch.type !== CAMERA_TYPE && isCamera(item)) {
+          item.type = patch.type;
+          item.skills = defaultSkills();
+          delete item.angle;
+        } else {
+          item.type = patch.type;
+        }
+      }
+      if ('x' in patch) item.x = clampWorld(patch.x);
+      if ('y' in patch) item.y = clampWorld(patch.y);
+      if ('angle' in patch) item.angle = Number(patch.angle) || 0;
+      if ('skillKey' in patch && item.skills) {
+        item.skills = { ...item.skills, [patch.skillKey]: patch.skillValue };
+      }
+    }
+    markDirty();
+    refreshEditors();
+    mapView.draw();
+    previewView.draw();
+  },
+  onDelete: () => {
+    doDeleteItems();
+  },
+});
+
+const mapView = new MapView(document.getElementById('map-canvas'), {
+  getLevel: () => activeLevel(episode),
+  getSelection: () => selection,
+  images,
+  stage: document.getElementById('map-stage'),
+  onDropItem: (type, wx, wy) => {
+    placeItem(type, wx, wy);
+  },
+  onPointer: (e, info) => {
+    handlePointer(e, info);
+  },
+});
+
+initShiftControls(
+  document.getElementById('shift-controls'),
+  (dx, dy) => {
+    doShift(dx, dy);
+  },
+  (delta) => {
+    doHeightNudge(delta);
+  },
+);
+
+const previewHint = document.getElementById('preview-hint');
+const previewRays = document.getElementById('preview-rays');
+const previewColH = document.getElementById('preview-col-h');
+
+function previewInt(el, fallback, lo, hi) {
+  const n = Number(el.value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+
+const previewView = new PreviewView(document.getElementById('preview-canvas'), {
+  getLevel: () => activeLevel(episode),
+  getCamera: () => {
+    const selectedCam = [...selection.items].find((it) => isCamera(it));
+    return findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+  },
+  getRaycasts: () => previewInt(previewRays, 40, 8, 320),
+  getColumnHeight: () => previewInt(previewColH, 25, 8, 240),
+  images,
+  onRotate: (angle) => {
+    const selectedCam = [...selection.items].find((it) => isCamera(it));
+    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    if (!cam) return;
+    cam.angle = angle;
+    markDirty();
+    if (selection.items.has(cam)) itemEditor.render();
+    previewView.draw();
+  },
+  onMove: (x, y) => {
+    const selectedCam = [...selection.items].find((it) => isCamera(it));
+    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    if (!cam) return;
+    // Keep fractional world coords while walking; |0 truncate made forward stick.
+    cam.x = Math.max(0, Math.min(WORLD_MAX, x));
+    cam.y = Math.max(0, Math.min(WORLD_MAX, y));
+    markDirty();
+    if (selection.items.has(cam)) itemEditor.render();
+    mapView.draw();
+    previewView.draw();
+  },
+});
+
+function redrawPreview() {
+  previewView.draw();
+}
+
+previewRays.addEventListener('change', redrawPreview);
+previewColH.addEventListener('change', redrawPreview);
+previewRays.addEventListener('input', redrawPreview);
+previewColH.addEventListener('input', redrawPreview);
+
+function updatePreviewHint() {
+  const selectedCam = [...selection.items].find((it) => isCamera(it));
+  const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+  if (!cam) {
+    previewHint.textContent = 'Place or select a camera';
+    return;
+  }
+  if (selectedCam) {
+    previewHint.textContent = 'Drag L/R to rotate · U/D to walk';
+  } else {
+    previewHint.textContent = 'Showing first camera — select one to edit';
+  }
+}
+
+function selectedTileList() {
+  return [...selection.tiles].map(parseTileKey);
+}
+
+function brushProps() {
+  const level = activeLevel(episode);
+  if (selection.primaryTile) {
+    const props = getTileProps(
+      level,
+      selection.primaryTile.tx,
+      selection.primaryTile.ty,
+    );
+    if (props) return props;
+  }
+  for (const key of selection.tiles) {
+    const { tx, ty } = parseTileKey(key);
+    const props = getTileProps(level, tx, ty);
+    if (props) return props;
+  }
+  return null;
+}
+
+function setTileSelection(tiles, primary = null) {
+  selection.tiles = new Set(tiles.map(({ tx, ty }) => tileKey(tx, ty)));
+  selection.primaryTile = primary || (tiles.length ? tiles[tiles.length - 1] : null);
+}
+
+function clearSelection() {
+  selection.tiles.clear();
+  selection.items.clear();
+  selection.primaryTile = null;
+  selection.hoverTile = null;
+  selection.box = null;
+  drag = null;
+}
+
+function refreshEditors() {
+  tileEditor.render();
+  itemEditor.render();
+}
+
+function refreshAll() {
+  levelList.render();
+  const label = document.getElementById('map-level-label');
+  if (label) {
+    const n = sectorCount(activeLevel(episode));
+    label.textContent = `(${episode.activeLevel} · ${n} sector${n === 1 ? '' : 's'})`;
+  }
+  refreshEditors();
+  updatePreviewHint();
+  mapView.draw();
+  previewView.draw();
+}
+
+function placeItem(type, wx, wy) {
+  const level = activeLevel(episode);
+  if (!EDITOR_ITEM_TYPES.includes(type)) return;
+  if (type !== CAMERA_TYPE && gameItemCount(level) >= MAX_ITEMS) {
+    setStatus(`Max ${MAX_ITEMS} items`, true);
+    return;
+  }
+  if (type === 'spawn' && hasSpawn(level)) {
+    setStatus('Only one spawn allowed', true);
+    return;
+  }
+  const item = addItem(level, type, wx, wy);
+  if (!item) {
+    setStatus('Could not place item', true);
+    return;
+  }
+  selection.tiles.clear();
+  selection.primaryTile = null;
+  selection.items = new Set([item]);
+  markDirty();
+  setStatus(`Placed ${type}`);
+  refreshAll();
+}
+
+function doDeleteItems() {
+  if (!selection.items.size) return;
+  const level = activeLevel(episode);
+  const n = selection.items.size;
+  for (const it of [...selection.items]) removeItem(level, it);
+  selection.items.clear();
+  markDirty();
+  setStatus(`Deleted ${n} item(s)`);
+  refreshAll();
+}
+
+function doClearTiles() {
+  if (!selection.tiles.size) {
+    setStatus('No tiles selected', true);
+    return;
+  }
+  const level = activeLevel(episode);
+  const tiles = selectedTileList();
+  clearTiles(level, tiles);
+  selection.tiles.clear();
+  selection.primaryTile = null;
+  markDirty();
+  setStatus(`Cleared ${tiles.length} tile(s) · ${sectorCount(level)} sectors`);
+  refreshAll();
+}
+
+function doSelectSector() {
+  const level = activeLevel(episode);
+  const primary = selection.primaryTile || selectedTileList()[0];
+  if (!primary) {
+    setStatus('Select a tile first', true);
+    return;
+  }
+  const id = level.map[primary.ty * MAP_SIZE + primary.tx];
+  if (!id) {
+    setStatus('Selected tile has no sector', true);
+    return;
+  }
+  const tiles = tilesInSector(level, id);
+  setTileSelection(tiles, primary);
+  selection.items.clear();
+  setStatus(`Selected sector #${id} (${tiles.length} tiles)`);
+  refreshAll();
+}
+
+function doShift(dx, dy) {
+  const level = activeLevel(episode);
+  const dir = dy < 0 ? 'up' : dy > 0 ? 'down' : dx < 0 ? 'left' : 'right';
+
+  if (selection.tiles.size > 0) {
+    const tiles = selectedTileList();
+    const occupied = tiles.filter(({ tx, ty }) => level.map[ty * MAP_SIZE + tx] !== 0);
+    const items = itemsInTiles(level, occupied);
+
+    const moved = moveTiles(level, occupied, dx, dy);
+    moveItemsBy(level, items, dx * WORLD_PER_TILE, dy * WORLD_PER_TILE);
+
+    const nextTiles = new Set();
+    for (const key of selection.tiles) {
+      const { tx, ty } = parseTileKey(key);
+      const ntx = tx + dx;
+      const nty = ty + dy;
+      if (ntx >= 0 && ntx < MAP_SIZE && nty >= 0 && nty < MAP_SIZE) {
+        nextTiles.add(tileKey(ntx, nty));
+      }
+    }
+    for (const t of moved) nextTiles.add(tileKey(t.tx, t.ty));
+    selection.tiles = nextTiles;
+
+    if (selection.primaryTile) {
+      const ntx = selection.primaryTile.tx + dx;
+      const nty = selection.primaryTile.ty + dy;
+      selection.primaryTile =
+        ntx >= 0 && ntx < MAP_SIZE && nty >= 0 && nty < MAP_SIZE
+          ? { tx: ntx, ty: nty }
+          : (nextTiles.size ? parseTileKey([...nextTiles][0]) : null);
+    }
+
+    for (const it of [...selection.items]) {
+      if (!level.items.includes(it)) selection.items.delete(it);
+    }
+
+    markDirty();
+    setStatus(`Shifted selection ${dir} (${moved.length} tiles)`);
+    refreshAll();
+    return;
+  }
+
+  shiftLevel(level, dx, dy);
+
+  for (const it of [...selection.items]) {
+    if (!level.items.includes(it)) selection.items.delete(it);
+  }
+
+  markDirty();
+  setStatus(`Shifted map ${dir}`);
+  refreshAll();
+}
+
+function doHeightNudge(delta) {
+  const level = activeLevel(episode);
+  const tiles =
+    selection.tiles.size > 0 ? selectedTileList() : occupiedTiles(level);
+  const before = tiles.filter(({ tx, ty }) => getTileProps(level, tx, ty));
+  if (!before.length) {
+    setStatus(selection.tiles.size ? 'No occupied tiles in selection' : 'Map is empty', true);
+    return;
+  }
+  nudgeTileHeights(level, tiles, delta);
+  markDirty();
+  setStatus(
+    `${delta > 0 ? 'Raised' : 'Lowered'} floor & ceiling on ${
+      selection.tiles.size ? 'selection' : 'map'
+    }`,
+  );
+  refreshAll();
+}
+
+function tilesInBox(x0, y0, x1, y1, occupiedOnly = true) {
+  const level = activeLevel(episode);
+  const minX = Math.min(x0, x1);
+  const maxX = Math.max(x0, x1);
+  const minY = Math.min(y0, y1);
+  const maxY = Math.max(y0, y1);
+  const out = [];
+  for (let ty = minY; ty <= maxY; ty++) {
+    for (let tx = minX; tx <= maxX; tx++) {
+      if (occupiedOnly && level.map[ty * MAP_SIZE + tx] === 0) continue;
+      out.push({ tx, ty });
+    }
+  }
+  return out;
+}
+
+function applyBoxSelection(additive, startTx, startTy, endTx, endTy, baseTiles) {
+  const boxed = tilesInBox(startTx, startTy, endTx, endTy, true);
+  if (additive) {
+    const next = new Set(baseTiles);
+    for (const t of boxed) next.add(tileKey(t.tx, t.ty));
+    selection.tiles = next;
+    selection.primaryTile = boxed.length
+      ? boxed[boxed.length - 1]
+      : (next.size ? parseTileKey([...next][next.size - 1]) : null);
+  } else {
+    selection.items.clear();
+    setTileSelection(boxed, boxed.length ? boxed[boxed.length - 1] : null);
+  }
+}
+
+function startBoxSelect(info, additive) {
+  drag = {
+    mode: 'box',
+    additive,
+    startTx: info.tx,
+    startTy: info.ty,
+    startPx: info.px,
+    startPy: info.py,
+    lastTx: info.tx,
+    lastTy: info.ty,
+    lastWx: info.wx,
+    lastWy: info.wy,
+    moved: false,
+    baseTiles: additive ? new Set(selection.tiles) : new Set(),
+  };
+  selection.box = { x0: info.tx, y0: info.ty, x1: info.tx, y1: info.ty };
+}
+
+function startDrag(info, mode) {
+  drag = {
+    mode,
+    lastTx: info.tx,
+    lastTy: info.ty,
+    lastWx: info.wx,
+    lastWy: info.wy,
+  };
+}
+
+function handlePointer(e, info) {
+  const level = activeLevel(episode);
+
+  if (e.type === 'pointerleave') {
+    selection.hoverTile = null;
+    if (!drag) mapView.draw();
+    return;
+  }
+
+  if (e.type === 'pointermove') {
+    selection.hoverTile = { tx: info.tx, ty: info.ty };
+
+    if (drag && (e.buttons & 1)) {
+      if (drag.mode === 'box') {
+        const dist = Math.hypot(info.px - drag.startPx, info.py - drag.startPy);
+        if (dist > 4) drag.moved = true;
+        drag.lastTx = info.tx;
+        drag.lastTy = info.ty;
+        selection.box = {
+          x0: drag.startTx,
+          y0: drag.startTy,
+          x1: info.tx,
+          y1: info.ty,
+        };
+        if (drag.moved) {
+          applyBoxSelection(
+            drag.additive,
+            drag.startTx,
+            drag.startTy,
+            info.tx,
+            info.ty,
+            drag.baseTiles,
+          );
+        }
+        refreshEditors();
+        mapView.draw();
+        return;
+      }
+
+      if (drag.mode === 'items') {
+        const dx = info.wx - drag.lastWx;
+        const dy = info.wy - drag.lastWy;
+        if (dx || dy) {
+          const kept = moveItemsBy(level, [...selection.items], dx, dy);
+          selection.items = new Set(kept);
+          drag.lastWx = info.wx;
+          drag.lastWy = info.wy;
+          markDirty();
+          refreshEditors();
+          mapView.draw();
+          previewView.draw();
+        }
+      }
+      return;
+    }
+
+    mapView.draw();
+    return;
+  }
+
+  if (e.type === 'pointerup') {
+    if (drag) {
+      if (drag.mode === 'box') {
+        const { additive, startTx, startTy, moved, baseTiles } = drag;
+        selection.box = null;
+        if (!moved) {
+          // Plain click / ctrl+click
+          const key = tileKey(startTx, startTy);
+          if (additive) {
+            if (selection.tiles.has(key)) {
+              selection.tiles.delete(key);
+              if (
+                selection.primaryTile &&
+                selection.primaryTile.tx === startTx &&
+                selection.primaryTile.ty === startTy
+              ) {
+                selection.primaryTile = selection.tiles.size
+                  ? parseTileKey([...selection.tiles][selection.tiles.size - 1])
+                  : null;
+              }
+            } else {
+              selection.tiles.add(key);
+              selection.primaryTile = { tx: startTx, ty: startTy };
+            }
+          } else {
+            selection.items.clear();
+            setTileSelection([{ tx: startTx, ty: startTy }], { tx: startTx, ty: startTy });
+          }
+        } else {
+          applyBoxSelection(additive, startTx, startTy, drag.lastTx, drag.lastTy, baseTiles);
+        }
+        drag = null;
+        const n = sectorCount(level);
+        setStatus(
+          `Selection: ${selection.tiles.size} tile(s), ${selection.items.size} item(s) · ${n} sectors`,
+        );
+        refreshAll();
+        return;
+      }
+
+      drag = null;
+      const n = sectorCount(level);
+      if (selection.tiles.size || selection.items.size) {
+        setStatus(
+          `Selection: ${selection.tiles.size} tile(s), ${selection.items.size} item(s) · ${n} sectors`,
+        );
+      }
+      refreshAll();
+    }
+    return;
+  }
+
+  if (e.type !== 'pointerdown') return;
+
+  try {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  } catch (_) { /* ignore */ }
+
+  // Shift+click: paint / add tile
+  if (info.shift) {
+    selection.items.clear();
+    const brush = brushProps();
+    if (!addTile(level, info.tx, info.ty, brush)) {
+      setStatus('No free sector ids', true);
+      return;
+    }
+    setTileSelection([{ tx: info.tx, ty: info.ty }], { tx: info.tx, ty: info.ty });
+    markDirty();
+    setStatus(
+      brush
+        ? `Painted tile from selection · ${sectorCount(level)} sectors`
+        : `Added default tile · ${sectorCount(level)} sectors`,
+    );
+    refreshAll();
+    return;
+  }
+
+  // Item hit — drag to reposition (tile selection uses Shift panel)
+  if (info.item) {
+    if (info.ctrl) {
+      if (selection.items.has(info.item)) selection.items.delete(info.item);
+      else selection.items.add(info.item);
+    } else if (selection.items.has(info.item)) {
+      // Keep multi-selection and start drag
+    } else {
+      selection.items = new Set([info.item]);
+      selection.tiles.clear();
+      selection.primaryTile = null;
+    }
+    startDrag(info, 'items');
+    refreshEditors();
+    updatePreviewHint();
+    mapView.draw();
+    previewView.draw();
+    return;
+  }
+
+  // Ctrl+drag starts additive box select (click-toggle happens on pointerup if no move)
+  if (info.ctrl) {
+    startBoxSelect(info, true);
+    refreshEditors();
+    mapView.draw();
+    return;
+  }
+
+  // Box select (click selects one tile on pointerup)
+  startBoxSelect(info, false);
+  refreshEditors();
+  mapView.draw();
+}
+
+function nudgeTileSelection(dtx, dty) {
+  const primary = selection.primaryTile || selectedTileList()[0];
+  if (!primary) return;
+  const tx = Math.max(0, Math.min(MAP_SIZE - 1, primary.tx + dtx));
+  const ty = Math.max(0, Math.min(MAP_SIZE - 1, primary.ty + dty));
+  if (tx === primary.tx && ty === primary.ty) return;
+  selection.items.clear();
+  setTileSelection([{ tx, ty }], { tx, ty });
+  selection.primaryTile = { tx, ty };
+  refreshEditors();
+  updatePreviewHint();
+  mapView.draw();
+  previewView.draw();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (
+    e.target instanceof HTMLInputElement ||
+    e.target instanceof HTMLSelectElement ||
+    e.target instanceof HTMLTextAreaElement
+  ) {
+    return;
+  }
+
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    if (!selection.tiles.size && !selection.primaryTile) return;
+    e.preventDefault();
+    const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+    const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    nudgeTileSelection(dx, dy);
+    return;
+  }
+
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  e.preventDefault();
+  if (selection.items.size) doDeleteItems();
+  else if (selection.tiles.size) doClearTiles();
+});
+
+document.getElementById('btn-save').addEventListener('click', async () => {
+  await saveNow('Saved');
+});
+
+function applyLoadedEpisode(loaded) {
+  Object.assign(episode.levels, loaded.levels);
+  if (loaded.activeLevel && episode.levels[loaded.activeLevel]) {
+    episode.activeLevel = loaded.activeLevel;
+  }
+  clearSelection();
+  markClean();
+  setStatus(`Loaded ${episodeFileName()}`);
+  refreshAll();
+}
+
+function showFileAccessGate(storedHandle) {
+  const overlay = document.createElement('div');
+  overlay.className = 'file-gate';
+  overlay.innerHTML = `
+    <div class="file-gate-card" role="dialog" aria-modal="true" aria-labelledby="file-gate-title">
+      <h2 id="file-gate-title">Open map file</h2>
+      <p class="muted">
+        ${
+          storedHandle
+            ? `Browser needs permission to read/write <strong>${storedHandle.name}</strong>.`
+            : `Choose project file <strong>${EPISODE_FILE}</strong> (usually in the editor folder).`
+        }
+      </p>
+      <div class="btn-row">
+        <button type="button" class="file-gate-primary" id="file-gate-ok">
+          ${storedHandle ? `Allow ${storedHandle.name}` : `Open ${EPISODE_FILE}…`}
+        </button>
+        ${storedHandle ? `<button type="button" id="file-gate-other">Choose different file…</button>` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const ok = overlay.querySelector('#file-gate-ok');
+  const other = overlay.querySelector('#file-gate-other');
+  ok.focus();
+
+  const finish = async (loader) => {
+    ok.disabled = true;
+    if (other) other.disabled = true;
+    try {
+      const loaded = await loader();
+      if (!loaded) {
+        ok.disabled = false;
+        if (other) other.disabled = false;
+        setStatus('Open cancelled', true);
+        return;
+      }
+      overlay.remove();
+      applyLoadedEpisode(loaded);
+    } catch (err) {
+      ok.disabled = false;
+      if (other) other.disabled = false;
+      setStatus(String(err.message || err), true);
+    }
+  };
+
+  ok.addEventListener('click', () => {
+    void finish(() =>
+      storedHandle ? allowStoredEpisodeFile(storedHandle) : loadEpisodeJSON(),
+    );
+  });
+  other?.addEventListener('click', () => {
+    void finish(() => loadEpisodeJSON());
+  });
+}
+
+document.getElementById('btn-load').addEventListener('click', async () => {
+  try {
+    const loaded = await loadEpisodeJSON();
+    if (!loaded) return;
+    applyLoadedEpisode(loaded);
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  }
+});
+
+document.getElementById('btn-cook').addEventListener('click', () => {
+  const warnings = cookAndDownload(episode, episode.activeLevel);
+  if (warnings?.length) {
+    setStatus(`Cooked ${episode.activeLevel} — ${warnings[0]}`, true);
+  } else {
+    setStatus(`Cooked ${episode.activeLevel}`);
+  }
+});
+
+async function boot() {
+  updateDirtyIndicator();
+  refreshAll();
+  try {
+    const loaded = await tryRestoreEpisodeFile();
+    if (loaded) {
+      applyLoadedEpisode(loaded);
+      return;
+    }
+    const stored = await getStoredEpisodeHandle();
+    showFileAccessGate(stored);
+    setStatus(
+      stored
+        ? `Click Allow to open ${stored.name}`
+        : `Open ${EPISODE_FILE} to edit the project map`,
+      false,
+    );
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  }
+}
+
+boot();
+})().catch((err) => {
+  console.error(err);
+  setStatus(String(err.message || err), true);
+});
+
+  </script>
 </body>
 </html>

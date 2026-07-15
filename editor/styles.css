@@ -73,6 +73,46 @@ h2 {
   color: #f88;
 }
 
+.file-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.file-gate-card {
+  width: min(22rem, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 1.1rem 1.2rem 1.2rem;
+}
+
+.file-gate-card h2 {
+  margin-bottom: 0.65rem;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.file-gate-card .muted {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.file-gate-card .btn-row {
+  margin-top: 0;
+}
+
+.file-gate-primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .layout {
   display: grid;
   grid-template-columns: 200px 1fr 240px;
