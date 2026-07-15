@@ -1,19 +1,33 @@
 !zone render_setup
 
-; PROFILE S — frame player tile + per-angle ray cache (dd/ddw/steps)
+; ============================================================================
+; render_setup.asm — PROFILE S (frame + angle setup)
+; ============================================================================
+; Once per frame: derive map cell / frac / sector from world-byte player.
+; When playera changes: rebuild per-column ray cache (ddx/ddy, fish-scaled
+; ddwx/ddwy, xstep/ystep) at $2f00 / $3000.
+;
+; Note: most of the per-column S cost lives in cast_column's preamble
+; (sdx/sdy/wz init) in render_dda.asm — S bucket closes there.
+; ============================================================================
 
-; fracx/fracy/map start + first cell id/tile — once per frame (DDA mutates map*).
-; World byte: map = world>>3, frac = (world&7)<<5.
+; ---------------------------------------------------------------------------
+; setup_player_tile — once per frame
+;
+; World byte → map = world>>3, frac = (world&7)<<5; also frac*_inv for +axis
+; TheKeep first-hit distance. Caches plr_mapx/y, plr_id, plr_tile_* so each
+; column can restore after DDA mutates map*/tile*.
+; ---------------------------------------------------------------------------
 setup_player_tile
+	; mapx = playerx_h >> 3 (8 subcells per tile)
 	lda playerx_h
-	tax
 	lsr
 	lsr
 	lsr
 	sta plr_mapx
 	sta mapx
-	txa
-	and #7
+	; fracx = (playerx_h & 7) << 5  → 0..224 in steps of 32
+	lda playerx_h
 	asl
 	asl
 	asl
@@ -21,16 +35,14 @@ setup_player_tile
 	asl
 	sta fracx
 	eor #$ff
-	sta fracx_inv
+	sta fracx_inv			; distance to +X gridline for first hit
 	lda playery_h
-	tax
 	lsr
 	lsr
 	lsr
 	sta plr_mapy
 	sta mapy
-	txa
-	and #7
+	lda playery_h
 	asl
 	asl
 	asl
@@ -39,7 +51,7 @@ setup_player_tile
 	sta fracy
 	eor #$ff
 	sta fracy_inv
-	jsr map_sector_id
+	jsr map_sector_id		; also leaves tile ptr in ptr_l/h
 	sta plr_id
 	lda ptr_l
 	sta plr_tile_l
@@ -47,7 +59,9 @@ setup_player_tile
 	sta plr_tile_h
 	rts
 
-; Fold A&127 → TheKeep secant index 0..63
+; ---------------------------------------------------------------------------
+; .fold_sec — A&127 → TheKeep secant table index 0..63 (fold quadrant)
+; ---------------------------------------------------------------------------
 .fold_sec
 	and #127
 	cmp #63
@@ -56,11 +70,17 @@ setup_player_tile
 .fs_ok
 	rts
 
-; Rebuild per-column ddx/ddy + steps + mid(dd*fish) when playera changes.
+; ---------------------------------------------------------------------------
+; rebuild_col_rays — when playera changes (or forced at boot)
+;
+; For each of 40 columns: angtab+look → fixsec → COL_DDX/Y; mid(dd*fish) →
+; COL_DDWX/Y; sign of angle axes → COL_XSTEP/YSTEP (±1).
+; ---------------------------------------------------------------------------
 rebuild_col_rays
 	lda #0
 	sta col
 .rcr_lp
+	; Column world angle: angtab[col] + playera − 64 (north alignment)
 	ldy col
 	lda angtab,y
 	clc
@@ -69,6 +89,7 @@ rebuild_col_rays
 	sbc #64
 	sta angle
 
+	; ---- X secant + fish-scaled Δwz per X-step ----
 	jsr .fold_sec
 	sta dxindex
 	tay
@@ -81,13 +102,14 @@ rebuild_col_rays
 	ldy col
 	sta COL_DDX_H,y
 	sta aux_h
-	lda fishtab,y
-	jsr mul_16x8
+	lda fishtab,y			; fishtab indexed by column
+	jsr mul_16x8			; mid(ddx × fish) → COL_DDWX
 	ldy col
 	sta COL_DDWX_L,y
 	txa
 	sta COL_DDWX_H,y
 
+	; ---- Y secant: angle+64, fold, fixsec, mid(ddy×fish) ----
 	lda angle
 	clc
 	adc #64
@@ -111,17 +133,18 @@ rebuild_col_rays
 	txa
 	sta COL_DDWY_H,y
 
-	; xstep / TheKeep +X factor polarity from angle+64
+	; xstep from angle+64 (TheKeep +X factor / “east” axis)
 	lda tmp0
 	bmi .rcr_xn
 	lda #1
 	bne .rcr_xs
 .rcr_xn
-	lda #$ff
+	lda #$ff			; −1
 .rcr_xs
 	ldy col
 	sta COL_XSTEP,y
 
+	; ystep from folded look angle (north/south)
 	lda angle
 	bmi .rcr_yn
 	lda #1

@@ -1,27 +1,18 @@
 !zone util
 
-; mapx/mapy → A = sector id (0 if OOB)
+; mapx/mapy → A = sector id
 ; Uses maprowlo/hi = level_map + y*32
+; this requires that level_map is on a 32 byte boundary
 map_sector_id
-	lda mapx
-	cmp #MAP_SIZE
-	bcs .msi_oob
-	lda mapy
-	cmp #MAP_SIZE
-	bcs .msi_oob
-	tay
+	ldy mapy
 	lda maprowlo,y
 	clc
 	adc mapx
 	sta ptr_l
 	lda maprowhi,y
-	adc #0
 	sta ptr_h
 	ldy #0
 	lda (ptr_l),y
-	rts
-.msi_oob
-	lda #0
 	rts
 
 player_tile

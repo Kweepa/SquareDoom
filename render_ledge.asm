@@ -1,8 +1,24 @@
 !zone render_ledge
 
-; PROFILE L — portal upper/lower ledges + solid wall colour
+; ============================================================================
+; render_ledge.asm — PROFILE L (portal ledges + solid wall colour helper)
+; ============================================================================
+; After paint_near, draw upper/lower walls where far heights step relative
+; to near. Contained far (far_ceil >= near_ceil and far_floor <= near_floor)
+; → immediate rts. Open portal after a step-up is [ytop, farFloorY) — always
+; set ybot from far floor even when that Y is above HORIZON.
+;
+; Door sectors use far ceil colour as the portal fill; else N/S vs E/W grey.
+; ============================================================================
 
+; ---------------------------------------------------------------------------
+; paint_portal — ledges for next_id vs near_*; may advance ytop/ybot
+;
+; Uses span_a/span_b from paint_near (or refresh_near_spans) as near ceil/
+; floor screen Y. tmp4 = farCeilY; tmp5 = farFloorY when projected.
+; ---------------------------------------------------------------------------
 paint_portal
+	; Wall colour: door uses far ceil col; else N/S vs E/W grey
 	ldx next_id
 	lda SEC_TYPE,x
 	cmp #DOOR_TYPE
@@ -23,14 +39,14 @@ paint_portal
 	sta dbg_far_y
 }
 
-	; No ledge if far contained in near heights — span_a/b from paint_near
+	; Contained far (higher/equal ceil AND lower/equal floor) → no ledge
 	cmp near_ceil
-	bcc .pp_upper			; far_ceil < near_ceil
+	bcc .pp_upper			; far_ceil < near_ceil → upper
 	lda far_floor
 	cmp near_floor
 	bcc .ppd
 	beq .ppd
-	jmp .pp_lower			; only lower ledge
+	jmp .pp_lower			; lower ledge only
 
 .pp_upper
 !if PROFILE = 1 {
@@ -43,11 +59,12 @@ paint_portal
 	jsr prof_add_py
 }
 	lda py_row
-	sta tmp4
+	sta tmp4			; farCeilY
 	lda far_floor
 	cmp near_floor
 	bcc .pp_do_u
 	beq .pp_do_u
+	; Both ledges at this edge
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
@@ -58,7 +75,7 @@ paint_portal
 	jsr prof_add_py
 }
 	lda py_row
-	sta tmp5
+	sta tmp5			; farFloorY
 !if DBG_PORTAL = 1 {
 	sta dbg_far_y
 }
@@ -86,15 +103,16 @@ paint_portal
 	sta dbg_far_y
 }
 .pp_do_l
+	; Lower wall strip between farFloorY and nearFloorY
 	lda ytop
 	cmp ybot
 	bcs .ppd
 	lda tmp5
 	jsr clamp_span
-	sta tmp1
+	sta tmp1			; farFloorY clamped
 	lda span_b
 	jsr clamp_span
-	sta tmp2
+	sta tmp2			; nearFloorY clamped
 	lda tmp2
 	cmp tmp1
 	bcc .ppd
@@ -105,23 +123,24 @@ paint_portal
 	sty fill_y1
 	lda wall_col
 	jsr fill_span
-	; Open continues as [ytop, farFloorY). Always advance ybot — even when
-	; farFloorY sits above HORIZON (raised floor above eye). Raising ytop
-	; to nearFloorY closes the stair portal early on straddling steps.
+	; Open window becomes [ytop, farFloorY). Never yank ytop to nearFloorY —
+	; that closed stair portals early when the step straddled HORIZON.
 	lda tmp1
 	cmp ybot
 	bcs .ppd
 	sta ybot
 	rts
 
-; Draw upper ledge using span_a / tmp4; advances ytop. Clobbers tmp1/tmp2.
+; ---------------------------------------------------------------------------
+; .pp_draw_u — fill upper ledge [nearCeilY, farCeilY); advance ytop
+; ---------------------------------------------------------------------------
 .pp_draw_u
 	lda span_a
 	jsr clamp_span
-	sta tmp1
+	sta tmp1			; nearCeilY
 	lda tmp4
 	jsr clamp_span
-	sta tmp2
+	sta tmp2			; farCeilY
 	lda tmp2
 	cmp tmp1
 	bcc .pdu_r
@@ -135,10 +154,13 @@ paint_portal
 	lda tmp2
 	cmp ytop
 	bcc .pdu_r
-	sta ytop
+	sta ytop			; push open window down past upper ledge
 .pdu_r
 	rts
 
+; ---------------------------------------------------------------------------
+; wall_colour_ns_ew — side 0 → WALL_NS, side 1 → WALL_EW → wall_col
+; ---------------------------------------------------------------------------
 wall_colour_ns_ew
 	lda side
 	bne .ew

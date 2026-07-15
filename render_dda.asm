@@ -1,17 +1,35 @@
 !zone render_dda
 
-; PROFILE D — TheKeep secant DDA + incremental wz; S closes after column preamble
+; ============================================================================
+; render_dda.asm — PROFILE D (column DDA + incremental fish wz)
+; ============================================================================
+; Per column: load ray cache, mid(frac*dd) → sdx/sdy, mid(s*fish) → wz,
+; then TheKeep-style march comparing sdx vs sdy. Same-id cells skip on_cell
+; (cheap add only). Sector changes call on_cell in render.asm.
+;
+; Incremental wz: each .add_sdx/y also does wz += ddw (COL_DDWX/Y from setup).
+; calc_wallz then only shifts — no fish mul at edges.
+;
+; PROFILE: S closes after preamble (.cc_init); D covers the inner march.
+; ============================================================================
 
+; ---------------------------------------------------------------------------
+; cast_column — one screen column (col already set; col_base from set_col_base)
+;
+; Restores plr map/tile; builds sdx/sdy/wz; walks until clip closed, MAX_DDA,
+; or s overflow. Ends with fill_open_remainder if [ytop,ybot) still open.
+; ---------------------------------------------------------------------------
 cast_column
 !if PROFILE = 1 {
 	jsr prof_snap
 }
-	; Restore player cell (previous column's DDA advanced map/tile)
+	; Restore player cell — previous columns left map*/tile* mutated
 	lda plr_mapx
 	sta mapx
 	lda plr_mapy
 	sta mapy
 
+	; Load this column's ray constants from rebuild_col_rays cache
 	ldy col
 	lda COL_DDX_L,y
 	sta ddx_l
@@ -34,7 +52,7 @@ cast_column
 	lda COL_YSTEP,y
 	sta ystep
 
-	; sdx: +X (xstep=1) → fracx_inv; −X → fracx
+	; First-hit distance: +X uses fracx_inv, −X uses fracx → sdx
 	lda xstep
 	bmi .xm_raw
 	lda fracx_inv
@@ -53,7 +71,7 @@ cast_column
 	lda fracy
 	jsr calc_sdy
 .cc_wz
-	; wz = mid(s * fish); then DDA adds mid(dd * fish)
+	; Initial fish-scaled depth: wz = mid(s × fish) at first gridlines
 	ldy col
 	lda fishtab,y
 	sta tmp0
@@ -74,6 +92,7 @@ cast_column
 	sta wz_y_l
 	stx wz_y_h
 .cc_init
+	; Open clip [0,25); start in player sector; clear same-flat cache
 	lda #0
 	sta ytop
 	sta dda_steps
@@ -88,10 +107,10 @@ cast_column
 	sta tile_h
 !if PROFILE = 1 {
 	ldy #PROF_SETUP
-	jsr prof_add_bucket
+	jsr prof_add_bucket		; preamble counts as S
 }
 
-; ----- TheKeep-style innerloop: tile ptr + skip on_cell when same id -----
+; Inner: pick nearer of sdx/sdy; advance map/tile; same id → add only
 .inner
 	lda ytop
 	cmp ybot
@@ -100,8 +119,9 @@ cast_column
 	ldy #PROF_DDA
 	jsr prof_add_bucket
 }
-	rts
+	rts				; clip already closed — nothing left to paint
 .igo
+	; Choose axis with smaller remaining s (tie → Y)
 	lda sdx_h
 	cmp sdy_h
 	bcc .adv_x
@@ -116,17 +136,16 @@ cast_column
 	ldx #0
 	lda xstep
 	bpl .axp
-	dex				; X = $ff sign-extend
+	dex				; X = $ff for tile_h sign-extend on −X
 .axp
 	clc
 	adc mapx
 	sta mapx
 	cmp #MAP_SIZE
 	bcs .ax_oob
-	; tile += xstep (sign-extended)
 	clc
 	lda tile_l
-	adc xstep
+	adc xstep			; ±1 in map row (sign-extend via X)
 	sta tile_l
 	txa
 	adc tile_h
@@ -135,8 +154,7 @@ cast_column
 	lda (tile_l),y
 	sta next_id
 	cmp cur_id
-	bne .ax_cell
-	; empty same-sector step — TheKeep-cheap
+	bne .ax_cell			; still same sector — cheap path
 	jsr dda_bump
 	bcs .ax_done
 	jsr .add_sdx
@@ -146,7 +164,7 @@ cast_column
 	jmp .done
 .ax_oob
 	lda #0
-	sta next_id
+	sta next_id			; off-map = solid void
 .ax_cell
 !if PROFILE = 1 {
 	ldy #PROF_DDA
@@ -171,6 +189,7 @@ cast_column
 	bcs .ay_oob
 	lda ystep
 	bmi .ay_n
+	; +Y: tile pointer += MAP_SIZE (next row in map array)
 	clc
 	lda tile_l
 	adc #MAP_SIZE
@@ -180,6 +199,7 @@ cast_column
 	sta tile_h
 	jmp .ay_rd
 .ay_n
+	; −Y: tile pointer −= MAP_SIZE
 	sec
 	lda tile_l
 	sbc #MAP_SIZE
@@ -216,6 +236,7 @@ cast_column
 	bcs .ay_done
 	jmp .inner
 
+; s += dd and wz += ddw; C = s overflow (ray end). wz overflow ignored.
 .add_sdx
 	clc
 	lda sdx_l
@@ -224,7 +245,7 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
-	php				; preserve sdx overflow for ray end
+	php				; preserve s overflow for caller
 	clc
 	lda wz_x_l
 	adc ddwx_l
@@ -261,7 +282,9 @@ cast_column
 }
 	jmp fill_open_remainder
 
-; Inc step count; update peak; C=1 if >= MAX_DDA
+; ---------------------------------------------------------------------------
+; dda_bump — inc dda_steps / dda_peak; C=1 if >= MAX_DDA
+; ---------------------------------------------------------------------------
 dda_bump
 	inc dda_steps
 	lda dda_steps
@@ -272,8 +295,10 @@ dda_bump
 	cmp #MAX_DDA
 	rts
 
-; If clip still open after ray stop: fill with near floor colour (no project —
-; wallz/texstep may be stale when stopping on overflow/cap).
+; ---------------------------------------------------------------------------
+; fill_open_remainder — if clip still open after ray stop, flood with cur
+; sector floor colour (no project_y; wallz may be stale on overflow/cap).
+; ---------------------------------------------------------------------------
 fill_open_remainder
 	lda ytop
 	cmp ybot
