@@ -68,8 +68,7 @@ mul_8x8
 	rts
 
 ; Keep API: aux * A → A=lo X=hi (middle 16 of 24-bit product).
-; Old Keep mul_16x8 did EOR #$FF then a shift-add that yields mid(aux * original_A).
-; Old Keep mul_16x8_eor skipped that EOR (A already complemented) → mid(aux * (A^$FF)).
+; Used by wallz (fish × sdx/sdy).
 mul_16x8
 	sta mul_fac
 	jmp .mid
@@ -77,22 +76,97 @@ mul_16x8_eor
 	eor #$ff
 	sta mul_fac
 .mid
-	; mid = hi8(aux_l * fac) + (aux_h * fac)
-	ldy mul_fac
-	lda aux_l
-	jsr mul_8x8
-	sta tmp1			; hi(aux_l * fac)
-	ldy mul_fac
-	lda aux_h
-	jsr mul_8x8
-	sta tmp3			; hi(aux_h * fac)
-	stx tmp2			; lo(aux_h * fac)
+	lda mul_fac
+	sta sq1_l
+	sta sq2_l
+	eor #$ff
+	sta sq3_l
+	sta sq4_l
+	ldy aux_l
+	sec
+	lda (sq1_l),y
+	sbc (sq3_l),y
+	lda (sq2_l),y
+	sbc (sq4_l),y
+	sta tmp1				; hi(aux_l * fac)
+	ldy aux_h
+	sec
+	lda (sq1_l),y
+	sbc (sq3_l),y
+	sta tmp2				; lo(aux_h * fac)
+	lda (sq2_l),y
+	sbc (sq4_l),y
+	sta tmp3				; hi(aux_h * fac)
 	clc
 	lda tmp1
 	adc tmp2
-	tay				; result lo
+	tay
 	lda tmp3
 	adc #0
-	tax				; result hi
+	tax
 	tya
+	rts
+
+; Column setup: mid(ddx * A) → sdx. A = fac.
+calc_sdx
+	sta mul_fac
+	sta sq1_l
+	sta sq2_l
+	eor #$ff
+	sta sq3_l
+	sta sq4_l
+	ldy ddx_l
+	sec
+	lda (sq1_l),y
+	sbc (sq3_l),y
+	lda (sq2_l),y
+	sbc (sq4_l),y
+	sta tmp1
+	ldy ddx_h
+	sec
+	lda (sq1_l),y
+	sbc (sq3_l),y
+	tax
+	lda (sq2_l),y
+	sbc (sq4_l),y
+	sta sdx_h
+	clc
+	txa
+	adc tmp1
+	sta sdx_l
+	bcc .csx
+	inc sdx_h
+.csx
+	rts
+
+; mid(ddy * A) → sdy
+calc_sdy
+	sta mul_fac
+	sta sq1_l
+	sta sq2_l
+	eor #$ff
+	sta sq3_l
+	sta sq4_l
+	ldy ddy_l
+	sec
+	lda (sq1_l),y
+	sbc (sq3_l),y
+	lda (sq2_l),y
+	sbc (sq4_l),y
+	sta tmp1
+	ldy ddy_h
+	sec
+	lda (sq1_l),y
+	sbc (sq3_l),y
+	tax
+	lda (sq2_l),y
+	sbc (sq4_l),y
+	sta sdy_h
+	clc
+	txa
+	adc tmp1
+	sta sdy_l
+	bcc .csy
+	inc sdy_h
+.csy
 	rts

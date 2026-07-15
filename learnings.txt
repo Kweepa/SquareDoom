@@ -38,6 +38,10 @@ What hurt or was not worth it
 
 Profiling pitfalls
 ------------------
+- Column setup (HUD S): world-byte player (frac=(world&7)<<5); 16-bit
+  fixsec/dd + mid(16×8) calc_sdx/sdy. 8-bit fixsec crushed near-axis
+  variation and broke Keep wallz — reverted. sintab amp=2. Remaining S
+  is mostly 2× mid-products × 40 columns.
 - prof_add_bucket must not touch paint tmp* (tmp4/tmp5 etc.). Use
   dedicated ZP (prof_now_*, prof_dt_*). Clobbering tmp mid-paint
   silently broke the frame.

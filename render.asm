@@ -25,6 +25,13 @@ render
 !if PROFILE = 1 {
 	jsr prof_reset_frame
 }
+	jsr setup_player_tile
+	lda playera
+	cmp last_playera
+	beq .rays_ok
+	sta last_playera
+	jsr rebuild_col_rays
+.rays_ok
 	lda #0
 	sta col
 .col_loop
@@ -42,12 +49,65 @@ render
 }
 	jmp print_dda_peak
 
-; ------------------------------------------------------------------
-cast_column
-!if PROFILE = 1 {
-	jsr prof_snap
-}
-	; Keep angle = column + look − 64 (editor sin/−cos north ↔ Keep)
+; fracx/fracy/map start + first cell id/tile — once per frame (DDA mutates map*).
+; World byte: map = world>>3, frac = (world&7)<<5.
+setup_player_tile
+	lda playerx_h
+	tax
+	lsr
+	lsr
+	lsr
+	sta plr_mapx
+	sta mapx
+	txa
+	and #7
+	asl
+	asl
+	asl
+	asl
+	asl
+	sta fracx
+	eor #$ff
+	sta fracx_inv
+	lda playery_h
+	tax
+	lsr
+	lsr
+	lsr
+	sta plr_mapy
+	sta mapy
+	txa
+	and #7
+	asl
+	asl
+	asl
+	asl
+	asl
+	sta fracy
+	eor #$ff
+	sta fracy_inv
+	jsr map_sector_id
+	sta plr_id
+	lda ptr_l
+	sta plr_tile_l
+	lda ptr_h
+	sta plr_tile_h
+	rts
+
+; Fold A&127 → Keep secant index 0..63
+.fold_sec
+	and #127
+	cmp #63
+	bcc .fs_ok
+	eor #127
+.fs_ok
+	rts
+
+; Rebuild per-column ddx/ddy + steps when playera changes.
+rebuild_col_rays
+	lda #0
+	sta col
+.rcr_lp
 	ldy col
 	lda angtab,y
 	clc
@@ -56,126 +116,113 @@ cast_column
 	sbc #64
 	sta angle
 
-	and #127
-	cmp #63
-	bcc .dx_ok
-	eor #127
-.dx_ok
+	jsr .fold_sec
 	sta dxindex
+	tay
+	lda fixsecl,y
+	ldy col
+	sta COL_DDX_L,y
+	ldy dxindex
+	lda fixsech,y
+	ldy col
+	sta COL_DDX_H,y
 
 	lda angle
 	clc
 	adc #64
-	sta tmp0			; angle+64 for X step sign
-	and #127
-	cmp #63
-	bcc .dy_ok
-	eor #127
-.dy_ok
+	sta tmp0
+	jsr .fold_sec
 	sta dyindex
-
-	ldy dxindex
+	tay
 	lda fixsecl,y
-	sta ddx_l
-	lda fixsech,y
-	sta ddx_h
+	ldy col
+	sta COL_DDY_L,y
 	ldy dyindex
-	lda fixsecl,y
-	sta ddy_l
 	lda fixsech,y
-	sta ddy_h
+	ldy col
+	sta COL_DDY_H,y
 
-	; world → tile frac 0..255 and mapx/mapy
-	lda playerx
-	sta tmp1
-	lda playerx_h
-	lsr
-	ror tmp1
-	lsr
-	ror tmp1
-	lsr
-	ror tmp1
-	lda tmp1
-	sta fracx
-	lda playery
-	sta tmp1
-	lda playery_h
-	lsr
-	ror tmp1
-	lsr
-	ror tmp1
-	lsr
-	ror tmp1
-	lda tmp1
-	sta fracy
-	lda playerx_h
-	lsr
-	lsr
-	lsr
-	sta mapx
-	lda playery_h
-	lsr
-	lsr
-	lsr
-	sta mapy
-
-	; sdx = frac_to_line * ddx (Keep: eor #$ff for +X)
+	; xstep / Keep +X factor polarity from angle+64
 	lda tmp0
-	bmi .xn
+	bmi .rcr_xn
 	lda #1
-	sta xstep
-	lda fracx
-	eor #$ff
-	jmp .xm
-.xn
+	bne .rcr_xs
+.rcr_xn
 	lda #$ff
-	sta xstep
-	lda fracx
-.xm
-	pha
-	lda ddx_l
-	sta aux_l
-	lda ddx_h
-	sta aux_h
-	pla
-	jsr mul_16x8
-	sta sdx_l
-	stx sdx_h
+.rcr_xs
+	ldy col
+	sta COL_XSTEP,y
 
 	lda angle
-	bmi .yn
+	bmi .rcr_yn
 	lda #1
-	sta ystep
-	lda fracy
-	eor #$ff
-	jmp .ym
-.yn
+	bne .rcr_ys
+.rcr_yn
 	lda #$ff
-	sta ystep
-	lda fracy
-.ym
-	pha
-	lda ddy_l
-	sta aux_l
-	lda ddy_h
-	sta aux_h
-	pla
-	jsr mul_16x8
-	sta sdy_l
-	stx sdy_h
+.rcr_ys
+	ldy col
+	sta COL_YSTEP,y
 
+	inc col
+	lda col
+	cmp #40
+	bcc .rcr_lp
+	rts
+
+; ------------------------------------------------------------------
+cast_column
+!if PROFILE = 1 {
+	jsr prof_snap
+}
+	; Restore player cell (previous column's DDA advanced map/tile)
+	lda plr_mapx
+	sta mapx
+	lda plr_mapy
+	sta mapy
+
+	ldy col
+	lda COL_DDX_L,y
+	sta ddx_l
+	lda COL_DDX_H,y
+	sta ddx_h
+	lda COL_DDY_L,y
+	sta ddy_l
+	lda COL_DDY_H,y
+	sta ddy_h
+	lda COL_XSTEP,y
+	sta xstep
+	lda COL_YSTEP,y
+	sta ystep
+
+	; sdx: +X (xstep=1) → fracx_inv; −X → fracx
+	lda xstep
+	bmi .xm_raw
+	lda fracx_inv
+	jsr calc_sdx
+	jmp .ym_fac
+.xm_raw
+	lda fracx
+	jsr calc_sdx
+.ym_fac
+	lda ystep
+	bmi .ym_raw
+	lda fracy_inv
+	jsr calc_sdy
+	jmp .cc_init
+.ym_raw
+	lda fracy
+	jsr calc_sdy
+.cc_init
 	lda #0
 	sta ytop
+	sta dda_steps
 	lda #25
 	sta ybot
-	lda #0
-	sta dda_steps
-	jsr map_sector_id
+	lda plr_id
 	sta cur_id
-	; Keep tile pointer at current cell (map_sector_id left ptr_*)
-	lda ptr_l
+	lda plr_tile_l
 	sta tile_l
-	lda ptr_h
+	lda plr_tile_h
 	sta tile_h
 !if PROFILE = 1 {
 	ldy #PROF_SETUP

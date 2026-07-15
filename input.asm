@@ -1,10 +1,11 @@
-!zone input
+﻿!zone input
 
 ; CIA1 keys:
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
 ;   W/A/S = PA1 column; D = PA2 column
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
+; Wish deltas add into world-byte player*_h (~sintab amp 1).
 
 TURN_SPEED = 3
 
@@ -136,67 +137,33 @@ neg_a
 	adc #1
 	rts
 
-; Apply wish_x/wish_y to player 8.8; revert if new tile is void
+; Apply wish into world-byte player*_h; revert if new tile is void
 apply_move
 	lda wish_x
 	ora wish_y
 	bne .am_go
 	rts
 .am_go
-	lda playerx
-	sta save_xl
 	lda playerx_h
 	sta save_xh
-	lda playery
-	sta save_yl
 	lda playery_h
 	sta save_yh
 
-	lda wish_x
-	jsr add_playerx
-	lda wish_y
-	jsr add_playery
+	clc
+	lda playerx_h
+	adc wish_x
+	sta playerx_h
+	clc
+	lda playery_h
+	adc wish_y
+	sta playery_h
 
 	jsr player_tile
 	jsr map_sector_id
 	bne .am_ok
-	; void — undo
-	lda save_xl
-	sta playerx
 	lda save_xh
 	sta playerx_h
-	lda save_yl
-	sta playery
 	lda save_yh
 	sta playery_h
 .am_ok
-	rts
-
-; A = signed 8-bit added into playerx (8.8)
-add_playerx
-	ldx #0
-	cmp #0
-	bpl .apx
-	dex
-.apx
-	clc
-	adc playerx
-	sta playerx
-	txa
-	adc playerx_h
-	sta playerx_h
-	rts
-
-add_playery
-	ldx #0
-	cmp #0
-	bpl .apy
-	dex
-.apy
-	clc
-	adc playery
-	sta playery
-	txa
-	adc playery_h
-	sta playery_h
 	rts

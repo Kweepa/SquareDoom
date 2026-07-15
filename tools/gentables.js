@@ -67,9 +67,9 @@ function mapRowTable(levelMap) {
   return { lo, hi };
 }
 
-/** Signed 8-bit sin for walk/strafe (amp fits comfy step in 8.8 world). */
+/** Signed 8-bit sin for walk/strafe into world-byte position (~1–2 units/frame). */
 function sinTable() {
-  const AMP = 40;
+  const AMP = 2;
   const out = [];
   for (let i = 0; i < 256; i++) {
     const s = Math.round(AMP * Math.sin((i * 2 * Math.PI) / 256));

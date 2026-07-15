@@ -39,10 +39,12 @@ warmstart
 	jsr init_sqtabs
 	jsr prof_init
 	jsr find_spawn
+	lda #$ff
+	sta last_playera			; force rebuild_col_rays
 	jsr update_eye
 	jmp gameloop
 
-; Scan item table for type 0 (spawn); set playerx/y as 8.8 world
+; Scan item table for type 0 (spawn); set world-byte player*_h
 find_spawn
 	lda #<level_items
 	sta ptr_l
@@ -70,10 +72,9 @@ find_spawn
 	lda #128
 	sta playerx_h
 	sta playery_h
-	lda #$80
+	lda #0
 	sta playerx
 	sta playery
-	lda #0
 	sta playera
 	rts
 .fs_found
@@ -83,7 +84,7 @@ find_spawn
 	; Editor camera sits at y≈102 in same tile; match preview pose
 	lda #102
 	sta playery_h
-	lda #$80
+	lda #0
 	sta playerx
 	sta playery
 	lda #250

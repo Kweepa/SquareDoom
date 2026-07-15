@@ -1,9 +1,10 @@
 !zone zeropage
 
-playerx		= $02
-playerx_h	= $03
+; World-byte position (1 unit = 1/8 tile). Lows unused / kept 0.
+playerx		= $02			; unused (was 8.8 frac)
+playerx_h	= $03			; world X 0..255
 playery		= $04
-playery_h	= $05
+playery_h	= $05			; world Y 0..255
 playera		= $06
 eyeheight	= $07
 
@@ -14,6 +15,7 @@ dyindex		= $0b
 xstep		= $0c
 ystep		= $0d
 
+; 16-bit Keep dd (fixsec); sdx/sdy 16-bit
 ddx_l		= $0e
 ddx_h		= $0f
 ddy_l		= $10
@@ -77,12 +79,10 @@ span_b		= $41
 fill_row	= $42
 py_row		= $43
 
-; This-frame walk deltas (signed 8-bit, added into 8.8 player pos)
+; Walk deltas (signed) added into world-byte player*_h
 wish_x		= $44
 wish_y		= $45
-save_xl		= $46
 save_xh		= $47
-save_yl		= $48
 save_yh		= $49
 
 ; Base of current column in transposed framebuffer (25 bytes)
@@ -107,7 +107,25 @@ prof_now_h	= $53
 prof_dt_l	= $54
 prof_dt_h	= $55
 
+; Player tile/frac cached once per frame (columns restore mapx/mapy from these)
+plr_mapx	= $56
+plr_mapy	= $57
+plr_id		= $58
+plr_tile_l	= $59
+plr_tile_h	= $5a
+fracx_inv	= $5d			; fracx ^ $FF (Keep +X/+Y distance factor)
+fracy_inv	= $5e
+last_playera	= $5f			; $FF = force rebuild_col_rays
+
 !if DBG_PORTAL = 1 {
-dbg_n		= $56			; # portal dump lines this frame (0..24)
-dbg_far_y	= $57			; raw project_y(far_floor); $FF if none
+dbg_n		= $5b			; # portal dump lines this frame (0..24)
+dbg_far_y	= $5c			; raw project_y(far_floor); $FF if none
 }
+
+; Per-column ray cache (rebuilt when playera changes). $2f00–$2fef
+COL_DDX_L	= $2f00
+COL_DDX_H	= $2f28
+COL_DDY_L	= $2f50
+COL_DDY_H	= $2f78
+COL_XSTEP	= $2fa0
+COL_YSTEP	= $2fc8
