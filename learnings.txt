@@ -46,13 +46,20 @@ Profiling pitfalls
   dedicated ZP (prof_now_*, prof_dt_*). Clobbering tmp mid-paint
   silently broke the frame.
 - HUD F is always on (even PROFILE=0): frame ms via cascade timers.
-  PROFILE=1 adds S D N L P. Values ≈ ms = (cycles>>8)/4, 3 digits
-  (JSW-Tape PrintDec3). Clamp 999. fps ≈ 1000 / F.
+  PROFILE=1: S D W N L P (W=wallz). PROFILE=0: F + C (fill_span count).
+  Bucket ms ≈ (cycles>>8)/4, 3 digits (JSW-Tape PrintDec3). Clamp 999.
+  fps ≈ 1000 / F.
 - F = full loop via CIA2 Timer B cascaded off Timer A (32-bit).
-- Consistency check: F should be ≥ S+D+N+L+P (those miss blit/input/gaps).
+- Consistency check: F should be ≥ S+D+W+N+L+P (miss blit/input/gaps).
 - Labels: build with --vicelabels + tools/sort_lbl.py (Deathchase-style).
 - PROFILE=1 bucket hooks add ~160 ms/frame vs F-only; use F without
   PROFILE for real fps, PROFILE for relative region costs.
+- Same-flat skip: if cur SEC_FLOOR/CEIL/FCOL/CCOL match last paint_near
+  this column, skip load+paint_near (untextured — deeper same heights only
+  move outward vs horizon, fills already no-ops). If next needs a portal
+  ledge, still refresh_near_spans (span_a/b at current wallz).
+- N ≈ near fills + bookkeeping (not project_y — that is P). fill_span takes
+  fill_y0/fill_y1 so paint_* need not PHA/PLA ytop/ybot around fills.
 
 Level / sector ids
 ------------------

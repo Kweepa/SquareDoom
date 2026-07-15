@@ -168,8 +168,8 @@ prof_add_py
 	jmp prof_add_bucket
 }
 
-; Print F (always). With PROFILE=1 also S D N L P.
-; Values ≈ ms = (cycles>>8)/4, 3 decimal digits. Chars only — colour from blit.
+; Print F (always). PROFILE=1: S D W N L P (ms). PROFILE=0: C = span count.
+; Bucket ms ≈ (cycles>>8)/4, 3 decimal digits. Chars only — colour from blit.
 prof_print
 	ldx #0
 	lda #$86			; inverse 'F'
@@ -199,8 +199,16 @@ prof_print
 	pla
 	tay
 	iny
-	cpy #5				; S D N L P
+	cpy #6				; S D W N L P
 	bcc .pp_buck
+} else {
+	inx				; gap
+	lda #$83			; inverse 'C'
+	sta PROF_SCR,x
+	inx
+	lda span_hi
+	ldy span_lo
+	jsr .pp_u16_3
 }
 	rts
 
@@ -208,6 +216,7 @@ prof_print
 .pp_id
 	!byte PROF_SETUP
 	!byte PROF_DDA
+	!byte PROF_WALLZ
 	!byte PROF_NEAR
 	!byte PROF_LEDGE
 	!byte PROF_PROJECT_Y
@@ -215,6 +224,7 @@ prof_print
 .pp_letter
 	!byte $93			; S
 	!byte $84			; D
+	!byte $97			; W
 	!byte $8e			; N
 	!byte $8c			; L
 	!byte $90			; P
@@ -234,6 +244,21 @@ pp_tmp_h	= prof_dt_h
 pp_dig_h	= prof_now_l
 pp_dig_t	= prof_now_h
 }
+
+; A:Y = hi:lo count → 3 decimal digits at PROF_SCR,x (clamp 999)
+.pp_u16_3
+	sta pp_tmp_h
+	sty pp_tmp_l
+	lda pp_tmp_h
+	beq .pp_dec3
+	cmp #4
+	bcs .pp_sat
+	cmp #3
+	bcc .pp_dec3
+	lda pp_tmp_l
+	cmp #$e8
+	bcc .pp_dec3
+	bcs .pp_sat
 
 ; A:Y = hi:mid (cycles>>8) → (A:Y)>>2 ≈ ms → 3 decimal digits at PROF_SCR,x
 .pp_ms3

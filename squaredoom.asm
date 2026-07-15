@@ -6,8 +6,8 @@
 FRAMEBUFFER = $c800
 
 MAX_DDA = 24
-PROFILE = 1
-DBG_PORTAL = 1
+PROFILE = 0
+DBG_PORTAL = 0
 CENTER_COL = 19
 
 !source "zeropage.asm"

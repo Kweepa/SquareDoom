@@ -122,6 +122,17 @@ dbg_n		= $5b			; # portal dump lines this frame (0..24)
 dbg_far_y	= $5c			; raw project_y(far_floor); $FF if none
 }
 
+; Same-flat paint_near skip (per column) + fill_span ends + frame span count
+last_near_floor	= $60
+last_near_ceil	= $61
+last_near_fcol	= $62
+last_near_ccol	= $63
+last_near_ok	= $64			; 0 = no flats cached this column
+span_lo		= $65
+span_hi		= $66
+fill_y0		= $67			; fill_span start (inclusive)
+fill_y1		= $68			; fill_span end (exclusive)
+
 ; Per-column ray cache (rebuilt when playera changes). $2f00–$2fef
 COL_DDX_L	= $2f00
 COL_DDX_H	= $2f28

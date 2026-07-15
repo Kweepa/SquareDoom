@@ -17,6 +17,8 @@ TEXSTEP_SHIFT = 2
 render
 	lda #0
 	sta dda_peak
+	sta span_lo
+	sta span_hi
 !if DBG_PORTAL = 1 {
 	sta dbg_n
 	lda #255
@@ -216,6 +218,7 @@ cast_column
 	lda #0
 	sta ytop
 	sta dda_steps
+	sta last_near_ok
 	lda #25
 	sta ybot
 	lda plr_id
@@ -409,7 +412,7 @@ fill_open_remainder
 	rts
 
 ; C=1 stop column
-; PROFILE: F=frame, W=wallz, N=near fills, L=portal/solid, P=project_y
+; PROFILE=1 HUD: F S D W N L P (W=wallz, N=near fills, L=portal/solid, P=project_y)
 on_cell
 	lda next_id
 	cmp cur_id
@@ -424,8 +427,50 @@ on_cell
 }
 	lda cur_id
 	beq .void_enter
+	; Same floor/ceil/colours as last paint_near → skip fills (untextured).
+	; If portal needs a ledge, still refresh span_a/b at this wallz.
+	lda last_near_ok
+	beq .do_near
+	ldx cur_id
+	lda SEC_FLOOR,x
+	cmp last_near_floor
+	bne .do_near
+	lda SEC_CEIL,x
+	cmp last_near_ceil
+	bne .do_near
+	lda SEC_FCOL,x
+	cmp last_near_fcol
+	bne .do_near
+	lda SEC_CCOL,x
+	cmp last_near_ccol
+	bne .do_near
+	lda next_id
+	beq .after_near			; solid — spans unused
+	tax
+	lda SEC_CEIL,x
+	cmp near_ceil
+	bcc .near_spans			; upper ledge
+	lda SEC_FLOOR,x
+	cmp near_floor
+	bcc .after_near			; contained
+	beq .after_near
+.near_spans
+	jsr refresh_near_spans
+	jmp .after_near
+.do_near
 	jsr load_near_sector
 	jsr paint_near
+	lda near_floor
+	sta last_near_floor
+	lda near_ceil
+	sta last_near_ceil
+	lda near_fcol
+	sta last_near_fcol
+	lda near_ccol
+	sta last_near_ccol
+	lda #1
+	sta last_near_ok
+.after_near
 !if PROFILE = 1 {
 	ldy #PROF_NEAR
 	jsr prof_add_bucket
@@ -560,14 +605,12 @@ paint_near
 	cmp ytop
 	beq .nc
 	bcc .nc
-	lda ybot
-	pha
-	lda tmp1
-	sta ybot
+	ldy ytop
+	sty fill_y0
+	ldy tmp1
+	sty fill_y1
 	lda near_ccol
-	jsr fill_col_span
-	pla
-	sta ybot
+	jsr fill_span
 	lda tmp1
 	sta ytop
 .nc
@@ -600,14 +643,12 @@ paint_near
 	cmp ytop
 	bcc .pnd
 	beq .pnd
-	lda ytop
-	pha
-	lda tmp1
-	sta ytop
+	ldy tmp1
+	sty fill_y0
+	ldy ybot
+	sty fill_y1
 	lda near_fcol
-	jsr fill_col_span
-	pla
-	sta ytop
+	jsr fill_span
 	lda tmp1
 	sta ybot
 .pnd
@@ -710,20 +751,12 @@ paint_portal
 	cmp tmp1
 	bcc .ppd
 	beq .ppd
-	lda ytop
-	pha
-	lda ybot
-	pha
-	lda tmp1
-	sta ytop
-	lda tmp2
-	sta ybot
+	ldy tmp1
+	sty fill_y0
+	ldy tmp2
+	sty fill_y1
 	lda wall_col
-	jsr fill_col_span
-	pla
-	sta ybot
-	pla
-	sta ytop
+	jsr fill_span
 	; Open continues as [ytop, farFloorY). Always advance ybot — even when
 	; farFloorY sits above HORIZON (raised floor above eye). Raising ytop
 	; to nearFloorY closes the stair portal early on straddling steps.
@@ -745,20 +778,12 @@ paint_portal
 	cmp tmp1
 	bcc .pdu_r
 	beq .pdu_r
-	lda ytop
-	pha
-	lda ybot
-	pha
-	lda tmp1
-	sta ytop
-	lda tmp2
-	sta ybot
+	ldy tmp1
+	sty fill_y0
+	ldy tmp2
+	sty fill_y1
 	lda wall_col
-	jsr fill_col_span
-	pla
-	sta ybot
-	pla
-	sta ytop
+	jsr fill_span
 	lda tmp2
 	cmp ytop
 	bcc .pdu_r
@@ -776,6 +801,24 @@ load_near_sector
 	sta near_fcol
 	lda SEC_CCOL,x
 	sta near_ccol
+	rts
+
+; Project near ceil/floor into span_a/b only (same-flat skip + portal ledge).
+refresh_near_spans
+	lda near_ceil
+	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
+	sta span_a
+	lda near_floor
+	jsr project_y
+!if PROFILE = 1 {
+	jsr prof_add_py
+}
+	lda py_row
+	sta span_b
 	rts
 
 wall_colour_ns_ew
