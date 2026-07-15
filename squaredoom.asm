@@ -9,8 +9,9 @@ LIGHTFRAME = $cc00
 CHARSET = $3800
 PISTOL_SPRITES = $3700		; 4×64-byte hi-res pistol overlays (VIC bank 0)
 FLOOR_PAT = $08			; dither tile #2 rotated 90° (flats)
+ITEM_PAT = $09			; itemudg.png shading glyph
 
-MAX_DDA = 24
+MAX_DDA = 32
 PROFILE = 0
 DBG_FPS = 0
 DBG_PORTAL = 0
@@ -88,8 +89,10 @@ SEC_BRIGHT = SEC_CCOL + SEC_TABLE_SIZE
 
 level_map = SEC_BRIGHT + SEC_TABLE_SIZE
 level_items = level_map + MAP_CELLS
+level_sector_max = level_items + MAX_ITEMS * ITEM_BYTES
 
 !source "tables.asm"
+!source "item_bitmaps.asm"
 
 end_high = *
 free_high = MEM_HIGH_LIMIT - end_high
@@ -99,7 +102,7 @@ free_high = MEM_HIGH_LIMIT - end_high
 !warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
 
 ; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC; tail free to $10000
-free_kernal = $10000 - PROC_END
+free_kernal = $10000 - ITEM_SORT_END
 free_total = free_low + free_mid + free_high + free_kernal
-!warn "mem: kernal BSS $e000..$", PROC_END - 1, " free tail =", free_kernal
+!warn "mem: kernal BSS $e000..$", ITEM_SORT_END - 1, " free tail =", free_kernal
 !warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"

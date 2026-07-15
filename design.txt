@@ -3,6 +3,16 @@ Let's make the gameplay part as flexible as possible so it can potentially run o
 
 A 32x32 map. Each entry in the map points to a sector, max 255.
 
+Each sector must be a filled axis-aligned rectangle (grid-convex), 4-connected
+by definition, and fit in a 15×15 tile bbox (MAX_SECTOR_SPAN). Convexity stops
+SEC_SEEN from revealing items around corners/L shapes within one id. The span
+keeps axis deltas inside one sector at most 112 world units so item billboards
+can project with signed 8-bit dx/dy. The editor refuses merges/paints that break
+the rule; cook and load auto-split bad ids into rectangles (copies attrs). Items
+still cull if |dx| or |dy| exceed 120 (15 tiles) when a far sector is marked
+seen through portals — walls may raycast farther (MAX_DDA), but items do not
+draw beyond that.
+
 Each sector has the following data:
 - floor height (0-31)
 - ceiling height (0-31)

@@ -113,6 +113,11 @@ cast_column
 	sta tile_l
 	lda plr_tile_h
 	sta tile_h
+	jsr clip_col_reset
+	ldx plr_id
+	jsr mark_seen
+	lda plr_id
+	jsr clip_col_push
 !if PROFILE = 1 {
 	ldy #PROF_SETUP
 	jsr prof_add_bucket		; preamble counts as S
@@ -162,7 +167,18 @@ cast_column
 	lda (tile_l),y
 	sta next_id
 	cmp cur_id
-	bne .ax_cell			; still same sector — cheap path
+	beq .ax_same			; same sector — cheap path
+	jsr flats_equal_cur_next
+	beq .ax_soft			; identical flats — no paint, keep walking
+	jmp .ax_cell
+.ax_soft
+	lda next_id
+	sta cur_id
+	tax
+	jsr mark_seen
+	lda cur_id
+	jsr clip_col_push
+.ax_same
 	jsr dda_bump
 	bcs .ax_done
 	jsr .add_sdx
@@ -220,7 +236,18 @@ cast_column
 	lda (tile_l),y
 	sta next_id
 	cmp cur_id
-	bne .ay_cell
+	beq .ay_same
+	jsr flats_equal_cur_next
+	beq .ay_soft
+	jmp .ay_cell
+.ay_soft
+	lda next_id
+	sta cur_id
+	tax
+	jsr mark_seen
+	lda cur_id
+	jsr clip_col_push
+.ay_same
 	jsr dda_bump
 	bcs .ay_done
 	jsr .add_sdy
@@ -243,6 +270,31 @@ cast_column
 	jsr .add_sdy
 	bcs .ay_done
 	jmp .inner
+
+; ---------------------------------------------------------------------------
+; flats_equal_cur_next — Z=1 if cur_id and next_id share floor/ceil/colours
+; (soft portal: rectangular splits of one room should not re-paint).
+; ---------------------------------------------------------------------------
+flats_equal_cur_next
+	ldx cur_id
+	ldy next_id
+	lda SEC_FLOOR,x
+	cmp SEC_FLOOR,y
+	bne .fe_no
+	lda SEC_CEIL,x
+	cmp SEC_CEIL,y
+	bne .fe_no
+	lda SEC_FCOL,x
+	cmp SEC_FCOL,y
+	bne .fe_no
+	lda SEC_CCOL,x
+	cmp SEC_CCOL,y
+	bne .fe_no
+	lda #0				; Z=1
+	rts
+.fe_no
+	lda #1				; Z=0
+	rts
 
 ; s += dd and wz += ddw; C = s overflow (ray end). wz overflow ignored.
 .add_sdx

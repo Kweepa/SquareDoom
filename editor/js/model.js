@@ -6,6 +6,8 @@ export const MAX_SECTORS = 255;
 export const MAX_ITEMS = 48;
 export const WORLD_PER_TILE = 8;
 export const WORLD_MAX = MAP_SIZE * WORLD_PER_TILE - 1; // 255
+/** Max tile span on either axis so item billboards can use signed 8-bit world deltas. */
+export const MAX_SECTOR_SPAN = 15;
 
 export const LEVEL_NAMES = [
   'E1M1', 'E1M2', 'E1M3', 'E1M4', 'E1M5', 'E1M6', 'E1M7', 'E1M8', 'E1M9',
@@ -271,9 +273,13 @@ export function paintDefaultSector(level, tx, ty) {
   return id;
 }
 
-/** Paint existing sector onto a cell. */
+/**
+ * Paint existing sector onto a cell if result stays a filled ≤15×15 rectangle.
+ * Returns true on success.
+ */
 export function paintSector(level, tx, ty, sectorId) {
   if (!level.sectors.has(sectorId)) return false;
+  if (!canAddTileToSector(level, sectorId, tx, ty)) return false;
   const old = getCell(level, tx, ty);
   setCell(level, tx, ty, sectorId);
   dropSectorIfEmpty(level, old);
@@ -389,27 +395,37 @@ export function nudgeTileHeights(level, tiles, delta) {
 }
 
 /**
- * Merge identical sectors: keep lowest id for each unique property set.
+ * Merge identical sectors only when the unified tile set is a filled ≤15×15 rectangle.
+ * Invalid / non-mergeable groups keep separate ids (lowest id kept as rep).
  */
 export function mergeIdenticalSectors(level) {
-  const reps = []; // { sector, id }
-  /** @type {Map<number, number>} oldId -> newId */
-  const remap = new Map();
+  // First split any already-invalid ids into shape-legal pieces
+  enforceSectorShapes(level);
 
   const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  /** @type {Map<number, number>} */
+  const remap = new Map();
+  /** @type {{ sector: object, id: number, tiles: {tx:number,ty:number}[] }[]} */
+  const reps = [];
+
   for (const id of ids) {
     const s = level.sectors.get(id);
+    if (!s) continue;
+    const tiles = tilesInSector(level, id);
+    if (!tiles.length) continue;
     let found = null;
     for (const r of reps) {
-      if (sectorsEqual(r.sector, s)) {
-        found = r.id;
-        break;
-      }
+      if (!sectorsEqual(r.sector, s)) continue;
+      const union = r.tiles.concat(tiles);
+      if (!tilesAreValidSectorShape(union)) continue;
+      found = r;
+      break;
     }
-    if (found != null) {
-      remap.set(id, found);
+    if (found) {
+      remap.set(id, found.id);
+      found.tiles = found.tiles.concat(tiles);
     } else {
-      reps.push({ sector: s, id });
+      reps.push({ sector: s, id, tiles: tiles.slice() });
       remap.set(id, id);
     }
   }
@@ -451,6 +467,221 @@ export function tilesInSector(level, sectorId) {
   return out;
 }
 
+/** @param {{tx:number,ty:number}[]} tiles */
+export function sectorBounds(tiles) {
+  if (!tiles.length) return null;
+  let minX = tiles[0].tx;
+  let maxX = tiles[0].tx;
+  let minY = tiles[0].ty;
+  let maxY = tiles[0].ty;
+  for (let i = 1; i < tiles.length; i++) {
+    const t = tiles[i];
+    if (t.tx < minX) minX = t.tx;
+    if (t.tx > maxX) maxX = t.tx;
+    if (t.ty < minY) minY = t.ty;
+    if (t.ty > maxY) maxY = t.ty;
+  }
+  return { minX, maxX, minY, maxY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+/** @param {{tx:number,ty:number}[]} tiles */
+export function tilesFitSpan(tiles) {
+  const b = sectorBounds(tiles);
+  if (!b) return true;
+  return b.w <= MAX_SECTOR_SPAN && b.h <= MAX_SECTOR_SPAN;
+}
+
+/**
+ * Grid-convex: filled axis-aligned rectangle (no dents/L/C shapes).
+ * Needed so SEC_SEEN cannot reveal items around a corner within one id.
+ */
+export function tilesAreConvex(tiles) {
+  if (tiles.length <= 1) return true;
+  const b = sectorBounds(tiles);
+  if (!b || tiles.length !== b.w * b.h) return false;
+  const keys = new Set(tiles.map((t) => tileKey(t.tx, t.ty)));
+  for (let ty = b.minY; ty <= b.maxY; ty++) {
+    for (let tx = b.minX; tx <= b.maxX; tx++) {
+      if (!keys.has(tileKey(tx, ty))) return false;
+    }
+  }
+  return true;
+}
+
+/** Contiguous filled rectangle within MAX_SECTOR_SPAN. */
+export function tilesAreValidSectorShape(tiles) {
+  return tilesAreConvex(tiles) && tilesFitSpan(tiles);
+}
+
+/** 4-connected contiguity. Empty set is contiguous. */
+export function tilesAreContiguous(tiles) {
+  if (tiles.length <= 1) return true;
+  const keys = new Set(tiles.map((t) => tileKey(t.tx, t.ty)));
+  const start = tileKey(tiles[0].tx, tiles[0].ty);
+  const seen = new Set([start]);
+  const q = [start];
+  const dirs = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  while (q.length) {
+    const { tx, ty } = parseTileKey(q.shift());
+    for (const [dx, dy] of dirs) {
+      const nk = tileKey(tx + dx, ty + dy);
+      if (!keys.has(nk) || seen.has(nk)) continue;
+      seen.add(nk);
+      q.push(nk);
+    }
+  }
+  return seen.size === keys.size;
+}
+
+export function sectorIsContiguous(level, sectorId) {
+  return tilesAreContiguous(tilesInSector(level, sectorId));
+}
+
+export function sectorIsConvex(level, sectorId) {
+  return tilesAreConvex(tilesInSector(level, sectorId));
+}
+
+/**
+ * True if painting sectorId onto (tx,ty) keeps a filled ≤15×15 rectangle.
+ * Already owning the cell is always ok.
+ */
+export function canAddTileToSector(level, sectorId, tx, ty) {
+  if (!sectorId || !level.sectors.has(sectorId)) return false;
+  if (getCell(level, tx, ty) === sectorId) return true;
+  const tiles = tilesInSector(level, sectorId);
+  if (!tiles.length) return true;
+  return tilesAreValidSectorShape(tiles.concat([{ tx, ty }]));
+}
+
+/**
+ * Partition tiles into filled rectangles each ≤ MAX_SECTOR_SPAN on either axis.
+ * @param {{tx:number,ty:number}[]} tiles
+ * @returns {{tx:number,ty:number}[][]}
+ */
+export function splitTilesIntoValidChunks(tiles) {
+  if (!tiles.length) return [];
+  const remaining = new Set(tiles.map((t) => tileKey(t.tx, t.ty)));
+  /** @type {{tx:number,ty:number}[][]} */
+  const chunks = [];
+
+  while (remaining.size) {
+    let x0 = MAP_SIZE;
+    let y0 = MAP_SIZE;
+    for (const k of remaining) {
+      const { tx, ty } = parseTileKey(k);
+      if (ty < y0 || (ty === y0 && tx < x0)) {
+        x0 = tx;
+        y0 = ty;
+      }
+    }
+    let maxW = 0;
+    while (
+      maxW < MAX_SECTOR_SPAN &&
+      remaining.has(tileKey(x0 + maxW, y0))
+    ) {
+      maxW++;
+    }
+    let bestW = 1;
+    let bestH = 1;
+    for (let w = maxW; w >= 1; w--) {
+      let h = 0;
+      growH: while (h < MAX_SECTOR_SPAN) {
+        for (let x = x0; x < x0 + w; x++) {
+          if (!remaining.has(tileKey(x, y0 + h))) break growH;
+        }
+        h++;
+      }
+      if (h > 0 && w * h >= bestW * bestH) {
+        bestW = w;
+        bestH = h;
+      }
+    }
+    /** @type {{tx:number,ty:number}[]} */
+    const chunk = [];
+    for (let ty = y0; ty < y0 + bestH; ty++) {
+      for (let tx = x0; tx < x0 + bestW; tx++) {
+        remaining.delete(tileKey(tx, ty));
+        chunk.push({ tx, ty });
+      }
+    }
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+
+/**
+ * Remap tiles of sectorId onto filled ≤15×15 rectangles (first keeps id).
+ * @returns {string[]} warning messages
+ */
+export function splitSectorIntoContiguousComponents(level, sectorId) {
+  /** @type {string[]} */
+  const warnings = [];
+  const tiles = tilesInSector(level, sectorId);
+  if (!tiles.length) return warnings;
+  if (tilesAreValidSectorShape(tiles)) return warnings;
+
+  const chunks = splitTilesIntoValidChunks(tiles);
+  if (chunks.length <= 1) return warnings;
+
+  const src = level.sectors.get(sectorId);
+  if (!src) return warnings;
+
+  for (let i = 1; i < chunks.length; i++) {
+    const nid = allocSectorId(level);
+    if (!nid) {
+      warnings.push(`Sector ${sectorId}: no free ids to split remaining tiles`);
+      break;
+    }
+    level.sectors.set(nid, cloneSector(src));
+    for (const { tx, ty } of chunks[i]) {
+      setCell(level, tx, ty, nid);
+    }
+    warnings.push(
+      `Sector ${sectorId}: split rect onto id ${nid} (${chunks[i].length} tiles)`,
+    );
+  }
+  return warnings;
+}
+
+/**
+ * Fix every sector that is non-rectangular or larger than MAX_SECTOR_SPAN.
+ * @returns {string[]}
+ */
+export function enforceSectorShapes(level) {
+  /** @type {string[]} */
+  const warnings = [];
+  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  for (const id of ids) {
+    warnings.push(...splitSectorIntoContiguousComponents(level, id));
+  }
+  return warnings;
+}
+
+/**
+ * @returns {{ ok: boolean, issues: string[] }}
+ */
+export function validateAllSectors(level) {
+  /** @type {string[]} */
+  const issues = [];
+  for (const id of [...level.sectors.keys()].sort((a, b) => a - b)) {
+    const tiles = tilesInSector(level, id);
+    if (!tiles.length) continue;
+    if (!tilesAreConvex(tiles)) {
+      issues.push(`Sector ${id}: not a filled rectangle (convex)`);
+    }
+    const b = sectorBounds(tiles);
+    if (b && (b.w > MAX_SECTOR_SPAN || b.h > MAX_SECTOR_SPAN)) {
+      issues.push(`Sector ${id}: bbox ${b.w}×${b.h} exceeds ${MAX_SECTOR_SPAN}`);
+    }
+  }
+  return { ok: issues.length === 0, issues };
+}
+
 export function getTileProps(level, tx, ty) {
   const id = getCell(level, tx, ty);
   if (!id || !level.sectors.has(id)) return null;
@@ -470,10 +701,45 @@ export function setTileProps(level, tx, ty, props) {
 
 /**
  * Add a tile at (tx,ty). Uses brush props if provided, else default.
- * Rebuilds sectors afterward. Returns true on success.
+ * Prefers extending an adjacent matching sector when legal; otherwise new id.
+ * Returns true on success, false if no free id.
+ * Sets level._lastPaintNote when extend was skipped due to span/convexity.
  */
 export function addTile(level, tx, ty, brush = null) {
+  level._lastPaintNote = null;
   const props = brush ? cloneSector(brush) : defaultSector();
+
+  if (brush) {
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ];
+    /** @type {number[]} */
+    const matching = [];
+    for (const [dx, dy] of dirs) {
+      const nx = tx + dx;
+      const ny = ty + dy;
+      if (nx < 0 || ny < 0 || nx >= MAP_SIZE || ny >= MAP_SIZE) continue;
+      const nid = getCell(level, nx, ny);
+      if (!nid) continue;
+      const s = level.sectors.get(nid);
+      if (s && sectorsEqual(s, props)) matching.push(nid);
+    }
+    for (const nid of matching) {
+      if (canAddTileToSector(level, nid, tx, ty)) {
+        paintSector(level, tx, ty, nid);
+        rebuildSectors(level);
+        return true;
+      }
+    }
+    if (matching.length) {
+      level._lastPaintNote =
+        'New sector id: adjacent match cannot grow (must stay a ≤15×15 rectangle)';
+    }
+  }
+
   if (!setTileProps(level, tx, ty, props)) return false;
   rebuildSectors(level);
   return true;
@@ -568,14 +834,20 @@ export function parseTileKey(key) {
   return { tx, ty };
 }
 
-/** Merge source sector into target (all source cells become target). */
+/**
+ * Merge source sector into target if union is a filled ≤15×15 rectangle.
+ * Returns true on success.
+ */
 export function mergeSectors(level, targetId, sourceId) {
-  if (targetId === sourceId || !targetId || !sourceId) return;
-  if (!level.sectors.has(targetId) || !level.sectors.has(sourceId)) return;
+  if (targetId === sourceId || !targetId || !sourceId) return false;
+  if (!level.sectors.has(targetId) || !level.sectors.has(sourceId)) return false;
+  const union = tilesInSector(level, targetId).concat(tilesInSector(level, sourceId));
+  if (!tilesAreValidSectorShape(union)) return false;
   for (let i = 0; i < MAP_CELLS; i++) {
     if (level.map[i] === sourceId) level.map[i] = targetId;
   }
   level.sectors.delete(sourceId);
+  return true;
 }
 
 export function hasSpawn(level) {

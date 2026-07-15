@@ -177,8 +177,15 @@ for (let t = 0; t < 8; t++) {
 }
 const floor = rotateCw(walls[2]);
 
-let asm = `; Auto-generated from lightingdither.png — do not edit\n`;
-asm += `; Wall UDGs $00–$07 (closest→furthest), floor UDG $08 (tile 2 rot90 CW)\n`;
+const itemPng = readFileSync(join(root, 'itemudg.png'));
+const itemImg = decodePng(itemPng);
+if (itemImg.width !== 8 || itemImg.height !== 8) {
+  throw new Error(`itemudg.png: expected 8×8, got ${itemImg.width}×${itemImg.height}`);
+}
+const item = tileBytes(itemImg.pixels, itemImg.width, 0);
+
+let asm = `; Auto-generated from lightingdither.png + itemudg.png — do not edit\n`;
+asm += `; Wall UDGs $00–$07, floor $08 (tile 2 rot90 CW), item $09 (itemudg.png)\n`;
 asm += `!zone ditherchars\n\n`;
 asm += `dither_wall_glyphs\n`;
 for (let t = 0; t < 8; t++) {
@@ -186,8 +193,11 @@ for (let t = 0; t < 8; t++) {
 }
 asm += `dither_floor_glyph\n`;
 asm += `\t!byte ${fmtBytes(floor)}\n`;
+asm += `dither_item_glyph\n`;
+asm += `\t!byte ${fmtBytes(item)}\n`;
 
 writeFileSync(join(root, 'ditherchars.asm'), asm);
-console.log('wrote ditherchars.asm (8 wall + 1 floor glyphs)');
+console.log('wrote ditherchars.asm (8 wall + floor + item glyphs)');
 console.log('walls:', walls.map(fmtBytes).join(' | '));
 console.log('floor:', fmtBytes(floor));
+console.log('item:', fmtBytes(item));

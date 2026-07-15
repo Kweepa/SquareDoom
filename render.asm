@@ -13,6 +13,7 @@
 ;   render_near.asm       N — near ceil/floor strips
 ;   render_ledge.asm      L — portal ledges + solid wall colour
 ;   render_project_y.asm  P — world height → screen row
+;   render_items.asm      I — item billboards
 ;
 ; Clip: open window is [ytop, ybot). Front-to-back: near flats then ledges
 ; then continue or stop. Bugfixes vs early TheKeep port: lookang−64 north
@@ -43,6 +44,7 @@ render
 !if PROFILE = 1 {
 	jsr prof_reset_frame
 }
+	jsr clear_sector_seen
 	jsr setup_player_tile
 	; Ray cache depends only on look angle — rebuild when playera moves
 	lda playera
@@ -60,6 +62,7 @@ render
 	lda col
 	cmp #40
 	bcc .col_loop
+	jsr render_items
 	jsr blit_fb_to_color
 	jsr blit_fb_to_chars
 	jsr draw_hud
@@ -154,6 +157,10 @@ on_cell
 	lda next_id
 	beq .stop			; void→void / oob
 	sta cur_id
+	tax
+	jsr mark_seen
+	lda cur_id
+	jsr clip_col_push
 	clc
 	rts
 .edge
@@ -195,6 +202,10 @@ on_cell
 .cont
 	lda next_id
 	sta cur_id			; enter far sector; DDA keeps walking
+	tax
+	jsr mark_seen
+	lda cur_id
+	jsr clip_col_push
 	clc
 	rts
 .stop
@@ -209,3 +220,5 @@ on_cell
 !source "render_near.asm"
 !source "render_ledge.asm"
 !source "render_project_y.asm"
+!source "render_clip.asm"
+!source "render_items.asm"

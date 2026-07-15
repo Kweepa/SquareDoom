@@ -91,14 +91,14 @@ init_charset
 	inx
 	bne .copy_df
 
-	; Patch light UDGs $00–$08 (8 wall tiles + floor = 72 bytes)
-	; overwrites doomfont chars 0–8 (unused by HUD)
+	; Patch light UDGs $00–$09 (8 wall + floor + item = 80 bytes)
+	; overwrites doomfont chars 0–9 (unused by HUD)
 	ldx #0
 .patch
 	lda dither_wall_glyphs,x
 	sta CHARSET,x
 	inx
-	cpx #72
+	cpx #80
 	bcc .patch
 
 	lda #CHARSET_PTR

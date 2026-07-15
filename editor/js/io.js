@@ -8,6 +8,7 @@
  *   3. Items: 48 * 4 bytes: typeId, x, y, skillBits
  *      skillBits: bit0=easy, bit1=normal, bit2=hard
  *      unused item slots: typeId=0xFF
+ *   4. sector_max: 1 byte — max sector id used in map or sector table
  * Colors: 0..15 = Commodore 64 palette
  * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
  */
@@ -28,6 +29,7 @@ import {
   findSectorIdByTag,
   gameItemCount,
   normalizeColor,
+  enforceSectorShapes,
 } from './model.js';
 
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
@@ -118,6 +120,10 @@ export function levelFromJSON(data) {
       });
     }
   }
+  const shapeWarnings = enforceSectorShapes(level);
+  if (shapeWarnings.length) {
+    level._loadWarnings = shapeWarnings;
+  }
   return level;
 }
 
@@ -155,6 +161,8 @@ export function episodeFromJSON(data) {
 export function cookLevel(level) {
   /** @type {string[]} */
   const warnings = [];
+  warnings.push(...enforceSectorShapes(level));
+
   const floors = new Uint8Array(SECTOR_TABLE_SIZE);
   const ceils = new Uint8Array(SECTOR_TABLE_SIZE);
   const types = new Uint8Array(SECTOR_TABLE_SIZE);
@@ -210,8 +218,18 @@ export function cookLevel(level) {
     itemTable[off + 3] = bits;
   }
 
+  // Highest sector id referenced by the map or present in the sector table
+  let sectorMax = 0;
+  for (let i = 0; i < mapBytes.length; i++) {
+    if (mapBytes[i] > sectorMax) sectorMax = mapBytes[i];
+  }
+  for (const id of level.sectors.keys()) {
+    if (id > sectorMax) sectorMax = id;
+  }
+  if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
+
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
-  const out = new Uint8Array(sectorBytes + mapBytes.length + itemTable.length);
+  const out = new Uint8Array(sectorBytes + mapBytes.length + itemTable.length + 1);
   let o = 0;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
   out.set(ceils, o); o += SECTOR_TABLE_SIZE;
@@ -221,7 +239,8 @@ export function cookLevel(level) {
   out.set(ccols, o); o += SECTOR_TABLE_SIZE;
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(mapBytes, o); o += mapBytes.length;
-  out.set(itemTable, o);
+  out.set(itemTable, o); o += itemTable.length;
+  out[o] = sectorMax & 0xff;
   return { bytes: out, warnings };
 }
 

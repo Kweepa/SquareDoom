@@ -1,0 +1,725 @@
+!zone render_items
+
+; ============================================================================
+; render_items.asm — billboard items into FRAMEBUFFER after column cast
+; ============================================================================
+; Collect items in seen sectors, depth-sort far→near, project, draw clipped
+; against COL_CLIP_* stack. Column-major item_gfx (byte colour, 0=clear).
+; ============================================================================
+
+ITEM_DEPTH_MIN = 1			; editor uses ~0.8 world units
+ITEM_AXIS_MAX = 120			; cull if |dx| or |dy| > 15 tiles (8-bit safe)
+ITEM_TYPE_ENEMY_LO = 1
+ITEM_TYPE_ENEMY_HI = 5
+ITEM_TYPE_EMPTY = $ff
+ITEM_TYPE_SPAWN = 0
+
+; Scratch after column loop (column temps free):
+;   turn = item slot
+;   wall_col = typeId
+;   wallz_h = depth
+;   near_floor / near_ceil = floor height / sector
+;   span_b = sprite H; last_near_ok = sprite W
+;   last_near_fcol = screen centre col
+;   last_near_ccol = sort index / draw scratch
+;   span_a = visible count during collect/sort
+
+; ---------------------------------------------------------------------------
+; render_items
+; ---------------------------------------------------------------------------
+render_items
+!if PROFILE = 1 {
+	jsr prof_snap
+}
+	lda #0
+	sta span_a
+	ldx #0
+.ri_col
+	txa
+	asl
+	asl
+	tay
+	lda level_items,y
+	cmp #ITEM_TYPE_EMPTY
+	beq .ri_nx
+	cmp #ITEM_TYPE_SPAWN
+	beq .ri_nx
+	iny
+	lda level_items,y
+	lsr
+	lsr
+	lsr
+	sta mapx
+	iny
+	lda level_items,y
+	lsr
+	lsr
+	lsr
+	sta mapy
+	stx turn
+	jsr map_sector_id
+	beq .ri_nx2
+	tay
+	lda SEC_SEEN,y
+	beq .ri_nx2
+	sty near_ceil
+	ldx turn
+	jsr item_calc_depth
+	bcs .ri_nx2
+	; A = depth
+	ldy span_a
+	sta ITEM_SORT_DEPTH,y
+	lda turn
+	sta ITEM_SORT_SLOT,y
+	iny
+	sty span_a
+	cpy #MAX_ITEMS
+	bcs .ri_go
+.ri_nx2
+	ldx turn
+.ri_nx
+	inx
+	cpx #MAX_ITEMS
+	bcc .ri_col
+.ri_go
+	lda span_a
+	beq .ri_done
+	sta fill_row			; preserve count (item_draw_one reuses span_*)
+	jsr item_sort_depth
+	lda #0
+	sta last_near_ccol
+.ri_dlp
+	lda last_near_ccol
+	cmp fill_row
+	bcs .ri_done
+	tax
+	lda ITEM_SORT_SLOT,x
+	sta turn
+	lda ITEM_SORT_DEPTH,x
+	sta wallz_h
+	jsr item_draw_one
+	inc last_near_ccol
+	jmp .ri_dlp
+.ri_done
+!if PROFILE = 1 {
+	ldy #PROF_ITEMS
+	jmp prof_add_bucket
+}
+	rts
+
+; ---------------------------------------------------------------------------
+; item_calc_depth — X=slot, near_ceil=sector
+; Exit: C=1 skip; C=0 A=depth (1..255)
+; Also sets wall_col=typeId, near_floor=floor
+; Leaves fracy=dx, fracx=dy (signed 8-bit) for item_calc_screen
+; ---------------------------------------------------------------------------
+item_calc_depth
+	txa
+	asl
+	asl
+	tay
+	lda level_items,y
+	sta wall_col
+	iny
+	lda level_items,y
+	sta tmp0			; ix
+	iny
+	lda level_items,y
+	sta tmp1			; iy
+	lda tmp0			; ix
+	sta tmp2
+	lda playerx_h
+	jsr item_uabs8		; |ix-px|
+	cmp #ITEM_AXIS_MAX+1
+	bcs .icd_bad
+	lda tmp0
+	sec
+	sbc playerx_h
+	sta fracy			; dx (signed; |dx|≤120)
+	lda tmp1			; iy
+	sta tmp2
+	lda playery_h
+	jsr item_uabs8		; |iy-py|
+	cmp #ITEM_AXIS_MAX+1
+	bcs .icd_bad
+	lda tmp1
+	sec
+	sbc playery_h
+	sta fracx			; dy
+	ldy playera
+	lda sintab,y
+	sta last_near_floor		; sin
+	tya
+	clc
+	adc #64
+	tay
+	lda sintab,y
+	sta last_near_ceil		; cos
+	lda #0
+	sta wallz_l
+	sta wallz_h
+	; depth = dx*sin - dy*cos
+	lda fracy
+	ldy last_near_floor
+	jsr smul_wz_add
+	lda fracx
+	ldy last_near_ceil
+	jsr smul_wz_sub
+	ldx #6
+.icd_shr
+	lda wallz_h
+	cmp #$80
+	ror wallz_h
+	ror wallz_l
+	dex
+	bne .icd_shr
+	lda wallz_h
+	bmi .icd_bad
+	bne .icd_clamp
+	lda wallz_l
+	beq .icd_bad
+	cmp #ITEM_DEPTH_MIN
+	bcc .icd_bad
+	jmp .icd_ok
+.icd_clamp
+	lda #255
+	sta wallz_l
+.icd_ok
+	ldx near_ceil
+	lda SEC_FLOOR,x
+	sta near_floor
+	lda wallz_l
+	clc
+	rts
+.icd_bad
+	sec
+	rts
+
+; |tmp2 - A| → A (unsigned world distance on 0..255 map)
+item_uabs8
+	sta tmp3
+	lda tmp2
+	cmp tmp3
+	bcs .iu_ge
+	lda tmp3
+	sec
+	sbc tmp2
+	rts
+.iu_ge
+	sec
+	sbc tmp3
+	rts
+
+; ---------------------------------------------------------------------------
+; item_calc_screen — after item_calc_depth; uses fracy/x, sin/cos in last_near_*
+; Exit: last_near_fcol = centre screen column (may be off 0..39)
+; ---------------------------------------------------------------------------
+item_calc_screen
+	lda #0
+	sta aux_l
+	sta aux_h
+	; lateral = dx*cos + dy*sin
+	lda fracy
+	ldy last_near_ceil		; cos
+	jsr smul_aux_add
+	lda fracx
+	ldy last_near_floor		; sin
+	jsr smul_aux_add
+	ldx #6
+.ics_shr
+	lda aux_h
+	cmp #$80
+	ror aux_h
+	ror aux_l
+	dex
+	bne .ics_shr
+	; (lateral << 5) / depth
+	lda aux_l
+	sta tmp0
+	lda aux_h
+	sta tmp1
+	ldx #5
+.ics_asl
+	asl tmp0
+	rol tmp1
+	dex
+	bne .ics_asl
+	lda wallz_h			; depth
+	jsr sdiv16x8			; A = quot
+	clc
+	adc #19
+	sta last_near_fcol
+	rts
+
+; ---------------------------------------------------------------------------
+smul_wz_add
+	jsr smul_8x8
+	clc
+	lda wallz_l
+	adc tmp0
+	sta wallz_l
+	lda wallz_h
+	adc tmp1
+	sta wallz_h
+	rts
+smul_wz_sub
+	jsr smul_8x8
+	sec
+	lda wallz_l
+	sbc tmp0
+	sta wallz_l
+	lda wallz_h
+	sbc tmp1
+	sta wallz_h
+	rts
+smul_aux_add
+	jsr smul_8x8
+	clc
+	lda aux_l
+	adc tmp0
+	sta aux_l
+	lda aux_h
+	adc tmp1
+	sta aux_h
+	rts
+
+; A=sx Y=sy → tmp0:tmp1 signed product
+smul_8x8
+	sta tmp2
+	sty tmp3
+	lda #0
+	sta tmp4
+	lda tmp2
+	bpl .sm_a
+	eor #$ff
+	clc
+	adc #1
+	sta tmp2
+	inc tmp4
+.sm_a
+	lda tmp3
+	bpl .sm_b
+	eor #$ff
+	clc
+	adc #1
+	sta tmp3
+	inc tmp4
+.sm_b
+	ldy tmp3
+	lda tmp2
+	jsr mul_8x8
+	stx tmp0
+	sta tmp1
+	lda tmp4
+	and #1
+	beq .sm_ok
+	lda tmp0
+	eor #$ff
+	clc
+	adc #1
+	sta tmp0
+	lda tmp1
+	eor #$ff
+	adc #0
+	sta tmp1
+.sm_ok
+	rts
+
+; (tmp1:tmp0) / A → A signed quot
+sdiv16x8
+	sta tmp5
+	lda #0
+	sta tmp4
+	lda tmp1
+	bpl .sd_abs
+	inc tmp4
+	lda tmp0
+	eor #$ff
+	clc
+	adc #1
+	sta tmp0
+	lda tmp1
+	eor #$ff
+	adc #0
+	sta tmp1
+.sd_abs
+	lda tmp5
+	beq .sd_z
+	ldx #0
+.sd_lp
+	lda tmp1
+	bne .sd_sub
+	lda tmp0
+	cmp tmp5
+	bcc .sd_done
+.sd_sub
+	sec
+	lda tmp0
+	sbc tmp5
+	sta tmp0
+	lda tmp1
+	sbc #0
+	sta tmp1
+	inx
+	cpx #0
+	bne .sd_lp
+	ldx #255
+.sd_done
+	txa
+	ldy tmp4
+	beq .sd_out
+	eor #$ff
+	clc
+	adc #1
+.sd_out
+	rts
+.sd_z
+	lda #0
+	rts
+
+; aux_h:aux_l / A → A unsigned quot (8-bit)
+udiv16x8
+	sta tmp5
+	beq .ud_z
+	ldx #0
+.ud_lp
+	lda aux_h
+	bne .ud_sub
+	lda aux_l
+	cmp tmp5
+	bcc .ud_done
+.ud_sub
+	sec
+	lda aux_l
+	sbc tmp5
+	sta aux_l
+	lda aux_h
+	sbc #0
+	sta aux_h
+	inx
+	cpx #0
+	bne .ud_lp
+	ldx #255
+.ud_done
+	txa
+	rts
+.ud_z
+	lda #0
+	rts
+
+; ---------------------------------------------------------------------------
+item_sort_depth
+	ldx span_a
+	dex
+	beq .is_done
+	stx tmp0
+.is_o
+	lda #0
+	sta tmp1
+	ldx #0
+.is_i
+	cpx tmp0
+	bcs .is_n
+	lda ITEM_SORT_DEPTH,x
+	cmp ITEM_SORT_DEPTH+1,x
+	bcs .is_ok
+	ldy ITEM_SORT_DEPTH+1,x
+	sta ITEM_SORT_DEPTH+1,x
+	tya
+	sta ITEM_SORT_DEPTH,x
+	lda ITEM_SORT_SLOT,x
+	ldy ITEM_SORT_SLOT+1,x
+	sta ITEM_SORT_SLOT+1,x
+	tya
+	sta ITEM_SORT_SLOT,x
+	inc tmp1
+.is_ok
+	inx
+	jmp .is_i
+.is_n
+	lda tmp1
+	beq .is_done
+	dec tmp0
+	bne .is_o
+.is_done
+	rts
+
+; ---------------------------------------------------------------------------
+; item_draw_one — turn=slot, wallz_h=depth (from sort)
+; ---------------------------------------------------------------------------
+item_draw_one
+	ldx turn
+	txa
+	asl
+	asl
+	tay
+	lda level_items,y
+	sta wall_col
+	iny
+	lda level_items,y
+	lsr
+	lsr
+	lsr
+	sta mapx
+	iny
+	lda level_items,y
+	lsr
+	lsr
+	lsr
+	sta mapy
+	jsr map_sector_id
+	bne .id_gotsec
+	rts
+.id_gotsec
+	sta near_ceil
+	tay
+	lda SEC_SEEN,y
+	bne .id_seen
+	rts
+.id_seen
+	lda SEC_FLOOR,y
+	sta near_floor
+	ldx turn
+	jsr item_calc_depth
+	bcc .id_dpthok
+	rts
+.id_dpthok
+	sta wallz_h
+	jsr item_calc_screen
+	lda wall_col
+	cmp #ITEM_TYPE_ENEMY_LO
+	bcc .id_half
+	cmp #ITEM_TYPE_ENEMY_HI+1
+	bcs .id_half
+	lda #100
+	bne .id_hd
+.id_half
+	lda #50
+.id_hd
+	sta aux_l
+	lda #0
+	sta aux_h
+	lda wallz_h
+	jsr udiv16x8
+	cmp #1
+	bcs .id_h1
+	lda #1
+.id_h1
+	cmp #25
+	bcc .id_h2
+	lda #24
+.id_h2
+	sta last_near_ok
+	sta tmp5
+	lda eyeheight
+	sec
+	sbc near_floor
+	sta tmp2
+	lda #0
+	sta aux_l
+	sta aux_h
+	lda tmp2
+	ldy #25
+	jsr smul_aux_add
+	jsr sdiv_aux_depth
+	clc
+	adc #HORIZON
+	sta fill_y1
+	sec
+	sbc last_near_ok
+	sta fill_y0
+	; Reject absurd centres (signed wrap / far off-screen)
+	lda last_near_fcol
+	cmp #64
+	bcc .id_cx_ok			; 0..63
+	cmp #$e0
+	bcs .id_cx_ok			; $E0..$FF ≈ -32..-1, near left
+	rts
+.id_cx_ok
+	; signed left = centre - W/2 ; right = left + W
+	lda last_near_ok
+	lsr
+	sta tmp0
+	lda last_near_fcol
+	sec
+	sbc tmp0
+	sta fracx			; signed orig left (tex map)
+	sta span_a			; draw left (may clamp)
+	clc
+	adc last_near_ok
+	sta span_b			; signed right exclusive
+	; frustum: skip if right <= 0 or left >= 40
+	lda span_b
+	beq .id_rts
+	bmi .id_rts			; right <= 0
+	lda span_a
+	bmi .id_clamp_l			; left < 0 → clamp draw start
+	cmp #40
+	bcc .id_rchk			; left in 0..39
+	rts				; left >= 40, fully off right
+.id_clamp_l
+	lda #0
+	sta span_a
+.id_rchk
+	lda span_b
+	cmp #41
+	bcc .id_yclamp
+	lda #40
+	sta span_b
+.id_yclamp
+	lda span_a
+	cmp span_b
+	bcc .id_vspan
+	rts
+.id_vspan
+	lda fill_y0
+	bpl .id_topok
+	lda #0
+	sta fill_y0
+.id_topok
+	lda fill_y1
+	cmp #25
+	bcc .id_botok
+	lda #25
+	sta fill_y1
+.id_botok
+	lda fill_y0
+	cmp fill_y1
+	bcc .id_vok
+.id_rts
+	rts
+.id_vok
+	lda span_a
+	sta col
+.id_clp
+	lda col
+	cmp span_b
+	bcc .id_cin
+	rts
+.id_cin
+	cmp #40
+	bcs .id_cnx
+	lda near_ceil
+	jsr clip_col_find
+	bcs .id_cnx
+	lda fill_y0
+	cmp tmp0
+	bcs .id_yt
+	lda tmp0
+.id_yt
+	sta py_row
+	lda fill_y1
+	cmp tmp1
+	bcc .id_yb
+	lda tmp1
+.id_yb
+	sta dda_steps
+	lda py_row
+	cmp dda_steps
+	bcc .id_spanok
+.id_cnx
+	inc col
+	jmp .id_clp
+.id_spanok
+	jsr set_col_base
+	; bmp_x = (col - orig_left) * 8 / W  (orig_left may be negative)
+	lda fracx
+	bpl .id_oxpos
+	; left negative: dist = col - left = col + (-left)
+	lda #0
+	sec
+	sbc fracx			; -left
+	clc
+	adc col
+	jmp .id_ox
+.id_oxpos
+	lda col
+	sec
+	sbc fracx
+.id_ox
+	sta aux_l
+	lda #0
+	sta aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	lda last_near_ok
+	jsr udiv16x8
+	and #7
+	sta last_near_floor		; bmp_x
+	; ptr = item_gfx + typeId*64 + bmp_x*8
+	lda #0
+	sta ptr_h
+	lda wall_col
+	asl
+	rol ptr_h
+	asl
+	rol ptr_h
+	asl
+	rol ptr_h
+	asl
+	rol ptr_h
+	asl
+	rol ptr_h
+	asl
+	rol ptr_h				; type*64
+	sta ptr_l
+	lda last_near_floor
+	asl
+	asl
+	asl					; bmp_x*8
+	clc
+	adc ptr_l
+	sta ptr_l
+	lda ptr_h
+	adc #0
+	sta ptr_h
+	clc
+	lda ptr_l
+	adc #<item_gfx
+	sta ptr_l
+	lda ptr_h
+	adc #>item_gfx
+	sta ptr_h
+	ldy py_row
+.id_rlp
+	cpy dda_steps
+	bcs .id_cnx
+	sty tmp4				; screen row
+	tya
+	sec
+	sbc fill_y0
+	sta aux_l
+	lda #0
+	sta aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	lda tmp5
+	jsr udiv16x8
+	and #7
+	tay					; bmp_y
+	lda (ptr_l),y
+	beq .id_skip
+	ldy tmp4
+	sta (col_base_l),y
+	lda #ITEM_PAT
+	sta (pat_base_l),y
+.id_skip
+	ldy tmp4
+	iny
+	jmp .id_rlp
+
+sdiv_aux_depth
+	lda aux_l
+	sta tmp0
+	lda aux_h
+	sta tmp1
+	lda wallz_h
+	jmp sdiv16x8

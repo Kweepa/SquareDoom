@@ -11,14 +11,15 @@ PROF_WALLZ  = 2
 PROF_NEAR   = 3
 PROF_LEDGE  = 4
 PROF_PROJECT_Y = 5
-PROF_NBUCKET = 6
+PROF_ITEMS  = 6
+PROF_NBUCKET = 7
 
 prof_lo		= PROF_BSS
 prof_mid	= PROF_BSS + PROF_NBUCKET
 prof_hi		= PROF_BSS + PROF_NBUCKET * 2
-frame_t0	= PROF_BSS + $12
-frame_cy	= PROF_BSS + $16
-casc_now	= PROF_BSS + $1a
+frame_t0	= PROF_BSS + $15		; after 7×3 bucket bytes
+frame_cy	= PROF_BSS + $19
+casc_now	= PROF_BSS + $1d
 } else {
 frame_t0	= PROF_BSS
 frame_cy	= PROF_BSS + 4
@@ -194,7 +195,7 @@ prof_add_py
 	jmp prof_add_bucket
 }
 
-; DBG_FPS: F (≈ ms). PROFILE: S D W N L P (ms).
+; DBG_FPS: F (≈ ms). PROFILE: S D W N L P I (ms).
 ; Bucket ms ≈ (cycles>>8)/4, 3 decimal digits. Chars only — colour from blit.
 prof_print
 	ldx #0
@@ -229,7 +230,7 @@ prof_print
 	pla
 	tay
 	iny
-	cpy #6				; S D W N L P
+	cpy #PROF_NBUCKET		; S D W N L P I
 	bcc .pp_buck
 }
 	rts
@@ -242,6 +243,7 @@ prof_print
 	!byte PROF_NEAR
 	!byte PROF_LEDGE
 	!byte PROF_PROJECT_Y
+	!byte PROF_ITEMS
 
 .pp_letter
 	!byte $93			; S
@@ -250,6 +252,7 @@ prof_print
 	!byte $8e			; N
 	!byte $8c			; L
 	!byte $90			; P
+	!byte $89			; I
 }
 
 SCREEN_DIGIT_BASE = $b0

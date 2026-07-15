@@ -188,7 +188,7 @@ COL_DDWY_H	= COL_DDWY_L + COL_NUM
 COL_END		= COL_DDWY_H + COL_NUM	; first byte after ray cache
 
 PROF_BSS	= COL_END		; CIA cascade / PROFILE buckets (must be ≥ COL_END)
-PROF_BSS_SIZE	= $20			; reserved (PROFILE=0/1 scratch)
+PROF_BSS_SIZE	= $24			; 7×3 buckets + frame/cascade (PROFILE=1)
 PROF_END	= PROF_BSS + PROF_BSS_SIZE
 
 ; Door / sector processes (SoA, max 8)
@@ -206,3 +206,20 @@ PROC_B		= PROC_A + PROC_NUM	; target height / next kind
 PROC_C		= PROC_B + PROC_NUM	; timer/accum lo
 PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
 PROC_END	= PROC_D + PROC_NUM
+
+; Per-column portal clip stack for item draw (40 cols × 16 depth)
+CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step
+COL_CLIP_N	= PROC_END		; 40 bytes: entries used per column
+COL_CLIP_SEC	= COL_CLIP_N + COL_NUM	; 40×CLIP_MAX sector ids
+COL_CLIP_TOP	= COL_CLIP_SEC + COL_NUM * CLIP_MAX
+COL_CLIP_BOT	= COL_CLIP_TOP + COL_NUM * CLIP_MAX
+COL_CLIP_END	= COL_CLIP_BOT + COL_NUM * CLIP_MAX
+
+; Per-frame sector visibility ($FF = seen this frame)
+SEC_SEEN	= COL_CLIP_END		; 256 bytes, index = sector id
+SEC_SEEN_END	= SEC_SEEN + 256
+
+; Item render sort buffer (depth hi + slot index), max 48 (= MAX_ITEMS)
+ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth
+ITEM_SORT_SLOT	= ITEM_SORT_DEPTH + 48
+ITEM_SORT_END	= ITEM_SORT_SLOT + 48

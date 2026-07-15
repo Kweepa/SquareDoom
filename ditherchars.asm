@@ -1,5 +1,5 @@
-; Auto-generated from lightingdither.png — do not edit
-; Wall UDGs $00–$07 (closest→furthest), floor UDG $08 (tile 2 rot90 CW)
+; Auto-generated from lightingdither.png + itemudg.png — do not edit
+; Wall UDGs $00–$07, floor $08 (tile 2 rot90 CW), item $09 (itemudg.png)
 !zone ditherchars
 
 dither_wall_glyphs
@@ -13,3 +13,5 @@ dither_wall_glyphs
 	!byte $00,$00,$00,$00,$00,$00,$00,$00	; light 7
 dither_floor_glyph
 	!byte $ff,$06,$ff,$60,$ff,$06,$ff,$60
+dither_item_glyph
+	!byte $15,$f1,$8f,$a8,$8a,$f8,$1f,$15

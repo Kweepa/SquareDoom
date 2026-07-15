@@ -30,7 +30,7 @@ import {
   clampWorld,
   itemsInTiles,
   MAX_ITEMS,
-} from './model.js?v=24';
+} from './model.js?v=26';
 import { MapView } from './mapView.js?v=24';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
@@ -48,7 +48,7 @@ import {
   loadEpisodeJSON,
   saveEpisodeJSON,
   tryRestoreEpisodeFile,
-} from './io.js?v=24';
+} from './io.js?v=25';
 
 const statusEl = document.getElementById('status');
 const titleEl = document.querySelector('.toolbar h1');
@@ -730,11 +730,15 @@ function handlePointer(e, info) {
     }
     setTileSelection([{ tx: info.tx, ty: info.ty }], { tx: info.tx, ty: info.ty });
     markDirty();
-    setStatus(
-      brush
-        ? `Painted tile from selection · ${sectorCount(level)} sectors`
-        : `Added default tile · ${sectorCount(level)} sectors`,
-    );
+    if (level._lastPaintNote) {
+      setStatus(level._lastPaintNote, true);
+    } else {
+      setStatus(
+        brush
+          ? `Painted tile from selection · ${sectorCount(level)} sectors`
+          : `Added default tile · ${sectorCount(level)} sectors`,
+      );
+    }
     refreshAll();
     return;
   }
@@ -822,8 +826,22 @@ function applyLoadedEpisode(loaded) {
     episode.activeLevel = loaded.activeLevel;
   }
   clearSelection();
-  markClean();
-  setStatus(`Loaded ${episodeFileName()}`);
+  /** @type {string[]} */
+  const shapeNotes = [];
+  for (const name of Object.keys(episode.levels)) {
+    const lvl = episode.levels[name];
+    if (lvl._loadWarnings?.length) {
+      shapeNotes.push(...lvl._loadWarnings.map((w) => `${name}: ${w}`));
+      delete lvl._loadWarnings;
+    }
+  }
+  if (shapeNotes.length) {
+    markDirty();
+    setStatus(`Loaded ${episodeFileName()} — ${shapeNotes[0]}`, true);
+  } else {
+    markClean();
+    setStatus(`Loaded ${episodeFileName()}`);
+  }
   refreshAll();
 }
 
