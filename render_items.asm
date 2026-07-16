@@ -525,12 +525,33 @@ item_draw_one
 	ldx turn
 	jsr enemy_get_texture
 	bcc .id_w_sq
-	sta far_floor			; tex (+ TEX_ANIMATE); 16×32 path
+	sta far_floor			; tex (+ TEX_ANIMATE); mip path
 	lda far_ceil
 	lsr				; W = H/2 (16∶32 aspect)
 	bne .id_w1
 	lda #1
 .id_w1
+	; mip0 may scale horizontally (keep W when ≥16). Smaller mips:
+	; floor W to pow2 so U is 1∶1; H stays projected (vertical scale only).
+	cmp #16
+	bcs .id_rw_set			; W≥16 → mip0, allow W>16
+	cmp #8
+	bcc .id_rw4
+	lda #8
+	bne .id_rw_set
+.id_rw4
+	cmp #4
+	bcc .id_rw2
+	lda #4
+	bne .id_rw_set
+.id_rw2
+	cmp #2
+	bcc .id_rw1
+	lda #2
+	bne .id_rw_set
+.id_rw1
+	lda #1
+.id_rw_set
 	sta last_near_ok
 	jmp .id_feet
 .id_w_sq
@@ -626,6 +647,28 @@ item_draw_one
 .id_rts
 	rts
 .id_vok
+	; Enemy mip: W≥16→mip0 (may be wider than 16); else W is pow2 = mip_w
+	lda far_floor
+	beq .id_clp_go
+	lda last_near_ok
+	ldx #0
+	cmp #16
+	bcs .id_mip_got			; ≥16 → mip0 (horizontal scale OK)
+	ldx #1
+	cmp #8
+	beq .id_mip_got
+	ldx #2
+	cmp #4
+	beq .id_mip_got
+	ldx #3
+	cmp #2
+	beq .id_mip_got
+	ldx #4
+.id_mip_got
+	stx fracy				; mip index (udiv16x8 clobbers tmp5)
+	lda enemy_mip_w,x
+	sta last_near_ceil			; mip_w (scratch for draw)
+.id_clp_go
 	lda span_a
 	sta col
 .id_clp
@@ -692,9 +735,9 @@ item_draw_one
 	bne .id_e32
 	jmp .id_e8
 
-; --- 16×32 enemy column ---
+; --- Enemy column (mip-aware; source W×H from tables) ---
 .id_e32
-	; bmp_x = (col - orig_left) * 16 / W
+	; bmp_x = (col - orig_left) * mip_w / W
 	lda fracx
 	bpl .id32_oxp
 	lda #0
@@ -711,17 +754,19 @@ item_draw_one
 	sta aux_l
 	lda #0
 	sta aux_h
+	ldx fracy
+	lda enemy_mip_ushift,x
+	beq .id32_ux0
+	tax
+.id32_uxlp
 	asl aux_l
 	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h				; *16
+	dex
+	bne .id32_uxlp
+.id32_ux0
 	lda last_near_ok
 	jsr udiv16x8
-	cmp #16				; no U wrap — past edge = skip column
+	cmp last_near_ceil		; >= mip_w → skip
 	bcc .id32_xok
 	jmp .id_cnx
 .id32_xok
@@ -733,47 +778,48 @@ item_draw_one
 	lda anim_frame
 	and #2
 	beq .id32_nomir
-	lda #15
+	lda last_near_ceil
+	sec
+	sbc #1				; mip_w - 1
 	sec
 	sbc last_near_floor
 	sta last_near_floor
 .id32_nomir
-	; ptr = enemy_spr_base + (tex&~$40)*512 + bmp_x*32
-	; bmp_x*32 must be 16-bit: 8<<5=256 overflows 8-bit ASL (right half
-	; would re-sample tex cols 0..7 → two identical halves)
+	; ptr = enemy_mip_base[frame*5+mip] + bmp_x * mip_h
 	lda far_floor
-	and #$bf				; clear TEX_ANIMATE
-	asl					; *2 → hi of *512
-	sta ptr_h
-	lda #0
+	and #$bf				; clear TEX_ANIMATE → frame
+	sta tmp0
+	asl
+	asl					; *4
+	clc
+	adc tmp0				; *5
+	clc
+	adc fracy				; + mip
+	tax
+	lda enemy_mip_base_lo,x
 	sta ptr_l
-	lda last_near_floor		; bmp_x
+	lda enemy_mip_base_hi,x
+	sta ptr_h
+	lda last_near_floor		; bmp_x * mip_h
 	sta aux_l
 	lda #0
 	sta aux_h
+	ldx fracy
+	lda enemy_mip_vshift,x
+	beq .id32_vx0
+	tax
+.id32_vxlp
 	asl aux_l
 	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h				; *32 in aux (max 480)
+	dex
+	bne .id32_vxlp
+.id32_vx0
 	clc
 	lda ptr_l
 	adc aux_l
 	sta ptr_l
 	lda ptr_h
 	adc aux_h
-	sta ptr_h
-	clc
-	lda ptr_l
-	adc #<enemy_spr_base
-	sta ptr_l
-	lda ptr_h
-	adc #>enemy_spr_base
 	sta ptr_h
 	ldy py_row
 .id32_rlp
@@ -788,20 +834,26 @@ item_draw_one
 	sta aux_l
 	lda #0
 	sta aux_h
-	; *32 / H
+	; * mip_h / H
+	ldx fracy
+	lda enemy_mip_vshift,x
+	beq .id32_vy0
+	tax
+.id32_vylp
 	asl aux_l
 	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
+	dex
+	bne .id32_vylp
+.id32_vy0
 	lda far_ceil
 	jsr udiv16x8
-	and #31
+	ldx fracy
+	cmp enemy_mip_h,x
+	bcc .id32_yok
+	lda enemy_mip_h,x
+	sec
+	sbc #1
+.id32_yok
 	tay
 	lda (ptr_l),y
 	beq .id32_skip

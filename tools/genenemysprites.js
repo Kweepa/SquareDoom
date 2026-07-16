@@ -1,6 +1,13 @@
 /**
- * Read itemgraphics/multicolour/pos{walk,atk,pain}.png → enemy_sprites.asm
- * Column-major 16×32: gfx[bmp_x * 32 + bmp_y], byte = C64 colour, 0 = transparent.
+ * Read itemgraphics/multicolour/pos{walk,atk,pain}_mips.png → enemy_sprites.asm
+ *
+ * Source atlas per frame: 24×32
+ *   left 16×32 = mip0
+ *   right strip: mip1 8×16 (y0..15), mip2 4×8 (y16..23),
+ *                mip3 2×4 (y24..27), mip4 1×2 (y28..29)
+ *
+ * Emits standalone column-major frames (gfx[x*H+y], 0=transparent)
+ * plus lookup tables for mip W/H and base address [frame*5+mip].
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -11,9 +18,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const gfxDir = join(root, 'itemgraphics', 'multicolour');
 
 const FRAMES = [
-  { file: 'poswalk.png', label: 'enemy_spr_walk' },
-  { file: 'posatk.png', label: 'enemy_spr_atk' },
-  { file: 'pospain.png', label: 'enemy_spr_pain' },
+  { file: 'poswalk_mips.png', prefix: 'enemy_spr_walk' },
+  { file: 'posatk_mips.png', prefix: 'enemy_spr_atk' },
+  { file: 'pospain_mips.png', prefix: 'enemy_spr_pain' },
+];
+
+const ATLAS_W = 24;
+const ATLAS_H = 32;
+
+const MIPS = [
+  { name: 'm0', w: 16, h: 32, x0: 0, y0: 0 },
+  { name: 'm1', w: 8, h: 16, x0: 16, y0: 0 },
+  { name: 'm2', w: 4, h: 8, x0: 16, y0: 16 },
+  { name: 'm3', w: 2, h: 4, x0: 16, y0: 24 },
+  { name: 'm4', w: 1, h: 2, x0: 16, y0: 28 },
 ];
 
 const C64_RGB = [
@@ -177,20 +195,37 @@ function fmtBytes(bytes) {
   return lines.join('\n');
 }
 
-const W = 16;
-const H = 32;
-const BYTES = W * H;
+function extractMip(pixels, atlasW, mip) {
+  const col = [];
+  for (let x = 0; x < mip.w; x++) {
+    for (let y = 0; y < mip.h; y++) {
+      const rgba = pixels[(mip.y0 + y) * atlasW + (mip.x0 + x)];
+      col.push(isTransparent(rgba) ? 0 : nearestC64(rgba));
+    }
+  }
+  return col;
+}
 
-let asm = `; Auto-generated from itemgraphics/multicolour/pos*.png — do not edit\n`;
-asm += `; Column-major 16×32: gfx[bmp_x*32+bmp_y], byte = C64 colour, 0 = transparent\n`;
+let asm = `; Auto-generated from itemgraphics/multicolour/pos*_mips.png — do not edit\n`;
+asm += `; Standalone column-major mip frames: gfx[bmp_x*H+bmp_y], 0 = transparent\n`;
 asm += `!zone enemy_sprites\n\n`;
-asm += `ENEMY_BMP_W = ${W}\n`;
-asm += `ENEMY_BMP_H = ${H}\n`;
-asm += `ENEMY_BMP_BYTES = ${BYTES}\n\n`;
-asm += `; Frame index 0=walk 1=atk 2=pain — base = enemy_spr_base + idx*512\n`;
-asm += `enemy_spr_base\n`;
+asm += `ENEMY_MIP_COUNT = ${MIPS.length}\n`;
+asm += `ENEMY_FRAME_COUNT = ${FRAMES.length}\n\n`;
 
-const labels = [];
+asm += `; mip source width / height / log2 (index = mip 0..4)\n`;
+asm += `enemy_mip_w\n`;
+asm += `\t!byte ${MIPS.map((m) => m.w).join(',')}\n`;
+asm += `enemy_mip_h\n`;
+asm += `\t!byte ${MIPS.map((m) => m.h).join(',')}\n`;
+asm += `enemy_mip_ushift\n`;
+asm += `\t!byte ${MIPS.map((m) => Math.log2(m.w)).join(',')}\n`;
+asm += `enemy_mip_vshift\n`;
+asm += `\t!byte ${MIPS.map((m) => Math.log2(m.h)).join(',')}\n\n`;
+
+const allLabels = [];
+let totalBytes = 0;
+const frameBlocks = [];
+
 for (const frame of FRAMES) {
   const path = join(gfxDir, frame.file);
   if (!existsSync(path)) {
@@ -198,22 +233,40 @@ for (const frame of FRAMES) {
     process.exit(1);
   }
   const { width, height, pixels } = decodePngRgb(readFileSync(path));
-  if (width !== W || height !== H) {
-    console.error(`${frame.file}: expected ${W}×${H}, got ${width}×${height}`);
+  if (width !== ATLAS_W || height !== ATLAS_H) {
+    console.error(`${frame.file}: expected ${ATLAS_W}×${ATLAS_H}, got ${width}×${height}`);
     process.exit(1);
   }
-  const col = [];
-  for (let x = 0; x < W; x++) {
-    for (let y = 0; y < H; y++) {
-      const rgba = pixels[y * W + x];
-      col.push(isTransparent(rgba) ? 0 : nearestC64(rgba));
-    }
+  const labels = [];
+  for (const mip of MIPS) {
+    const label = `${frame.prefix}_${mip.name}`;
+    const bytes = extractMip(pixels, ATLAS_W, mip);
+    labels.push({ label, bytes });
+    allLabels.push(label);
+    totalBytes += bytes.length;
   }
-  asm += `${frame.label}\n`;
-  asm += fmtBytes(col);
-  asm += `\n`;
-  labels.push(frame.label);
+  frameBlocks.push({ frame, labels });
+}
+
+// Base address tables: index = frame*5 + mip
+asm += `; Base address lo/hi: index = frame*ENEMY_MIP_COUNT + mip\n`;
+asm += `; frame 0=walk 1=atk 2=pain\n`;
+asm += `enemy_mip_base_lo\n`;
+asm += `\t!byte ${allLabels.map((l) => `<${l}`).join(',')}\n`;
+asm += `enemy_mip_base_hi\n`;
+asm += `\t!byte ${allLabels.map((l) => `>${l}`).join(',')}\n\n`;
+
+asm += `; Frame mip blobs (walk, atk, pain × m0..m4)\n`;
+asm += `enemy_spr_base\n`;
+for (const block of frameBlocks) {
+  for (const { label, bytes } of block.labels) {
+    asm += `${label}\n`;
+    asm += fmtBytes(bytes);
+    asm += `\n`;
+  }
 }
 
 writeFileSync(join(root, 'enemy_sprites.asm'), asm);
-console.log(`wrote enemy_sprites.asm (${FRAMES.length} frames × ${BYTES} = ${FRAMES.length * BYTES} bytes)`);
+console.log(
+  `wrote enemy_sprites.asm (${FRAMES.length} frames × ${MIPS.length} mips = ${totalBytes} bytes)`,
+);

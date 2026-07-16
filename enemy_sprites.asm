@@ -1,14 +1,30 @@
-; Auto-generated from itemgraphics/multicolour/pos*.png — do not edit
-; Column-major 16×32: gfx[bmp_x*32+bmp_y], byte = C64 colour, 0 = transparent
+; Auto-generated from itemgraphics/multicolour/pos*_mips.png — do not edit
+; Standalone column-major mip frames: gfx[bmp_x*H+bmp_y], 0 = transparent
 !zone enemy_sprites
 
-ENEMY_BMP_W = 16
-ENEMY_BMP_H = 32
-ENEMY_BMP_BYTES = 512
+ENEMY_MIP_COUNT = 5
+ENEMY_FRAME_COUNT = 3
 
-; Frame index 0=walk 1=atk 2=pain — base = enemy_spr_base + idx*512
+; mip source width / height / log2 (index = mip 0..4)
+enemy_mip_w
+	!byte 16,8,4,2,1
+enemy_mip_h
+	!byte 32,16,8,4,2
+enemy_mip_ushift
+	!byte 4,3,2,1,0
+enemy_mip_vshift
+	!byte 5,4,3,2,1
+
+; Base address lo/hi: index = frame*ENEMY_MIP_COUNT + mip
+; frame 0=walk 1=atk 2=pain
+enemy_mip_base_lo
+	!byte <enemy_spr_walk_m0,<enemy_spr_walk_m1,<enemy_spr_walk_m2,<enemy_spr_walk_m3,<enemy_spr_walk_m4,<enemy_spr_atk_m0,<enemy_spr_atk_m1,<enemy_spr_atk_m2,<enemy_spr_atk_m3,<enemy_spr_atk_m4,<enemy_spr_pain_m0,<enemy_spr_pain_m1,<enemy_spr_pain_m2,<enemy_spr_pain_m3,<enemy_spr_pain_m4
+enemy_mip_base_hi
+	!byte >enemy_spr_walk_m0,>enemy_spr_walk_m1,>enemy_spr_walk_m2,>enemy_spr_walk_m3,>enemy_spr_walk_m4,>enemy_spr_atk_m0,>enemy_spr_atk_m1,>enemy_spr_atk_m2,>enemy_spr_atk_m3,>enemy_spr_atk_m4,>enemy_spr_pain_m0,>enemy_spr_pain_m1,>enemy_spr_pain_m2,>enemy_spr_pain_m3,>enemy_spr_pain_m4
+
+; Frame mip blobs (walk, atk, pain × m0..m4)
 enemy_spr_base
-enemy_spr_walk
+enemy_spr_walk_m0
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$0e,$0e,$0e,$0e,$06,$0e
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$0e,$0e,$0e,$0a,$0a,$0a,$06,$0a,$00
@@ -30,7 +46,7 @@ enemy_spr_walk
 	!byte $00,$0a,$08,$0a,$0a,$0e,$0e,$0e,$0e,$0e,$06,$0b,$0b,$06,$0e,$0e
 	!byte $0e,$0e,$0e,$08,$08,$0e,$08,$0e,$0e,$0e,$0e,$0e,$0e,$08,$08,$08
 	!byte $00,$00,$00,$00,$00,$0e,$0e,$0e,$0e,$06,$06,$0b,$0b,$0e,$0e,$0e
-	!byte $0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$00,$00,$00,$00,$00
+	!byte $0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$00,$00,$00,$00,$08
 	!byte $00,$00,$00,$00,$00,$00,$0e,$0e,$0e,$08,$0b,$0b,$0a,$0a,$00,$00
 	!byte $0e,$0e,$0e,$0e,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$0e,$0e,$0e,$08,$08,$08,$0a,$00,$00
@@ -41,7 +57,23 @@ enemy_spr_walk
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$0b,$0b,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-enemy_spr_atk
+enemy_spr_walk_m1
+	!byte $00,$00,$00,$0e,$0e,$0a,$0a,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$0e,$06,$0e,$0a,$0a,$06,$0e,$00,$00,$00,$00,$00,$00
+	!byte $0a,$08,$0a,$0e,$08,$08,$06,$08,$06,$0e,$08,$0e,$00,$00,$08,$00
+	!byte $0a,$08,$08,$0a,$0e,$08,$0b,$08,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$08
+	!byte $0a,$08,$0a,$0e,$0e,$0b,$06,$0e,$0e,$08,$08,$0e,$0e,$0e,$08,$08
+	!byte $00,$00,$00,$0e,$08,$0b,$0a,$06,$0e,$0e,$00,$00,$00,$00,$00,$08
+	!byte $00,$00,$00,$00,$0b,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$0b,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_walk_m2
+	!byte $00,$0e,$0e,$0a,$0e,$00,$08,$00,$0a,$0a,$06,$08,$0e,$0e,$0e,$08
+	!byte $00,$0e,$0b,$0e,$0e,$00,$00,$00,$00,$0b,$08,$00,$00,$00,$00,$00
+enemy_spr_walk_m3
+	!byte $0a,$0e,$0e,$08,$00,$0b,$00,$00
+enemy_spr_walk_m4
+	!byte $0a,$0e
+enemy_spr_atk_m0
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$08,$00,$0a,$00,$00,$08
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$0a,$07,$07,$0a,$00
@@ -74,7 +106,23 @@ enemy_spr_atk
 	!byte $0e,$0e,$0e,$08,$08,$08,$08,$0e,$0e,$08,$0e,$0e,$0e,$08,$08,$08
 	!byte $00,$00,$00,$00,$00,$00,$00,$0e,$0e,$0e,$00,$00,$00,$00,$0e,$0e
 	!byte $0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$00,$00,$08,$08
-enemy_spr_pain
+enemy_spr_atk_m1
+	!byte $00,$00,$00,$00,$00,$0a,$07,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$0e,$07,$01,$07,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$0e,$08,$06,$07,$08,$0e,$0e,$08,$08,$00,$00,$00,$00
+	!byte $0a,$08,$0a,$06,$0e,$08,$06,$0a,$0e,$0e,$0e,$08,$0e,$00,$08,$00
+	!byte $0a,$08,$0a,$06,$0e,$06,$0a,$0a,$0e,$0e,$06,$0e,$06,$0e,$08,$00
+	!byte $0a,$0a,$00,$0e,$0a,$0a,$0a,$06,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$08
+	!byte $00,$00,$00,$0e,$0a,$0a,$0e,$0e,$0e,$0e,$08,$08,$0e,$08,$08,$08
+	!byte $00,$00,$00,$00,$0e,$0e,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_atk_m2
+	!byte $00,$00,$07,$01,$07,$00,$00,$00,$0a,$08,$0e,$06,$08,$0e,$08,$00
+	!byte $0a,$0a,$0e,$0a,$0e,$0e,$0e,$08,$00,$00,$0e,$00,$00,$00,$00,$00
+enemy_spr_atk_m3
+	!byte $00,$01,$00,$00,$0a,$08,$0e,$08
+enemy_spr_atk_m4
+	!byte $01,$0e
+enemy_spr_pain_m0
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$08
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$08,$08,$00
@@ -107,3 +155,19 @@ enemy_spr_pain
 	!byte $0a,$08,$00,$00,$00,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	!byte $00,$00,$00,$00,$08,$00,$00,$00,$00,$00,$0e,$0e,$0e,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_pain_m1
+	!byte $00,$00,$00,$00,$00,$00,$08,$00,$00,$00,$0e,$0e,$0e,$00,$00,$08
+	!byte $00,$00,$08,$00,$00,$00,$0a,$08,$0e,$08,$0e,$0e,$0e,$08,$08,$00
+	!byte $00,$00,$00,$00,$08,$0e,$08,$0e,$0e,$0e,$0e,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$0e,$08,$08,$0e,$08,$0e,$00,$00,$00,$00,$00,$00
+	!byte $00,$08,$00,$0a,$0e,$08,$08,$08,$0e,$0e,$0e,$08,$0e,$08,$00,$00
+	!byte $08,$00,$00,$0a,$0e,$0e,$06,$0e,$0e,$0e,$0e,$0e,$00,$00,$08,$00
+	!byte $00,$00,$08,$00,$0e,$0e,$0a,$0a,$08,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$0e,$00,$00,$00,$00,$00,$08,$00,$00,$00,$00
+enemy_spr_pain_m2
+	!byte $00,$08,$00,$0a,$08,$0e,$0e,$08,$08,$00,$08,$08,$0e,$00,$00,$00
+	!byte $00,$00,$0e,$0e,$0e,$0e,$08,$00,$00,$0a,$0e,$0a,$08,$00,$00,$00
+enemy_spr_pain_m3
+	!byte $00,$08,$0e,$08,$0a,$0e,$08,$00
+enemy_spr_pain_m4
+	!byte $0a,$08
