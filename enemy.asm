@@ -119,19 +119,8 @@ missile_momy_h		!byte 0
 player_sector		!byte 0
 
 ; ---------------------------------------------------------------------------
-; damage_player — A = damage
+; play_sound — stub
 ; ---------------------------------------------------------------------------
-damage_player
-	sta tmp0
-	lda health
-	sec
-	sbc tmp0
-	bcs .dp_ok
-	lda #0
-.dp_ok
-	sta health
-	rts
-
 play_sound
 	rts
 

@@ -2,6 +2,7 @@
 
 gameloop
 .frame
+	jsr player_frame
 	jsr calc_frame_dt
 	jsr read_input
 	jsr update_muzzle_flash

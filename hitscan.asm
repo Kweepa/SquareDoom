@@ -70,8 +70,6 @@ hitscan_request
 	bne .hr_snap
 	lda #HS_CLEAR
 	sta hs_status
-	lda #2				; red — LOS clear
-	sta $d020
 	clc
 	rts
 .hr_snap
@@ -114,11 +112,8 @@ hitscan_release
 
 ; ---------------------------------------------------------------------------
 ; hitscan_process — TheKeep DDA march (one axis per step); portal/Z only
-; Clears prior border flash at entry (flash lasts ~one frame).
 ; ---------------------------------------------------------------------------
 hitscan_process
-	lda #0
-	sta $d020
 	lda hs_status
 	cmp #HS_PENDING
 	beq .hp_go
@@ -536,14 +531,10 @@ hitscan_process
 .hp_clear
 	lda #HS_CLEAR
 	sta hs_status
-	lda #2
-	sta $d020
 	rts
 .hp_block
 	lda #HS_BLOCKED
 	sta hs_status
-	lda #5
-	sta $d020
 	rts
 
 ; A&127 → fixsec index 0..63 (same as render_setup .fold_sec)

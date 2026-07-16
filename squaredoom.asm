@@ -53,6 +53,7 @@ free_low = PISTOL_SPRITES - end_low
 !source "gameloop.asm"
 !source "level.asm"
 !source "process.asm"
+!source "player.asm"
 !source "enemy.asm"
 !source "hitscan.asm"
 !source "debug.asm"
