@@ -55,6 +55,7 @@ free_low = PISTOL_SPRITES - end_low
 !source "ditherchars.asm"
 !source "doomfont.asm"
 !source "hud.asm"
+!source "pickup.asm"
 
 end_mid = *
 free_mid = MEM_MID_LIMIT - end_mid

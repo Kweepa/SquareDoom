@@ -101,6 +101,14 @@ spr_en		= $83			; mirror of $d015 (write-only)
 fire_rpt_l	= $85			; ms until next shot while held
 fire_rpt_h	= $86
 
+; Pickup info line (top row, 4s); info_len = cols to reserve (ytop=1)
+info_ms_l	= $87
+info_ms_h	= $88
+info_len	= $89			; 0 = no message
+info_name_l	= $8a			; ptr to name string (screen codes, 0-term)
+info_name_h	= $8b
+has_backpack	= $8c			; 1 after backpack pickup
+
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
 col_base_h	= $4b

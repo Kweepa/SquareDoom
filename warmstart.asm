@@ -40,7 +40,7 @@ warmstart
 	jsr update_eye
 	jmp gameloop
 
-; Default status values (placeholder until pickups work)
+; Default status values
 init_hud_state
 	lda #50
 	sta ammo
@@ -48,8 +48,11 @@ init_hud_state
 	sta health
 	lda #0
 	sta armor
-	lda #$07			; red+yellow+blue — show key layout
 	sta keys
+	sta info_ms_l
+	sta info_ms_h
+	sta info_len
+	sta has_backpack
 	rts
 
 ; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
@@ -92,7 +95,7 @@ init_charset
 	bne .copy_df
 
 	; Patch light UDGs $00–$09 (8 wall + floor + item = 80 bytes)
-	; overwrites doomfont chars 0–9 (unused by HUD)
+	; overwrites doomfont chars 0–9 (view patterns)
 	ldx #0
 .patch
 	lda dither_wall_glyphs,x
@@ -100,6 +103,15 @@ init_charset
 	inx
 	cpx #80
 	bcc .patch
+
+	; A–Z for top-line messages at screen codes 192–217 (dither owns 0–9)
+	ldx #0
+.msgfont
+	lda doomfont_udgs + 8,x		; char 1 = 'A'
+	sta CHARSET + 192 * 8,x
+	inx
+	cpx #26 * 8
+	bne .msgfont
 
 	lda #CHARSET_PTR
 	sta $d018

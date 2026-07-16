@@ -63,6 +63,7 @@ render
 	cmp #40
 	bcc .col_loop
 	jsr render_items
+	jsr draw_info_msg
 	jsr blit_fb_to_color
 	jsr blit_fb_to_chars
 	jsr draw_hud

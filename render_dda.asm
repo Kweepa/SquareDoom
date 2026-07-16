@@ -92,11 +92,20 @@ cast_column
 	sta wz_y_l
 	stx wz_y_h
 .cc_init
-	; Open clip [0,25); HUD columns leave row 24 untouched
+	; Open clip [0,25); HUD columns leave row 24 untouched.
+	; Info message leaves row 0 free for cols 0..info_len-1.
 	lda #0
 	sta ytop
 	sta dda_steps
 	sta last_near_ok
+	lda info_len
+	beq .ytop_ok
+	ldx col
+	cpx info_len
+	bcs .ytop_ok
+	lda #1
+	sta ytop
+.ytop_ok
 	lda #25
 	ldx col
 	cpx #8
