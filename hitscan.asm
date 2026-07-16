@@ -3,7 +3,7 @@
 ; ============================================================================
 ; hitscan.asm — one claim per enemy_think frame for possessed LOS
 ; Request: if hs_claimed already → fail; else take slot (overwrite stale).
-; Process walks map Bresenham with Z lerp; same sector → CLEAR immediately.
+; Process: TheKeep sdx/sdy DDA (same as render_dda, no fish/clip/paint).
 ; ============================================================================
 
 HS_IDLE = 0
@@ -22,19 +22,16 @@ hs_y1			!byte 0
 hs_z0			!byte 0
 hs_z1			!byte 0
 
-; Process scratch (safe: only used in hitscan_process outside render)
-hs_dx			!byte 0
-hs_dy			!byte 0
-hs_sx			!byte 0
-hs_sy			!byte 0
-hs_err_l		!byte 0
-hs_err_h		!byte 0
-hs_steps		!byte 0		; max(|dx|,|dy|) for Z Bresenham
+; Process scratch (after render; may clobber DDA ZP)
+hs_endx			!byte 0
+hs_endy			!byte 0
+hs_absx			!byte 0
+hs_absy			!byte 0
+hs_steps		!byte 0		; |tdx|+|tdy| edge crossings for Z
 hs_z			!byte 0
-hs_zd			!byte 0		; |z1-z0|
-hs_zs			!byte 0		; +1 / $ff
+hs_zd			!byte 0
+hs_zs			!byte 0
 hs_zerr			!byte 0
-hs_cur			!byte 0		; current sector id
 hs_count		!byte 0
 
 ; ---------------------------------------------------------------------------
@@ -73,6 +70,8 @@ hitscan_request
 	bne .hr_snap
 	lda #HS_CLEAR
 	sta hs_status
+	lda #2				; red — LOS clear
+	sta $d020
 	clc
 	rts
 .hr_snap
@@ -114,15 +113,18 @@ hitscan_release
 	rts
 
 ; ---------------------------------------------------------------------------
-; hitscan_process — at most one walk per frame; no-op unless PENDING
+; hitscan_process — TheKeep DDA march (one axis per step); portal/Z only
+; Clears prior border flash at entry (flash lasts ~one frame).
 ; ---------------------------------------------------------------------------
 hitscan_process
+	lda #0
+	sta $d020
 	lda hs_status
 	cmp #HS_PENDING
 	beq .hp_go
 	rts
 .hp_go
-	; map tiles
+	; Start / end tiles
 	lda hs_x0
 	lsr
 	lsr
@@ -137,70 +139,125 @@ hitscan_process
 	lsr
 	lsr
 	lsr
-	sta tmp0			; endx
+	sta hs_endx
 	lda hs_y1
 	lsr
 	lsr
 	lsr
-	sta tmp1			; endy
+	sta hs_endy
+
+	lda mapx
+	cmp hs_endx
+	bne .hp_setup
+	lda mapy
+	cmp hs_endy
+	bne .hp_setup
+	jmp .hp_clear			; same tile (should be rare; same-sec early out)
+
+.hp_setup
+	; Tile 8.8 frac from integer world: (world & 7) << 5
+	lda hs_x0
+	and #7
+	asl
+	asl
+	asl
+	asl
+	asl
+	sta fracx
+	eor #$ff
+	sta fracx_inv
+	lda hs_y0
+	and #7
+	asl
+	asl
+	asl
+	asl
+	asl
+	sta fracy
+	eor #$ff
+	sta fracy_inv
 
 	jsr map_sector_id
-	sta hs_cur
-	lda hs_z0
-	sta hs_z
+	sta cur_id
 
-	; dx/sx
+	; Signed world delta → xstep/ystep + abs
+	lda hs_x1
+	sec
+	sbc hs_x0
+	sta tmp0			; dx
+	bcs .hp_xpos
+	lda #$ff
+	sta xstep
 	lda tmp0
+	eor #$ff
+	clc
+	adc #1
+	sta hs_absx
+	jmp .hp_dy
+.hp_xpos
+	beq .hp_x0
+	lda #1
+	sta xstep
+	lda tmp0
+	sta hs_absx
+	jmp .hp_dy
+.hp_x0
+	lda #0
+	sta xstep
+	sta hs_absx
+.hp_dy
+	lda hs_y1
+	sec
+	sbc hs_y0
+	sta tmp0			; dy
+	bcs .hp_ypos
+	lda #$ff
+	sta ystep
+	lda tmp0
+	eor #$ff
+	clc
+	adc #1
+	sta hs_absy
+	jmp .hp_tdelta
+.hp_ypos
+	beq .hp_y0
+	lda #1
+	sta ystep
+	lda tmp0
+	sta hs_absy
+	jmp .hp_tdelta
+.hp_y0
+	lda #0
+	sta ystep
+	sta hs_absy
+.hp_tdelta
+	; Z edge count = |tile_dx| + |tile_dy|
+	lda hs_endx
 	sec
 	sbc mapx
-	bcs .hp_dxpos
+	bcs .hp_txp
 	eor #$ff
 	clc
 	adc #1
-	sta hs_dx
-	lda #$ff
-	sta hs_sx
-	bne .hp_dy
-.hp_dxpos
-	sta hs_dx
-	lda #1
-	sta hs_sx
-.hp_dy
-	lda tmp1
+.hp_txp
+	sta hs_steps
+	lda hs_endy
 	sec
 	sbc mapy
-	bcs .hp_dypos
+	bcs .hp_typ
 	eor #$ff
 	clc
 	adc #1
-	sta hs_dy
-	lda #$ff
-	sta hs_sy
-	bne .hp_err
-.hp_dypos
-	sta hs_dy
-	lda #1
-	sta hs_sy
-.hp_err
-	; err = dx - dy (signed 16-bit)
-	lda hs_dx
-	sec
-	sbc hs_dy
-	sta hs_err_l
-	lda #0
-	sbc #0
-	sta hs_err_h
-	; steps = max(dx,dy); if 0 → CLEAR (same tile; should not reach here)
-	lda hs_dx
-	cmp hs_dy
-	bcs .hp_st
-	lda hs_dy
-.hp_st
+.hp_typ
+	clc
+	adc hs_steps
 	sta hs_steps
-	bne .hp_zi_setup
-	jmp .hp_clear
-.hp_zi_setup
-	; Z Bresenham setup
+	bne .hp_zinit
+	lda #1
+	sta hs_steps
+.hp_zinit
+	lda hs_z0
+	sta hs_z
 	lda hs_z1
 	sec
 	sbc hs_z0
@@ -221,84 +278,188 @@ hitscan_process
 	sta hs_zerr
 	sta hs_count
 
+	; Axis-aligned: unused axis s = $ffff so the other always wins
+	lda xstep
+	bne .hp_hasx
+	lda #$ff
+	sta sdx_l
+	sta sdx_h
+	jmp .hp_cky
+.hp_hasx
+	lda ystep
+	bne .hp_both
+	; X only — ddx = fixsec[0], first-hit from frac
+	lda fixsecl
+	sta ddx_l
+	lda fixsech
+	sta ddx_h
+	lda xstep
+	bmi .hp_xraw
+	lda fracx_inv
+	jsr calc_sdx
+	jmp .hp_yinf
+.hp_xraw
+	lda fracx
+	jsr calc_sdx
+.hp_yinf
+	lda #$ff
+	sta sdy_l
+	sta sdy_h
+	jmp .hp_loop
+.hp_cky
+	lda ystep
+	bne .hp_yonly
+	jmp .hp_clear			; both zero — same point
+.hp_yonly
+	lda fixsecl
+	sta ddy_l
+	lda fixsech
+	sta ddy_h
+	lda ystep
+	bmi .hp_yraw
+	lda fracy_inv
+	jsr calc_sdy
+	jmp .hp_loop
+.hp_yraw
+	lda fracy
+	jsr calc_sdy
+	jmp .hp_loop
+
+.hp_both
+	; TheKeep angle from octant + fine = absy*64/(absx+absy)
+	ldy hs_absy
+	lda #64
+	jsr mul_8x8			; X=lo A=hi
+	stx aux_l
+	sta aux_h
+	lda hs_absx
+	clc
+	adc hs_absy
+	bne .hp_div
+	lda #32
+	bne .hp_fine
+.hp_div
+	jsr udiv16x8
+	cmp #64
+	bcc .hp_fine
+	lda #63
+.hp_fine
+	sta tmp0			; fine 0..63
+	; Pack into TheKeep `angle` (same ranges as rebuild_col_rays steps)
+	lda xstep
+	bmi .hp_xw
+	lda ystep
+	bmi .hp_se
+	; NE: angle = fine
+	lda tmp0
+	jmp .hp_ang
+.hp_se
+	; SE: angle = fine - 64
+	lda tmp0
+	clc
+	adc #$c0
+	jmp .hp_ang
+.hp_xw
+	lda ystep
+	bmi .hp_sw
+	; NW: angle = 64 + fine
+	lda tmp0
+	clc
+	adc #64
+	jmp .hp_ang
+.hp_sw
+	; SW: angle = $80 + fine
+	lda tmp0
+	clc
+	adc #$80
+.hp_ang
+	sta angle
+	; ddx = fixsec[fold(angle)]
+	jsr .hs_fold_sec
+	tay
+	lda fixsecl,y
+	sta ddx_l
+	lda fixsech,y
+	sta ddx_h
+	; ddy = fixsec[fold(angle+64)]
+	lda angle
+	clc
+	adc #64
+	jsr .hs_fold_sec
+	tay
+	lda fixsecl,y
+	sta ddy_l
+	lda fixsech,y
+	sta ddy_h
+	; First-hit s (same preamble as cast_column)
+	lda xstep
+	bmi .hp_xm
+	lda fracx_inv
+	jsr calc_sdx
+	jmp .hp_ym
+.hp_xm
+	lda fracx
+	jsr calc_sdx
+.hp_ym
+	lda ystep
+	bmi .hp_ymr
+	lda fracy_inv
+	jsr calc_sdy
+	jmp .hp_loop
+.hp_ymr
+	lda fracy
+	jsr calc_sdy
+
+; ---- march (render_dda .inner shape) ----
 .hp_loop
-	; reached end?
 	lda mapx
-	cmp tmp0
+	cmp hs_endx
 	bne .hp_step
 	lda mapy
-	cmp tmp1
+	cmp hs_endy
 	bne .hp_step
 	jmp .hp_clear
 .hp_step
 	lda hs_count
 	cmp #HS_MAX_STEPS
-	bcc .hp_okcnt
-	jmp .hp_block			; path too long — fail closed
-.hp_okcnt
-	; Bresenham step (may move X and/or Y)
-	; e2 = 2*err
-	lda hs_err_l
-	asl
-	sta tmp2
-	lda hs_err_h
-	rol
-	sta tmp3
+	bcc .hp_ok
+	jmp .hp_block
+.hp_ok
+	; nearer of sdx/sdy (tie → Y)
+	lda sdx_h
+	cmp sdy_h
+	bcc .hp_advx
+	bne .hp_advy
+	lda sdx_l
+	cmp sdy_l
+	bcs .hp_advy
 
-	; if e2 > -dy → step X  (signed: e2 + dy > 0)
-	lda tmp2
-	clc
-	adc hs_dy
-	sta tmp4
-	lda tmp3
-	adc #0
-	bmi .hp_noy
-	ora tmp4
-	beq .hp_noy
-	lda hs_err_l
-	sec
-	sbc hs_dy
-	sta hs_err_l
-	lda hs_err_h
-	sbc #0
-	sta hs_err_h
+.hp_advx
 	clc
 	lda mapx
-	adc hs_sx
+	adc xstep
 	sta mapx
-.hp_noy
-	; if e2 < dx → step Y
-	lda tmp2
-	cmp hs_dx
-	lda tmp3
-	sbc #0
-	bpl .hp_nox
-	lda hs_err_l
-	clc
-	adc hs_dx
-	sta hs_err_l
-	lda hs_err_h
-	adc #0
-	sta hs_err_h
-	clc
-	lda mapy
-	adc hs_sy
-	sta mapy
-.hp_nox
-	inc hs_count
+	cmp #32
+	bcc .hp_axok
+	jmp .hp_block
+.hp_axok
+	jsr .hs_add_sdx
+	jmp .hp_cell
 
-	; bounds 0..31
-	lda mapx
-	cmp #32
-	bcc .hp_xb
-	jmp .hp_block
-.hp_xb
+.hp_advy
+	clc
 	lda mapy
+	adc ystep
+	sta mapy
 	cmp #32
-	bcc .hp_yb
+	bcc .hp_ayok
 	jmp .hp_block
-.hp_yb
-	; advance Z toward z1 (one Bresenham tick per cell step)
+.hp_ayok
+	jsr .hs_add_sdy
+
+.hp_cell
+	inc hs_count
+	; Z toward target
 	lda hs_zerr
 	clc
 	adc hs_zd
@@ -317,14 +478,14 @@ hitscan_process
 .hp_zdone
 	jsr map_sector_id
 	bne .hp_got
-	jmp .hp_block			; void / solid
+	jmp .hp_block
 .hp_got
 	sta next_id
-	cmp hs_cur
+	cmp cur_id
 	beq .hp_same
 
 	; Portal opening at z
-	ldx hs_cur
+	ldx cur_id
 	lda SEC_FLOOR,x
 	sta near_floor
 	lda SEC_CEIL,x
@@ -334,7 +495,6 @@ hitscan_process
 	sta far_floor
 	lda SEC_CEIL,x
 	sta far_ceil
-	; max floor
 	lda near_floor
 	cmp far_floor
 	bcs .hp_mf
@@ -342,9 +502,8 @@ hitscan_process
 .hp_mf
 	cmp hs_z
 	bcc .hp_floork
-	jmp .hp_block			; z <= max_floor
+	jmp .hp_block
 .hp_floork
-	; min ceil — need z < min_ceil
 	lda near_ceil
 	cmp far_ceil
 	bcc .hp_mc
@@ -354,14 +513,13 @@ hitscan_process
 	beq .hp_ceilb
 	bcc .hp_ceilb
 	lda next_id
-	sta hs_cur
+	sta cur_id
 	jmp .hp_loop
 .hp_ceilb
 	jmp .hp_block
 
 .hp_same
-	; z must be strictly inside current sector
-	ldx hs_cur
+	ldx cur_id
 	lda SEC_FLOOR,x
 	cmp hs_z
 	bcc .hp_sf
@@ -378,8 +536,42 @@ hitscan_process
 .hp_clear
 	lda #HS_CLEAR
 	sta hs_status
+	lda #2
+	sta $d020
 	rts
 .hp_block
 	lda #HS_BLOCKED
 	sta hs_status
+	lda #5
+	sta $d020
+	rts
+
+; A&127 → fixsec index 0..63 (same as render_setup .fold_sec)
+.hs_fold_sec
+	and #127
+	cmp #63
+	bcc .hs_fsok
+	eor #127
+.hs_fsok
+	rts
+
+; s += dd only (no wz)
+.hs_add_sdx
+	clc
+	lda sdx_l
+	adc ddx_l
+	sta sdx_l
+	lda sdx_h
+	adc ddx_h
+	sta sdx_h
+	rts
+
+.hs_add_sdy
+	clc
+	lda sdy_l
+	adc ddy_l
+	sta sdy_l
+	lda sdy_h
+	adc ddy_h
+	sta sdy_h
 	rts
