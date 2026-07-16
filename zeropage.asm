@@ -94,6 +94,12 @@ health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
 key_use		= $7f			; 1 = K held (use / open door)
+key_fire	= $84			; 1 = I held (shoot)
+muzzle_ms_l	= $80			; muzzle flash ms remaining (16-bit)
+muzzle_ms_h	= $81
+spr_en		= $83			; mirror of $d015 (write-only)
+fire_rpt_l	= $85			; ms until next shot while held
+fire_rpt_h	= $86
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
