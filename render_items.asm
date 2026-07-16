@@ -537,6 +537,11 @@ item_draw_one
 	lda #0
 	sta far_floor			; 8×8 item_gfx path
 	lda far_ceil
+	cmp #17				; items max 16×16 on screen
+	bcc .id_item_sz
+	lda #16
+.id_item_sz
+	sta far_ceil
 	sta last_near_ok			; square W = H
 .id_feet
 	; Feet at floor: same scale as walls (Δh·4/tiles ≡ Δh·32/(tiles·8))
@@ -558,12 +563,13 @@ item_draw_one
 	sbc far_ceil			; top = bot - H (may be <0 or >24)
 	sta fill_y0
 	sta near_fcol			; unclamped top for V map (clip_col clobbers tmp2)
-	; Reject absurd centres (signed wrap / far off-screen)
+	; Slight off-screen centres OK; span tests drop fully off-FOV.
+	; Behind camera is depth-rejected in item_calc_depth.
 	lda last_near_fcol
-	cmp #64
-	bcc .id_cx_ok			; 0..63
-	cmp #$e0
-	bcs .id_cx_ok			; $E0..$FF ≈ -32..-1, near left
+	cmp #56
+	bcc .id_cx_ok			; 0..55
+	cmp #$f0
+	bcs .id_cx_ok			; $F0..$FF ≈ -16..-1
 	rts
 .id_cx_ok
 	; signed left = centre - W/2 ; right = left + W
