@@ -502,17 +502,19 @@ p_check_missile_range_fixed
 ; ---------------------------------------------------------------------------
 p_try_move
 	jsr obj_xy
-	; old_floor from current sector
+	; old_floor from current sector; tmp4/5 = pre-move mapx/mapy
 	lda tmp0
 	lsr
 	lsr
 	lsr
 	sta mapx
+	sta tmp4
 	lda tmp1
 	lsr
 	lsr
 	lsr
 	sta mapy
+	sta tmp5
 	jsr map_sector_id
 	beq .ptm_voidfl
 	tax
@@ -549,7 +551,7 @@ p_try_move
 	adc wish_y_h
 	sta tmp1
 	jsr obj_set_xy
-	; tile check
+	; tile check (dest + diagonal corner cells)
 	lda tmp0
 	lsr
 	lsr
@@ -560,9 +562,41 @@ p_try_move
 	lsr
 	lsr
 	sta mapy
+	; both axes changed tile → require ortho corners walkable
+	lda mapx
+	cmp tmp4
+	beq .ptm_dest
+	lda mapy
+	cmp tmp5
+	beq .ptm_dest
+	; corner (new_x, old_y)
+	lda tmp5
+	sta mapy
+	jsr sector_at_map
+	jsr enemy_tile_blocked
+	bcs .ptm_block
+	; corner (old_x, new_y)
+	lda tmp4
+	sta mapx
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	jsr sector_at_map
+	jsr enemy_tile_blocked
+	bcs .ptm_block
+	; restore dest map tile
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+.ptm_dest
 	jsr sector_at_map
 	jsr enemy_tile_blocked
 	bcc .ptm_ok
+.ptm_block
 	; restore
 	ldx enemy_actor
 	lda save_xl
