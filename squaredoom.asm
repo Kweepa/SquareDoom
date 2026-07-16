@@ -54,6 +54,7 @@ free_low = PISTOL_SPRITES - end_low
 !source "level.asm"
 !source "process.asm"
 !source "enemy.asm"
+!source "hitscan.asm"
 !source "debug.asm"
 !source "ditherchars.asm"
 !source "doomfont.asm"
