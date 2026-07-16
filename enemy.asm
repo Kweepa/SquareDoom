@@ -204,6 +204,7 @@ enemy_reset
 	lda #0
 	sta anim_frame
 	sta new_chase_dir_frame
+	jsr hitscan_reset
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -378,6 +379,7 @@ enemy_think
 	inc anim_frame
 	lda #0
 	sta new_chase_dir_frame
+	jsr hitscan_frame
 	jsr cache_player_sector
 	ldx #0
 .et_lp
@@ -899,6 +901,47 @@ a_chase
 	ldx enemy_actor
 	lda MOBJ_MOVECNT,x
 	bne .ac_move
+	; Possessed: hitscan before ATK; others enter shoot state directly
+	lda enemy_info
+	bne .ac_missile_direct
+	; Poll outstanding hitscan for this actor
+	lda hs_actor
+	cmp enemy_actor
+	bne .ac_hs_try
+	lda hs_status
+	cmp #HS_PENDING
+	beq .ac_move			; waiting — keep walk chase
+	cmp #HS_CLEAR
+	beq .ac_hs_fire
+	cmp #HS_BLOCKED
+	beq .ac_hs_miss
+.ac_hs_try
+	jsr p_check_missile_range_fixed
+	bcc .ac_move
+	ldx enemy_actor
+	jsr hitscan_request
+	bcs .ac_move			; another enemy already claimed this frame
+	lda hs_status
+	cmp #HS_CLEAR
+	beq .ac_hs_fire
+	jmp .ac_move			; PENDING (or unexpected)
+.ac_hs_fire
+	ldy enemy_info
+	lda mobj_shoot_state,y
+	ldx enemy_actor
+	sta MOBJ_STATE,x
+	lda MOBJ_FLAGS,x
+	ora #MF_JUSTATTACKED
+	sta MOBJ_FLAGS,x
+	rts
+.ac_hs_miss
+	jsr hitscan_release
+	jsr GetRandom8
+	and #7
+	ldx enemy_actor
+	sta MOBJ_REACT,x
+	jmp .ac_move
+.ac_missile_direct
 	jsr p_check_missile_range_fixed
 	bcc .ac_move
 	ldy enemy_info
@@ -929,6 +972,7 @@ a_chase
 a_flinch
 	jmp goto_chase_state
 
+; Hitscan already CLEAR (chase only enters POSSHOOT then). Accuracy + damage.
 a_shoot
 	jsr calc_enemy_dist
 	lda enemy_dist
@@ -952,6 +996,7 @@ a_shoot
 	adc tmp0			; *3
 	jsr damage_player
 .as_miss
+	jsr hitscan_release
 	jsr GetRandom8
 	and #7
 	ldx enemy_actor

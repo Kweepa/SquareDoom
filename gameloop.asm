@@ -16,5 +16,6 @@ gameloop
 	jsr update_info_msg
 	jsr update_eye
 	jsr render
+	jsr hitscan_process
 	jsr enemy_think
 	jmp .frame
