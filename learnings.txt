@@ -47,9 +47,12 @@ Profiling pitfalls
 - Column setup (HUD S): world 8.8 >> 3 → map/frac; 16-bit fixsec/dd +
   mid(16×8) calc_sdx/sdy. 8-bit fixsec crushed near-axis variation —
   reverted. Remaining S is mostly 2× mid-products × 40 columns.
-- Move/turn use last frame_cy>>10 (binary ms, base 1024 not 1000):
-  turn 64/sec (90°), move (sintab*dt)>>5 with sintab AMP=64 → 1 tile/sec.
+- Move/turn hold times from CIA1 Timer A IRQ (~25 binary-ms samples);
+  read_input snapshots under SEI. Turn/wish scale by hold ms (vel_ms), not
+  full-frame dt_ms — short taps turn/move a little; use/fire OR-latched.
+  Speeds still: turn 64/sec (90°), move (sintab*ms)>>5 → 1 tile/sec.
   Wish and player position are 8.8 again for sub-unit steps.
+  Frame dt_ms (CIA2 cascade) still drives doors/muzzle/fire-repeat/HUD.
 - prof_add_bucket must not touch paint tmp* (tmp4/tmp5 etc.). Use
   dedicated ZP (prof_now_*, prof_dt_*). Clobbering tmp mid-paint
   silently broke the frame.

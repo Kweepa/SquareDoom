@@ -110,6 +110,17 @@ info_name_l	= $8a			; ptr to name string (screen codes, 0-term)
 info_name_h	= $8b
 has_backpack	= $8c			; 1 after backpack pickup
 
+; CIA1 Timer A input sampler (~25 binary-ms); IRQ bumps, main snapshots under SEI
+in_turn_l	= $8d			; J held ms this frame
+in_turn_r	= $8e			; L held ms
+in_fwd		= $8f			; W
+in_back		= $90			; S
+in_strafel	= $91			; A
+in_strafer	= $92			; D
+in_use		= $93			; OR-latch: K held any sample
+in_fire		= $94			; OR-latch: I held any sample
+vel_ms		= $95			; hold-ms fed to turn_deliver / scale_vel
+
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
 col_base_h	= $4b

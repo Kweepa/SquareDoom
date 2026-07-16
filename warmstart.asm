@@ -32,7 +32,9 @@ warmstart
 
 	jsr init_sqtabs
 	jsr prof_init
+	jsr input_irq_init
 	jsr start_level
+	cli
 	jmp gameloop
 
 ; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
