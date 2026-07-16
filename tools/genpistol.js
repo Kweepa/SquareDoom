@@ -1,10 +1,11 @@
 /**
- * Read pistol_weapon.png + pistol_hand.png (24×21, cyan transparent) and emit
- * pistol_sprites.asm: four dithered hi-res VIC sprite layers.
+ * Read pistol PNGs and emit pistol_sprites.asm — 6 hi-res VIC sprite layers:
+ *   flash  → white (1) + red (2)     [sprites 0–1, on top]
  *   weapon → black (0) + dark grey (11)
  *   hand   → brown (9) + orange (8)
  *
- * Luminance Bayer dither; brightness bias tuned so each pair is ≥30% / colour.
+ * Serpentine Floyd–Steinberg; ≥30% each colour per pair.
+ * pistol_flash.png may be smaller than 24×21 — padded with cyan.
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -16,18 +17,22 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WIDTH = 24;
 const HEIGHT = 21;
 const MIN_SHARE = 0.30;
+const CYAN = [0, 255, 255];
 
-// Project C64_HEX RGB (output order = sprite pointers 0–3)
+// Output order = sprite pointers 0–5 (flash first = highest VIC priority)
 const LAYERS = [
-  { label: 'pistol_dark', color: 0, rgb: [0x00, 0x00, 0x00] },  // black
-  { label: 'pistol_light', color: 11, rgb: [0x4a, 0x4a, 0x4a] }, // dark grey (bright half)
+  { label: 'pistol_flash_white', color: 1, rgb: [0xff, 0xff, 0xff] },
+  { label: 'pistol_flash_red', color: 2, rgb: [0x81, 0x33, 0x38] },
+  { label: 'pistol_dark', color: 0, rgb: [0x00, 0x00, 0x00] },
+  { label: 'pistol_light', color: 11, rgb: [0x4a, 0x4a, 0x4a] },
   { label: 'pistol_brown', color: 9, rgb: [0x55, 0x3f, 0x00] },
   { label: 'pistol_orange', color: 8, rgb: [0x8e, 0x50, 0x29] },
 ];
 
 const SOURCES = [
-  { file: 'pistol_weapon.png', darkIdx: 0, lightIdx: 1 },
-  { file: 'pistol_hand.png', darkIdx: 2, lightIdx: 3 },
+  { file: 'pistol_flash.png', darkIdx: 1, lightIdx: 0 }, // red / white
+  { file: 'pistol_weapon.png', darkIdx: 2, lightIdx: 3 },
+  { file: 'pistol_hand.png', darkIdx: 4, lightIdx: 5 },
 ];
 
 function decodePngRgb(buf) {
@@ -139,6 +144,22 @@ function decodePngRgb(buf) {
   return { width, height, pixels };
 }
 
+/** Pad/crop to 24×21; cyan fill. Source centred in the cell. */
+function toSpriteCanvas(width, height, pixels) {
+  const out = new Array(WIDTH * HEIGHT);
+  for (let i = 0; i < out.length; i++) out[i] = CYAN.slice();
+  const ox = Math.max(0, (WIDTH - width) >> 1);
+  const oy = Math.max(0, (HEIGHT - height) >> 1);
+  const copyW = Math.min(width, WIDTH);
+  const copyH = Math.min(height, HEIGHT);
+  for (let y = 0; y < copyH; y++) {
+    for (let x = 0; x < copyW; x++) {
+      out[(y + oy) * WIDTH + (x + ox)] = pixels[y * width + x];
+    }
+  }
+  return out;
+}
+
 function isCyan(rgb) {
   if (rgb[0] === 0 && rgb[1] === 255 && rgb[2] === 255) return true;
   return rgb[0] < 40 && rgb[1] > 200 && rgb[2] > 200;
@@ -148,13 +169,6 @@ function luminance(rgb) {
   return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
 }
 
-/**
- * Floyd–Steinberg to two colours on luminance.
- * Fine-grained (pixel-level) so X/Y expand doesn't bloom into Bayer blotches.
- * Searches threshold bias so each colour gets ≥ MIN_SHARE.
- *
- * Returns dense Width×Height layer indices (−1 = transparent).
- */
 function assignPairFS(pixels, darkIdx, lightIdx) {
   const opaque = [];
   let minL = Infinity;
@@ -187,7 +201,6 @@ function assignPairFS(pixels, darkIdx, lightIdx) {
     };
 
     for (let y = 0; y < HEIGHT; y++) {
-      // Serpentine: alternate scan direction to avoid directional striping
       const ltr = (y & 1) === 0;
       for (let xi = 0; xi < WIDTH; xi++) {
         const x = ltr ? xi : WIDTH - 1 - xi;
@@ -226,7 +239,6 @@ function assignPairFS(pixels, darkIdx, lightIdx) {
     const shareL = r.light / n;
     const shareD = r.dark / n;
     const ok = shareL >= MIN_SHARE && shareD >= MIN_SHARE;
-    // Prefer midtones split near 40–60%; don't force exact 50%
     const score = ok
       ? 1000 - Math.abs(shareL - 0.45)
       : Math.min(shareL, shareD);
@@ -295,28 +307,25 @@ function fmtBytes(bytes) {
 }
 
 const masks = LAYERS.map(() => new Array(WIDTH * HEIGHT).fill(false));
-const counts = [0, 0, 0, 0];
+const counts = LAYERS.map(() => 0);
 const srcInfo = [];
 
 for (const src of SOURCES) {
   const png = readFileSync(join(root, src.file));
-  const { width, height, pixels } = decodePngRgb(png);
-  if (width !== WIDTH || height !== HEIGHT) {
-    throw new Error(`${src.file}: expected ${WIDTH}×${HEIGHT}, got ${width}×${height}`);
-  }
+  const decoded = decodePngRgb(png);
+  const pixels = toSpriteCanvas(decoded.width, decoded.height, decoded.pixels);
 
   let opaqueCount = 0;
-  for (let y = 0; y < HEIGHT; y++) {
-    for (let x = 0; x < WIDTH; x++) {
-      if (!isCyan(pixels[y * WIDTH + x])) opaqueCount++;
-    }
+  for (let i = 0; i < pixels.length; i++) {
+    if (!isCyan(pixels[i])) opaqueCount++;
   }
 
   const result = assignPairFS(pixels, src.darkIdx, src.lightIdx);
+  const pair = [src.darkIdx, src.lightIdx];
   for (let pi = 0; pi < WIDTH * HEIGHT; pi++) {
     const layer = result.grid[pi];
     if (layer < 0) continue;
-    for (let li = 0; li < LAYERS.length; li++) {
+    for (const li of pair) {
       if (masks[li][pi]) {
         masks[li][pi] = false;
         counts[li]--;
@@ -328,14 +337,14 @@ for (const src of SOURCES) {
 
   const n = opaqueCount;
   srcInfo.push(
-    `${src.file}: n=${n} bias=${result.bias.toFixed(3)} ` +
-    `dark=${result.dark} (${((100 * result.dark) / n).toFixed(0)}%) ` +
-    `light=${result.light} (${((100 * result.light) / n).toFixed(0)}%)`
+    `${src.file}: ${decoded.width}×${decoded.height} n=${n} bias=${result.bias.toFixed(3)} ` +
+    `dark=${result.dark} (${n ? ((100 * result.dark) / n).toFixed(0) : 0}%) ` +
+    `light=${result.light} (${n ? ((100 * result.light) / n).toFixed(0) : 0}%)`
   );
 }
 
-let asm = `; Auto-generated from pistol_weapon.png + pistol_hand.png — do not edit\n`;
-asm += `; Overlays: black(0)+dark grey(11) weapon, brown(9)+orange(8) hand; cyan transparent\n`;
+let asm = `; Auto-generated from pistol_flash/weapon/hand.png — do not edit\n`;
+asm += `; Sprites 0–1: white(1)+red(2) flash; 2–5: black(0)+grey(11)+brown(9)+orange(8)\n`;
 asm += `; Serpentine Floyd–Steinberg dither, ≥${(MIN_SHARE * 100) | 0}% each colour per pair\n`;
 asm += `!zone pistol_sprites\n\n`;
 
@@ -348,8 +357,8 @@ for (let i = 0; i < LAYERS.length; i++) {
 }
 
 writeFileSync(join(root, 'pistol_sprites.asm'), asm);
-console.log('wrote pistol_sprites.asm');
+console.log('wrote pistol_sprites.asm (6×64 bytes)');
 for (const line of srcInfo) console.log(' ', line);
 console.log(
-  `  totals: dark(0)=${counts[0]} light(11)=${counts[1]} brown(9)=${counts[2]} orange(8)=${counts[3]}`
+  `  totals: white=${counts[0]} red=${counts[1]} dark=${counts[2]} light=${counts[3]} brown=${counts[4]} orange=${counts[5]}`
 );

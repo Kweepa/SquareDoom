@@ -22,13 +22,14 @@ read_input
 	sta wish_y_l
 	sta wish_y_h
 	sta key_use
+	sta key_fire
 
 	lda #$ff
 	sta $dc02
 	lda #0
 	sta $dc03
 
-	; --- turn J / L (one deliver per frame); K = use on same col as J ---
+	; --- turn J / L (one deliver per frame); K = use, I = fire (same col as J) ---
 	lda #0
 	sta tmp3				; turn_dir: 0 none, $ff left, 1 right
 	lda #$ef
@@ -46,6 +47,12 @@ read_input
 	lda #1
 	sta key_use
 .no_k
+	txa
+	and #$02				; I = PB1 (PA4/$EF column)
+	bne .no_i
+	lda #1
+	sta key_fire
+.no_i
 	lda #$df
 	sta $dc00
 	lda $dc01

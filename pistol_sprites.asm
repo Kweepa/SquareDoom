@@ -1,8 +1,26 @@
-; Auto-generated from pistol_weapon.png + pistol_hand.png — do not edit
-; Overlays: black(0)+dark grey(11) weapon, brown(9)+orange(8) hand; cyan transparent
+; Auto-generated from pistol_flash/weapon/hand.png — do not edit
+; Sprites 0–1: white(1)+red(2) flash; 2–5: black(0)+grey(11)+brown(9)+orange(8)
 ; Serpentine Floyd–Steinberg dither, ≥30% each colour per pair
 !zone pistol_sprites
 
+pistol_flash_white
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$20,$00,$00,$20,$00,$00
+	!byte $38,$00,$00,$78,$00,$00,$7c,$00
+	!byte $01,$fa,$00,$00,$fe,$00,$03,$ee
+	!byte $80,$01,$df,$00,$05,$ef,$80,$07
+	!byte $85,$c0,$15,$03,$20,$03,$00,$80
+	!byte $04,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+pistol_flash_red
+	!byte $00,$00,$00,$00,$00,$00,$00,$30
+	!byte $00,$00,$54,$00,$01,$5c,$00,$00
+	!byte $c4,$00,$01,$86,$00,$07,$82,$00
+	!byte $06,$05,$00,$07,$01,$c0,$0c,$11
+	!byte $60,$0e,$20,$e0,$0a,$00,$78,$38
+	!byte $02,$30,$2a,$00,$d0,$3c,$01,$78
+	!byte $1a,$00,$f8,$1c,$00,$c0,$00,$00
+	!byte $60,$00,$00,$00,$00,$00,$00,$00
 pistol_dark
 	!byte $00,$02,$00,$00,$02,$80,$00,$0f
 	!byte $80,$00,$11,$40,$00,$27,$e0,$00

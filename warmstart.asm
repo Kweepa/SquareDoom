@@ -17,7 +17,7 @@ warmstart
 	sta $d021		; background black
 
 	jsr init_charset		; ROM font @ $3800 + dither UDGs
-	jsr init_pistol_sprites	; 4× double-size overlays at bottom
+	jsr init_pistol_sprites	; double-size pistol + muzzle flash overlays
 
 	; Clear colour RAM (chars filled by blit_fb_to_chars)
 	lda #0
@@ -103,50 +103,6 @@ init_charset
 
 	lda #CHARSET_PTR
 	sta $d018
-	rts
-
-; Four hi-res pistol layers @ $3700–$37FF, double-size, bottom centre
-PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64	; $dc
-PISTOL_SPR_X = 160			; left edge; 48px wide → centred on 160
-PISTOL_SPR_Y = 208			; bottom of view with Y-expand (42px)
-
-init_pistol_sprites
-	lda #$0f
-	sta $d015			; enable sprites 0–3
-	sta $d01d			; expand X
-	sta $d017			; expand Y
-	lda #0
-	sta $d01c			; hi-res (not multicolour)
-	sta $d010			; X MSB clear (X < 256)
-
-	lda #0
-	sta $d027			; sprite 0 = black
-	lda #11
-	sta $d028			; sprite 1 = dark grey
-	lda #9
-	sta $d029			; sprite 2 = brown
-	lda #8
-	sta $d02a			; sprite 3 = orange
-
-	lda #PISTOL_SPR_PTR0
-	sta $07f8
-	lda #PISTOL_SPR_PTR0 + 1
-	sta $07f9
-	lda #PISTOL_SPR_PTR0 + 2
-	sta $07fa
-	lda #PISTOL_SPR_PTR0 + 3
-	sta $07fb
-
-	ldx #0
-.pos
-	lda #PISTOL_SPR_X
-	sta $d000,x			; X
-	lda #PISTOL_SPR_Y
-	sta $d001,x			; Y
-	inx
-	inx
-	cpx #8
-	bcc .pos
 	rts
 
 ; Scan item table for type 0 (spawn); set world-byte player*_h
