@@ -181,12 +181,14 @@ cast_column
 	beq .ax_soft			; identical flats — no paint, keep walking
 	jmp .ax_cell
 .ax_soft
+	; Same flats — continuous space. Push sector once (keep aperture);
+	; do not push every cell (that burned CLIP_MAX).
 	lda next_id
 	sta cur_id
 	tax
 	jsr mark_seen
 	lda cur_id
-	jsr clip_col_push
+	jsr clip_col_push_if_new
 .ax_same
 	jsr dda_bump
 	bcs .ax_done
@@ -250,12 +252,14 @@ cast_column
 	beq .ay_soft
 	jmp .ay_cell
 .ay_soft
+	; Same flats — continuous space. Push sector once (keep aperture);
+	; do not push every cell (that burned CLIP_MAX).
 	lda next_id
 	sta cur_id
 	tax
 	jsr mark_seen
 	lda cur_id
-	jsr clip_col_push
+	jsr clip_col_push_if_new
 .ay_same
 	jsr dda_bump
 	bcs .ay_done

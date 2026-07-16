@@ -768,9 +768,11 @@ item_draw_one
 .id32_ux0
 	lda last_near_ok
 	jsr udiv16x8
-	cmp last_near_ceil		; >= mip_w → skip
+	cmp last_near_ceil		; >= mip_w → clamp
 	bcc .id32_xok
-	jmp .id_cnx
+	lda last_near_ceil
+	sec
+	sbc #1
 .id32_xok
 	sta last_near_floor		; bmp_x
 	; mirror walk if TEX_ANIMATE and (anim_frame & 2)

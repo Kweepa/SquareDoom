@@ -144,9 +144,48 @@ clip_col_push
 	rts
 
 ; ---------------------------------------------------------------------------
+; clip_col_push_if_new — A = sector; push with current ytop/ybot only if that
+; id is not already on this column's stack. Soft same-flat uses this so every
+; visited rect keeps its aperture (rewrite would lose earlier ids).
+; Clobbers: tmp0..tmp4, ptr_l/h, aux_l/h, X, Y
+; ---------------------------------------------------------------------------
+clip_col_push_if_new
+	sta tmp2
+	ldy col
+	lda COL_CLIP_N,y
+	beq .ccpn_do
+	sta tmp3
+	lda col
+	jsr clip_mul_col
+	clc
+	lda ptr_l
+	adc #<COL_CLIP_SEC
+	sta ptr_l
+	lda ptr_h
+	adc #>COL_CLIP_SEC
+	sta ptr_h
+.ccpn_lp
+	ldy #0
+	lda (ptr_l),y
+	cmp tmp2
+	beq .ccpn_rts			; already on stack
+	dec tmp3
+	beq .ccpn_do
+	inc ptr_l
+	bne .ccpn_lp
+	inc ptr_h
+	jmp .ccpn_lp
+.ccpn_do
+	lda tmp2
+	jmp clip_col_push
+.ccpn_rts
+	rts
+
+; ---------------------------------------------------------------------------
 ; clip_col_find — find sector A in column's clip stack (search far→near)
 ; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found
-; Clobbers: tmp2,tmp3,ptr_l/h,aux_l/h, X, Y (tmp0 = top out, tmp1 = bot out)
+; Exact id only. Soft steps use clip_col_push_if_new. Skips empty windows.
+; Clobbers: tmp2,tmp3,ptr_l/h,aux_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_find
 	sta tmp2				; wanted sector
@@ -177,6 +216,7 @@ clip_col_find
 	lda (ptr_l),y
 	cmp tmp2
 	bne .ccf_next
+	; load TOP/BOT
 	clc
 	lda ptr_l
 	adc #<CLIP_STRIDE
@@ -195,6 +235,9 @@ clip_col_find
 	sta aux_h
 	lda (aux_l),y
 	sta tmp1				; bot
+	lda tmp0
+	cmp tmp1
+	bcs .ccf_next			; empty — keep looking
 	clc
 	rts
 .ccf_next
