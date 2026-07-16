@@ -14,4 +14,4 @@ dither_wall_glyphs
 dither_floor_glyph
 	!byte $ff,$06,$ff,$60,$ff,$06,$ff,$60
 dither_item_glyph
-	!byte $15,$f1,$8f,$a8,$8a,$f8,$1f,$15
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff

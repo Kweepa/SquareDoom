@@ -34,6 +34,7 @@ warmstart
 	jsr prof_init
 	jsr proc_init
 	jsr find_spawn
+	jsr enemy_alloc_all
 	jsr init_hud_state
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays

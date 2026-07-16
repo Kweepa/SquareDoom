@@ -79,3 +79,16 @@ set_wall_pat
 	sta wall_pat
 	sta fill_pat
 	rts
+
+; Deathchase GetRandom8 — new = 9 * old + 193
+GetRandom8
+	lda random8
+	asl
+	asl
+	asl
+	clc
+	adc random8
+	clc
+	adc #193
+	sta random8
+	rts

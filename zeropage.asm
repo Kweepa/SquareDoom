@@ -97,6 +97,7 @@ key_use		= $7f			; 1 = K held (use / open door)
 key_fire	= $84			; 1 = I held (shoot)
 muzzle_ms_l	= $80			; muzzle flash ms remaining (16-bit)
 muzzle_ms_h	= $81
+random8		= $82			; GetRandom8 state (Deathchase LCG)
 spr_en		= $83			; mirror of $d015 (write-only)
 fire_rpt_l	= $85			; ms until next shot while held
 fire_rpt_h	= $86
@@ -237,3 +238,23 @@ SEC_SEEN_END	= SEC_SEEN + 256
 ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth
 ITEM_SORT_SLOT	= ITEM_SORT_DEPTH + 48
 ITEM_SORT_END	= ITEM_SORT_SLOT + 48
+
+; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last = missile)
+MAX_MOBJ		= 21
+MOBJ_MISSILE	= MAX_MOBJ - 1
+ITEM_MISSILE	= 47			; reserved last item slot (= MAX_ITEMS-1)
+
+MOBJ_ALLOC	= ITEM_SORT_END		; 21
+MOBJ_MOVEDIR	= MOBJ_ALLOC + MAX_MOBJ
+MOBJ_FLAGS	= MOBJ_MOVEDIR + MAX_MOBJ
+MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ
+MOBJ_MOVECNT	= MOBJ_REACT + MAX_MOBJ
+MOBJ_HEALTH	= MOBJ_MOVECNT + MAX_MOBJ
+MOBJ_INFO	= MOBJ_HEALTH + MAX_MOBJ	; 0=pos..3=caco, 4=impshot
+MOBJ_STATE	= MOBJ_INFO + MAX_MOBJ
+MOBJ_XFRAC	= MOBJ_STATE + MAX_MOBJ
+MOBJ_YFRAC	= MOBJ_XFRAC + MAX_MOBJ
+MOBJ_OBJ	= MOBJ_YFRAC + MAX_MOBJ	; item slot for this mobj
+MOBJ_FOR_ITEM	= MOBJ_OBJ + MAX_MOBJ	; 48: mobj idx or $FF
+ITEM_CORPSE_TEX	= MOBJ_FOR_ITEM + 48	; 48: $FF live, else enemy spr idx
+MOBJ_END	= ITEM_CORPSE_TEX + 48

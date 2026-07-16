@@ -17,6 +17,8 @@ node tools\genpistol.js
 if errorlevel 1 exit /b 1
 node tools\genitems.js
 if errorlevel 1 exit /b 1
+node tools\genenemysprites.js
+if errorlevel 1 exit /b 1
 "%ACME%" -v3 --vicelabels squaredoom.lbl squaredoom.asm
 if errorlevel 1 (
   echo.

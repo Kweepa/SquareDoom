@@ -13,13 +13,15 @@ ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
+TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
 ;   turn = item slot
 ;   wall_col = typeId
 ;   wallz_h = depth
 ;   near_floor / near_ceil = floor height / sector
-;   span_b = sprite H; last_near_ok = sprite W
+;   far_ceil = sprite H; last_near_ok = sprite W
+;   near_fcol = unclamped sprite top (V map; fill_y0 may be clamped)
 ;   last_near_fcol = screen centre col
 ;   last_near_ccol = sort index / draw scratch
 ;   span_a = visible count during collect/sort
@@ -505,12 +507,30 @@ item_draw_one
 	bcs .id_h1
 	lda #1
 .id_h1
-	cmp #25
+	; VicDoom clamps object H at 127 — keep tall for UV when feet go
+	; off-screen; only the draw span is clipped to 0..25 below.
+	cmp #128
 	bcc .id_h2
-	lda #24
+	lda #127
 .id_h2
+	sta far_ceil			; screen H (survives sdiv/udiv)
+	ldx turn
+	jsr enemy_get_texture
+	bcc .id_w_sq
+	sta far_floor			; tex (+ TEX_ANIMATE); 16×32 path
+	lda far_ceil
+	lsr				; W = H/2 (16∶32 aspect)
+	bne .id_w1
+	lda #1
+.id_w1
 	sta last_near_ok
-	sta tmp5
+	jmp .id_feet
+.id_w_sq
+	lda #0
+	sta far_floor			; 8×8 item_gfx path
+	lda far_ceil
+	sta last_near_ok			; square W = H
+.id_feet
 	; Feet at floor: same scale as walls (Δh·4/tiles ≡ Δh·32/(tiles·8))
 	lda eyeheight
 	sec
@@ -527,8 +547,9 @@ item_draw_one
 	adc #HORIZON
 	sta fill_y1
 	sec
-	sbc last_near_ok
+	sbc far_ceil			; top = bot - H (may be <0 or >24)
 	sta fill_y0
+	sta near_fcol			; unclamped top for V map (clip_col clobbers tmp2)
 	; Reject absurd centres (signed wrap / far off-screen)
 	lda last_near_fcol
 	cmp #64
@@ -573,6 +594,7 @@ item_draw_one
 	bcc .id_vspan
 	rts
 .id_vspan
+	; Clamp draw span only — near_fcol keeps true top for UV
 	lda fill_y0
 	bpl .id_topok
 	lda #0
@@ -623,6 +645,134 @@ item_draw_one
 	jmp .id_clp
 .id_spanok
 	jsr set_col_base
+	lda far_floor
+	bne .id_e32
+	jmp .id_e8
+
+; --- 16×32 enemy column ---
+.id_e32
+	; bmp_x = (col - orig_left) * 16 / W
+	lda fracx
+	bpl .id32_oxp
+	lda #0
+	sec
+	sbc fracx
+	clc
+	adc col
+	jmp .id32_ox
+.id32_oxp
+	lda col
+	sec
+	sbc fracx
+.id32_ox
+	sta aux_l
+	lda #0
+	sta aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h				; *16
+	lda last_near_ok
+	jsr udiv16x8
+	cmp #16				; no U wrap — past edge = skip column
+	bcc .id32_xok
+	jmp .id_cnx
+.id32_xok
+	sta last_near_floor		; bmp_x
+	; mirror walk if TEX_ANIMATE and (anim_frame & 2)
+	lda far_floor
+	and #TEX_ANIMATE
+	beq .id32_nomir
+	lda anim_frame
+	and #2
+	beq .id32_nomir
+	lda #15
+	sec
+	sbc last_near_floor
+	sta last_near_floor
+.id32_nomir
+	; ptr = enemy_spr_base + (tex&~$40)*512 + bmp_x*32
+	; bmp_x*32 must be 16-bit: 8<<5=256 overflows 8-bit ASL (right half
+	; would re-sample tex cols 0..7 → two identical halves)
+	lda far_floor
+	and #$bf				; clear TEX_ANIMATE
+	asl					; *2 → hi of *512
+	sta ptr_h
+	lda #0
+	sta ptr_l
+	lda last_near_floor		; bmp_x
+	sta aux_l
+	lda #0
+	sta aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h				; *32 in aux (max 480)
+	clc
+	lda ptr_l
+	adc aux_l
+	sta ptr_l
+	lda ptr_h
+	adc aux_h
+	sta ptr_h
+	clc
+	lda ptr_l
+	adc #<enemy_spr_base
+	sta ptr_l
+	lda ptr_h
+	adc #>enemy_spr_base
+	sta ptr_h
+	ldy py_row
+.id32_rlp
+	cpy dda_steps
+	bcc .id32_row
+	jmp .id_cnx
+.id32_row
+	sty tmp4
+	tya
+	sec
+	sbc near_fcol			; unclamped top (signed byte OK)
+	sta aux_l
+	lda #0
+	sta aux_h
+	; *32 / H
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	asl aux_l
+	rol aux_h
+	lda far_ceil
+	jsr udiv16x8
+	and #31
+	tay
+	lda (ptr_l),y
+	beq .id32_skip
+	ldy tmp4
+	sta (col_base_l),y
+	lda #ITEM_PAT
+	sta (pat_base_l),y
+.id32_skip
+	ldy tmp4
+	iny
+	jmp .id32_rlp
+
+; --- 8×8 item column ---
+.id_e8
 	; bmp_x = (col - orig_left) * 8 / W  (orig_left may be negative)
 	lda fracx
 	bpl .id_oxpos
@@ -688,11 +838,13 @@ item_draw_one
 	ldy py_row
 .id_rlp
 	cpy dda_steps
-	bcs .id_cnx
+	bcc .id_row
+	jmp .id_cnx
+.id_row
 	sty tmp4				; screen row
 	tya
 	sec
-	sbc fill_y0
+	sbc near_fcol			; unclamped top
 	sta aux_l
 	lda #0
 	sta aux_h
@@ -702,7 +854,7 @@ item_draw_one
 	rol aux_h
 	asl aux_l
 	rol aux_h
-	lda tmp5
+	lda far_ceil
 	jsr udiv16x8
 	and #7
 	tay					; bmp_y

@@ -51,6 +51,7 @@ free_low = PISTOL_SPRITES - end_low
 !source "blit_chars.asm"
 !source "gameloop.asm"
 !source "process.asm"
+!source "enemy.asm"
 !source "debug.asm"
 !source "ditherchars.asm"
 !source "doomfont.asm"
@@ -95,6 +96,7 @@ level_sector_max = level_items + MAX_ITEMS * ITEM_BYTES
 
 !source "tables.asm"
 !source "item_bitmaps.asm"
+!source "enemy_sprites.asm"
 
 end_high = *
 free_high = MEM_HIGH_LIMIT - end_high
@@ -103,8 +105,8 @@ free_high = MEM_HIGH_LIMIT - end_high
 }
 !warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
 
-; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC; tail free to $10000
-free_kernal = $10000 - ITEM_SORT_END
+; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj; tail free to $10000
+free_kernal = $10000 - MOBJ_END
 free_total = free_low + free_mid + free_high + free_kernal
-!warn "mem: kernal BSS $e000..$", ITEM_SORT_END - 1, " free tail =", free_kernal
+!warn "mem: kernal BSS $e000..$", MOBJ_END - 1, " free tail =", free_kernal
 !warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"
