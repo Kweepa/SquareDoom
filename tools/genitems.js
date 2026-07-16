@@ -17,7 +17,7 @@ const ITEM_TYPES = [
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
-  'acid', 'skullpile', 'techcolumn',
+  'skullpile', 'techcolumn',
 ];
 
 /** Pepto C64 palette (duplicated — not from editor). */

@@ -83,7 +83,7 @@ export const ITEM_TYPES = [
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
-  'acid', 'skullpile', 'techcolumn',
+  'skullpile', 'techcolumn',
 ];
 
 export const CAMERA_TYPE = 'camera';
