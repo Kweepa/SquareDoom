@@ -257,4 +257,6 @@ MOBJ_YFRAC	= MOBJ_XFRAC + MAX_MOBJ
 MOBJ_OBJ	= MOBJ_YFRAC + MAX_MOBJ	; item slot for this mobj
 MOBJ_FOR_ITEM	= MOBJ_OBJ + MAX_MOBJ	; 48: mobj idx or $FF
 ITEM_CORPSE_TEX	= MOBJ_FOR_ITEM + 48	; 48: $FF live, else enemy spr idx
-MOBJ_END	= ITEM_CORPSE_TEX + 48
+MOBJ_AIMY	= ITEM_CORPSE_TEX + 48	; mid Y on MUZZLE_COL; $FF = not on muzzle
+MOBJ_AIMZ	= MOBJ_AIMY + MAX_MOBJ	; depth when AIMY was set (for closest pick)
+MOBJ_END	= MOBJ_AIMZ + MAX_MOBJ

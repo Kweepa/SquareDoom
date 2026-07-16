@@ -16,6 +16,7 @@ PROFILE = 0
 DBG_FPS = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
+MUZZLE_COL = 20			; pistol muzzle aim column
 
 ; Memory ceilings:
 ;   low  → CHARSET at $3800 (COL/SQTAB/profil are under KERNAL $E000+)

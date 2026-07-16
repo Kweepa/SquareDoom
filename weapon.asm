@@ -71,7 +71,7 @@ init_pistol_sprites
 	bcc .pos
 	rts
 
-; Spend 1 ammo and show muzzle flash. C=0 ok, C=1 no ammo.
+; Spend 1 ammo, show muzzle flash, try hit on MUZZLE_COL. C=0 ok, C=1 no ammo.
 .fire_shot
 	lda ammo
 	beq .fs_empty
@@ -86,6 +86,15 @@ init_pistol_sprites
 	ora #$03
 	sta spr_en
 	sta $d015
+	; Pistol damage: (GetRandom8>>4)+1
+	jsr GetRandom8
+	lsr
+	lsr
+	lsr
+	lsr
+	clc
+	adc #1
+	jsr TryDamageEnemy
 	clc
 	rts
 .fs_empty

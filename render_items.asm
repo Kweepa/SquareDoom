@@ -33,6 +33,14 @@ render_items
 !if PROFILE = 1 {
 	jsr prof_snap
 }
+	; Clear muzzle aim markers ($FF = not on MUZZLE_COL this frame)
+	ldx #0
+	lda #$ff
+.ri_clr_aim
+	sta MOBJ_AIMY,x
+	inx
+	cpx #MAX_MOBJ
+	bne .ri_clr_aim
 	lda #0
 	sta span_a
 	ldx #0
@@ -644,6 +652,35 @@ item_draw_one
 	inc col
 	jmp .id_clp
 .id_spanok
+	; Muzzle column: record mid Y of drawn span for live enemies
+	lda col
+	cmp #MUZZLE_COL
+	bne .id_draw
+	ldx turn
+	lda wall_col
+	cmp #ITEM_TYPE_ENEMY_LO
+	bcc .id_draw
+	cmp #ITEM_TYPE_ENEMY_HI+1
+	bcs .id_draw
+	lda MOBJ_FOR_ITEM,x
+	cmp #$ff
+	beq .id_draw
+	tay
+	lda MOBJ_ALLOC,y
+	beq .id_draw
+	lda MOBJ_HEALTH,y
+	beq .id_draw
+	lda MOBJ_INFO,y
+	cmp #4				; skip impshot
+	bcs .id_draw
+	lda py_row
+	clc
+	adc dda_steps
+	lsr					; mid Y of drawn column
+	sta MOBJ_AIMY,y
+	lda wallz_h
+	sta MOBJ_AIMZ,y
+.id_draw
 	jsr set_col_base
 	lda far_floor
 	bne .id_e32

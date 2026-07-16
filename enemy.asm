@@ -187,6 +187,13 @@ enemy_reset
 	inx
 	cpx #48				; MAX_ITEMS (literal — defined later in root)
 	bne .er_i
+	ldx #0
+	lda #$ff
+.er_aim
+	sta MOBJ_AIMY,x
+	inx
+	cpx #MAX_MOBJ
+	bne .er_aim
 	; Reserve missile item slot
 	lda #ITEM_MISSILE
 	asl
@@ -1232,4 +1239,46 @@ enemy_get_texture
 .egt_item8
 	lda #0
 	clc
+	rts
+
+; ---------------------------------------------------------------------------
+; TryDamageEnemy — A = damage; hit closest live enemy on MUZZLE_COL
+; Uses MOBJ_AIMY ≠ $FF; nearer = smaller MOBJ_AIMZ. No hit → rts.
+; (Melee weapons can add a max-AIMZ range check before calling.)
+; ---------------------------------------------------------------------------
+TryDamageEnemy
+	sta tmp2			; damage
+	lda #$ff
+	sta tmp0			; best item slot
+	lda #$ff
+	sta tmp1			; best depth
+	ldx #0
+.tde_lp
+	lda MOBJ_ALLOC,x
+	beq .tde_nx
+	lda MOBJ_AIMY,x
+	cmp #$ff
+	beq .tde_nx
+	lda MOBJ_HEALTH,x
+	beq .tde_nx
+	lda MOBJ_INFO,x
+	cmp #4
+	bcs .tde_nx
+	lda MOBJ_AIMZ,x
+	cmp tmp1
+	bcs .tde_nx			; farther or equal
+	sta tmp1
+	lda MOBJ_OBJ,x
+	sta tmp0
+.tde_nx
+	inx
+	cpx #MAX_MOBJ
+	bcc .tde_lp
+	lda tmp0
+	cmp #$ff
+	beq .tde_rts
+	tax
+	lda tmp2
+	jmp enemy_damage
+.tde_rts
 	rts
