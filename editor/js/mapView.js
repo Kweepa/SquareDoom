@@ -114,8 +114,9 @@ export class MapView {
   }
 
   #hitItem(level, px, py) {
-    for (let i = level.items.length - 1; i >= 0; i--) {
-      const it = level.items[i];
+    const markers = level.spawn ? [...level.items, level.spawn] : level.items;
+    for (let i = markers.length - 1; i >= 0; i--) {
+      const it = markers[i];
       const { ix, iy, spriteSize } = this.#itemDrawPos(it, this.cell);
       const { drawW, drawH } = this.#spriteSize(it, spriteSize);
       const left = ix - drawW / 2;
@@ -241,7 +242,8 @@ export class MapView {
       }
     }
 
-    for (const it of level.items) {
+    const markers = level.spawn ? [level.spawn, ...level.items] : level.items;
+    for (const it of markers) {
       const { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
       const { drawW, drawH } = this.#spriteSize(it, spriteSize);
       const left = ix - drawW / 2;
@@ -253,6 +255,17 @@ export class MapView {
       } else {
         ctx.fillStyle = '#fa0';
         ctx.fillRect(left, top, drawW, drawH);
+      }
+      // Facing tick for spawn / camera (matches preview: sin θ, −cos θ)
+      if (it.type === 'spawn' || it.type === 'camera') {
+        const ang = it.angle ?? 0;
+        const len = Math.max(4, spriteSize * 0.55);
+        ctx.strokeStyle = it.type === 'spawn' ? '#0f0' : '#4af';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ix, iy);
+        ctx.lineTo(ix + Math.sin(ang) * len, iy - Math.cos(ang) * len);
+        ctx.stroke();
       }
       if (sel.items?.has(it)) {
         ctx.strokeStyle = '#fff';

@@ -1,6 +1,7 @@
 import {
   EDITOR_ITEM_TYPES,
   CAMERA_TYPE,
+  SPAWN_TYPE,
   MAP_SIZE,
   WORLD_PER_TILE,
   WORLD_MAX,
@@ -15,8 +16,9 @@ import {
   gameItemCount,
   getCell,
   getTileProps,
-  hasSpawn,
   isCamera,
+  isSpawn,
+  itemStillOnLevel,
   moveItemsBy,
   moveTiles,
   nudgeTileHeights,
@@ -30,12 +32,12 @@ import {
   clampWorld,
   itemsInTiles,
   MAX_ITEMS,
-} from './model.js?v=26';
-import { MapView } from './mapView.js?v=24';
+} from './model.js?v=27';
+import { MapView } from './mapView.js?v=25';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
 import { TileEditor } from './tileEditor.js?v=25';
-import { ItemEditor } from './itemEditor.js?v=24';
+import { ItemEditor } from './itemEditor.js?v=25';
 import { PreviewView } from './previewView.js?v=28';
 import { initShiftControls } from './shiftControls.js?v=24';
 import {
@@ -226,10 +228,8 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
     const items = [...selection.items];
     for (const item of items) {
       if ('type' in patch) {
-        if (patch.type === 'spawn' && item.type !== 'spawn' && hasSpawn(activeLevel(episode))) {
-          setStatus('Only one spawn allowed', true);
-          continue;
-        }
+        if (isSpawn(item)) continue; // spawn type is fixed
+        if (patch.type === SPAWN_TYPE) continue;
         if (patch.type === CAMERA_TYPE && !isCamera(item)) {
           item.type = CAMERA_TYPE;
           item.angle = 0;
@@ -295,24 +295,25 @@ function previewInt(el, fallback, lo, hi) {
 const previewView = new PreviewView(document.getElementById('preview-canvas'), {
   getLevel: () => activeLevel(episode),
   getCamera: () => {
-    const selectedCam = [...selection.items].find((it) => isCamera(it));
-    return findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+    return findPreviewCamera(activeLevel(episode), selected ?? null);
   },
   getRaycasts: () => previewInt(previewRays, 40, 8, 320),
   getColumnHeight: () => previewInt(previewColH, 25, 8, 240),
   images,
   onRotate: (angle) => {
-    const selectedCam = [...selection.items].find((it) => isCamera(it));
-    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+    const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
     cam.angle = angle;
     markDirty();
     if (selection.items.has(cam)) itemEditor.render();
+    mapView.draw();
     previewView.draw();
   },
   onMove: (x, y) => {
-    const selectedCam = [...selection.items].find((it) => isCamera(it));
-    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+    const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
     // Keep fractional world coords while walking; |0 truncate made forward stick.
     cam.x = Math.max(0, Math.min(WORLD_MAX, x));
@@ -334,14 +335,18 @@ previewRays.addEventListener('input', redrawPreview);
 previewColH.addEventListener('input', redrawPreview);
 
 function updatePreviewHint() {
-  const selectedCam = [...selection.items].find((it) => isCamera(it));
-  const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+  const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+  const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
   if (!cam) {
     previewHint.textContent = 'Place or select a camera';
     return;
   }
-  if (selectedCam) {
+  if (selected && isSpawn(selected)) {
+    previewHint.textContent = 'Spawn view — drag L/R to set angle · U/D to move';
+  } else if (selected) {
     previewHint.textContent = 'Drag L/R to rotate · U/D to walk';
+  } else if (isSpawn(cam)) {
+    previewHint.textContent = 'Showing spawn — select spawn to edit angle';
   } else {
     previewHint.textContent = 'Showing first camera — select one to edit';
   }
@@ -404,12 +409,8 @@ function refreshAll() {
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
-  if (type !== CAMERA_TYPE && gameItemCount(level) >= MAX_ITEMS) {
+  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_ITEMS) {
     setStatus(`Max ${MAX_ITEMS} items`, true);
-    return;
-  }
-  if (type === 'spawn' && hasSpawn(level)) {
-    setStatus('Only one spawn allowed', true);
     return;
   }
   const item = addItem(level, type, wx, wy);
@@ -421,18 +422,22 @@ function placeItem(type, wx, wy) {
   selection.primaryTile = null;
   selection.items = new Set([item]);
   markDirty();
-  setStatus(`Placed ${type}`);
+  setStatus(type === SPAWN_TYPE ? 'Moved spawn' : `Placed ${type}`);
   refreshAll();
 }
 
 function doDeleteItems() {
   if (!selection.items.size) return;
   const level = activeLevel(episode);
-  const n = selection.items.size;
-  for (const it of [...selection.items]) removeItem(level, it);
-  selection.items.clear();
+  const toDelete = [...selection.items].filter((it) => !isSpawn(it));
+  if (!toDelete.length) {
+    setStatus('Spawn cannot be deleted', true);
+    return;
+  }
+  for (const it of toDelete) removeItem(level, it);
+  selection.items = new Set([...selection.items].filter((it) => isSpawn(it)));
   markDirty();
-  setStatus(`Deleted ${n} item(s)`);
+  setStatus(`Deleted ${toDelete.length} item(s)`);
   refreshAll();
 }
 
@@ -504,7 +509,7 @@ function doShift(dx, dy) {
     }
 
     for (const it of [...selection.items]) {
-      if (!level.items.includes(it)) selection.items.delete(it);
+      if (!itemStillOnLevel(level, it)) selection.items.delete(it);
     }
 
     markDirty();
@@ -516,7 +521,7 @@ function doShift(dx, dy) {
   shiftLevel(level, dx, dy);
 
   for (const it of [...selection.items]) {
-    if (!level.items.includes(it)) selection.items.delete(it);
+    if (!itemStillOnLevel(level, it)) selection.items.delete(it);
   }
 
   markDirty();

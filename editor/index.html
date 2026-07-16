@@ -685,17 +685,37 @@ const ITEM_TYPES = [
   'skullpile', 'techcolumn',
 ];
 
+/** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
+const SPAWN_TYPE = 'spawn';
 const CAMERA_TYPE = 'camera';
 
-/** Palette + map placement (includes editor-only camera). */
+/** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 const EDITOR_ITEM_TYPES = [...ITEM_TYPES, CAMERA_TYPE];
 
 function isGameItem(type) {
-  return type !== CAMERA_TYPE;
+  return type !== CAMERA_TYPE && type !== SPAWN_TYPE;
 }
 
 function isCamera(item) {
   return item?.type === CAMERA_TYPE;
+}
+
+function isSpawn(item) {
+  return item?.type === SPAWN_TYPE;
+}
+
+/** Radians ↔ cooked playera byte (0..255 full circle). */
+function angleToByte(rad) {
+  const t = Number(rad) || 0;
+  return ((Math.round((t / (Math.PI * 2)) * 256) % 256) + 256) % 256;
+}
+
+function byteToAngle(b) {
+  return ((b & 0xff) / 256) * Math.PI * 2;
+}
+
+function defaultSpawn() {
+  return { type: SPAWN_TYPE, x: 128, y: 128, angle: 0 };
 }
 
 function gameItemCount(level) {
@@ -715,9 +735,18 @@ function getCameraEyeHeight(level, wx, wy) {
   return (sector?.floorHeight ?? 0) + 3;
 }
 
+/**
+ * Preview viewpoint: selected spawn/camera, else first camera, else spawn.
+ * @returns {{x:number,y:number,angle:number}|null}
+ */
 function findPreviewCamera(level, selectedItem) {
-  if (isCamera(selectedItem)) return selectedItem;
-  return level.items.find((it) => isCamera(it)) ?? null;
+  if (isSpawn(selectedItem) || isCamera(selectedItem)) return selectedItem;
+  return level.items.find((it) => isCamera(it)) ?? level.spawn ?? null;
+}
+
+/** Map markers: spawn first, then items (for hit-test topmost). */
+function mapMarkers(level) {
+  return level.spawn ? [level.spawn, ...level.items] : [...level.items];
 }
 
 function colorHex(index) {
@@ -799,7 +828,9 @@ function createEmptyLevel() {
     sectors: new Map(),
     /** @type {Uint8Array} */
     map: new Uint8Array(MAP_CELLS),
-    /** @type {Array<{type:string,x:number,y:number,skills:{easy:boolean,normal:boolean,hard:boolean}}>} */
+    /** Player start — always present; cooked separately from items. */
+    spawn: defaultSpawn(),
+    /** @type {Array<{type:string,x:number,y:number,skills?:object,angle?:number}>} */
     items: [],
   };
 }
@@ -953,6 +984,15 @@ function shiftLevel(level, dx, dy) {
   }
   level.items.length = 0;
   level.items.push(...kept);
+
+  if (level.spawn) {
+    const sx = level.spawn.x + dx * WORLD_PER_TILE;
+    const sy = level.spawn.y + dy * WORLD_PER_TILE;
+    if (sx >= 0 && sx <= WORLD_MAX && sy >= 0 && sy <= WORLD_MAX) {
+      level.spawn.x = sx;
+      level.spawn.y = sy;
+    }
+  }
 }
 
 /** All occupied map cells. */
@@ -1410,7 +1450,13 @@ function moveItemsBy(level, items, dx, dy) {
     const nx = it.x + dx;
     const ny = it.y + dy;
     if (nx < 0 || nx > WORLD_MAX || ny < 0 || ny > WORLD_MAX) {
-      removeItem(level, it);
+      if (isSpawn(it)) {
+        it.x = clampWorld(nx);
+        it.y = clampWorld(ny);
+        kept.push(it);
+      } else {
+        removeItem(level, it);
+      }
       continue;
     }
     it.x = nx;
@@ -1450,10 +1496,23 @@ function mergeSectors(level, targetId, sourceId) {
 }
 
 function hasSpawn(level) {
-  return level.items.some((it) => it.type === 'spawn');
+  return !!level.spawn;
+}
+
+/** Place or move the level spawn (always exactly one). */
+function setSpawn(level, x, y, angle) {
+  if (!level.spawn) level.spawn = defaultSpawn();
+  level.spawn.type = SPAWN_TYPE;
+  level.spawn.x = clampWorld(x);
+  level.spawn.y = clampWorld(y);
+  if (angle !== undefined) level.spawn.angle = Number(angle) || 0;
+  return level.spawn;
 }
 
 function addItem(level, type, x, y, skills = defaultSkills()) {
+  if (type === SPAWN_TYPE) {
+    return setSpawn(level, x, y);
+  }
   if (type === CAMERA_TYPE) {
     const item = {
       type: CAMERA_TYPE,
@@ -1465,7 +1524,6 @@ function addItem(level, type, x, y, skills = defaultSkills()) {
     return item;
   }
   if (gameItemCount(level) >= MAX_ITEMS) return null;
-  if (type === 'spawn' && hasSpawn(level)) return null;
   const item = {
     type,
     x: clampWorld(x),
@@ -1477,6 +1535,7 @@ function addItem(level, type, x, y, skills = defaultSkills()) {
 }
 
 function removeItem(level, item) {
+  if (isSpawn(item)) return; // spawn is required
   const i = level.items.indexOf(item);
   if (i >= 0) level.items.splice(i, 1);
 }
@@ -1484,6 +1543,12 @@ function removeItem(level, item) {
 function moveItem(level, item, x, y) {
   item.x = clampWorld(x);
   item.y = clampWorld(y);
+}
+
+/** True if selection ref is still on the level (spawn or items). */
+function itemStillOnLevel(level, item) {
+  if (isSpawn(item)) return level.spawn === item;
+  return level.items.includes(item);
 }
 
 function activeLevel(episode) {
@@ -1498,10 +1563,12 @@ function activeLevel(episode) {
  *      targetSector is the resolved sector id (from editor targetTag); 0 if type is 0 / unresolved
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
- *   3. Items: 48 * 4 bytes: typeId, x, y, skillBits
+ *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
+ *   4. Items: 48 * 4 bytes: typeId, x, y, skillBits
  *      skillBits: bit0=easy, bit1=normal, bit2=hard
  *      unused item slots: typeId=0xFF
- *   4. sector_max: 1 byte — max sector id used in map or sector table
+ *      spawn is not an item (typeId 0 unused in table)
+ *   5. sector_max: 1 byte — max sector id used in map or sector table
  * Colors: 0..15 = Commodore 64 palette
  * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
  */
@@ -1509,6 +1576,7 @@ function activeLevel(episode) {
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
 const SECTOR_TABLE_SIZE = 256;		 // index = sector id; [0] unused
 const ITEM_BYTES = 4;
+const SPAWN_BYTES = 3;
 const EMPTY_ITEM_TYPE = 0xff;
 
 function levelToJSON(level) {
@@ -1528,6 +1596,11 @@ function levelToJSON(level) {
   return {
     sectors: sectorObj,
     map: Array.from(level.map),
+    spawn: {
+      x: level.spawn?.x ?? 0,
+      y: level.spawn?.y ?? 0,
+      angle: level.spawn?.angle ?? 0,
+    },
     items: level.items.map((it) => {
       const base = {
         type: it.type,
@@ -1569,6 +1642,9 @@ function levelFromJSON(data) {
       level.map[i] = data.map[i] & 0xff;
     }
   }
+
+  // Spawn: dedicated field, or migrate legacy item type "spawn"
+  let legacySpawn = null;
   if (Array.isArray(data.items)) {
     for (const it of data.items) {
       if (it.type === CAMERA_TYPE) {
@@ -1580,7 +1656,11 @@ function levelFromJSON(data) {
         });
         continue;
       }
-      if (!ITEM_TYPES.includes(it.type)) continue;
+      if (it.type === SPAWN_TYPE) {
+        legacySpawn = it;
+        continue;
+      }
+      if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
       if (gameItemCount(level) >= MAX_ITEMS) break;
       level.items.push({
         type: it.type,
@@ -1594,6 +1674,25 @@ function levelFromJSON(data) {
       });
     }
   }
+
+  if (data.spawn) {
+    setSpawn(
+      level,
+      data.spawn.x ?? 0,
+      data.spawn.y ?? 0,
+      data.spawn.angle ?? 0,
+    );
+  } else if (legacySpawn) {
+    // Legacy: use spawn item xy; angle from item if present, else old hardcoded playera=250
+    const ang =
+      legacySpawn.angle != null
+        ? Number(legacySpawn.angle) || 0
+        : byteToAngle(250);
+    setSpawn(level, legacySpawn.x ?? 0, legacySpawn.y ?? 0, ang);
+  } else {
+    level.spawn = defaultSpawn();
+  }
+
   const shapeWarnings = enforceSectorShapes(level);
   if (shapeWarnings.length) {
     level._loadWarnings = shapeWarnings;
@@ -1692,6 +1791,13 @@ function cookLevel(level) {
     itemTable[off + 3] = bits;
   }
 
+  const spawn = level.spawn ?? defaultSpawn();
+  const spawnBytes = new Uint8Array([
+    spawn.x & 0xff,
+    spawn.y & 0xff,
+    angleToByte(spawn.angle),
+  ]);
+
   // Highest sector id referenced by the map or present in the sector table
   let sectorMax = 0;
   for (let i = 0; i < mapBytes.length; i++) {
@@ -1703,7 +1809,9 @@ function cookLevel(level) {
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
-  const out = new Uint8Array(sectorBytes + mapBytes.length + itemTable.length + 1);
+  const out = new Uint8Array(
+    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1,
+  );
   let o = 0;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
   out.set(ceils, o); o += SECTOR_TABLE_SIZE;
@@ -1713,6 +1821,7 @@ function cookLevel(level) {
   out.set(ccols, o); o += SECTOR_TABLE_SIZE;
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(mapBytes, o); o += mapBytes.length;
+  out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
   out[o] = sectorMax & 0xff;
   return { bytes: out, warnings };
@@ -2040,8 +2149,9 @@ class MapView {
   }
 
   #hitItem(level, px, py) {
-    for (let i = level.items.length - 1; i >= 0; i--) {
-      const it = level.items[i];
+    const markers = level.spawn ? [...level.items, level.spawn] : level.items;
+    for (let i = markers.length - 1; i >= 0; i--) {
+      const it = markers[i];
       const { ix, iy, spriteSize } = this.#itemDrawPos(it, this.cell);
       const { drawW, drawH } = this.#spriteSize(it, spriteSize);
       const left = ix - drawW / 2;
@@ -2167,7 +2277,8 @@ class MapView {
       }
     }
 
-    for (const it of level.items) {
+    const markers = level.spawn ? [level.spawn, ...level.items] : level.items;
+    for (const it of markers) {
       const { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
       const { drawW, drawH } = this.#spriteSize(it, spriteSize);
       const left = ix - drawW / 2;
@@ -2179,6 +2290,17 @@ class MapView {
       } else {
         ctx.fillStyle = '#fa0';
         ctx.fillRect(left, top, drawW, drawH);
+      }
+      // Facing tick for spawn / camera (matches preview: sin θ, −cos θ)
+      if (it.type === 'spawn' || it.type === 'camera') {
+        const ang = it.angle ?? 0;
+        const len = Math.max(4, spriteSize * 0.55);
+        ctx.strokeStyle = it.type === 'spawn' ? '#0f0' : '#4af';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ix, iy);
+        ctx.lineTo(ix + Math.sin(ang) * len, iy - Math.cos(ang) * len);
+        ctx.stroke();
       }
       if (sel.items?.has(it)) {
         ctx.strokeStyle = '#fff';
@@ -2957,50 +3079,60 @@ class ItemEditor {
 
     const item = items[0];
     const multi = items.length > 1;
+    const onlySpawn = items.length === 1 && isSpawn(item);
 
     const selLine = document.createElement('p');
     selLine.className = 'muted';
-    selLine.textContent = multi
-      ? `${items.length} items selected — edits apply to all`
-      : (isCamera(item) ? 'Editor only — not included in cooked binary.' : item.type);
+    if (onlySpawn) {
+      selLine.textContent = 'Player spawn — preview shows this viewpoint.';
+    } else if (multi) {
+      selLine.textContent = `${items.length} items selected — edits apply to all`;
+    } else if (isCamera(item)) {
+      selLine.textContent = 'Editor only — not included in cooked binary.';
+    } else {
+      selLine.textContent = item.type;
+    }
     this.root.appendChild(selLine);
 
-    const typesSame = items.every((it) => it.type === item.type);
-    const typeLab = document.createElement('label');
-    typeLab.className = 'field';
-    typeLab.innerHTML = '<span>Type</span>';
-    const typeSel = document.createElement('select');
-    if (!typesSame) {
-      const mixed = document.createElement('option');
-      mixed.value = '';
-      mixed.textContent = '(mixed)';
-      mixed.selected = true;
-      typeSel.appendChild(mixed);
+    if (!onlySpawn) {
+      const typesSame = items.every((it) => it.type === item.type);
+      const typeLab = document.createElement('label');
+      typeLab.className = 'field';
+      typeLab.innerHTML = '<span>Type</span>';
+      const typeSel = document.createElement('select');
+      if (!typesSame) {
+        const mixed = document.createElement('option');
+        mixed.value = '';
+        mixed.textContent = '(mixed)';
+        mixed.selected = true;
+        typeSel.appendChild(mixed);
+      }
+      // Spawn is level.spawn only — not a convertible item type
+      const types = ITEM_TYPES.filter((t) => t !== SPAWN_TYPE).concat(CAMERA_TYPE);
+      for (const t of types) {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        if (typesSame && t === item.type) opt.selected = true;
+        typeSel.appendChild(opt);
+      }
+      typeSel.addEventListener('change', () => {
+        if (!typeSel.value) return;
+        this.opts.onChange({ type: typeSel.value });
+      });
+      typeLab.appendChild(typeSel);
+      this.root.appendChild(typeLab);
     }
-    const types = [...ITEM_TYPES, CAMERA_TYPE];
-    for (const t of types) {
-      const opt = document.createElement('option');
-      opt.value = t;
-      opt.textContent = t;
-      if (typesSame && t === item.type) opt.selected = true;
-      typeSel.appendChild(opt);
-    }
-    typeSel.addEventListener('change', () => {
-      if (!typeSel.value) return;
-      this.opts.onChange({ type: typeSel.value });
-    });
-    typeLab.appendChild(typeSel);
-    this.root.appendChild(typeLab);
 
     const xSame = items.every((it) => it.x === item.x);
     const ySame = items.every((it) => it.y === item.y);
     this.#numField('X', 'x', 0, WORLD_MAX, xSame ? item.x : null);
     this.#numField('Y', 'y', 0, WORLD_MAX, ySame ? item.y : null);
 
-    const allCameras = items.every((it) => isCamera(it));
-    const noCameras = items.every((it) => !isCamera(it));
+    const allViewpoints = items.every((it) => isCamera(it) || isSpawn(it));
+    const noViewpoints = items.every((it) => !isCamera(it) && !isSpawn(it));
 
-    if (allCameras) {
+    if (allViewpoints) {
       const deg = Math.round(((item.angle ?? 0) * 180) / Math.PI);
       const angleSame = items.every(
         (it) => Math.round(((it.angle ?? 0) * 180) / Math.PI) === deg,
@@ -3025,7 +3157,7 @@ class ItemEditor {
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
-    } else if (noCameras) {
+    } else if (noViewpoints) {
       const skills = document.createElement('div');
       skills.className = 'field skills';
       const skillLabel = document.createElement('span');
@@ -3051,12 +3183,14 @@ class ItemEditor {
       this.root.appendChild(skills);
     }
 
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'danger';
-    del.textContent = multi ? 'Delete items' : 'Delete item';
-    del.addEventListener('click', () => this.opts.onDelete());
-    this.root.appendChild(del);
+    if (!onlySpawn) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'danger';
+      del.textContent = multi ? 'Delete items' : 'Delete item';
+      del.addEventListener('click', () => this.opts.onDelete());
+      this.root.appendChild(del);
+    }
   }
 
   #numField(label, key, min, max, value) {
@@ -3405,10 +3539,8 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
     const items = [...selection.items];
     for (const item of items) {
       if ('type' in patch) {
-        if (patch.type === 'spawn' && item.type !== 'spawn' && hasSpawn(activeLevel(episode))) {
-          setStatus('Only one spawn allowed', true);
-          continue;
-        }
+        if (isSpawn(item)) continue; // spawn type is fixed
+        if (patch.type === SPAWN_TYPE) continue;
         if (patch.type === CAMERA_TYPE && !isCamera(item)) {
           item.type = CAMERA_TYPE;
           item.angle = 0;
@@ -3474,24 +3606,25 @@ function previewInt(el, fallback, lo, hi) {
 const previewView = new PreviewView(document.getElementById('preview-canvas'), {
   getLevel: () => activeLevel(episode),
   getCamera: () => {
-    const selectedCam = [...selection.items].find((it) => isCamera(it));
-    return findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+    return findPreviewCamera(activeLevel(episode), selected ?? null);
   },
   getRaycasts: () => previewInt(previewRays, 40, 8, 320),
   getColumnHeight: () => previewInt(previewColH, 25, 8, 240),
   images,
   onRotate: (angle) => {
-    const selectedCam = [...selection.items].find((it) => isCamera(it));
-    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+    const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
     cam.angle = angle;
     markDirty();
     if (selection.items.has(cam)) itemEditor.render();
+    mapView.draw();
     previewView.draw();
   },
   onMove: (x, y) => {
-    const selectedCam = [...selection.items].find((it) => isCamera(it));
-    const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+    const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+    const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
     // Keep fractional world coords while walking; |0 truncate made forward stick.
     cam.x = Math.max(0, Math.min(WORLD_MAX, x));
@@ -3513,14 +3646,18 @@ previewRays.addEventListener('input', redrawPreview);
 previewColH.addEventListener('input', redrawPreview);
 
 function updatePreviewHint() {
-  const selectedCam = [...selection.items].find((it) => isCamera(it));
-  const cam = findPreviewCamera(activeLevel(episode), selectedCam ?? null);
+  const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
+  const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
   if (!cam) {
     previewHint.textContent = 'Place or select a camera';
     return;
   }
-  if (selectedCam) {
+  if (selected && isSpawn(selected)) {
+    previewHint.textContent = 'Spawn view — drag L/R to set angle · U/D to move';
+  } else if (selected) {
     previewHint.textContent = 'Drag L/R to rotate · U/D to walk';
+  } else if (isSpawn(cam)) {
+    previewHint.textContent = 'Showing spawn — select spawn to edit angle';
   } else {
     previewHint.textContent = 'Showing first camera — select one to edit';
   }
@@ -3583,12 +3720,8 @@ function refreshAll() {
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
-  if (type !== CAMERA_TYPE && gameItemCount(level) >= MAX_ITEMS) {
+  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_ITEMS) {
     setStatus(`Max ${MAX_ITEMS} items`, true);
-    return;
-  }
-  if (type === 'spawn' && hasSpawn(level)) {
-    setStatus('Only one spawn allowed', true);
     return;
   }
   const item = addItem(level, type, wx, wy);
@@ -3600,18 +3733,22 @@ function placeItem(type, wx, wy) {
   selection.primaryTile = null;
   selection.items = new Set([item]);
   markDirty();
-  setStatus(`Placed ${type}`);
+  setStatus(type === SPAWN_TYPE ? 'Moved spawn' : `Placed ${type}`);
   refreshAll();
 }
 
 function doDeleteItems() {
   if (!selection.items.size) return;
   const level = activeLevel(episode);
-  const n = selection.items.size;
-  for (const it of [...selection.items]) removeItem(level, it);
-  selection.items.clear();
+  const toDelete = [...selection.items].filter((it) => !isSpawn(it));
+  if (!toDelete.length) {
+    setStatus('Spawn cannot be deleted', true);
+    return;
+  }
+  for (const it of toDelete) removeItem(level, it);
+  selection.items = new Set([...selection.items].filter((it) => isSpawn(it)));
   markDirty();
-  setStatus(`Deleted ${n} item(s)`);
+  setStatus(`Deleted ${toDelete.length} item(s)`);
   refreshAll();
 }
 
@@ -3683,7 +3820,7 @@ function doShift(dx, dy) {
     }
 
     for (const it of [...selection.items]) {
-      if (!level.items.includes(it)) selection.items.delete(it);
+      if (!itemStillOnLevel(level, it)) selection.items.delete(it);
     }
 
     markDirty();
@@ -3695,7 +3832,7 @@ function doShift(dx, dy) {
   shiftLevel(level, dx, dy);
 
   for (const it of [...selection.items]) {
-    if (!level.items.includes(it)) selection.items.delete(it);
+    if (!itemStillOnLevel(level, it)) selection.items.delete(it);
   }
 
   markDirty();

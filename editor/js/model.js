@@ -86,17 +86,37 @@ export const ITEM_TYPES = [
   'skullpile', 'techcolumn',
 ];
 
+/** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
+export const SPAWN_TYPE = 'spawn';
 export const CAMERA_TYPE = 'camera';
 
-/** Palette + map placement (includes editor-only camera). */
+/** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 export const EDITOR_ITEM_TYPES = [...ITEM_TYPES, CAMERA_TYPE];
 
 export function isGameItem(type) {
-  return type !== CAMERA_TYPE;
+  return type !== CAMERA_TYPE && type !== SPAWN_TYPE;
 }
 
 export function isCamera(item) {
   return item?.type === CAMERA_TYPE;
+}
+
+export function isSpawn(item) {
+  return item?.type === SPAWN_TYPE;
+}
+
+/** Radians ↔ cooked playera byte (0..255 full circle). */
+export function angleToByte(rad) {
+  const t = Number(rad) || 0;
+  return ((Math.round((t / (Math.PI * 2)) * 256) % 256) + 256) % 256;
+}
+
+export function byteToAngle(b) {
+  return ((b & 0xff) / 256) * Math.PI * 2;
+}
+
+export function defaultSpawn() {
+  return { type: SPAWN_TYPE, x: 128, y: 128, angle: 0 };
 }
 
 export function gameItemCount(level) {
@@ -116,9 +136,18 @@ export function getCameraEyeHeight(level, wx, wy) {
   return (sector?.floorHeight ?? 0) + 3;
 }
 
+/**
+ * Preview viewpoint: selected spawn/camera, else first camera, else spawn.
+ * @returns {{x:number,y:number,angle:number}|null}
+ */
 export function findPreviewCamera(level, selectedItem) {
-  if (isCamera(selectedItem)) return selectedItem;
-  return level.items.find((it) => isCamera(it)) ?? null;
+  if (isSpawn(selectedItem) || isCamera(selectedItem)) return selectedItem;
+  return level.items.find((it) => isCamera(it)) ?? level.spawn ?? null;
+}
+
+/** Map markers: spawn first, then items (for hit-test topmost). */
+export function mapMarkers(level) {
+  return level.spawn ? [level.spawn, ...level.items] : [...level.items];
 }
 
 export function colorHex(index) {
@@ -200,7 +229,9 @@ export function createEmptyLevel() {
     sectors: new Map(),
     /** @type {Uint8Array} */
     map: new Uint8Array(MAP_CELLS),
-    /** @type {Array<{type:string,x:number,y:number,skills:{easy:boolean,normal:boolean,hard:boolean}}>} */
+    /** Player start — always present; cooked separately from items. */
+    spawn: defaultSpawn(),
+    /** @type {Array<{type:string,x:number,y:number,skills?:object,angle?:number}>} */
     items: [],
   };
 }
@@ -354,6 +385,15 @@ export function shiftLevel(level, dx, dy) {
   }
   level.items.length = 0;
   level.items.push(...kept);
+
+  if (level.spawn) {
+    const sx = level.spawn.x + dx * WORLD_PER_TILE;
+    const sy = level.spawn.y + dy * WORLD_PER_TILE;
+    if (sx >= 0 && sx <= WORLD_MAX && sy >= 0 && sy <= WORLD_MAX) {
+      level.spawn.x = sx;
+      level.spawn.y = sy;
+    }
+  }
 }
 
 /** All occupied map cells. */
@@ -811,7 +851,13 @@ export function moveItemsBy(level, items, dx, dy) {
     const nx = it.x + dx;
     const ny = it.y + dy;
     if (nx < 0 || nx > WORLD_MAX || ny < 0 || ny > WORLD_MAX) {
-      removeItem(level, it);
+      if (isSpawn(it)) {
+        it.x = clampWorld(nx);
+        it.y = clampWorld(ny);
+        kept.push(it);
+      } else {
+        removeItem(level, it);
+      }
       continue;
     }
     it.x = nx;
@@ -851,10 +897,23 @@ export function mergeSectors(level, targetId, sourceId) {
 }
 
 export function hasSpawn(level) {
-  return level.items.some((it) => it.type === 'spawn');
+  return !!level.spawn;
+}
+
+/** Place or move the level spawn (always exactly one). */
+export function setSpawn(level, x, y, angle) {
+  if (!level.spawn) level.spawn = defaultSpawn();
+  level.spawn.type = SPAWN_TYPE;
+  level.spawn.x = clampWorld(x);
+  level.spawn.y = clampWorld(y);
+  if (angle !== undefined) level.spawn.angle = Number(angle) || 0;
+  return level.spawn;
 }
 
 export function addItem(level, type, x, y, skills = defaultSkills()) {
+  if (type === SPAWN_TYPE) {
+    return setSpawn(level, x, y);
+  }
   if (type === CAMERA_TYPE) {
     const item = {
       type: CAMERA_TYPE,
@@ -866,7 +925,6 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
     return item;
   }
   if (gameItemCount(level) >= MAX_ITEMS) return null;
-  if (type === 'spawn' && hasSpawn(level)) return null;
   const item = {
     type,
     x: clampWorld(x),
@@ -878,6 +936,7 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
 }
 
 export function removeItem(level, item) {
+  if (isSpawn(item)) return; // spawn is required
   const i = level.items.indexOf(item);
   if (i >= 0) level.items.splice(i, 1);
 }
@@ -885,6 +944,12 @@ export function removeItem(level, item) {
 export function moveItem(level, item, x, y) {
   item.x = clampWorld(x);
   item.y = clampWorld(y);
+}
+
+/** True if selection ref is still on the level (spawn or items). */
+export function itemStillOnLevel(level, item) {
+  if (isSpawn(item)) return level.spawn === item;
+  return level.items.includes(item);
 }
 
 export function activeLevel(episode) {

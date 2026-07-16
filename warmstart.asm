@@ -32,29 +32,8 @@ warmstart
 
 	jsr init_sqtabs
 	jsr prof_init
-	jsr proc_init
-	jsr find_spawn
-	jsr enemy_alloc_all
-	jsr init_hud_state
-	lda #$ff
-	sta last_playera			; force rebuild_col_rays
-	jsr update_eye
+	jsr start_level
 	jmp gameloop
-
-; Default status values
-init_hud_state
-	lda #50
-	sta ammo
-	lda #100
-	sta health
-	lda #0
-	sta armor
-	sta keys
-	sta info_ms_l
-	sta info_ms_h
-	sta info_len
-	sta has_backpack
-	rts
 
 ; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
 init_charset
@@ -116,67 +95,4 @@ init_charset
 
 	lda #CHARSET_PTR
 	sta $d018
-	rts
-
-; Scan item table for type 0 (spawn); set world-byte player*_h
-find_spawn
-	lda #<level_items
-	sta ptr_l
-	lda #>level_items
-	sta ptr_h
-	ldx #0
-.fs_loop
-	ldy #0
-	lda (ptr_l),y
-	cmp #$ff
-	beq .fs_default
-	cmp #0
-	beq .fs_found
-	clc
-	lda ptr_l
-	adc #4
-	sta ptr_l
-	bcc .fs_nc
-	inc ptr_h
-.fs_nc
-	inx
-	cpx #MAX_ITEMS
-	bcc .fs_loop
-.fs_default
-	lda #128
-	sta playerx_h
-	sta playery_h
-	lda #0
-	sta playerx
-	sta playery
-	sta playera
-	rts
-.fs_found
-	ldy #1
-	lda (ptr_l),y
-	sta playerx_h
-	; Editor camera sits at y≈102 in same tile; match preview pose
-	lda #102
-	sta playery_h
-	lda #0
-	sta playerx
-	sta playery
-	lda #250
-	sta playera
-	rts
-
-; eyeheight = floor(sector at player) + 3
-update_eye
-	jsr player_tile
-	jsr map_sector_id
-	beq .ue_empty
-	tax
-	lda SEC_FLOOR,x
-	clc
-	adc #3
-	sta eyeheight
-	rts
-.ue_empty
-	lda #11
-	sta eyeheight
 	rts

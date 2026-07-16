@@ -1,4 +1,11 @@
-import { ITEM_TYPES, CAMERA_TYPE, WORLD_MAX, isCamera } from './model.js';
+import {
+  ITEM_TYPES,
+  CAMERA_TYPE,
+  SPAWN_TYPE,
+  WORLD_MAX,
+  isCamera,
+  isSpawn,
+} from './model.js';
 
 export class ItemEditor {
   /**
@@ -34,50 +41,60 @@ export class ItemEditor {
 
     const item = items[0];
     const multi = items.length > 1;
+    const onlySpawn = items.length === 1 && isSpawn(item);
 
     const selLine = document.createElement('p');
     selLine.className = 'muted';
-    selLine.textContent = multi
-      ? `${items.length} items selected — edits apply to all`
-      : (isCamera(item) ? 'Editor only — not included in cooked binary.' : item.type);
+    if (onlySpawn) {
+      selLine.textContent = 'Player spawn — preview shows this viewpoint.';
+    } else if (multi) {
+      selLine.textContent = `${items.length} items selected — edits apply to all`;
+    } else if (isCamera(item)) {
+      selLine.textContent = 'Editor only — not included in cooked binary.';
+    } else {
+      selLine.textContent = item.type;
+    }
     this.root.appendChild(selLine);
 
-    const typesSame = items.every((it) => it.type === item.type);
-    const typeLab = document.createElement('label');
-    typeLab.className = 'field';
-    typeLab.innerHTML = '<span>Type</span>';
-    const typeSel = document.createElement('select');
-    if (!typesSame) {
-      const mixed = document.createElement('option');
-      mixed.value = '';
-      mixed.textContent = '(mixed)';
-      mixed.selected = true;
-      typeSel.appendChild(mixed);
+    if (!onlySpawn) {
+      const typesSame = items.every((it) => it.type === item.type);
+      const typeLab = document.createElement('label');
+      typeLab.className = 'field';
+      typeLab.innerHTML = '<span>Type</span>';
+      const typeSel = document.createElement('select');
+      if (!typesSame) {
+        const mixed = document.createElement('option');
+        mixed.value = '';
+        mixed.textContent = '(mixed)';
+        mixed.selected = true;
+        typeSel.appendChild(mixed);
+      }
+      // Spawn is level.spawn only — not a convertible item type
+      const types = ITEM_TYPES.filter((t) => t !== SPAWN_TYPE).concat(CAMERA_TYPE);
+      for (const t of types) {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        if (typesSame && t === item.type) opt.selected = true;
+        typeSel.appendChild(opt);
+      }
+      typeSel.addEventListener('change', () => {
+        if (!typeSel.value) return;
+        this.opts.onChange({ type: typeSel.value });
+      });
+      typeLab.appendChild(typeSel);
+      this.root.appendChild(typeLab);
     }
-    const types = [...ITEM_TYPES, CAMERA_TYPE];
-    for (const t of types) {
-      const opt = document.createElement('option');
-      opt.value = t;
-      opt.textContent = t;
-      if (typesSame && t === item.type) opt.selected = true;
-      typeSel.appendChild(opt);
-    }
-    typeSel.addEventListener('change', () => {
-      if (!typeSel.value) return;
-      this.opts.onChange({ type: typeSel.value });
-    });
-    typeLab.appendChild(typeSel);
-    this.root.appendChild(typeLab);
 
     const xSame = items.every((it) => it.x === item.x);
     const ySame = items.every((it) => it.y === item.y);
     this.#numField('X', 'x', 0, WORLD_MAX, xSame ? item.x : null);
     this.#numField('Y', 'y', 0, WORLD_MAX, ySame ? item.y : null);
 
-    const allCameras = items.every((it) => isCamera(it));
-    const noCameras = items.every((it) => !isCamera(it));
+    const allViewpoints = items.every((it) => isCamera(it) || isSpawn(it));
+    const noViewpoints = items.every((it) => !isCamera(it) && !isSpawn(it));
 
-    if (allCameras) {
+    if (allViewpoints) {
       const deg = Math.round(((item.angle ?? 0) * 180) / Math.PI);
       const angleSame = items.every(
         (it) => Math.round(((it.angle ?? 0) * 180) / Math.PI) === deg,
@@ -102,7 +119,7 @@ export class ItemEditor {
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
-    } else if (noCameras) {
+    } else if (noViewpoints) {
       const skills = document.createElement('div');
       skills.className = 'field skills';
       const skillLabel = document.createElement('span');
@@ -128,12 +145,14 @@ export class ItemEditor {
       this.root.appendChild(skills);
     }
 
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'danger';
-    del.textContent = multi ? 'Delete items' : 'Delete item';
-    del.addEventListener('click', () => this.opts.onDelete());
-    this.root.appendChild(del);
+    if (!onlySpawn) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'danger';
+      del.textContent = multi ? 'Delete items' : 'Delete item';
+      del.addEventListener('click', () => this.opts.onDelete());
+      this.root.appendChild(del);
+    }
   }
 
   #numField(label, key, min, max, value) {

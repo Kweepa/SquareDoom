@@ -50,6 +50,7 @@ free_low = PISTOL_SPRITES - end_low
 *=$4000
 !source "blit_chars.asm"
 !source "gameloop.asm"
+!source "level.asm"
 !source "process.asm"
 !source "enemy.asm"
 !source "debug.asm"
@@ -67,7 +68,7 @@ free_mid = MEM_MID_LIMIT - end_mid
 
 ; ------------------------------------------------------------------
 ; Level + tables under BASIC ROM ($A000), RAM with $01=$35
-; SoA layout: 7×256 sector attr tables (id-indexed), map, items
+; SoA layout: 7×256 sector attr tables (id-indexed), map, spawn, items
 ; ------------------------------------------------------------------
 *=$a000
 level_data
@@ -78,6 +79,7 @@ MAP_CELLS = 1024
 MAX_SECTORS = 255
 MAX_ITEMS = 48
 ITEM_BYTES = 4
+SPAWN_BYTES = 3
 DOOR_TYPE = 18
 SEC_TABLE_SIZE = 256
 
@@ -91,7 +93,8 @@ SEC_CCOL   = SEC_FCOL + SEC_TABLE_SIZE
 SEC_BRIGHT = SEC_CCOL + SEC_TABLE_SIZE
 
 level_map = SEC_BRIGHT + SEC_TABLE_SIZE
-level_items = level_map + MAP_CELLS
+level_spawn = level_map + MAP_CELLS	; x, y, angle (playera)
+level_items = level_spawn + SPAWN_BYTES
 level_sector_max = level_items + MAX_ITEMS * ITEM_BYTES
 
 !source "tables.asm"
