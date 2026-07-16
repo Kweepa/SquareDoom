@@ -1,74 +1,66 @@
-; Weapon HUD sprites — pistol layers + muzzle flash
+; Weapon HUD sprites — table-driven layers + muzzle flash
 !zone weapon
 
-; Six hi-res layers @ $3680–$37FF, double-size:
-;   sprites 0–1 = muzzle flash (white/red, highest priority)
-;   sprites 2–5 = weapon+hand
+; Six hi-res layers @ $3680–$37FF, double-size (XY expand):
+;   sprites 0–1 = muzzle flash (highest VIC priority)
+;   sprites 2–3 = weapon metal
+;   sprites 4–5 = hand
 PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64	; $da
-PISTOL_SPR_X = 160			; left edge; 48px wide → centred on 160
-PISTOL_SPR_Y = 208			; bottom of view with Y-expand (42px)
-; Flash offset: 4px left / 14px up in sprite space → 8 / 28 screen px when expanded
-FLASH_SPR_X = PISTOL_SPR_X + 6
-FLASH_SPR_Y = PISTOL_SPR_Y - 24
+WPN_ENABLE_IDLE = $3c			; sprites 2–5 only (flash off)
+WPN_ENABLE_ALL = $3f			; + flash 0–1
+WPN_EXPAND = $3f			; XY expand for all six
 MUZZLE_MS = 300
-FIRE_REPEAT_DELAY = 600		; ms hold before autorepeat / between shots
+FIRE_REPEAT_DELAY = 600			; ms between shots while held
 
-init_pistol_sprites
-	lda #$3c
+; Per-sprite colour / X / Y (screen coords; expand already factored into offsets).
+; Index = VIC sprite # = layer order in pistol_sprites.asm.
+; Future weapons: add parallel tables and point init at the active set.
+pistol_spr_col
+	!byte 1, 2			; flash white, red
+	!byte 0, 11			; weapon black, dark grey
+	!byte 9, 8			; hand brown, orange
+pistol_spr_x
+	!byte 166, 166			; flash (+6 from hand)
+	!byte 160, 160			; weapon
+	!byte 160, 160			; hand
+pistol_spr_y
+	!byte 162, 162			; flash (weapon Y − 24)
+	!byte 186, 186			; weapon (hand Y − 22)
+	!byte 208, 208			; hand (bottom centre)
+
+init_weapon
+	lda #WPN_ENABLE_IDLE
 	sta spr_en
-	sta $d015			; enable weapon sprites 2–5 (flash off)
-	lda #$3f
-	sta $d01d			; expand X (all six)
-	sta $d017			; expand Y
+	sta $d015
+	lda #WPN_EXPAND
+	sta $d01d
+	sta $d017
 	lda #0
-	sta $d01c			; hi-res (not multicolour)
-	sta $d010			; X MSB clear (X < 256)
+	sta $d01c			; hi-res
+	sta $d010			; X MSB clear (all X < 256)
 	sta muzzle_ms_l
 	sta muzzle_ms_h
 	sta fire_rpt_l
 	sta fire_rpt_h
 
-	lda #1
-	sta $d027			; sprite 0 = white (flash)
-	lda #2
-	sta $d028			; sprite 1 = red (flash)
-	lda #0
-	sta $d029			; sprite 2 = black
-	lda #11
-	sta $d02a			; sprite 3 = dark grey
-	lda #9
-	sta $d02b			; sprite 4 = brown
-	lda #8
-	sta $d02c			; sprite 5 = orange
-
 	ldx #0
-.setptr
+	ldy #0				; Y = VIC X/Y register pair index (0,2,4…)
+.set
+	lda pistol_spr_col,x
+	sta $d027,x
 	txa
 	clc
 	adc #PISTOL_SPR_PTR0
 	sta $07f8,x
+	lda pistol_spr_x,x
+	sta $d000,y
+	lda pistol_spr_y,x
+	sta $d001,y
+	iny
+	iny
 	inx
 	cpx #6
-	bcc .setptr
-
-	; Flash at offset (sprites 0–1)
-	lda #FLASH_SPR_X
-	sta $d000
-	sta $d002
-	lda #FLASH_SPR_Y
-	sta $d001
-	sta $d003
-	; Weapon (sprites 2–5)
-	ldx #0
-.pos
-	lda #PISTOL_SPR_X
-	sta $d004,x			; X
-	lda #PISTOL_SPR_Y
-	sta $d005,x			; Y
-	inx
-	inx
-	cpx #8
-	bcc .pos
+	bcc .set
 	rts
 
 ; Spend 1 ammo, show muzzle flash, try hit on MUZZLE_COL. C=0 ok, C=1 no ammo.

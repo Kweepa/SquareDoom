@@ -17,7 +17,7 @@ warmstart
 	sta $d021		; background black
 
 	jsr init_charset		; ROM font @ $3800 + dither UDGs
-	jsr init_pistol_sprites	; double-size pistol + muzzle flash overlays
+	jsr init_weapon			; HUD weapon sprites + muzzle flash state
 
 	; Clear colour RAM (chars filled by blit_fb_to_chars)
 	lda #0
