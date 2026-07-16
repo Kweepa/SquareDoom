@@ -579,6 +579,8 @@ item_draw_one
 	jsr sdiv_aux_depth
 	clc
 	adc #HORIZON
+	clc
+	adc #1				; exclusive bot: last pixel on floor row
 	sta fill_y1
 	sec
 	sbc far_ceil			; top = bot - H (may be <0 or >24)

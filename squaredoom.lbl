@@ -285,7 +285,7 @@ al C:00ff .ITEM_TYPE_EMPTY_E
 al C:00ff .SAMPLE_TA_LO
 al C:0100 .SEC_TABLE_SIZE
 al C:012c .MUZZLE_MS
-al C:01d0 .free_low
+al C:01cd .free_low
 al C:0258 .FIRE_REPEAT_DELAY
 al C:03c0 .CLIP_STRIDE
 al C:0400 .PROF_SCR
@@ -369,10 +369,10 @@ al C:199f .sdiv16x8
 al C:19ee .udiv16x8
 al C:1a17 .item_sort_depth
 al C:1a56 .item_draw_one
-al C:1d92 .sdiv_aux_depth
-al C:1d9f .blit_fb_to_color
+al C:1d95 .sdiv_aux_depth
+al C:1da2 .blit_fb_to_color
 al C:33ee .free_mid
-al C:34b0 .end_low
+al C:34b3 .end_low
 al C:3680 .PISTOL_SPRITES
 al C:3680 .pistol_flash_white
 al C:36c0 .pistol_flash_red
@@ -382,7 +382,7 @@ al C:3780 .pistol_brown
 al C:37c0 .pistol_orange
 al C:3800 .CHARSET
 al C:4000 .blit_fb_to_chars
-al C:4a53 .free_total
+al C:4a50 .free_total
 al C:5711 .gameloop
 al C:5742 .start_level
 al C:5756 .init_hud_state
