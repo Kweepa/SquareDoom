@@ -68,13 +68,18 @@ def main() -> None:
     js = "\n\n".join(parts)
     js = f"const ITEM_IMAGE_DATA = {json.dumps(image_data, indent=2)};\n\n" + js
 
+    spawn_icon = image_data.get("spawn")
+    favicon_link = (
+        f'  <link rel="icon" type="image/png" href="{spawn_icon}" />\n' if spawn_icon else ""
+    )
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SquareDoom Map Editor</title>
-  <style>
+{favicon_link}  <style>
 {css}
   </style>
 </head>
