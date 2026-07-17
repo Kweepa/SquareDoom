@@ -1,6 +1,6 @@
 /**
  * Read lightingdither.png (8×8 tiles, closest→furthest) and emit
- * ditherchars.asm: wall glyphs $00–$0F + floor $10 (tile 2 @ 90° CW) + item $11.
+ * ditherchars.asm: wall glyphs $00–$0F + floor $10 (floorudg.png) + item $11.
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -144,23 +144,6 @@ function tileBytes(pixels, width, tile) {
   return bytes;
 }
 
-/** 90° CW: dest(nx,ny) ← src(ny, 7-nx) */
-function rotateCw(src) {
-  const grid = Array.from({ length: 8 }, (_, y) =>
-    Array.from({ length: 8 }, (_, x) => (src[y] >> (7 - x)) & 1));
-  const out = [];
-  for (let ny = 0; ny < 8; ny++) {
-    let b = 0;
-    for (let nx = 0; nx < 8; nx++) {
-      const sx = ny;
-      const sy = 7 - nx;
-      if (grid[sy][sx]) b |= 0x80 >> nx;
-    }
-    out.push(b);
-  }
-  return out;
-}
-
 function fmtBytes(bytes) {
   return bytes.map((b) => `$${b.toString(16).padStart(2, '0')}`).join(',');
 }
@@ -177,7 +160,13 @@ const walls = [];
 for (let t = 0; t < WALL_LEVELS; t++) {
   walls.push(tileBytes(pixels, width, t));
 }
-const floor = rotateCw(walls[2]);
+
+const floorPng = readFileSync(join(root, 'floorudg.png'));
+const floorImg = decodePng(floorPng);
+if (floorImg.width !== 8 || floorImg.height !== 8) {
+  throw new Error(`floorudg.png: expected 8×8, got ${floorImg.width}×${floorImg.height}`);
+}
+const floor = tileBytes(floorImg.pixels, floorImg.width, 0);
 
 const itemPng = readFileSync(join(root, 'itemudg.png'));
 const itemImg = decodePng(itemPng);
@@ -186,8 +175,8 @@ if (itemImg.width !== 8 || itemImg.height !== 8) {
 }
 const item = tileBytes(itemImg.pixels, itemImg.width, 0);
 
-let asm = `; Auto-generated from lightingdither.png + itemudg.png — do not edit\n`;
-asm += `; Wall UDGs $00–$0F, floor $10 (tile 2 rot90 CW), item $11 (itemudg.png)\n`;
+let asm = `; Auto-generated from lightingdither.png + floorudg.png + itemudg.png — do not edit\n`;
+asm += `; Wall UDGs $00–$0F, floor $10 (floorudg.png), item $11 (itemudg.png)\n`;
 asm += `!zone ditherchars\n\n`;
 asm += `dither_wall_glyphs\n`;
 for (let t = 0; t < WALL_LEVELS; t++) {
