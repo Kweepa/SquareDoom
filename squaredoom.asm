@@ -7,7 +7,8 @@ FRAMEBUFFER = $c800
 ; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
 LIGHTFRAME = $cc00
 CHARSET = $3800
-PISTOL_SPRITES = $3680		; 6×64-byte hi-res pistol+flash overlays (VIC bank 0)
+SHOTGUN_SPRITES = $3480	; 8×64-byte shotgun+flash (VIC bank 0)
+PISTOL_SPRITES = $3680		; 6×64-byte pistol+flash overlays (VIC bank 0)
 FLOOR_PAT = $08			; dither tile #2 rotated 90° (flats)
 ITEM_PAT = $09			; itemudg.png shading glyph
 
@@ -28,7 +29,6 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "zeropage.asm"
 !source "basicstub.asm"
 !source "warmstart.asm"
-!source "weapon.asm"
 !source "multiply.asm"
 !source "util.asm"
 !source "input.asm"
@@ -37,13 +37,15 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "blit.asm"
 
 end_low = *
-free_low = PISTOL_SPRITES - end_low
+free_low = SHOTGUN_SPRITES - end_low
 !if free_low < 0 {
-	!error "Low code overlaps pistol sprites at $3680; overshoot=", end_low - PISTOL_SPRITES
+	!error "Low code overlaps shotgun sprites at $3480; overshoot=", end_low - SHOTGUN_SPRITES
 }
-!warn "mem: low  end=$", end_low, " free to pistol $3680 =", free_low
+!warn "mem: low  end=$", end_low, " free to shotgun $3480 =", free_low
 
-; Pistol flash+weapon sprites (6×64 bytes) in VIC bank 0, before charset
+; Shotgun then pistol sprite banks in VIC bank 0, before charset
+*=SHOTGUN_SPRITES
+!source "shotgun_weapon.asm"
 *=PISTOL_SPRITES
 !source "pistol_sprites.asm"
 
@@ -61,6 +63,7 @@ free_low = PISTOL_SPRITES - end_low
 !source "doomfont.asm"
 !source "hud.asm"
 !source "pickup.asm"
+!source "weapon.asm"
 
 end_mid = *
 free_mid = MEM_MID_LIMIT - end_mid

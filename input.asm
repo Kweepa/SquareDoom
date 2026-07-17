@@ -3,7 +3,8 @@
 ; CIA1 keys (sampled by Timer A IRQ ~every 25 binary-ms):
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
 ;   K = use (PA4/PB5) — open door; I = fire (PA4/PB1)
-;   W/A/S = PA1 column; D = PA2 column
+;   W/A/S = PA1 column; D = PA2 column; 3 = shotgun (PA1/PB0)
+;   2 = pistol (PA7/PB3)
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
 ;
@@ -33,6 +34,8 @@ input_irq_init
 	sta in_strafer
 	sta in_use
 	sta in_fire
+	sta in_wpn_pistol
+	sta in_wpn_shotgun
 	sta $d01a				; no VIC IRQs
 
 	lda #$7f
@@ -97,7 +100,7 @@ input_irq
 	sta in_turn_r
 .irq_nol
 
-	; W / A / S (PA1 = $FD)
+	; W / A / S / 3 (PA1 = $FD)
 	lda #$fd
 	sta $dc00
 	lda $dc01
@@ -122,6 +125,12 @@ input_irq
 	jsr .irq_add_ms
 	sta in_back
 .irq_nos
+	txa
+	and #$01
+	bne .irq_no3
+	lda #1
+	sta in_wpn_shotgun
+.irq_no3
 
 	; D (PA2 = $FB)
 	lda #$fb
@@ -134,8 +143,16 @@ input_irq
 	sta in_strafer
 .irq_nod
 
+	; 2 (PA7 = $7F)
 	lda #$7f
 	sta $dc00
+	lda $dc01
+	and #$08
+	bne .irq_no2
+	lda #1
+	sta in_wpn_pistol
+.irq_no2
+
 	lda $dc0d				; ack Timer A
 	pla
 	tay
@@ -169,6 +186,10 @@ read_input
 	sta key_use
 	lda in_fire
 	sta key_fire
+	lda in_wpn_pistol
+	sta key_wpn_pistol
+	lda in_wpn_shotgun
+	sta key_wpn_shotgun
 	lda in_turn_l
 	sta tmp3
 	lda in_turn_r
@@ -190,7 +211,21 @@ read_input
 	sta in_strafer
 	sta in_use
 	sta in_fire
+	sta in_wpn_pistol
+	sta in_wpn_shotgun
 	cli
+
+	; --- weapon select: 2 = pistol, 3 = shotgun ---
+	lda key_wpn_pistol
+	beq .no_wpn2
+	ldx #0
+	jsr switch_weapon
+.no_wpn2
+	lda key_wpn_shotgun
+	beq .no_wpn3
+	ldx #1
+	jsr switch_weapon
+.no_wpn3
 
 	; --- turn: net hold ms (right − left) ---
 	lda tmp4

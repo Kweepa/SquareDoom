@@ -120,6 +120,13 @@ in_strafer	= $92			; D
 in_use		= $93			; OR-latch: K held any sample
 in_fire		= $94			; OR-latch: I held any sample
 vel_ms		= $95			; hold-ms fed to turn_deliver / scale_vel
+cur_weapon	= $96			; 0=pistol, 1=shotgun
+wpn_fire_ms_l	= $97			; active weapon fire interval (ms)
+wpn_fire_ms_h	= $98
+in_wpn_pistol	= $99			; OR-latch: 2 held
+in_wpn_shotgun	= $9a			; OR-latch: 3 held
+key_wpn_pistol	= $9b
+key_wpn_shotgun	= $9c
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a

@@ -1,20 +1,37 @@
-; Weapon HUD sprites — table-driven layers + muzzle flash
+; Weapon HUD sprites — table-driven layers + muzzle flash; switch via SMC
 !zone weapon
 
-; Six hi-res layers @ $3680–$37FF, double-size (XY expand):
-;   sprites 0–1 = muzzle flash (highest VIC priority)
-;   sprites 2–3 = weapon metal
-;   sprites 4–5 = hand
-PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64	; $da
-WPN_ENABLE_IDLE = $3c			; sprites 2–5 only (flash off)
-WPN_ENABLE_ALL = $3f			; + flash 0–1
-WPN_EXPAND = $3f			; XY expand for all six
+; Contiguous banks in VIC bank 0 (see squaredoom.asm):
+;   shotgun $3480: 8 sprites (own flash + 6 body)
+;   pistol  $3680: 6 sprites (flash + 4 body)
+PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
+SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
+PISTOL_ENABLE_IDLE = $3c		; sprites 2–5
+SHOTGUN_ENABLE_IDLE = $fc		; sprites 2–7
 MUZZLE_MS = 300
-FIRE_REPEAT_DELAY = 600			; ms between shots while held
+
+; Per-weapon fire interval (ms while held)
+wpn_fire_ms_lo
+	!byte <600, <900
+wpn_fire_ms_hi
+	!byte >600, >900
+
+wpn_setup_lo
+	!byte <setup_pistol, <setup_shotgun
+wpn_setup_hi
+	!byte >setup_pistol, >setup_shotgun
+wpn_damage_lo
+	!byte <damage_pistol, <damage_shotgun
+wpn_damage_hi
+	!byte >damage_pistol, >damage_shotgun
+
+; SMC stubs — +1/+2 patched by switch_weapon
+wpn_setup
+	jmp setup_pistol
+wpn_damage
+	jmp damage_pistol
 
 ; Per-sprite colour / X / Y (screen coords; expand already factored into offsets).
-; Index = VIC sprite # = layer order in pistol_sprites.asm.
-; Future weapons: add parallel tables and point init at the active set.
 pistol_spr_col
 	!byte 1, 2			; flash white, red
 	!byte 0, 11			; weapon black, dark grey
@@ -28,24 +45,67 @@ pistol_spr_y
 	!byte 186, 186			; weapon (hand Y − 22)
 	!byte 208, 208			; hand (bottom centre)
 
-init_weapon
-	lda #WPN_ENABLE_IDLE
-	sta spr_en
-	sta $d015
-	lda #WPN_EXPAND
-	sta $d01d
-	sta $d017
+shotgun_spr_col
+	!byte 1, 2			; flash white, red
+	!byte 11			; highlight (over metal)
+	!byte 0, 0, 0		; barrel / bodyleft / bodyright
+	!byte 9, 8			; hand brown, orange
+shotgun_spr_x
+	!byte 160, 160			; flash
+	!byte 160	    		; highlight
+	!byte 160, 140, 188		; body
+	!byte 140, 140			; hand
+shotgun_spr_y
+	!byte 162, 162			; flash
+	!byte 208		    	; highlight
+	!byte 186, 208, 208		; body
+	!byte 208, 208			; hand
+
+; X = weapon id (0=pistol, 1=shotgun). No-op if already active.
+switch_weapon
+	cpx cur_weapon
+	beq .sw_done
+	stx cur_weapon
+	lda wpn_setup_lo,x
+	sta wpn_setup + 1
+	lda wpn_setup_hi,x
+	sta wpn_setup + 2
+	lda wpn_damage_lo,x
+	sta wpn_damage + 1
+	lda wpn_damage_hi,x
+	sta wpn_damage + 2
+	lda wpn_fire_ms_lo,x
+	sta wpn_fire_ms_l
+	lda wpn_fire_ms_hi,x
+	sta wpn_fire_ms_h
 	lda #0
-	sta $d01c			; hi-res
-	sta $d010			; X MSB clear (all X < 256)
 	sta muzzle_ms_l
 	sta muzzle_ms_h
 	sta fire_rpt_l
 	sta fire_rpt_h
+	jsr wpn_setup
+.sw_done
+	rts
 
+init_weapon
+	lda #$ff
+	sta cur_weapon			; force setup
 	ldx #0
-	ldy #0				; Y = VIC X/Y register pair index (0,2,4…)
-.set
+	jmp switch_weapon
+
+setup_pistol
+	lda #PISTOL_ENABLE_IDLE
+	sta spr_en
+	sta $d015
+	lda #$3f			; XY expand sprites 0–5
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+.sp_set
 	lda pistol_spr_col,x
 	sta $d027,x
 	txa
@@ -60,10 +120,59 @@ init_weapon
 	iny
 	inx
 	cpx #6
-	bcc .set
+	bcc .sp_set
 	rts
 
-; Spend 1 ammo, show muzzle flash, try hit on MUZZLE_COL. C=0 ok, C=1 no ammo.
+setup_shotgun
+	lda #SHOTGUN_ENABLE_IDLE
+	sta spr_en
+	sta $d015
+	lda #$ff			; XY expand all eight
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+.ss_set
+	lda shotgun_spr_col,x
+	sta $d027,x
+	txa
+	clc
+	adc #SHOTGUN_SPR_PTR0
+	sta $07f8,x
+	lda shotgun_spr_x,x
+	sta $d000,y
+	lda shotgun_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .ss_set
+	rts
+
+damage_pistol
+	jsr GetRandom8
+	lsr
+	lsr
+	lsr
+	lsr
+	clc
+	adc #1
+	jmp TryDamageEnemy
+
+damage_shotgun
+	jsr GetRandom8
+	lsr
+	lsr
+	lsr
+	clc
+	adc #3
+	jmp TryDamageEnemy
+
+; Spend 1 ammo, show muzzle flash, damage via SMC. C=0 ok, C=1 no ammo.
 .fire_shot
 	lda ammo
 	beq .fs_empty
@@ -78,15 +187,7 @@ init_weapon
 	ora #$03
 	sta spr_en
 	sta $d015
-	; Pistol damage: (GetRandom8>>4)+1
-	jsr GetRandom8
-	lsr
-	lsr
-	lsr
-	lsr
-	clc
-	adc #1
-	jsr TryDamageEnemy
+	jsr wpn_damage
 	clc
 	rts
 .fs_empty
@@ -94,7 +195,7 @@ init_weapon
 	rts
 
 ; Call once per frame after read_input.
-; While I held: fire when fire_rpt is 0, then wait FIRE_REPEAT_DELAY ms.
+; While I held: fire when fire_rpt is 0, then wait wpn_fire_ms.
 ; Note: $d015 is write-only — use spr_en mirror.
 update_muzzle_flash
 	; --- muzzle flash sprite timeout ---
@@ -126,7 +227,7 @@ update_muzzle_flash
 	beq .mf_up
 	lda fire_rpt_l
 	ora fire_rpt_h
-	beq .mf_shot			; ready — fire now
+	beq .mf_shot
 	sec
 	lda fire_rpt_l
 	sbc dt_ms
@@ -137,10 +238,10 @@ update_muzzle_flash
 	bcs .mf_done
 .mf_shot
 	jsr .fire_shot
-	bcs .mf_stop_rpt		; out of ammo
-	lda #<FIRE_REPEAT_DELAY
+	bcs .mf_stop_rpt
+	lda wpn_fire_ms_l
 	sta fire_rpt_l
-	lda #>FIRE_REPEAT_DELAY
+	lda wpn_fire_ms_h
 	sta fire_rpt_h
 .mf_done
 	rts
