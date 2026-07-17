@@ -346,8 +346,8 @@
           "brightness": 7
         },
         "36": {
-          "floorHeight": 6,
-          "ceilingHeight": 17,
+          "floorHeight": 5,
+          "ceilingHeight": 15,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -2503,8 +2503,8 @@
           "brightness": 7
         },
         "41": {
-          "floorHeight": 12,
-          "ceilingHeight": 18,
+          "floorHeight": 11,
+          "ceilingHeight": 22,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -2533,8 +2533,8 @@
           "brightness": 7
         },
         "44": {
-          "floorHeight": 12,
-          "ceilingHeight": 18,
+          "floorHeight": 11,
+          "ceilingHeight": 22,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -2575,6 +2575,16 @@
         "48": {
           "floorHeight": 8,
           "ceilingHeight": 13,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 5,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "49": {
+          "floorHeight": 11,
+          "ceilingHeight": 22,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -2804,7 +2814,7 @@
         },
         "72": {
           "floorHeight": 13,
-          "ceilingHeight": 18,
+          "ceilingHeight": 19,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -2853,8 +2863,8 @@
           "brightness": 7
         },
         "77": {
-          "floorHeight": 12,
-          "ceilingHeight": 18,
+          "floorHeight": 11,
+          "ceilingHeight": 22,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -2883,12 +2893,12 @@
           "brightness": 7
         },
         "80": {
-          "floorHeight": 12,
-          "ceilingHeight": 18,
+          "floorHeight": 13,
+          "ceilingHeight": 19,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 5,
+          "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -2972,6 +2982,16 @@
           "ceilingColor": 11,
           "brightness": 7
         },
+        "90": {
+          "floorHeight": 13,
+          "ceilingHeight": 19,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
         "91": {
           "floorHeight": 8,
           "ceilingHeight": 13,
@@ -3025,6 +3045,16 @@
         "97": {
           "floorHeight": 5,
           "ceilingHeight": 18,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "99": {
+          "floorHeight": 13,
+          "ceilingHeight": 19,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -3132,16 +3162,6 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "133": {
-          "floorHeight": 13,
-          "ceilingHeight": 18,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 7
-        },
         "134": {
           "floorHeight": 8,
           "ceilingHeight": 13,
@@ -3159,16 +3179,6 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 6,
-          "ceilingColor": 11,
-          "brightness": 7
-        },
-        "137": {
-          "floorHeight": 13,
-          "ceilingHeight": 18,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -3601,10 +3611,10 @@
         92,
         92,
         0,
+        41,
+        80,
         77,
-        83,
-        80,
-        80,
+        77,
         0,
         0,
         26,
@@ -3633,9 +3643,9 @@
         0,
         108,
         0,
-        77,
-        83,
-        72,
+        41,
+        80,
+        90,
         72,
         0,
         35,
@@ -3665,10 +3675,10 @@
         0,
         108,
         0,
-        44,
-        44,
-        44,
-        133,
+        49,
+        49,
+        49,
+        72,
         0,
         54,
         0,
@@ -3697,10 +3707,10 @@
         0,
         108,
         0,
-        137,
-        137,
-        137,
-        133,
+        99,
+        99,
+        99,
+        72,
         0,
         54,
         0,
@@ -3731,8 +3741,8 @@
         141,
         50,
         0,
-        41,
-        41,
+        44,
+        44,
         0,
         54,
         0,
@@ -4300,9 +4310,9 @@
         0
       ],
       "spawn": {
-        "x": 67.56696026656644,
-        "y": 52.20581236641193,
-        "angle": -12.272760240236787
+        "x": 155.62884850759397,
+        "y": 172.64808180946036,
+        "angle": -18.898485607791606
       },
       "items": [
         {
@@ -4439,6 +4449,26 @@
           "type": "imp",
           "x": 156,
           "y": 28,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 161,
+          "y": 165,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 148,
+          "y": 154,
           "skills": {
             "easy": true,
             "normal": true,
