@@ -1,6 +1,6 @@
 /**
  * Read lightingdither.png (8×8 tiles, closest→furthest) and emit
- * ditherchars.asm: wall glyphs $00–$07 + floor glyph $08 (tile 2 @ 90° CW).
+ * ditherchars.asm: wall glyphs $00–$0F + floor $10 (tile 2 @ 90° CW) + item $11.
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -165,14 +165,16 @@ function fmtBytes(bytes) {
   return bytes.map((b) => `$${b.toString(16).padStart(2, '0')}`).join(',');
 }
 
+const WALL_LEVELS = 16;
+
 const png = readFileSync(join(root, 'lightingdither.png'));
 const { width, height, pixels } = decodePng(png);
-if (width !== 64 || height !== 8) {
-  throw new Error(`expected 64×8, got ${width}×${height}`);
+if (width !== WALL_LEVELS * 8 || height !== 8) {
+  throw new Error(`expected ${WALL_LEVELS * 8}×8, got ${width}×${height}`);
 }
 
 const walls = [];
-for (let t = 0; t < 8; t++) {
+for (let t = 0; t < WALL_LEVELS; t++) {
   walls.push(tileBytes(pixels, width, t));
 }
 const floor = rotateCw(walls[2]);
@@ -185,10 +187,10 @@ if (itemImg.width !== 8 || itemImg.height !== 8) {
 const item = tileBytes(itemImg.pixels, itemImg.width, 0);
 
 let asm = `; Auto-generated from lightingdither.png + itemudg.png — do not edit\n`;
-asm += `; Wall UDGs $00–$07, floor $08 (tile 2 rot90 CW), item $09 (itemudg.png)\n`;
+asm += `; Wall UDGs $00–$0F, floor $10 (tile 2 rot90 CW), item $11 (itemudg.png)\n`;
 asm += `!zone ditherchars\n\n`;
 asm += `dither_wall_glyphs\n`;
-for (let t = 0; t < 8; t++) {
+for (let t = 0; t < WALL_LEVELS; t++) {
   asm += `\t!byte ${fmtBytes(walls[t])}\t; light ${t}\n`;
 }
 asm += `dither_floor_glyph\n`;
@@ -197,7 +199,7 @@ asm += `dither_item_glyph\n`;
 asm += `\t!byte ${fmtBytes(item)}\n`;
 
 writeFileSync(join(root, 'ditherchars.asm'), asm);
-console.log('wrote ditherchars.asm (8 wall + floor + item glyphs)');
+console.log(`wrote ditherchars.asm (${WALL_LEVELS} wall + floor + item glyphs)`);
 console.log('walls:', walls.map(fmtBytes).join(' | '));
 console.log('floor:', fmtBytes(floor));
 console.log('item:', fmtBytes(item));

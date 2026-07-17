@@ -135,7 +135,7 @@ col_base_h	= $4b
 pat_base_l	= $76
 pat_base_h	= $77
 fill_pat	= $78			; screen code written with colour fills
-wall_pat	= $79			; min(7, wallz_h) for wall strips
+wall_pat	= $79			; min(15, wallz_h) for wall strips
 
 dda_steps	= $4c
 dda_peak	= $4d

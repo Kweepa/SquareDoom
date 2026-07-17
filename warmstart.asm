@@ -76,17 +76,17 @@ init_charset
 	inx
 	bne .copy_df
 
-	; Patch light UDGs $00–$09 (8 wall + floor + item = 80 bytes)
-	; overwrites doomfont chars 0–9 (view patterns)
+	; Patch light UDGs $00–$11 (16 wall + floor + item = 144 bytes)
+	; overwrites doomfont chars 0–17 (view patterns)
 	ldx #0
 .patch
 	lda dither_wall_glyphs,x
 	sta CHARSET,x
 	inx
-	cpx #80
+	cpx #144
 	bcc .patch
 
-	; A–Z for top-line messages at screen codes 192–217 (dither owns 0–9)
+	; A–Z for top-line messages at screen codes 192–217 (dither owns 0–17)
 	ldx #0
 .msgfont
 	lda doomfont_udgs + 8,x		; char 1 = 'A'

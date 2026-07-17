@@ -69,12 +69,12 @@ set_col_base
 	sta pat_base_h
 	rts
 
-; wall_pat = min(7, wallz_h); also → fill_pat for wall strips
+; wall_pat = min(15, wallz_h); also → fill_pat for wall strips
 set_wall_pat
 	lda wallz_h
-	cmp #8
+	cmp #16
 	bcc .swp_ok
-	lda #7
+	lda #15
 .swp_ok
 	sta wall_pat
 	sta fill_pat

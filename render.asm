@@ -92,7 +92,7 @@ on_cell
 	rts
 .chg
 	jsr calc_wallz			; W: side's wz → texstep for project_y
-	jsr set_wall_pat		; wall_pat = min(7, wallz_h)
+	jsr set_wall_pat		; wall_pat = min(15, wallz_h)
 !if PROFILE = 1 {
 	ldy #PROF_WALLZ
 	jsr prof_add_bucket
