@@ -2,6 +2,7 @@ import {
   EDITOR_ITEM_TYPES,
   CAMERA_TYPE,
   SPAWN_TYPE,
+  SWITCH_TYPE,
   MAP_SIZE,
   WORLD_PER_TILE,
   WORLD_MAX,
@@ -12,12 +13,14 @@ import {
   clearTiles,
   createEpisode,
   defaultSkills,
+  defaultSwitchAction,
   findPreviewCamera,
   gameItemCount,
   getCell,
   getTileProps,
   isCamera,
   isSpawn,
+  isSwitch,
   itemStillOnLevel,
   moveItemsBy,
   moveTiles,
@@ -30,14 +33,15 @@ import {
   tileKey,
   tilesInSector,
   clampWorld,
+  clampLevelName,
   itemsInTiles,
   MAX_ITEMS,
-} from './model.js?v=27';
+} from './model.js?v=28';
 import { MapView } from './mapView.js?v=25';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
-import { TileEditor } from './tileEditor.js?v=25';
-import { ItemEditor } from './itemEditor.js?v=25';
+import { TileEditor } from './tileEditor.js?v=27';
+import { ItemEditor } from './itemEditor.js?v=26';
 import { PreviewView } from './previewView.js?v=28';
 import { initShiftControls } from './shiftControls.js?v=24';
 import {
@@ -206,6 +210,18 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
       .filter(Boolean);
   },
   sectorCount: () => sectorCount(activeLevel(episode)),
+  itemCount: () => gameItemCount(activeLevel(episode)),
+  hasItemSelection: () => selection.items.size > 0,
+  getLevelName: () => activeLevel(episode).name || '',
+  onLevelNameChange: (name) => {
+    const level = activeLevel(episode);
+    const next = clampLevelName(name);
+    if (level.name === next) return;
+    level.name = next;
+    markDirty();
+    setStatus(next ? `Level name: ${next}` : 'Level name cleared');
+    refreshEditors();
+  },
   onChange: (patch) => {
     const level = activeLevel(episode);
     const tiles = [...selection.tiles].map(parseTileKey);
@@ -234,10 +250,23 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
           item.type = CAMERA_TYPE;
           item.angle = 0;
           delete item.skills;
+          delete item.switchAction;
+          delete item.targetTag;
+        } else if (patch.type === SWITCH_TYPE) {
+          item.type = SWITCH_TYPE;
+          item.switchAction = item.switchAction || defaultSwitchAction();
+          item.targetTag = item.targetTag || '';
+          delete item.skills;
+          delete item.angle;
         } else if (patch.type !== CAMERA_TYPE && isCamera(item)) {
           item.type = patch.type;
           item.skills = defaultSkills();
           delete item.angle;
+        } else if (isSwitch(item) && patch.type !== SWITCH_TYPE) {
+          item.type = patch.type;
+          item.skills = defaultSkills();
+          delete item.switchAction;
+          delete item.targetTag;
         } else {
           item.type = patch.type;
         }
@@ -247,6 +276,12 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       if ('angle' in patch) item.angle = Number(patch.angle) || 0;
       if ('skillKey' in patch && item.skills) {
         item.skills = { ...item.skills, [patch.skillKey]: patch.skillValue };
+      }
+      if ('switchAction' in patch && isSwitch(item)) {
+        item.switchAction = patch.switchAction;
+      }
+      if ('targetTag' in patch && isSwitch(item)) {
+        item.targetTag = String(patch.targetTag ?? '').trim();
       }
     }
     markDirty();

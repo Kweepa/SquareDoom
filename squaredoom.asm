@@ -78,7 +78,7 @@ free_mid = MEM_MID_LIMIT - end_mid
 ; ------------------------------------------------------------------
 *=$a000
 level_data
-	!binary "levels/e1m2.bin"
+	!binary "levels/e1m1.bin"
 
 MAP_SIZE = 32
 MAP_CELLS = 1024
@@ -102,6 +102,8 @@ level_map = SEC_BRIGHT + SEC_TABLE_SIZE
 level_spawn = level_map + MAP_CELLS	; x, y, angle (playera)
 level_items = level_spawn + SPAWN_BYTES
 level_sector_max = level_items + MAX_ITEMS * ITEM_BYTES
+LEVEL_NAME_LEN = 20
+level_name = level_sector_max + 1	; ASCII, null-padded
 
 !source "tables.asm"
 !source "item_bitmaps.asm"

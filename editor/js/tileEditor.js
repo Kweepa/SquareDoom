@@ -1,4 +1,4 @@
-import { C64_HEX, C64_NAMES, SECTOR_TYPES, sectorsEqual } from './model.js';
+import { C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_ITEMS, SECTOR_TYPES, sectorsEqual } from './model.js';
 
 function numInput(id, label, min, max, value, mixed) {
   const wrap = document.createElement('label');
@@ -86,6 +86,10 @@ export class TileEditor {
    *   getTiles: () => Array<{tx:number,ty:number}>,
    *   getProps: () => Array<object>,
    *   sectorCount: () => number,
+   *   itemCount: () => number,
+   *   hasItemSelection: () => boolean,
+   *   getLevelName: () => string,
+   *   onLevelNameChange: (name: string) => void,
    *   onChange: (patch: object) => void,
    *   onClear: () => void,
    *   onSelectSector: () => void,
@@ -109,10 +113,13 @@ export class TileEditor {
 
     const countLine = document.createElement('p');
     countLine.className = 'muted';
-    countLine.textContent = `Sectors: ${this.opts.sectorCount()}`;
+    countLine.textContent = `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}/${MAX_ITEMS}`;
     this.root.appendChild(countLine);
 
     if (!tiles.length) {
+      if (!this.opts.hasItemSelection()) {
+        this.#levelNameFields();
+      }
       const p = document.createElement('p');
       p.className = 'muted';
       p.textContent = 'Select tiles on the map. Shift+click empty to add.';
@@ -236,6 +243,27 @@ export class TileEditor {
 
     this.root.append(tag.wrap, floorCol.wrap, ceilCol.wrap);
     this.#actions();
+  }
+
+  #levelNameFields() {
+    const sub = document.createElement('h2');
+    sub.textContent = 'Level';
+    this.root.appendChild(sub);
+
+    const field = textInput('te-level-name', 'Name', this.opts.getLevelName() || '', false);
+    field.input.maxLength = LEVEL_NAME_LEN;
+    field.input.placeholder = 'Level name';
+    const commit = () => {
+      this.opts.onLevelNameChange(field.input.value);
+    };
+    field.input.addEventListener('change', commit);
+    field.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        field.input.blur();
+      }
+    });
+    this.root.appendChild(field.wrap);
   }
 
   #actions() {

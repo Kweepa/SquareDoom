@@ -7,10 +7,12 @@
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   4. Items: 48 * 4 bytes: typeId, x, y, skillBits
- *      skillBits: bit0=easy, bit1=normal, bit2=hard
+ *      skillBits: bit0=easy, bit1=normal, bit2=hard (non-switch items)
+ *      switches: typeId = switch_* action; byte3 = target sector id (from targetTag)
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
+ *   6. name: LEVEL_NAME_LEN (20) bytes — ASCII, null-padded
  * Colors: 0..15 = Commodore 64 palette
  * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
  */
@@ -19,13 +21,19 @@ import {
   ITEM_TYPES,
   CAMERA_TYPE,
   SPAWN_TYPE,
+  SWITCH_TYPE,
   DOOR_SECTOR_TYPE,
   isGameItem,
+  isSwitch,
+  coerceSwitchItem,
+  switchCookType,
   LEVEL_NAMES,
+  LEVEL_NAME_LEN,
   MAP_CELLS,
   MAX_ITEMS,
   MAX_SECTORS,
   colorIndex,
+  clampLevelName,
   createEmptyLevel,
   createEpisode,
   defaultSector,
@@ -60,6 +68,7 @@ export function levelToJSON(level) {
     };
   }
   return {
+    name: clampLevelName(level.name),
     sectors: sectorObj,
     map: Array.from(level.map),
     spawn: {
@@ -76,6 +85,16 @@ export function levelToJSON(level) {
       if (it.type === CAMERA_TYPE) {
         return { ...base, angle: it.angle ?? 0 };
       }
+      if (isSwitch(it)) {
+        const sw = coerceSwitchItem(it);
+        return {
+          type: SWITCH_TYPE,
+          x: sw.x,
+          y: sw.y,
+          switchAction: sw.switchAction,
+          targetTag: sw.targetTag,
+        };
+      }
       return { ...base, skills: { ...it.skills } };
     }),
   };
@@ -83,6 +102,7 @@ export function levelToJSON(level) {
 
 export function levelFromJSON(data) {
   const level = createEmptyLevel();
+  level.name = clampLevelName(data.name);
   if (data.sectors) {
     for (const [key, s] of Object.entries(data.sectors)) {
       const id = Number(key);
@@ -124,6 +144,12 @@ export function levelFromJSON(data) {
       }
       if (it.type === SPAWN_TYPE) {
         legacySpawn = it;
+        continue;
+      }
+      const asSwitch = coerceSwitchItem(it);
+      if (asSwitch) {
+        if (gameItemCount(level) >= MAX_ITEMS) break;
+        level.items.push(asSwitch);
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
@@ -246,6 +272,26 @@ export function cookLevel(level) {
       itemTable[off] = EMPTY_ITEM_TYPE;
       continue;
     }
+    if (isSwitch(it)) {
+      const sw = coerceSwitchItem(it);
+      const cookType = switchCookType(sw.switchAction);
+      const typeId = ITEM_TYPES.indexOf(cookType);
+      itemTable[off] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
+      itemTable[off + 1] = sw.x & 0xff;
+      itemTable[off + 2] = sw.y & 0xff;
+      const tag = (sw.targetTag || '').trim();
+      let targetId = 0;
+      if (!tag) {
+        warnings.push(`Switch at (${sw.x},${sw.y}): empty target tag`);
+      } else {
+        targetId = findSectorIdByTag(level, tag);
+        if (!targetId) {
+          warnings.push(`Switch at (${sw.x},${sw.y}): target tag "${tag}" not found`);
+        }
+      }
+      itemTable[off + 3] = targetId & 0xff;
+      continue;
+    }
     const typeId = ITEM_TYPES.indexOf(it.type);
     itemTable[off] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
     itemTable[off + 1] = it.x & 0xff;
@@ -275,8 +321,13 @@ export function cookLevel(level) {
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
+  const nameBytes = new Uint8Array(LEVEL_NAME_LEN);
+  const nameStr = clampLevelName(level.name);
+  for (let i = 0; i < nameStr.length; i++) {
+    nameBytes[i] = nameStr.charCodeAt(i) & 0x7f;
+  }
   const out = new Uint8Array(
-    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1,
+    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1 + LEVEL_NAME_LEN,
   );
   let o = 0;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
@@ -290,6 +341,8 @@ export function cookLevel(level) {
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
   out[o] = sectorMax & 0xff;
+  o += 1;
+  out.set(nameBytes, o);
   return { bytes: out, warnings };
 }
 

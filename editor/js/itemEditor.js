@@ -2,9 +2,14 @@ import {
   ITEM_TYPES,
   CAMERA_TYPE,
   SPAWN_TYPE,
+  SWITCH_TYPE,
+  SWITCH_ACTIONS,
   WORLD_MAX,
   isCamera,
   isSpawn,
+  isSwitch,
+  isSwitchCookType,
+  normalizeSwitchAction,
 } from './model.js';
 
 export class ItemEditor {
@@ -42,6 +47,7 @@ export class ItemEditor {
     const item = items[0];
     const multi = items.length > 1;
     const onlySpawn = items.length === 1 && isSpawn(item);
+    const allSwitches = items.every((it) => isSwitch(it));
 
     const selLine = document.createElement('p');
     selLine.className = 'muted';
@@ -51,13 +57,18 @@ export class ItemEditor {
       selLine.textContent = `${items.length} items selected — edits apply to all`;
     } else if (isCamera(item)) {
       selLine.textContent = 'Editor only — not included in cooked binary.';
+    } else if (isSwitch(item)) {
+      selLine.textContent = 'Switch';
     } else {
       selLine.textContent = item.type;
     }
     this.root.appendChild(selLine);
 
     if (!onlySpawn) {
-      const typesSame = items.every((it) => it.type === item.type);
+      const typesSame = items.every((it) => {
+        if (isSwitch(it) && isSwitch(item)) return true;
+        return it.type === item.type;
+      });
       const typeLab = document.createElement('label');
       typeLab.className = 'field';
       typeLab.innerHTML = '<span>Type</span>';
@@ -70,12 +81,16 @@ export class ItemEditor {
         typeSel.appendChild(mixed);
       }
       // Spawn is level.spawn only — not a convertible item type
-      const types = ITEM_TYPES.filter((t) => t !== SPAWN_TYPE).concat(CAMERA_TYPE);
+      const types = ITEM_TYPES.filter(
+        (t) => t !== SPAWN_TYPE && !isSwitchCookType(t),
+      ).concat(SWITCH_TYPE, CAMERA_TYPE);
       for (const t of types) {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
-        if (typesSame && t === item.type) opt.selected = true;
+        if (typesSame && (t === item.type || (t === SWITCH_TYPE && isSwitch(item)))) {
+          opt.selected = true;
+        }
         typeSel.appendChild(opt);
       }
       typeSel.addEventListener('change', () => {
@@ -119,6 +134,8 @@ export class ItemEditor {
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
+    } else if (allSwitches) {
+      this.#switchFields(items, item);
     } else if (noViewpoints) {
       const skills = document.createElement('div');
       skills.className = 'field skills';
@@ -153,6 +170,57 @@ export class ItemEditor {
       del.addEventListener('click', () => this.opts.onDelete());
       this.root.appendChild(del);
     }
+  }
+
+  #switchFields(items, item) {
+    const actionSame = items.every(
+      (it) => normalizeSwitchAction(it.switchAction) === normalizeSwitchAction(item.switchAction),
+    );
+    const actionLab = document.createElement('label');
+    actionLab.className = 'field';
+    actionLab.innerHTML = '<span>Action</span>';
+    const actionSel = document.createElement('select');
+    if (!actionSame) {
+      const mixed = document.createElement('option');
+      mixed.value = '';
+      mixed.textContent = '(mixed)';
+      mixed.selected = true;
+      actionSel.appendChild(mixed);
+    }
+    for (const a of SWITCH_ACTIONS) {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.name;
+      if (actionSame && a.id === normalizeSwitchAction(item.switchAction)) {
+        opt.selected = true;
+      }
+      actionSel.appendChild(opt);
+    }
+    actionSel.addEventListener('change', () => {
+      if (!actionSel.value) return;
+      this.opts.onChange({ switchAction: actionSel.value });
+    });
+    actionLab.appendChild(actionSel);
+    this.root.appendChild(actionLab);
+
+    const tagSame = items.every(
+      (it) => (it.targetTag || '') === (item.targetTag || ''),
+    );
+    const tagLab = document.createElement('label');
+    tagLab.className = 'field';
+    const tagSpan = document.createElement('span');
+    tagSpan.textContent = tagSame ? 'Target tag' : 'Target tag (mixed)';
+    const tagInput = document.createElement('input');
+    tagInput.type = 'text';
+    tagInput.autocomplete = 'off';
+    tagInput.spellcheck = false;
+    tagInput.placeholder = tagSame ? 'tag of target sector' : 'mixed';
+    tagInput.value = tagSame ? item.targetTag || '' : '';
+    tagInput.addEventListener('change', () => {
+      this.opts.onChange({ targetTag: tagInput.value });
+    });
+    tagLab.append(tagSpan, tagInput);
+    this.root.appendChild(tagLab);
   }
 
   #numField(label, key, min, max, value) {

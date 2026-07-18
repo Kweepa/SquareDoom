@@ -4,6 +4,8 @@ export const MAP_SIZE = 32;
 export const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 export const MAX_SECTORS = 255;
 export const MAX_ITEMS = 48;
+/** Fixed cooked level-name length (ASCII, null-padded). */
+export const LEVEL_NAME_LEN = 20;
 export const WORLD_PER_TILE = 8;
 export const WORLD_MAX = MAP_SIZE * WORLD_PER_TILE - 1; // 255
 /** Max tile span on either axis so item billboards can use signed 8-bit world deltas. */
@@ -84,14 +86,30 @@ export const ITEM_TYPES = [
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
+  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
 export const SPAWN_TYPE = 'spawn';
 export const CAMERA_TYPE = 'camera';
+/** Palette placeable; fans out to switch_* cook types. */
+export const SWITCH_TYPE = 'switch';
+
+/** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
+export const SWITCH_ACTIONS = [
+  { id: 'open_door', name: 'Open door', cookType: 'switch_opendoor' },
+  { id: 'end_level', name: 'End level', cookType: 'switch_endlevel' },
+  { id: 'lower_lift', name: 'Lower lift', cookType: 'switch_lowerlift' },
+];
+
+const SWITCH_COOK_TYPES = new Set(SWITCH_ACTIONS.map((a) => a.cookType));
 
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
-export const EDITOR_ITEM_TYPES = [...ITEM_TYPES, CAMERA_TYPE];
+export const EDITOR_ITEM_TYPES = [
+  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t)),
+  SWITCH_TYPE,
+  CAMERA_TYPE,
+];
 
 export function isGameItem(type) {
   return type !== CAMERA_TYPE && type !== SPAWN_TYPE;
@@ -103,6 +121,52 @@ export function isCamera(item) {
 
 export function isSpawn(item) {
   return item?.type === SPAWN_TYPE;
+}
+
+export function isSwitchCookType(type) {
+  return SWITCH_COOK_TYPES.has(type);
+}
+
+export function isSwitch(item) {
+  return item?.type === SWITCH_TYPE || isSwitchCookType(item?.type);
+}
+
+export function defaultSwitchAction() {
+  return SWITCH_ACTIONS[0].id;
+}
+
+export function normalizeSwitchAction(action) {
+  if (SWITCH_ACTIONS.some((a) => a.id === action)) return action;
+  const byCook = SWITCH_ACTIONS.find((a) => a.cookType === action);
+  return byCook?.id ?? defaultSwitchAction();
+}
+
+export function switchCookType(action) {
+  const a = SWITCH_ACTIONS.find((x) => x.id === normalizeSwitchAction(action));
+  return a.cookType;
+}
+
+/** Map legacy/cook type ids to editor switch fields. */
+export function coerceSwitchItem(it) {
+  if (it.type === SWITCH_TYPE) {
+    return {
+      type: SWITCH_TYPE,
+      x: it.x,
+      y: it.y,
+      switchAction: normalizeSwitchAction(it.switchAction),
+      targetTag: String(it.targetTag ?? '').trim(),
+    };
+  }
+  if (isSwitchCookType(it.type)) {
+    return {
+      type: SWITCH_TYPE,
+      x: it.x,
+      y: it.y,
+      switchAction: normalizeSwitchAction(it.type),
+      targetTag: String(it.targetTag ?? '').trim(),
+    };
+  }
+  return null;
 }
 
 /** Radians ↔ cooked playera byte (0..255 full circle). */
@@ -223,8 +287,14 @@ export function defaultSkills() {
   return { easy: true, normal: true, hard: true };
 }
 
+export function clampLevelName(name) {
+  return String(name ?? '').trim().slice(0, LEVEL_NAME_LEN);
+}
+
 export function createEmptyLevel() {
   return {
+    /** Display name (max LEVEL_NAME_LEN); cooked into binary. */
+    name: '',
     /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..255) */
     sectors: new Map(),
     /** @type {Uint8Array} */
@@ -920,6 +990,20 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
       x: clampWorld(x),
       y: clampWorld(y),
       angle: 0,
+    };
+    level.items.push(item);
+    return item;
+  }
+  if (type === SWITCH_TYPE || isSwitchCookType(type)) {
+    if (gameItemCount(level) >= MAX_ITEMS) return null;
+    const item = {
+      type: SWITCH_TYPE,
+      x: clampWorld(x),
+      y: clampWorld(y),
+      switchAction: isSwitchCookType(type)
+        ? normalizeSwitchAction(type)
+        : defaultSwitchAction(),
+      targetTag: '',
     };
     level.items.push(item);
     return item;

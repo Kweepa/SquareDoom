@@ -18,6 +18,7 @@ const ITEM_TYPES = [
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
+  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
 ];
 
 /** Pepto C64 palette (duplicated — not from editor). */
@@ -184,14 +185,18 @@ if (!existsSync(gfxDir)) {
 const allGfx = []; // concatenated column-major strips
 
 for (const type of ITEM_TYPES) {
-  const path = join(gfxDir, `${type}.png`);
+  let path = join(gfxDir, `${type}.png`);
+  // Switch actions share one graphic under multicolour/ (not editor/).
+  if (!existsSync(path) && type.startsWith('switch_')) {
+    path = join(gfxDir, 'multicolour', 'switch.png');
+  }
   if (!existsSync(path)) {
     console.error(`missing item graphic: ${path}`);
     process.exit(1);
   }
   const { width, height, pixels } = decodePngRgb(readFileSync(path));
   if (width !== 8 || height !== 8) {
-    console.error(`${type}.png: expected 8×8, got ${width}×${height}`);
+    console.error(`${type} (${path}): expected 8×8, got ${width}×${height}`);
     process.exit(1);
   }
   // Column-major: for x in 0..7, for y in 0..7 → gfx[x*8+y]
