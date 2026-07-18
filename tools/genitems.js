@@ -1,8 +1,9 @@
 /**
- * Read itemgraphics/*.png → item_bitmaps.asm (column-major C64 colour pixels).
+ * Read itemgraphics/*.png → item_bitmaps.asm (column-major C64 colour mips).
  * Game build only — no editor imports. Fails if any ITEM_TYPES PNG is missing.
  *
- * Layout per type: gfx[bmp_x * 8 + bmp_y], byte = C64 colour, 0 = transparent.
+ * Spawn and enemy types (soldier…baron) skip atlases — nodraw stub / enemy_sprites.
+ * Other types require a 12×8 mip atlas PNG.
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -21,24 +22,39 @@ const ITEM_TYPES = [
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
 ];
 
+/** No item atlas: spawn is never drawn; enemies use enemy_sprites mips. */
+const SKIP_ITEM_ATLAS = new Set([
+  'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron',
+]);
+
+const ATLAS_W = 12;
+const ATLAS_H = 8;
+
+const MIPS = [
+  { name: 'm0', w: 8, h: 8, x0: 0, y0: 0 },
+  { name: 'm1', w: 4, h: 4, x0: 8, y0: 0 },
+  { name: 'm2', w: 2, h: 2, x0: 8, y0: 4 },
+  { name: 'm3', w: 1, h: 1, x0: 8, y0: 6 },
+];
+
 /** Pepto C64 palette (duplicated — not from editor). */
 const C64_RGB = [
-  [0x00, 0x00, 0x00], // 0 black
-  [0xff, 0xff, 0xff], // 1 white
-  [0x81, 0x33, 0x38], // 2 red
-  [0x75, 0xce, 0xc8], // 3 cyan
-  [0x8e, 0x3c, 0x97], // 4 purple
-  [0x56, 0xac, 0x4d], // 5 green
-  [0x40, 0x31, 0x8d], // 6 blue
-  [0xbf, 0xce, 0x72], // 7 yellow
-  [0x8e, 0x50, 0x29], // 8 orange
-  [0x55, 0x3f, 0x00], // 9 brown
-  [0xc4, 0x6c, 0x71], // 10 light red
-  [0x4a, 0x4a, 0x4a], // 11 dark grey
-  [0x7b, 0x7b, 0x7b], // 12 grey
-  [0xa9, 0xff, 0x9f], // 13 light green
-  [0x70, 0x6d, 0xeb], // 14 light blue
-  [0xb2, 0xb2, 0xb2], // 15 light grey
+  [0x00, 0x00, 0x00],
+  [0xff, 0xff, 0xff],
+  [0x81, 0x33, 0x38],
+  [0x75, 0xce, 0xc8],
+  [0x8e, 0x3c, 0x97],
+  [0x56, 0xac, 0x4d],
+  [0x40, 0x31, 0x8d],
+  [0xbf, 0xce, 0x72],
+  [0x8e, 0x50, 0x29],
+  [0x55, 0x3f, 0x00],
+  [0xc4, 0x6c, 0x71],
+  [0x4a, 0x4a, 0x4a],
+  [0x7b, 0x7b, 0x7b],
+  [0xa9, 0xff, 0x9f],
+  [0x70, 0x6d, 0xeb],
+  [0xb2, 0xb2, 0xb2],
 ];
 
 function decodePngRgb(buf) {
@@ -154,7 +170,6 @@ function dist2(a, b) {
   return dr * dr + dg * dg + db * db;
 }
 
-/** Nearest opaque C64 colour (1–15); 0 reserved for transparent. */
 function nearestC64(rgb) {
   let best = 1;
   let bestD = Infinity;
@@ -177,50 +192,111 @@ function fmtBytes(bytes) {
   return lines.join('\n');
 }
 
+function extractMip(pixels, atlasW, mip) {
+  const col = [];
+  for (let x = 0; x < mip.w; x++) {
+    for (let y = 0; y < mip.h; y++) {
+      const rgb = pixels[(mip.y0 + y) * atlasW + (mip.x0 + x)];
+      col.push(isTransparent(rgb) ? 0 : nearestC64(rgb));
+    }
+  }
+  return col;
+}
+
 if (!existsSync(gfxDir)) {
   console.error(`missing ${gfxDir} — place item PNGs there (game build does not use editor/)`);
   process.exit(1);
 }
 
-const allGfx = []; // concatenated column-major strips
+const allLabels = [];
+const typeBlocks = [];
+let totalBytes = 0;
+const missingMips = [];
+let needNodrawStub = false;
 
 for (const type of ITEM_TYPES) {
+  if (SKIP_ITEM_ATLAS.has(type)) {
+    // Keep typeId*4+mip indexing; point at shared transparent stub.
+    needNodrawStub = true;
+    for (let i = 0; i < MIPS.length; i++) {
+      allLabels.push('item_spr_nodraw');
+    }
+    continue;
+  }
   let path = join(gfxDir, `${type}.png`);
-  // Switch actions share one graphic under multicolour/ (not editor/).
-  if (!existsSync(path) && type.startsWith('switch_')) {
-    path = join(gfxDir, 'multicolour', 'switch.png');
+  // Switch actions share one atlas: itemgraphics/switch.png
+  if (type.startsWith('switch_')) {
+    path = join(gfxDir, 'switch.png');
   }
   if (!existsSync(path)) {
-    console.error(`missing item graphic: ${path}`);
-    process.exit(1);
+    missingMips.push(`${type}: missing file ${path}`);
+    continue;
   }
   const { width, height, pixels } = decodePngRgb(readFileSync(path));
-  if (width !== 8 || height !== 8) {
-    console.error(`${type} (${path}): expected 8×8, got ${width}×${height}`);
-    process.exit(1);
+  if (width !== ATLAS_W || height !== ATLAS_H) {
+    missingMips.push(
+      `${type}: need 12×8 mip atlas (${path} is ${width}×${height})`,
+    );
+    continue;
   }
-  // Column-major: for x in 0..7, for y in 0..7 → gfx[x*8+y]
-  const col = [];
-  for (let x = 0; x < 8; x++) {
-    for (let y = 0; y < 8; y++) {
-      const rgb = pixels[y * 8 + x];
-      col.push(isTransparent(rgb) ? 0 : nearestC64(rgb));
-    }
+  const labels = [];
+  for (const mip of MIPS) {
+    const label = `item_spr_${type}_${mip.name}`;
+    const bytes = extractMip(pixels, ATLAS_W, mip);
+    labels.push({ label, bytes });
+    allLabels.push(label);
+    totalBytes += bytes.length;
   }
-  allGfx.push(...col);
+  typeBlocks.push({ type, labels });
+}
+
+if (missingMips.length) {
+  console.error('missing item mips (expected 12×8: mip0 8×8 left, mips 1–3 on right):');
+  for (const line of missingMips) {
+    console.error(`  ${line}`);
+  }
+  process.exit(1);
 }
 
 let asm = `; Auto-generated from itemgraphics/*.png — do not edit\n`;
-asm += `; Column-major 8×8: gfx[type][bmp_x*8+bmp_y], byte = C64 colour, 0 = transparent\n`;
+asm += `; 12×8 atlases: mip0 8×8 left; mips 1–3 on right. Column-major, 0 = transparent\n`;
+asm += `; spawn/enemies skip atlases (nodraw stub / enemy_sprites).\n`;
 asm += `!zone item_bitmaps\n\n`;
 asm += `ITEM_TYPE_COUNT = ${ITEM_TYPES.length}\n`;
-asm += `ITEM_BMP_W = 8\n`;
-asm += `ITEM_BMP_H = 8\n`;
-asm += `ITEM_BMP_BYTES = 64\n\n`;
-asm += `; Index = typeId * 64; column strips of 8 row pixels\n`;
-asm += `item_gfx\n`;
-asm += fmtBytes(allGfx);
-asm += `\n`;
+asm += `ITEM_MIP_COUNT = ${MIPS.length}\n\n`;
+
+asm += `; mip source width / height / log2 (index = mip 0..3)\n`;
+asm += `item_mip_w\n`;
+asm += `\t!byte ${MIPS.map((m) => m.w).join(',')}\n`;
+asm += `item_mip_h\n`;
+asm += `\t!byte ${MIPS.map((m) => m.h).join(',')}\n`;
+asm += `item_mip_ushift\n`;
+asm += `\t!byte ${MIPS.map((m) => Math.log2(m.w)).join(',')}\n`;
+asm += `item_mip_vshift\n`;
+asm += `\t!byte ${MIPS.map((m) => Math.log2(m.h)).join(',')}\n\n`;
+
+asm += `; Base address lo/hi: index = typeId * ITEM_MIP_COUNT + mip\n`;
+asm += `item_mip_base_lo\n`;
+asm += `\t!byte ${allLabels.map((l) => `<${l}`).join(',')}\n`;
+asm += `item_mip_base_hi\n`;
+asm += `\t!byte ${allLabels.map((l) => `>${l}`).join(',')}\n\n`;
+
+if (needNodrawStub) {
+  asm += `; Transparent stub for spawn / enemy typeIds (never drawn as items)\n`;
+  asm += `item_spr_nodraw\n`;
+  asm += `\t!byte $00\n\n`;
+}
+
+asm += `; Per-type mip blobs\n`;
+for (const block of typeBlocks) {
+  for (const { label, bytes } of block.labels) {
+    asm += `${label}\n`;
+    asm += fmtBytes(bytes);
+    asm += `\n`;
+  }
+}
 
 writeFileSync(join(root, 'item_bitmaps.asm'), asm);
-console.log(`wrote item_bitmaps.asm (${ITEM_TYPES.length} types × 64 bytes = ${allGfx.length})`);
+console.log(
+  `wrote item_bitmaps.asm (${typeBlocks.length} atlas types × ${MIPS.length} mips = ${totalBytes} bytes; ${SKIP_ITEM_ATLAS.size} skipped)`,
+);

@@ -87,7 +87,7 @@
           "brightness": 7
         },
         "9": {
-          "floorHeight": 6,
+          "floorHeight": 5,
           "ceilingHeight": 8,
           "sectorType": 0,
           "tag": "",
@@ -114,6 +114,16 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
+          "brightness": 7
+        },
+        "12": {
+          "floorHeight": 5,
+          "ceilingHeight": 12,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 6,
           "brightness": 7
         },
         "13": {
@@ -696,6 +706,16 @@
           "ceilingColor": 11,
           "brightness": 7
         },
+        "71": {
+          "floorHeight": 5,
+          "ceilingHeight": 8,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 9,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
         "72": {
           "floorHeight": 8,
           "ceilingHeight": 13,
@@ -724,16 +744,6 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 6,
-          "brightness": 7
-        },
-        "76": {
-          "floorHeight": 6,
-          "ceilingHeight": 8,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 9,
-          "ceilingColor": 11,
           "brightness": 7
         },
         "77": {
@@ -794,16 +804,6 @@
           "targetTag": "",
           "floorColor": 12,
           "ceilingColor": 11,
-          "brightness": 7
-        },
-        "84": {
-          "floorHeight": 5,
-          "ceilingHeight": 15,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 6,
-          "ceilingColor": 6,
           "brightness": 7
         },
         "85": {
@@ -1034,7 +1034,7 @@
         16,
         98,
         75,
-        84,
+        12,
         0,
         95,
         0,
@@ -1189,7 +1189,7 @@
         8,
         8,
         8,
-        76,
+        71,
         1,
         58,
         4,
@@ -2191,9 +2191,9 @@
         },
         {
           "type": "camera",
-          "x": 172.25572288677347,
-          "y": 80.2084442249325,
-          "angle": -3.5037142654477593
+          "x": 194.8034143193046,
+          "y": 43.302382819858785,
+          "angle": -3.3960542610157542
         },
         {
           "type": "switch",

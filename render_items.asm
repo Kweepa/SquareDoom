@@ -4,7 +4,7 @@
 ; render_items.asm — billboard items into FRAMEBUFFER after column cast
 ; ============================================================================
 ; Collect items in seen sectors, depth-sort far→near, project, draw clipped
-; against COL_CLIP_* stack. Column-major item_gfx (byte colour, 0=clear).
+; against COL_CLIP_* stack. Column-major item mips (byte colour, 0=clear).
 ; ============================================================================
 
 ITEM_DEPTH_MIN = 1			; editor uses ~0.8 world units
@@ -531,32 +531,11 @@ item_draw_one
 	bne .id_w1
 	lda #1
 .id_w1
-	; mip0 may scale horizontally (keep W when ≥16). Smaller mips:
-	; floor W to pow2 so U is 1∶1; H stays projected (vertical scale only).
-	cmp #16
-	bcs .id_rw_set			; W≥16 → mip0, allow W>16
-	cmp #8
-	bcc .id_rw4
-	lda #8
-	bne .id_rw_set
-.id_rw4
-	cmp #4
-	bcc .id_rw2
-	lda #4
-	bne .id_rw_set
-.id_rw2
-	cmp #2
-	bcc .id_rw1
-	lda #2
-	bne .id_rw_set
-.id_rw1
-	lda #1
-.id_rw_set
-	sta last_near_ok
+	sta last_near_ok			; keep projected W (horizontal scale OK)
 	jmp .id_feet
 .id_w_sq
 	lda #0
-	sta far_floor			; 8×8 item_gfx path
+	sta far_floor			; 0 = item mip path
 	lda far_ceil
 	cmp #17				; items max 16×16 on screen
 	bcc .id_item_sz
@@ -649,23 +628,41 @@ item_draw_one
 .id_rts
 	rts
 .id_vok
-	; Enemy mip: W≥16→mip0 (may be wider than 16); else W is pow2 = mip_w
 	lda far_floor
-	beq .id_clp_go
+	bne .id_emip
+	; Item mip from projected W
+	lda last_near_ok
+	ldx #0
+	cmp #8
+	bcs .id_imip_got			; ≥8 → mip0
+	ldx #1
+	cmp #4
+	bcs .id_imip_got			; ≥4 → mip1
+	ldx #2
+	cmp #2
+	bcs .id_imip_got			; ≥2 → mip2
+	ldx #3				; else mip3 (W==1)
+.id_imip_got
+	stx fracy				; mip index (udiv16x8 clobbers tmp5)
+	lda item_mip_w,x
+	sta last_near_ceil			; mip_w (scratch for draw)
+	jmp .id_clp_go
+.id_emip
+	; Enemy mip from projected W (thresholds; U scales to mip_w)
 	lda last_near_ok
 	ldx #0
 	cmp #16
-	bcs .id_mip_got			; ≥16 → mip0 (horizontal scale OK)
+	bcs .id_mip_got			; ≥16 → mip0
 	ldx #1
 	cmp #8
-	beq .id_mip_got
+	bcs .id_mip_got			; ≥8 → mip1
 	ldx #2
 	cmp #4
-	beq .id_mip_got
+	bcs .id_mip_got			; ≥4 → mip2
 	ldx #3
 	cmp #2
-	beq .id_mip_got
-	ldx #4
+	bcs .id_mip_got			; ≥2 → mip3
+	ldx #4				; else mip4
 .id_mip_got
 	stx fracy				; mip index (udiv16x8 clobbers tmp5)
 	lda enemy_mip_w,x
@@ -870,69 +867,75 @@ item_draw_one
 	iny
 	jmp .id32_rlp
 
-; --- 8×8 item column ---
+; --- Item column (mip-aware; source W×H from item_mip_* tables) ---
 .id_e8
-	; bmp_x = (col - orig_left) * 8 / W  (orig_left may be negative)
+	; bmp_x = (col - orig_left) * mip_w / W
 	lda fracx
-	bpl .id_oxpos
-	; left negative: dist = col - left = col + (-left)
+	bpl .id8_oxp
 	lda #0
 	sec
-	sbc fracx			; -left
+	sbc fracx
 	clc
 	adc col
-	jmp .id_ox
-.id_oxpos
+	jmp .id8_ox
+.id8_oxp
 	lda col
 	sec
 	sbc fracx
-.id_ox
+.id8_ox
 	sta aux_l
 	lda #0
 	sta aux_h
+	ldx fracy
+	lda item_mip_ushift,x
+	beq .id8_ux0
+	tax
+.id8_uxlp
 	asl aux_l
 	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
+	dex
+	bne .id8_uxlp
+.id8_ux0
 	lda last_near_ok
 	jsr udiv16x8
-	and #7
+	cmp last_near_ceil		; >= mip_w → clamp
+	bcc .id8_xok
+	lda last_near_ceil
+	sec
+	sbc #1
+.id8_xok
 	sta last_near_floor		; bmp_x
-	; ptr = item_gfx + typeId*64 + bmp_x*8
-	lda #0
-	sta ptr_h
+	; ptr = item_mip_base[type*4+mip] + bmp_x * mip_h
 	lda wall_col
 	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h				; type*64
-	sta ptr_l
-	lda last_near_floor
-	asl
-	asl
-	asl					; bmp_x*8
+	asl					; *4
 	clc
-	adc ptr_l
+	adc fracy				; + mip
+	tax
+	lda item_mip_base_lo,x
 	sta ptr_l
-	lda ptr_h
-	adc #0
+	lda item_mip_base_hi,x
 	sta ptr_h
+	lda last_near_floor
+	sta aux_l
+	lda #0
+	sta aux_h
+	ldx fracy
+	lda item_mip_vshift,x
+	beq .id8_vx0
+	tax
+.id8_vxlp
+	asl aux_l
+	rol aux_h
+	dex
+	bne .id8_vxlp
+.id8_vx0
 	clc
 	lda ptr_l
-	adc #<item_gfx
+	adc aux_l
 	sta ptr_l
 	lda ptr_h
-	adc #>item_gfx
+	adc aux_h
 	sta ptr_h
 	ldy py_row
 .id_rlp
@@ -940,23 +943,33 @@ item_draw_one
 	bcc .id_row
 	jmp .id_cnx
 .id_row
-	sty tmp4				; screen row
+	sty tmp4
 	tya
 	sec
-	sbc near_fcol			; unclamped top
+	sbc near_fcol
 	sta aux_l
 	lda #0
 	sta aux_h
+	ldx fracy
+	lda item_mip_vshift,x
+	beq .id8_vy0
+	tax
+.id8_vylp
 	asl aux_l
 	rol aux_h
-	asl aux_l
-	rol aux_h
-	asl aux_l
-	rol aux_h
+	dex
+	bne .id8_vylp
+.id8_vy0
 	lda far_ceil
 	jsr udiv16x8
-	and #7
-	tay					; bmp_y
+	ldx fracy
+	cmp item_mip_h,x
+	bcc .id8_yok
+	lda item_mip_h,x
+	sec
+	sbc #1
+.id8_yok
+	tay
 	lda (ptr_l),y
 	beq .id_skip
 	ldy tmp4
