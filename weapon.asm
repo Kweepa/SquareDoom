@@ -10,6 +10,9 @@ PISTOL_ENABLE_IDLE = $3c		; sprites 2–5
 SHOTGUN_ENABLE_IDLE = $fc		; sprites 2–7
 MUZZLE_MS = 300
 
+; $00 until first blit, then $ff — AND with spr_en before writing $d015
+wpn_visible	!byte 0
+
 ; Per-weapon fire interval (ms while held)
 wpn_fire_ms_lo
 	!byte <600, <900
@@ -88,15 +91,31 @@ switch_weapon
 	rts
 
 init_weapon
+	lda #0
+	sta wpn_visible			; hide until first render blit
 	lda #$ff
 	sta cur_weapon			; force setup
 	ldx #0
 	jmp switch_weapon
 
+; After first blit — allow $d015 writes and enable current spr_en.
+show_weapon
+	lda #$ff
+	sta wpn_visible
+	lda spr_en
+	sta $d015
+	rts
+
+; A = enable mask → spr_en; $d015 only if wpn_visible.
+.wpn_en
+	sta spr_en
+	and wpn_visible
+	sta $d015
+	rts
+
 setup_pistol
 	lda #PISTOL_ENABLE_IDLE
-	sta spr_en
-	sta $d015
+	jsr .wpn_en
 	lda #$3f			; XY expand sprites 0–5
 	sta $d01d
 	sta $d017
@@ -125,8 +144,7 @@ setup_pistol
 
 setup_shotgun
 	lda #SHOTGUN_ENABLE_IDLE
-	sta spr_en
-	sta $d015
+	jsr .wpn_en
 	lda #$ff			; XY expand all eight
 	sta $d01d
 	sta $d017
@@ -185,8 +203,7 @@ damage_shotgun
 	sta muzzle_ms_h
 	lda spr_en
 	ora #$03
-	sta spr_en
-	sta $d015
+	jsr .wpn_en
 	jsr wpn_damage
 	clc
 	rts
@@ -196,7 +213,7 @@ damage_shotgun
 
 ; Call once per frame after read_input.
 ; While I held: fire when fire_rpt is 0, then wait wpn_fire_ms.
-; Note: $d015 is write-only — use spr_en mirror.
+; Note: $d015 is write-only — use spr_en mirror; gated by wpn_visible.
 update_muzzle_flash
 	; --- muzzle flash sprite timeout ---
 	lda muzzle_ms_l
@@ -204,8 +221,7 @@ update_muzzle_flash
 	beq .mf_keys
 	lda spr_en
 	ora #$03
-	sta spr_en
-	sta $d015
+	jsr .wpn_en
 	sec
 	lda muzzle_ms_l
 	sbc dt_ms
@@ -219,8 +235,7 @@ update_muzzle_flash
 	sta muzzle_ms_h
 	lda spr_en
 	and #$fc
-	sta spr_en
-	sta $d015
+	jsr .wpn_en
 
 .mf_keys
 	lda key_fire

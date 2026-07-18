@@ -67,6 +67,7 @@ render
 	jsr blit_fb_to_color
 	jsr blit_fb_to_chars
 	jsr draw_hud
+	jsr show_weapon			; HUD sprites after first (and every) blit
 	jsr prof_frame_sample
 	jsr prof_print
 !if DBG_PORTAL = 1 {
