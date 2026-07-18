@@ -23,6 +23,7 @@ import {
   SPAWN_TYPE,
   SWITCH_TYPE,
   DOOR_SECTOR_TYPE,
+  sectorTypeNeedsTarget,
   isGameItem,
   isSwitch,
   coerceSwitchItem,
@@ -241,7 +242,7 @@ export function cookLevel(level) {
     if (!s) continue;
     const type = (s.sectorType ?? 0) & 0xff;
     let targetId = 0;
-    if (type !== 0) {
+    if (sectorTypeNeedsTarget(type)) {
       const tag = (s.targetTag || '').trim();
       if (!tag) {
         warnings.push(`Sector ${id}: type ${type} has empty target tag`);

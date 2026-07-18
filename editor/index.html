@@ -654,8 +654,10 @@ const LEGACY_COLOR_TO_C64 = {
   white: 1,
 };
 
-/** Doom-style sector specials (as used by VicDoom), plus editor Door. */
+/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window. */
 const DOOR_SECTOR_TYPE = 18;
+/** Blocks player/enemy walk; shots and hitscan pass. */
+const WINDOW_SECTOR_TYPE = 19;
 
 const SECTOR_TYPES = [
   { id: 0, name: 'Normal' },
@@ -675,10 +677,21 @@ const SECTOR_TYPES = [
   { id: 16, name: 'Damage 20%' },
   { id: 17, name: 'Light flicker' },
   { id: DOOR_SECTOR_TYPE, name: 'Door' },
+  { id: WINDOW_SECTOR_TYPE, name: 'Window' },
 ];
 
 function isDoorSector(sector) {
   return (sector?.sectorType ?? 0) === DOOR_SECTOR_TYPE;
+}
+
+function isWindowSector(sector) {
+  return (sector?.sectorType ?? 0) === WINDOW_SECTOR_TYPE;
+}
+
+/** Types that resolve a targetTag when cooking (Window does not). */
+function sectorTypeNeedsTarget(type) {
+  const t = (type ?? 0) & 0xff;
+  return t !== 0 && t !== WINDOW_SECTOR_TYPE;
 }
 
 const ITEM_TYPES = [
@@ -688,6 +701,7 @@ const ITEM_TYPES = [
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+  'fireball',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -695,6 +709,8 @@ const SPAWN_TYPE = 'spawn';
 const CAMERA_TYPE = 'camera';
 /** Palette placeable; fans out to switch_* cook types. */
 const SWITCH_TYPE = 'switch';
+/** Runtime-only (missile); not placeable in the editor. */
+const FIREBALL_TYPE = 'fireball';
 
 /** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
 const SWITCH_ACTIONS = [
@@ -707,7 +723,7 @@ const SWITCH_COOK_TYPES = new Set(SWITCH_ACTIONS.map((a) => a.cookType));
 
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 const EDITOR_ITEM_TYPES = [
-  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t)),
+  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t) && t !== FIREBALL_TYPE),
   SWITCH_TYPE,
   CAMERA_TYPE,
 ];
@@ -1855,7 +1871,7 @@ function cookLevel(level) {
     if (!s) continue;
     const type = (s.sectorType ?? 0) & 0xff;
     let targetId = 0;
-    if (type !== 0) {
+    if (sectorTypeNeedsTarget(type)) {
       const tag = (s.targetTag || '').trim();
       if (!tag) {
         warnings.push(`Sector ${id}: type ${type} has empty target tag`);
@@ -3115,7 +3131,9 @@ class TileEditor {
     typeWrap.append(typeSpan, typeSel);
 
     const typeNum = Number(s.sectorType);
-    const showTarget = !!s._mixed.sectorType || (Number.isFinite(typeNum) && typeNum !== 0);
+    const showTarget =
+      !!s._mixed.sectorType ||
+      (Number.isFinite(typeNum) && sectorTypeNeedsTarget(typeNum));
 
     const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
     tag.input.addEventListener('change', () => {

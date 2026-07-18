@@ -87,6 +87,7 @@ MAX_ITEMS = 48
 ITEM_BYTES = 4
 SPAWN_BYTES = 3
 DOOR_TYPE = 18
+WINDOW_TYPE = 19			; walk-blocked; hitscan/missiles pass
 SEC_TABLE_SIZE = 256
 
 ; Attribute tables (index = sector id; [0] unused)

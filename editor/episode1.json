@@ -88,11 +88,11 @@
         },
         "9": {
           "floorHeight": 5,
-          "ceilingHeight": 8,
-          "sectorType": 0,
+          "ceilingHeight": 14,
+          "sectorType": 19,
           "tag": "",
           "targetTag": "",
-          "floorColor": 9,
+          "floorColor": 12,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -167,13 +167,13 @@
           "brightness": 7
         },
         "17": {
-          "floorHeight": 11,
-          "ceilingHeight": 15,
+          "floorHeight": 10,
+          "ceilingHeight": 17,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 6,
-          "ceilingColor": 2,
+          "floorColor": 11,
+          "ceilingColor": 11,
           "brightness": 7
         },
         "18": {
@@ -208,12 +208,12 @@
         },
         "21": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
+          "ceilingHeight": 17,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 5,
+          "ceilingColor": 11,
           "brightness": 7
         },
         "22": {
@@ -248,7 +248,7 @@
         },
         "25": {
           "floorHeight": 4,
-          "ceilingHeight": 17,
+          "ceilingHeight": 9,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -297,13 +297,13 @@
           "brightness": 7
         },
         "30": {
-          "floorHeight": 6,
-          "ceilingHeight": 14,
-          "sectorType": 0,
+          "floorHeight": 5,
+          "ceilingHeight": 12,
+          "sectorType": 19,
           "tag": "",
           "targetTag": "",
           "floorColor": 12,
-          "ceilingColor": 11,
+          "ceilingColor": 9,
           "brightness": 7
         },
         "31": {
@@ -327,18 +327,18 @@
           "brightness": 7
         },
         "33": {
-          "floorHeight": 4,
-          "ceilingHeight": 17,
+          "floorHeight": 12,
+          "ceilingHeight": 16,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
+          "floorColor": 5,
+          "ceilingColor": 3,
           "brightness": 7
         },
         "34": {
-          "floorHeight": 4,
-          "ceilingHeight": 17,
+          "floorHeight": 1,
+          "ceilingHeight": 6,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -357,8 +357,8 @@
           "brightness": 7
         },
         "36": {
-          "floorHeight": 2,
-          "ceilingHeight": 15,
+          "floorHeight": 12,
+          "ceilingHeight": 16,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -538,7 +538,7 @@
         },
         "54": {
           "floorHeight": 4,
-          "ceilingHeight": 17,
+          "ceilingHeight": 12,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
@@ -566,6 +566,16 @@
           "ceilingColor": 11,
           "brightness": 7
         },
+        "57": {
+          "floorHeight": 4,
+          "ceilingHeight": 9,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
         "58": {
           "floorHeight": 2,
           "ceilingHeight": 18,
@@ -577,13 +587,13 @@
           "brightness": 7
         },
         "59": {
-          "floorHeight": 2,
-          "ceilingHeight": 15,
-          "sectorType": 0,
+          "floorHeight": 12,
+          "ceilingHeight": 16,
+          "sectorType": 19,
           "tag": "",
           "targetTag": "",
-          "floorColor": 5,
-          "ceilingColor": 3,
+          "floorColor": 11,
+          "ceilingColor": 2,
           "brightness": 7
         },
         "60": {
@@ -638,12 +648,12 @@
         },
         "65": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
+          "ceilingHeight": 17,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 5,
+          "ceilingColor": 11,
           "brightness": 7
         },
         "66": {
@@ -667,23 +677,23 @@
           "brightness": 7
         },
         "68": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 11,
+          "ceilingHeight": 17,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 5,
+          "floorColor": 6,
+          "ceilingColor": 11,
           "brightness": 7
         },
         "69": {
-          "floorHeight": 1,
-          "ceilingHeight": 6,
-          "sectorType": 0,
+          "floorHeight": 5,
+          "ceilingHeight": 12,
+          "sectorType": 19,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
+          "floorColor": 12,
+          "ceilingColor": 9,
           "brightness": 7
         },
         "70": {
@@ -697,12 +707,12 @@
           "brightness": 7
         },
         "71": {
-          "floorHeight": 5,
-          "ceilingHeight": 8,
-          "sectorType": 0,
+          "floorHeight": 12,
+          "ceilingHeight": 16,
+          "sectorType": 19,
           "tag": "",
           "targetTag": "",
-          "floorColor": 9,
+          "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -826,16 +836,6 @@
           "ceilingColor": 6,
           "brightness": 7
         },
-        "87": {
-          "floorHeight": 12,
-          "ceilingHeight": 14,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 7
-        },
         "90": {
           "floorHeight": 2,
           "ceilingHeight": 18,
@@ -866,16 +866,6 @@
           "ceilingColor": 6,
           "brightness": 7
         },
-        "97": {
-          "floorHeight": 12,
-          "ceilingHeight": 14,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 2,
-          "brightness": 7
-        },
         "98": {
           "floorHeight": 4,
           "ceilingHeight": 17,
@@ -884,6 +874,16 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 6,
+          "brightness": 7
+        },
+        "100": {
+          "floorHeight": 4,
+          "ceilingHeight": 9,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
           "brightness": 7
         },
         "101": {
@@ -983,9 +983,9 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
+        33,
+        33,
+        33,
         0,
         0,
         0,
@@ -1015,9 +1015,9 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
+        33,
+        33,
+        33,
         0,
         0,
         0,
@@ -1047,9 +1047,9 @@
         0,
         0,
         0,
-        36,
-        36,
-        36,
+        33,
+        33,
+        33,
         0,
         0,
         0,
@@ -1075,13 +1075,13 @@
         0,
         0,
         25,
-        25,
-        25,
+        100,
+        57,
         0,
         0,
-        36,
-        36,
-        36,
+        33,
+        33,
+        33,
         0,
         0,
         0,
@@ -1106,14 +1106,14 @@
         0,
         0,
         0,
+        25,
+        0,
+        57,
+        0,
+        0,
         33,
-        0,
-        34,
-        0,
-        0,
-        36,
-        36,
-        36,
+        33,
+        33,
         0,
         0,
         0,
@@ -1140,11 +1140,11 @@
         79,
         79,
         0,
-        34,
+        57,
         0,
         0,
         0,
-        87,
+        71,
         0,
         0,
         38,
@@ -1172,11 +1172,11 @@
         81,
         53,
         0,
-        34,
+        57,
         0,
         0,
-        50,
-        50,
+        17,
+        17,
         50,
         41,
         38,
@@ -1189,7 +1189,7 @@
         8,
         8,
         8,
-        71,
+        69,
         1,
         58,
         4,
@@ -1197,19 +1197,19 @@
         91,
         91,
         91,
-        30,
+        9,
         6,
         32,
         48,
         22,
         53,
         0,
-        34,
+        57,
         0,
         0,
         65,
-        17,
         68,
+        50,
         39,
         61,
         46,
@@ -1229,19 +1229,19 @@
         90,
         101,
         101,
-        30,
+        9,
         6,
         78,
         78,
         22,
         53,
         0,
-        34,
+        57,
         0,
         0,
         21,
         21,
-        68,
+        50,
         18,
         18,
         18,
@@ -1253,7 +1253,7 @@
         8,
         8,
         8,
-        9,
+        30,
         1,
         107,
         4,
@@ -1268,11 +1268,11 @@
         22,
         53,
         0,
-        34,
+        57,
         0,
         0,
         0,
-        97,
+        59,
         0,
         0,
         49,
@@ -1300,12 +1300,12 @@
         80,
         53,
         0,
-        34,
+        57,
         0,
         0,
-        59,
-        59,
-        59,
+        36,
+        36,
+        36,
         0,
         0,
         0,
@@ -1332,12 +1332,12 @@
         15,
         53,
         0,
-        34,
+        57,
         0,
         0,
-        59,
-        59,
-        59,
+        36,
+        36,
+        36,
         0,
         0,
         0,
@@ -1364,12 +1364,12 @@
         0,
         60,
         0,
-        34,
+        57,
         0,
         0,
-        59,
-        59,
-        59,
+        36,
+        36,
+        36,
         0,
         0,
         0,
@@ -1396,12 +1396,12 @@
         0,
         54,
         54,
-        34,
+        57,
         0,
         0,
-        0,
-        0,
-        0,
+        36,
+        36,
+        36,
         0,
         0,
         0,
@@ -1420,7 +1420,7 @@
         14,
         56,
         56,
-        69,
+        34,
         3,
         70,
         51,
@@ -1431,9 +1431,9 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
+        36,
+        36,
+        36,
         0,
         0,
         0,
@@ -1960,89 +1960,9 @@
           }
         },
         {
-          "type": "techcolumn",
-          "x": 60,
-          "y": 92,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 60,
-          "y": 60,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 89,
-          "y": 87,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 89,
-          "y": 65,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 109,
-          "y": 65,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 110,
-          "y": 86,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "barrel",
           "x": 98,
           "y": 57,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 204,
-          "y": 160,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "techcolumn",
-          "x": 220,
-          "y": 160,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2120,16 +2040,6 @@
           }
         },
         {
-          "type": "imp",
-          "x": 197,
-          "y": 156,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "barrel",
           "x": 197,
           "y": 149,
@@ -2160,16 +2070,6 @@
           }
         },
         {
-          "type": "imp",
-          "x": 205,
-          "y": 82,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "shells",
           "x": 229,
           "y": 123,
@@ -2191,9 +2091,9 @@
         },
         {
           "type": "camera",
-          "x": 194.8034143193046,
-          "y": 43.302382819858785,
-          "angle": -3.3960542610157542
+          "x": 18.738944554369088,
+          "y": 85.20094677325534,
+          "angle": -15.698184140426244
         },
         {
           "type": "switch",
@@ -2223,9 +2123,49 @@
           }
         },
         {
+          "type": "soldier",
+          "x": 204,
+          "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 228,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
           "type": "shotgun",
+          "x": 244,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
           "x": 180,
           "y": 124,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 196,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,

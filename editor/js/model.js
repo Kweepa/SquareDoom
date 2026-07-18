@@ -53,8 +53,10 @@ const LEGACY_COLOR_TO_C64 = {
   white: 1,
 };
 
-/** Doom-style sector specials (as used by VicDoom), plus editor Door. */
+/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window. */
 export const DOOR_SECTOR_TYPE = 18;
+/** Blocks player/enemy walk; shots and hitscan pass. */
+export const WINDOW_SECTOR_TYPE = 19;
 
 export const SECTOR_TYPES = [
   { id: 0, name: 'Normal' },
@@ -74,10 +76,21 @@ export const SECTOR_TYPES = [
   { id: 16, name: 'Damage 20%' },
   { id: 17, name: 'Light flicker' },
   { id: DOOR_SECTOR_TYPE, name: 'Door' },
+  { id: WINDOW_SECTOR_TYPE, name: 'Window' },
 ];
 
 export function isDoorSector(sector) {
   return (sector?.sectorType ?? 0) === DOOR_SECTOR_TYPE;
+}
+
+export function isWindowSector(sector) {
+  return (sector?.sectorType ?? 0) === WINDOW_SECTOR_TYPE;
+}
+
+/** Types that resolve a targetTag when cooking (Window does not). */
+export function sectorTypeNeedsTarget(type) {
+  const t = (type ?? 0) & 0xff;
+  return t !== 0 && t !== WINDOW_SECTOR_TYPE;
 }
 
 export const ITEM_TYPES = [

@@ -510,6 +510,9 @@ tile_blocked
 	cmp #0
 	beq .tb_yes
 	tax
+	lda SEC_TYPE,x
+	cmp #WINDOW_TYPE
+	beq .tb_yes			; window: bodies stop, shots pass
 	lda SEC_CEIL,x
 	sec
 	sbc SEC_FLOOR,x
