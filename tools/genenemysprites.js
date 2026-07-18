@@ -1,10 +1,12 @@
 /**
- * Read itemgraphics/multicolour/pos{walk,atk,pain}_mips.png → enemy_sprites.asm
+ * Read pos*_mips.png + imp{walk,atk,pain}.png → enemy_sprites.asm
  *
- * Source atlas per frame: 24×32
+ * Source atlas per frame: 24×32 (mips baked in)
  *   left 16×32 = mip0
  *   right strip: mip1 8×16 (y0..15), mip2 4×8 (y16..23),
  *                mip3 2×4 (y24..27), mip4 1×2 (y28..29)
+ *
+ * Frame indices: 0–2 possessed walk/atk/pain, 3–5 imp walk/atk/pain.
  *
  * Emits standalone column-major frames (gfx[x*H+y], 0=transparent)
  * plus lookup tables for mip W/H and base address [frame*5+mip].
@@ -21,6 +23,9 @@ const FRAMES = [
   { file: 'poswalk_mips.png', prefix: 'enemy_spr_walk' },
   { file: 'posatk_mips.png', prefix: 'enemy_spr_atk' },
   { file: 'pospain_mips.png', prefix: 'enemy_spr_pain' },
+  { file: 'impwalk.png', prefix: 'enemy_spr_imp_walk' },
+  { file: 'impatk.png', prefix: 'enemy_spr_imp_atk' },
+  { file: 'imppain.png', prefix: 'enemy_spr_imp_pain' },
 ];
 
 const ATLAS_W = 24;
@@ -166,18 +171,33 @@ function isTransparent(rgba) {
   return rgba[0] === 0 && rgba[1] === 0 && rgba[2] === 0;
 }
 
-function dist2(a, b) {
-  const dr = a[0] - b[0];
-  const dg = a[1] - b[1];
-  const db = a[2] - b[2];
-  return dr * dr + dg * dg + db * db;
+/** sRGB 0–255 → CIE Lab (D65). RGB Euclidean mis-maps warm reds to orange. */
+function rgb2lab(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  r = r > 0.04045 ? ((r + 0.055) / 1.055) ** 2.4 : r / 12.92;
+  g = g > 0.04045 ? ((g + 0.055) / 1.055) ** 2.4 : g / 12.92;
+  b = b > 0.04045 ? ((b + 0.055) / 1.055) ** 2.4 : b / 12.92;
+  let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+  let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.0;
+  let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  x = x > 0.008856 ? x ** (1 / 3) : 7.787 * x + 16 / 116;
+  y = y > 0.008856 ? y ** (1 / 3) : 7.787 * y + 16 / 116;
+  z = z > 0.008856 ? z ** (1 / 3) : 7.787 * z + 16 / 116;
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
 }
 
+const C64_LAB = C64_RGB.map(([r, g, b]) => rgb2lab(r, g, b));
+
 function nearestC64(rgb) {
+  const lab = rgb2lab(rgb[0], rgb[1], rgb[2]);
   let best = 1;
   let bestD = Infinity;
   for (let i = 1; i < 16; i++) {
-    const d = dist2(rgb, C64_RGB[i]);
+    const c = C64_LAB[i];
+    const d =
+      (lab[0] - c[0]) ** 2 + (lab[1] - c[1]) ** 2 + (lab[2] - c[2]) ** 2;
     if (d < bestD) {
       bestD = d;
       best = i;
@@ -206,7 +226,7 @@ function extractMip(pixels, atlasW, mip) {
   return col;
 }
 
-let asm = `; Auto-generated from itemgraphics/multicolour/pos*_mips.png — do not edit\n`;
+let asm = `; Auto-generated from itemgraphics/multicolour/pos*_mips.png + imp*.png — do not edit\n`;
 asm += `; Standalone column-major mip frames: gfx[bmp_x*H+bmp_y], 0 = transparent\n`;
 asm += `!zone enemy_sprites\n\n`;
 asm += `ENEMY_MIP_COUNT = ${MIPS.length}\n`;
@@ -250,13 +270,13 @@ for (const frame of FRAMES) {
 
 // Base address tables: index = frame*5 + mip
 asm += `; Base address lo/hi: index = frame*ENEMY_MIP_COUNT + mip\n`;
-asm += `; frame 0=walk 1=atk 2=pain\n`;
+asm += `; frame 0–2 pos walk/atk/pain, 3–5 imp walk/atk/pain\n`;
 asm += `enemy_mip_base_lo\n`;
 asm += `\t!byte ${allLabels.map((l) => `<${l}`).join(',')}\n`;
 asm += `enemy_mip_base_hi\n`;
 asm += `\t!byte ${allLabels.map((l) => `>${l}`).join(',')}\n\n`;
 
-asm += `; Frame mip blobs (walk, atk, pain × m0..m4)\n`;
+asm += `; Frame mip blobs (pos then imp × walk/atk/pain × m0..m4)\n`;
 asm += `enemy_spr_base\n`;
 for (const block of frameBlocks) {
   for (const { label, bytes } of block.labels) {

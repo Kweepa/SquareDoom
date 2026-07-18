@@ -47,9 +47,14 @@ ACTION_FLY = 6
 ENEMY_TEX_WALK = 0
 ENEMY_TEX_ATK = 1
 ENEMY_TEX_PAIN = 2
+ENEMY_TEX_IMP_WALK = 3
+ENEMY_TEX_IMP_ATK = 4
+ENEMY_TEX_IMP_PAIN = 5
 
 ITEM_TYPE_ENEMY_FIRST = 1
 ITEM_TYPE_ENEMY_LAST = 4
+ITEM_TYPE_SOLDIER = 1
+ITEM_TYPE_IMP = 2
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -78,10 +83,10 @@ mobj_shoot_state
 mobj_death_state
 	!byte STATE_POSFALL, STATE_IMPFALL, STATE_DMNFALL, STATE_CACFALL
 
-; Possessed: walk(anim)/pain/atk/pain — others ignored by 16×32 draw path
+; Pos/imp: 16×32 enemy mips (frames 0–2 pos, 3–5 imp). Demon/caco still stub.
 state_texture
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
-	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
+	!byte TEX_ANIMATE + ENEMY_TEX_IMP_WALK, ENEMY_TEX_IMP_PAIN, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte 0
@@ -1155,9 +1160,12 @@ a_fall
 	dec MOBJ_MOVECNT,x
 	lda MOBJ_MOVECNT,x
 	bne .af_done
-	; corpse: keep pain tex, free mobj
+	; corpse: keep this state's pain tex, free mobj
+	lda MOBJ_STATE,x
+	tay
+	lda state_texture,y
+	and #$bf				; clear TEX_ANIMATE
 	ldy enemy_obj
-	lda #ENEMY_TEX_PAIN
 	sta ITEM_CORPSE_TEX,y
 	lda #$ff
 	sta MOBJ_FOR_ITEM,y
@@ -1276,7 +1284,7 @@ enemy_damage
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_get_texture — X = item slot → A = tex (bit6=animate), C=1 if 16×32 pos
+; enemy_get_texture — X = item slot → A = tex (bit6=animate), C=1 if 16×32
 ; ---------------------------------------------------------------------------
 ; X = item slot → A = tex byte (bit6=animate); C=1 use 16×32 enemy bank
 enemy_get_texture
@@ -1285,8 +1293,11 @@ enemy_get_texture
 	asl
 	tay
 	lda level_items,y
-	cmp #1				; soldier / possessed only
+	cmp #ITEM_TYPE_SOLDIER
+	beq .egt_enemy
+	cmp #ITEM_TYPE_IMP
 	bne .egt_item8
+.egt_enemy
 	lda ITEM_CORPSE_TEX,x
 	cmp #$ff
 	beq .egt_live
@@ -1299,6 +1310,9 @@ enemy_get_texture
 	tay
 	lda MOBJ_ALLOC,y
 	beq .egt_item8
+	lda MOBJ_INFO,y
+	cmp #MOBJINFO_IMPSHOT		; missile uses nodraw stub
+	bcs .egt_item8
 	lda MOBJ_STATE,y
 	tay
 	lda state_texture,y

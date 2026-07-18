@@ -163,18 +163,33 @@ function isTransparent(rgb) {
   return rgb[0] === 0 && rgb[1] === 0 && rgb[2] === 0;
 }
 
-function dist2(a, b) {
-  const dr = a[0] - b[0];
-  const dg = a[1] - b[1];
-  const db = a[2] - b[2];
-  return dr * dr + dg * dg + db * db;
+/** sRGB 0–255 → CIE Lab (D65). RGB Euclidean mis-maps warm reds to orange. */
+function rgb2lab(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  r = r > 0.04045 ? ((r + 0.055) / 1.055) ** 2.4 : r / 12.92;
+  g = g > 0.04045 ? ((g + 0.055) / 1.055) ** 2.4 : g / 12.92;
+  b = b > 0.04045 ? ((b + 0.055) / 1.055) ** 2.4 : b / 12.92;
+  let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+  let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.0;
+  let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  x = x > 0.008856 ? x ** (1 / 3) : 7.787 * x + 16 / 116;
+  y = y > 0.008856 ? y ** (1 / 3) : 7.787 * y + 16 / 116;
+  z = z > 0.008856 ? z ** (1 / 3) : 7.787 * z + 16 / 116;
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
 }
 
+const C64_LAB = C64_RGB.map(([r, g, b]) => rgb2lab(r, g, b));
+
 function nearestC64(rgb) {
+  const lab = rgb2lab(rgb[0], rgb[1], rgb[2]);
   let best = 1;
   let bestD = Infinity;
   for (let i = 1; i < 16; i++) {
-    const d = dist2(rgb, C64_RGB[i]);
+    const c = C64_LAB[i];
+    const d =
+      (lab[0] - c[0]) ** 2 + (lab[1] - c[1]) ** 2 + (lab[2] - c[2]) ** 2;
     if (d < bestD) {
       bestD = d;
       best = i;
