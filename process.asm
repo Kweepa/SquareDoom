@@ -1,7 +1,7 @@
 !zone process
 
 ; SoA thinkers: TIMER, RAISE/LOWER_CEIL, RAISE/LOWER_FLOOR.
-; Door use: K + NESW neighbour within 2 world units of the shared face.
+; Door use: K + NESW neighbour within 4 world units of the shared face.
 ; Absolute JMPs used where relative branches would exceed ±127.
 
 DOOR_OPEN_GAP = 5
@@ -105,12 +105,12 @@ proc_count_free
 	sta tmp1
 	rts
 
-; C=1 if local ≤ 2.0 (near low face)
+; C=1 if local ≤ 4.0 (near low face; half a tile)
 .tu_near_lo
 	lda tmp0
-	cmp #3
+	cmp #5
 	bcs .tnl_no
-	cmp #2
+	cmp #4
 	bcc .tnl_yes
 	lda tmp1
 	bne .tnl_no
@@ -121,10 +121,10 @@ proc_count_free
 	clc
 	rts
 
-; C=1 if local ≥ 6.0 (near high face at 8)
+; C=1 if local ≥ 4.0 (near high face at 8; half a tile)
 .tu_near_hi
 	lda tmp0
-	cmp #6
+	cmp #4
 	bcc .tnh_no
 	sec
 	rts
@@ -141,10 +141,10 @@ tu_dy
 tu_axis
 	!byte 1, 0, 1, 0			; 0 = X local, 1 = Y local
 tu_face
-	!byte 0, 1, 1, 0			; 0 = near_lo (≤2), 1 = near_hi (≥6)
+	!byte 0, 1, 1, 0			; 0 = near_lo (≤4), 1 = near_hi (≥4)
 
 ; ------------------------------------------------------------------
-; try_use — K held: NESW neighbour door within 2u → raise + reclose timer
+; try_use — K held: NESW neighbour door within 4u → raise + reclose timer
 ; ------------------------------------------------------------------
 try_use
 	lda key_use

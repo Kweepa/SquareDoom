@@ -286,16 +286,6 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "29": {
-          "floorHeight": 4,
-          "ceilingHeight": 14,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 7,
-          "brightness": 7
-        },
         "30": {
           "floorHeight": 6,
           "ceilingHeight": 14,
@@ -736,6 +726,16 @@
           "ceilingColor": 11,
           "brightness": 7
         },
+        "74": {
+          "floorHeight": 4,
+          "ceilingHeight": 14,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 12,
+          "ceilingColor": 7,
+          "brightness": 7
+        },
         "75": {
           "floorHeight": 4,
           "ceilingHeight": 17,
@@ -744,6 +744,16 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 6,
+          "brightness": 7
+        },
+        "76": {
+          "floorHeight": 4,
+          "ceilingHeight": 14,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 12,
+          "ceilingColor": 7,
           "brightness": 7
         },
         "77": {
@@ -824,16 +834,6 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 7
-        },
-        "88": {
-          "floorHeight": 4,
-          "ceilingHeight": 14,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 7,
           "brightness": 7
         },
         "90": {
@@ -1000,7 +1000,7 @@
         0,
         0,
         16,
-        29,
+        74,
         75,
         0,
         0,
@@ -1064,7 +1064,7 @@
         5,
         19,
         16,
-        88,
+        76,
         75,
         0,
         0,
