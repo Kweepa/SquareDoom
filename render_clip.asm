@@ -195,14 +195,14 @@ clip_col_find
 	sta tmp3				; n count
 	lda col
 	jsr clip_mul_col			; ptr = col*CLIP_MAX
-	clc
-	lda ptr_l
-	adc tmp3
+	lda tmp3
 	sec
-	sbc #1				; + (n-1)
+	sbc #1				; n-1 (n ≥ 1 here)
+	clc
+	adc ptr_l				; 16-bit ptr += n-1 (carry must reach ptr_h)
 	sta ptr_l
 	lda ptr_h
-	sbc #0
+	adc #0
 	sta ptr_h
 	clc
 	lda ptr_l

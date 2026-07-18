@@ -372,9 +372,8 @@ sdiv16x8
 	sbc #0
 	sta tmp1
 	inx
-	cpx #0
+	cpx #127				; cap |quot| — 19±127 can't wrap the centre col
 	bne .sd_lp
-	ldx #255
 .sd_done
 	txa
 	ldy tmp4
