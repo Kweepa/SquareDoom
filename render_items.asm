@@ -13,6 +13,7 @@ ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
+ITEM_TYPE_FIREBALL = 23
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -544,10 +545,19 @@ item_draw_one
 	sta far_ceil
 	sta last_near_ok			; square W = H
 .id_feet
-	; Feet at floor: same scale as walls (Δh·4/tiles ≡ Δh·32/(tiles·8))
+	; Feet: fireball uses missile_z (hitscan-style height); else sector floor
+	lda wall_col
+	cmp #ITEM_TYPE_FIREBALL
+	bne .id_feet_fl
+	lda missile_z
+	jmp .id_feet_h
+.id_feet_fl
+	lda near_floor
+.id_feet_h
+	sta tmp2
 	lda eyeheight
 	sec
-	sbc near_floor
+	sbc tmp2
 	sta tmp2
 	lda #0
 	sta aux_l

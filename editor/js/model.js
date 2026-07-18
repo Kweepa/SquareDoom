@@ -87,6 +87,7 @@ export const ITEM_TYPES = [
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+  'fireball',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -94,6 +95,8 @@ export const SPAWN_TYPE = 'spawn';
 export const CAMERA_TYPE = 'camera';
 /** Palette placeable; fans out to switch_* cook types. */
 export const SWITCH_TYPE = 'switch';
+/** Runtime-only (missile); not placeable in the editor. */
+export const FIREBALL_TYPE = 'fireball';
 
 /** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
 export const SWITCH_ACTIONS = [
@@ -106,7 +109,7 @@ const SWITCH_COOK_TYPES = new Set(SWITCH_ACTIONS.map((a) => a.cookType));
 
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 export const EDITOR_ITEM_TYPES = [
-  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t)),
+  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t) && t !== FIREBALL_TYPE),
   SWITCH_TYPE,
   CAMERA_TYPE,
 ];

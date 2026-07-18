@@ -55,6 +55,7 @@ ITEM_TYPE_ENEMY_FIRST = 1
 ITEM_TYPE_ENEMY_LAST = 4
 ITEM_TYPE_SOLDIER = 1
 ITEM_TYPE_IMP = 2
+ITEM_TYPE_FIREBALL = 23
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -121,6 +122,10 @@ missile_momx_l		!byte 0
 missile_momx_h		!byte 0
 missile_momy_l		!byte 0
 missile_momy_h		!byte 0
+missile_momz_l		!byte 0
+missile_momz_h		!byte 0
+missile_z		!byte 0		; world Z (hitscan-style)
+missile_zfrac		!byte 0
 player_sector		!byte 0
 
 ; ---------------------------------------------------------------------------
@@ -608,6 +613,127 @@ p_try_move
 	sec
 	rts
 
+; ---------------------------------------------------------------------------
+; Missile_TryMove — same as P_TryMove + ortho corners, no floor step snap
+; ---------------------------------------------------------------------------
+missile_try_move
+	jsr obj_xy
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+	sta tmp4
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	sta tmp5
+	ldx enemy_actor
+	lda MOBJ_XFRAC,x
+	sta save_xl
+	lda tmp0
+	sta save_xh
+	lda MOBJ_YFRAC,x
+	sta save_yl
+	lda tmp1
+	sta save_yh
+	; X += wish_x
+	clc
+	lda MOBJ_XFRAC,x
+	adc wish_x_l
+	sta MOBJ_XFRAC,x
+	lda tmp0
+	adc wish_x_h
+	sta tmp0
+	; Y += wish_y
+	clc
+	lda MOBJ_YFRAC,x
+	adc wish_y_l
+	sta MOBJ_YFRAC,x
+	lda tmp1
+	adc wish_y_h
+	sta tmp1
+	jsr obj_set_xy
+	; tile check (dest + diagonal corner cells)
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	; both axes changed tile → require ortho corners open
+	lda mapx
+	cmp tmp4
+	beq .mtm_dest
+	lda mapy
+	cmp tmp5
+	beq .mtm_dest
+	; corner (new_x, old_y)
+	lda tmp5
+	sta mapy
+	jsr sector_at_map
+	jsr missile_tile_blocked
+	bcs .mtm_block
+	; corner (old_x, new_y)
+	lda tmp4
+	sta mapx
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	jsr sector_at_map
+	jsr missile_tile_blocked
+	bcs .mtm_block
+	; restore dest map tile
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+.mtm_dest
+	jsr sector_at_map
+	jsr missile_tile_blocked
+	bcc .mtm_ok
+.mtm_block
+	ldx enemy_actor
+	lda save_xl
+	sta MOBJ_XFRAC,x
+	lda save_yl
+	sta MOBJ_YFRAC,x
+	lda save_xh
+	sta tmp0
+	lda save_yh
+	sta tmp1
+	jsr obj_set_xy
+	clc
+	rts
+.mtm_ok
+	sec
+	rts
+
+; A = sector id → C=1 blocked (void / closed door only; no floor steps)
+missile_tile_blocked
+	cmp #0
+	beq .mtb_yes
+	tax
+	lda SEC_CEIL,x
+	sec
+	sbc SEC_FLOOR,x
+	cmp #4
+	bcc .mtb_yes
+	clc
+	rts
+.mtb_yes
+	sec
+	rts
+
 ; A = sector id → C=1 blocked, C=0 walkable.
 ; Same as tile_blocked, plus step-down > 2 is blocked (enemies only).
 enemy_tile_blocked
@@ -1055,65 +1181,64 @@ a_missile
 	beq .ami_spawn
 	jmp .ami_react
 .ami_spawn
-	; aim: 8-dir toward player → mom from xspeed*4
+	; Aim like hitscan: (x0,y0,z0=floor+2) → (player, eyeheight), free dx/dy/dz
+	jsr obj_sector
+	tay
+	lda SEC_FLOOR,y
+	clc
+	adc #2
+	sta missile_z
+	lda #0
+	sta missile_zfrac
+	lda eyeheight
+	sec
+	sbc missile_z
+	sta tmp4				; dz (signed)
 	jsr obj_xy
 	lda playerx_h
 	sec
 	sbc tmp0
-	sta fracy
+	sta fracy				; dx
 	lda playery_h
 	sec
 	sbc tmp1
-	sta fracx
-	; reuse NewChaseDir diagonal pick lightly
-	lda #0
+	sta fracx				; dy
+	; dist = P_AproxDistance(dx,dy), min 1
+	lda fracy
 	sta tmp0
 	lda fracx
-	bpl .ami_dy
-	lda #2
-	sta tmp0
-.ami_dy
+	sta tmp1
+	jsr p_approx_distance
+	bne .ami_dnz
+	lda #1
+.ami_dnz
+	sta span_a
+	; mom* = (d* << 8) / dist  (8.8 toward player; arrives together if still)
 	lda fracy
-	bmi .ami_dx
-	inc tmp0
-.ami_dx
-	ldy tmp0
-	lda diags_dir,y
-	tay
-	; mom = xspeed/yspeed sign-extended, *4
-	lda xspeed,y
+	jsr missile_scale_mom
+	lda wish_x_l
 	sta missile_momx_l
-	lda #0
+	lda wish_x_h
 	sta missile_momx_h
-	lda missile_momx_l
-	bpl .ami_mx
-	lda #$ff
-	sta missile_momx_h
-.ami_mx
-	asl missile_momx_l
-	rol missile_momx_h
-	asl missile_momx_l
-	rol missile_momx_h
-	lda yspeed,y
+	lda fracx
+	jsr missile_scale_mom
+	lda wish_x_l
 	sta missile_momy_l
-	lda #0
+	lda wish_x_h
 	sta missile_momy_h
-	lda missile_momy_l
-	bpl .ami_my
-	lda #$ff
-	sta missile_momy_h
-.ami_my
-	asl missile_momy_l
-	rol missile_momy_h
-	asl missile_momy_l
-	rol missile_momy_h
+	lda tmp4
+	jsr missile_scale_mom
+	lda wish_x_l
+	sta missile_momz_l
+	lda wish_x_h
+	sta missile_momz_h
 	; spawn at enemy pos
 	jsr obj_xy
 	lda #ITEM_MISSILE
 	asl
 	asl
 	tay
-	lda #2				; draw as imp placeholder
+	lda #ITEM_TYPE_FIREBALL
 	sta level_items,y
 	iny
 	lda tmp0
@@ -1136,7 +1261,7 @@ a_missile
 	sta MOBJ_XFRAC,x
 	sta MOBJ_YFRAC,x
 	sta MOBJ_FLAGS,x
-	lda #32
+	lda #48
 	sta MOBJ_MOVECNT,x
 	; damage payload in health
 	lda enemy_info
@@ -1154,6 +1279,42 @@ a_missile
 	ldx enemy_actor
 	sta MOBJ_REACT,x
 	jmp goto_chase_state
+
+; A = signed delta, span_a = dist ≥ 1 → wish_x = ((delta<<8)/dist)*8 as signed 8.8
+; (*8 = VicDoom <<=2 then ×2 more for feel)
+missile_scale_mom
+	sta tmp2
+	lda #0
+	sta aux_l
+	lda tmp2
+	bpl .msm_abs
+	eor #$ff
+	clc
+	adc #1
+.msm_abs
+	sta aux_h
+	lda span_a
+	jsr udiv16x8
+	sta wish_x_l
+	lda #0
+	sta wish_x_h
+	lda tmp2
+	bpl .msm_scl
+	lda #0
+	sec
+	sbc wish_x_l
+	sta wish_x_l
+	lda #0
+	sbc wish_x_h
+	sta wish_x_h
+.msm_scl
+	asl wish_x_l
+	rol wish_x_h
+	asl wish_x_l
+	rol wish_x_h
+	asl wish_x_l
+	rol wish_x_h
+	rts
 
 a_fall
 	ldx enemy_actor
@@ -1180,6 +1341,17 @@ a_fly
 	lda enemy_dist
 	cmp #3
 	bcs .afy_move
+	; close in XY — also require Z near eye (hitscan endpoint)
+	lda missile_z
+	sec
+	sbc eyeheight
+	bpl .afy_zok
+	eor #$ff
+	clc
+	adc #1
+.afy_zok
+	cmp #3
+	bcs .afy_move
 	ldx enemy_actor
 	lda MOBJ_HEALTH,x
 	sta tmp0
@@ -1198,8 +1370,26 @@ a_fly
 	sta wish_y_l
 	lda missile_momy_h
 	sta wish_y_h
-	jsr p_try_move
+	jsr missile_try_move
 	bcc .afy_boom
+	; Z step (hitscan-style height along the ray)
+	clc
+	lda missile_zfrac
+	adc missile_momz_l
+	sta missile_zfrac
+	lda missile_z
+	adc missile_momz_h
+	sta missile_z
+	jsr obj_sector
+	beq .afy_boom
+	tax
+	lda SEC_FLOOR,x
+	cmp missile_z
+	bcs .afy_boom			; z ≤ floor
+	lda SEC_CEIL,x
+	cmp missile_z
+	beq .afy_boom
+	bcc .afy_boom			; z ≥ ceil
 	ldx enemy_actor
 	dec MOBJ_MOVECNT,x
 	lda MOBJ_MOVECNT,x
@@ -1311,7 +1501,7 @@ enemy_get_texture
 	lda MOBJ_ALLOC,y
 	beq .egt_item8
 	lda MOBJ_INFO,y
-	cmp #MOBJINFO_IMPSHOT		; missile uses nodraw stub
+	cmp #MOBJINFO_IMPSHOT		; missile uses fireball item atlas
 	bcs .egt_item8
 	lda MOBJ_STATE,y
 	tay

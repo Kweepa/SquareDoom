@@ -20,6 +20,7 @@ const ITEM_TYPES = [
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+  'fireball',
 ];
 
 /** No item atlas: spawn is never drawn; enemies use enemy_sprites mips. */
