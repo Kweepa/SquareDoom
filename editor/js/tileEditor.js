@@ -1,4 +1,4 @@
-import { C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_ITEMS, SECTOR_TYPES, sectorTypeNeedsTarget, sectorsEqual } from './model.js';
+import { C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_ITEMS, SECTOR_TYPES, sectorsEqual } from './model.js';
 
 function numInput(id, label, min, max, value, mixed) {
   const wrap = document.createElement('label');
@@ -197,11 +197,6 @@ export class TileEditor {
     });
     typeWrap.append(typeSpan, typeSel);
 
-    const typeNum = Number(s.sectorType);
-    const showTarget =
-      !!s._mixed.sectorType ||
-      (Number.isFinite(typeNum) && sectorTypeNeedsTarget(typeNum));
-
     const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
     tag.input.addEventListener('change', () => {
       this.opts.onChange({ tag: tag.input.value });
@@ -229,19 +224,17 @@ export class TileEditor {
 
     this.root.append(floor.wrap, ceil.wrap, bright.wrap, typeWrap);
 
-    if (showTarget) {
-      const target = textInput(
-        'te-target',
-        s._mixed.targetTag ? 'Target tag (mixed)' : 'Target tag',
-        s.targetTag || '',
-        s._mixed.targetTag,
-      );
-      target.input.placeholder = s._mixed.targetTag ? 'mixed' : 'tag of target sector';
-      target.input.addEventListener('change', () => {
-        this.opts.onChange({ targetTag: target.input.value });
-      });
-      this.root.appendChild(target.wrap);
-    }
+    const target = textInput(
+      'te-target',
+      s._mixed.targetTag ? 'Target tag (mixed)' : 'Target tag',
+      s.targetTag || '',
+      s._mixed.targetTag,
+    );
+    target.input.placeholder = s._mixed.targetTag ? 'mixed' : 'tag of target sector (optional)';
+    target.input.addEventListener('change', () => {
+      this.opts.onChange({ targetTag: target.input.value });
+    });
+    this.root.appendChild(target.wrap);
 
     this.root.append(tag.wrap, floorCol.wrap, ceilCol.wrap);
     this.#actions();

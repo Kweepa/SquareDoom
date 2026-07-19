@@ -7,6 +7,7 @@ import {
   getSectorAtWorld,
   isCamera,
   isDoorSector,
+  isElevatorSector,
   colorHex,
 } from './model.js';
 
@@ -376,10 +377,9 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       break;
     }
 
-    // Into a door: door ceiling colour. Out of a door / normal: N/S–E/W walls.
-    const portalFill = isDoorSector(next.sector)
-      ? colorHex(next.sector.ceilingColor)
-      : wallColor(side);
+    // Upper ledge: door → ceil colour. Lower ledge: elevator → floor colour.
+    // Else N/S–E/W grey.
+    const grey = wallColor(side);
     const farFloor = next.sector.floorHeight;
     const farCeil = next.sector.ceilingHeight;
     const farCeilY = projectY(farCeil, eyeZ, perpDist, view);
@@ -390,7 +390,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       const wallTop = clampSpan(yTop, yBot, nearCeilY);
       const wallBot = clampSpan(yTop, yBot, farCeilY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = portalFill;
+        ctx.fillStyle = isDoorSector(next.sector) ? colorHex(next.sector.ceilingColor) : grey;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yTop = Math.max(yTop, wallBot);
@@ -403,7 +403,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       const wallTop = clampSpan(yTop, yBot, farFloorY);
       const wallBot = clampSpan(yTop, yBot, nearFloorY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = portalFill;
+        ctx.fillStyle = isElevatorSector(next.sector) ? colorHex(next.sector.floorColor) : grey;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       // Portal opening is [yTop, farFloorY) even when the raised floor

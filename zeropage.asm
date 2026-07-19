@@ -245,7 +245,8 @@ PROC_A		= PROC_KIND + PROC_NUM	; sector id
 PROC_B		= PROC_A + PROC_NUM	; target height / next kind
 PROC_C		= PROC_B + PROC_NUM	; timer/accum lo
 PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
-PROC_END	= PROC_D + PROC_NUM
+PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
+PROC_END	= PROC_E + PROC_NUM
 
 ; Per-column portal clip stack for item draw (40 cols × 16 depth)
 CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step

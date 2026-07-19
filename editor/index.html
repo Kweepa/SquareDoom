@@ -654,10 +654,12 @@ const LEGACY_COLOR_TO_C64 = {
   white: 1,
 };
 
-/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window. */
+/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window / Elevator. */
 const DOOR_SECTOR_TYPE = 18;
 /** Blocks player/enemy walk; shots and hitscan pass. */
 const WINDOW_SECTOR_TYPE = 19;
+const ELEVATOR_LOWER_SECTOR_TYPE = 20;
+const ELEVATOR_RAISE_SECTOR_TYPE = 21;
 
 const SECTOR_TYPES = [
   { id: 0, name: 'Normal' },
@@ -678,6 +680,8 @@ const SECTOR_TYPES = [
   { id: 17, name: 'Light flicker' },
   { id: DOOR_SECTOR_TYPE, name: 'Door' },
   { id: WINDOW_SECTOR_TYPE, name: 'Window' },
+  { id: ELEVATOR_LOWER_SECTOR_TYPE, name: 'Elevator lower' },
+  { id: ELEVATOR_RAISE_SECTOR_TYPE, name: 'Elevator raise' },
 ];
 
 function isDoorSector(sector) {
@@ -688,7 +692,12 @@ function isWindowSector(sector) {
   return (sector?.sectorType ?? 0) === WINDOW_SECTOR_TYPE;
 }
 
-/** Types that resolve a targetTag when cooking (Window does not). */
+function isElevatorSector(sector) {
+  const t = sector?.sectorType ?? 0;
+  return t === ELEVATOR_LOWER_SECTOR_TYPE || t === ELEVATOR_RAISE_SECTOR_TYPE;
+}
+
+/** @deprecated Prefer always resolving non-empty targetTag when cooking. */
 function sectorTypeNeedsTarget(type) {
   const t = (type ?? 0) & 0xff;
   return t !== 0 && t !== WINDOW_SECTOR_TYPE;
@@ -1376,6 +1385,31 @@ function splitSectorIntoContiguousComponents(level, sectorId) {
 }
 
 /**
+ * Runtime DDA assumes a sealed id-0 border so marches never leave the map array.
+ * @returns {string[]} issues (empty if ok)
+ */
+function validateVoidBorder(level) {
+  /** @type {string[]} */
+  const issues = [];
+  const last = MAP_SIZE - 1;
+  for (let i = 0; i < MAP_SIZE; i++) {
+    if (level.map[i] !== 0) {
+      issues.push(`Void border required: non-void at (${i},0)`);
+    }
+    if (level.map[last * MAP_SIZE + i] !== 0) {
+      issues.push(`Void border required: non-void at (${i},${last})`);
+    }
+    if (level.map[i * MAP_SIZE] !== 0) {
+      issues.push(`Void border required: non-void at (0,${i})`);
+    }
+    if (level.map[i * MAP_SIZE + last] !== 0) {
+      issues.push(`Void border required: non-void at (${last},${i})`);
+    }
+  }
+  return issues;
+}
+
+/**
  * Fix every sector that is non-rectangular or larger than MAX_SECTOR_SPAN.
  * @returns {string[]}
  */
@@ -1662,7 +1696,7 @@ function activeLevel(episode) {
  * Cooked binary layout (no header), per level — structure-of-arrays:
  *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
  *      order: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
- *      targetSector is the resolved sector id (from editor targetTag); 0 if type is 0 / unresolved
+ *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
@@ -1816,8 +1850,10 @@ function levelFromJSON(data) {
   }
 
   const shapeWarnings = enforceSectorShapes(level);
-  if (shapeWarnings.length) {
-    level._loadWarnings = shapeWarnings;
+  const borderIssues = validateVoidBorder(level);
+  const loadWarn = [...shapeWarnings, ...borderIssues];
+  if (loadWarn.length) {
+    level._loadWarnings = loadWarn;
   }
   return level;
 }
@@ -1856,7 +1892,10 @@ function episodeFromJSON(data) {
 function cookLevel(level) {
   /** @type {string[]} */
   const warnings = [];
+  /** @type {string[]} */
+  const errors = [];
   warnings.push(...enforceSectorShapes(level));
+  errors.push(...validateVoidBorder(level));
 
   const floors = new Uint8Array(SECTOR_TABLE_SIZE);
   const ceils = new Uint8Array(SECTOR_TABLE_SIZE);
@@ -1871,15 +1910,11 @@ function cookLevel(level) {
     if (!s) continue;
     const type = (s.sectorType ?? 0) & 0xff;
     let targetId = 0;
-    if (sectorTypeNeedsTarget(type)) {
-      const tag = (s.targetTag || '').trim();
-      if (!tag) {
-        warnings.push(`Sector ${id}: type ${type} has empty target tag`);
-      } else {
-        targetId = findSectorIdByTag(level, tag);
-        if (!targetId) {
-          warnings.push(`Sector ${id}: target tag "${tag}" not found`);
-        }
+    const tag = (s.targetTag || '').trim();
+    if (tag) {
+      targetId = findSectorIdByTag(level, tag);
+      if (!targetId) {
+        warnings.push(`Sector ${id}: target tag "${tag}" not found`);
       }
     }
     floors[id] = s.floorHeight & 31;
@@ -1973,7 +2008,7 @@ function cookLevel(level) {
   out[o] = sectorMax & 0xff;
   o += 1;
   out.set(nameBytes, o);
-  return { bytes: out, warnings };
+  return { bytes: out, warnings, errors };
 }
 
 function clamp(v, lo, hi) {
@@ -2184,10 +2219,13 @@ async function loadEpisodeJSON() {
 
 function cookAndDownload(episode, levelName) {
   const level = episode.levels[levelName];
-  const { bytes, warnings } = cookLevel(level);
+  const { bytes, warnings, errors } = cookLevel(level);
+  if (errors?.length) {
+    return { warnings, errors };
+  }
   const blob = new Blob([bytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${levelName.toLowerCase()}.bin`);
-  return warnings;
+  return { warnings, errors: [] };
 }
 
 // ---- js/mapView.js ----
@@ -2879,10 +2917,9 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       break;
     }
 
-    // Into a door: door ceiling colour. Out of a door / normal: N/S–E/W walls.
-    const portalFill = isDoorSector(next.sector)
-      ? colorHex(next.sector.ceilingColor)
-      : wallColor(side);
+    // Upper ledge: door → ceil colour. Lower ledge: elevator → floor colour.
+    // Else N/S–E/W grey.
+    const grey = wallColor(side);
     const farFloor = next.sector.floorHeight;
     const farCeil = next.sector.ceilingHeight;
     const farCeilY = projectY(farCeil, eyeZ, perpDist, view);
@@ -2893,7 +2930,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       const wallTop = clampSpan(yTop, yBot, nearCeilY);
       const wallBot = clampSpan(yTop, yBot, farCeilY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = portalFill;
+        ctx.fillStyle = isDoorSector(next.sector) ? colorHex(next.sector.ceilingColor) : grey;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yTop = Math.max(yTop, wallBot);
@@ -2906,7 +2943,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       const wallTop = clampSpan(yTop, yBot, farFloorY);
       const wallBot = clampSpan(yTop, yBot, nearFloorY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = portalFill;
+        ctx.fillStyle = isElevatorSector(next.sector) ? colorHex(next.sector.floorColor) : grey;
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       // Portal opening is [yTop, farFloorY) even when the raised floor
@@ -3130,11 +3167,6 @@ class TileEditor {
     });
     typeWrap.append(typeSpan, typeSel);
 
-    const typeNum = Number(s.sectorType);
-    const showTarget =
-      !!s._mixed.sectorType ||
-      (Number.isFinite(typeNum) && sectorTypeNeedsTarget(typeNum));
-
     const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
     tag.input.addEventListener('change', () => {
       this.opts.onChange({ tag: tag.input.value });
@@ -3162,19 +3194,17 @@ class TileEditor {
 
     this.root.append(floor.wrap, ceil.wrap, bright.wrap, typeWrap);
 
-    if (showTarget) {
-      const target = textInput(
-        'te-target',
-        s._mixed.targetTag ? 'Target tag (mixed)' : 'Target tag',
-        s.targetTag || '',
-        s._mixed.targetTag,
-      );
-      target.input.placeholder = s._mixed.targetTag ? 'mixed' : 'tag of target sector';
-      target.input.addEventListener('change', () => {
-        this.opts.onChange({ targetTag: target.input.value });
-      });
-      this.root.appendChild(target.wrap);
-    }
+    const target = textInput(
+      'te-target',
+      s._mixed.targetTag ? 'Target tag (mixed)' : 'Target tag',
+      s.targetTag || '',
+      s._mixed.targetTag,
+    );
+    target.input.placeholder = s._mixed.targetTag ? 'mixed' : 'tag of target sector (optional)';
+    target.input.addEventListener('change', () => {
+      this.opts.onChange({ targetTag: target.input.value });
+    });
+    this.root.appendChild(target.wrap);
 
     this.root.append(tag.wrap, floorCol.wrap, ceilCol.wrap);
     this.#actions();
@@ -3659,6 +3689,11 @@ async function saveNow(okMsg = 'Saved') {
   saving = true;
   setStatus('Saving…');
   try {
+    const borderIssues = validateVoidBorder(activeLevel(episode));
+    if (borderIssues.length) {
+      setStatus(borderIssues[0], true);
+      return;
+    }
     const how = hasEpisodeFileHandle()
       ? await autosaveEpisodeJSON(episode)
       : await saveEpisodeJSON(episode, EPISODE_FILE);
@@ -4501,9 +4536,11 @@ document.getElementById('btn-load').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-cook').addEventListener('click', () => {
-  const warnings = cookAndDownload(episode, episode.activeLevel);
-  if (warnings?.length) {
-    setStatus(`Cooked ${episode.activeLevel} — ${warnings[0]}`, true);
+  const result = cookAndDownload(episode, episode.activeLevel);
+  if (result?.errors?.length) {
+    setStatus(`Cook blocked — ${result.errors[0]}`, true);
+  } else if (result?.warnings?.length) {
+    setStatus(`Cooked ${episode.activeLevel} — ${result.warnings[0]}`, true);
   } else {
     setStatus(`Cooked ${episode.activeLevel}`);
   }

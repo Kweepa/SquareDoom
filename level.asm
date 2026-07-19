@@ -11,6 +11,9 @@ start_level
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr build_sec_flatgrp
+	jsr player_tile
+	jsr map_sector_id
+	sta player_prev_sec
 	jsr update_eye
 	rts
 
@@ -61,16 +64,18 @@ update_eye
 ; ---------------------------------------------------------------------------
 ; build_sec_flatgrp — SEC_FLATGRP[id] = group of identical floor/ceil/colours
 ;
-; Once at level load. Door sectors and any SEC_TARGET id get a unique group
-; (their own id) so soft-portal matching never ties them to static rooms —
-; floor/ceil motion does not require rebuilding this table.
+; Once at level load. Door / elevator sectors and any SEC_TARGET id get a
+; unique group (their own id) so soft-portal matching never ties them to
+; static rooms — floor/ceil motion does not require rebuilding this table.
 ; Void (id 0) is group 0. Clobbers: tmp0, X, Y, A; uses SEC_SEEN as scratch.
 ; ---------------------------------------------------------------------------
 build_sec_flatgrp
 	jsr clear_sector_seen		; SEC_SEEN = 0
 	lda level_sector_max
-	beq .bf_done
-	; Mark mutables: DOOR_TYPE and every SEC_TARGET → SEC_SEEN[$ff]
+	bne .bf_go
+	rts
+.bf_go
+	; Mark mutables: DOOR/ELEVATOR types and every SEC_TARGET → SEC_SEEN[$ff]
 	ldx #1
 .bf_mark
 	lda SEC_TARGET,x
@@ -81,7 +86,13 @@ build_sec_flatgrp
 .bf_mdoor
 	lda SEC_TYPE,x
 	cmp #DOOR_TYPE
-	bne .bf_mnext
+	beq .bf_mut
+	cmp #ELEVATOR_LOWER_TYPE
+	beq .bf_mut
+	cmp #ELEVATOR_RAISE_TYPE
+	beq .bf_mut
+	jmp .bf_mnext
+.bf_mut
 	lda #$ff
 	sta SEC_SEEN,x
 .bf_mnext
@@ -133,5 +144,3 @@ build_sec_flatgrp
 	bne .bf_i
 .bf_wipe
 	jmp clear_sector_seen		; drop mark scratch before play
-.bf_done
-	rts

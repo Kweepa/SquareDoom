@@ -13,7 +13,7 @@ FLOOR_PAT = $10			; floorudg.png (flats)
 ITEM_PAT = $11			; itemudg.png shading glyph
 
 MAX_DDA = 32
-PROFILE = 1
+PROFILE = 0
 DBG_FPS = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
@@ -92,6 +92,8 @@ ITEM_BYTES = 4
 SPAWN_BYTES = 3
 DOOR_TYPE = 18
 WINDOW_TYPE = 19			; walk-blocked; hitscan/missiles pass
+ELEVATOR_LOWER_TYPE = 20
+ELEVATOR_RAISE_TYPE = 21
 SEC_TABLE_SIZE = 256
 
 ; Attribute tables (index = sector id; [0] unused)

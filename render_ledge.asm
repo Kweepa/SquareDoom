@@ -8,7 +8,9 @@
 ; → immediate rts. Open portal after a step-up is [ytop, farFloorY) — always
 ; set ybot from far floor even when that Y is above HORIZON.
 ;
-; Door sectors use far ceil colour as the portal fill; else N/S vs E/W grey.
+; Door sectors: upper ledge uses far ceil colour.
+; Elevator sectors: lower ledge (riser) uses far floor colour.
+; Else N/S vs E/W grey.
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
@@ -18,15 +20,6 @@
 ; floor screen Y. tmp4 = farCeilY; tmp5 = farFloorY when projected.
 ; ---------------------------------------------------------------------------
 paint_portal
-	; Wall colour: door uses far ceil col; else N/S vs E/W grey
-	ldx next_id
-	lda SEC_TYPE,x
-	cmp #DOOR_TYPE
-	bne .pn
-	lda SEC_CCOL,x
-	sta wall_col
-	jmp .pg
-.pn
 	jsr wall_colour_ns_ew
 .pg
 	ldx next_id
@@ -121,7 +114,17 @@ paint_portal
 	sty fill_y0
 	ldy tmp2
 	sty fill_y1
+	ldx next_id
+	lda SEC_TYPE,x
+	cmp #ELEVATOR_LOWER_TYPE
+	beq .pp_lfcol
+	cmp #ELEVATOR_RAISE_TYPE
+	beq .pp_lfcol
 	lda wall_col
+	jmp .pp_lfill
+.pp_lfcol
+	lda SEC_FCOL,x
+.pp_lfill
 	jsr fill_span
 	; Open window becomes [ytop, farFloorY). Never yank ytop to nearFloorY —
 	; that closed stair portals early when the step straddled HORIZON.
@@ -149,7 +152,15 @@ paint_portal
 	sty fill_y0
 	ldy tmp2
 	sty fill_y1
+	ldx next_id
+	lda SEC_TYPE,x
+	cmp #DOOR_TYPE
+	bne .pdu_grey
+	lda SEC_CCOL,x
+	jmp .pdu_fill
+.pdu_grey
 	lda wall_col
+.pdu_fill
 	jsr fill_span
 	lda tmp2
 	cmp ytop

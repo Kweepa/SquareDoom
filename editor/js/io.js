@@ -2,7 +2,7 @@
  * Cooked binary layout (no header), per level — structure-of-arrays:
  *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
  *      order: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
- *      targetSector is the resolved sector id (from editor targetTag); 0 if type is 0 / unresolved
+ *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
@@ -23,7 +23,6 @@ import {
   SPAWN_TYPE,
   SWITCH_TYPE,
   DOOR_SECTOR_TYPE,
-  sectorTypeNeedsTarget,
   isGameItem,
   isSwitch,
   coerceSwitchItem,
@@ -248,15 +247,11 @@ export function cookLevel(level) {
     if (!s) continue;
     const type = (s.sectorType ?? 0) & 0xff;
     let targetId = 0;
-    if (sectorTypeNeedsTarget(type)) {
-      const tag = (s.targetTag || '').trim();
-      if (!tag) {
-        warnings.push(`Sector ${id}: type ${type} has empty target tag`);
-      } else {
-        targetId = findSectorIdByTag(level, tag);
-        if (!targetId) {
-          warnings.push(`Sector ${id}: target tag "${tag}" not found`);
-        }
+    const tag = (s.targetTag || '').trim();
+    if (tag) {
+      targetId = findSectorIdByTag(level, tag);
+      if (!targetId) {
+        warnings.push(`Sector ${id}: target tag "${tag}" not found`);
       }
     }
     floors[id] = s.floorHeight & 31;

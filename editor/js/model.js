@@ -53,10 +53,12 @@ const LEGACY_COLOR_TO_C64 = {
   white: 1,
 };
 
-/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window. */
+/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window / Elevator. */
 export const DOOR_SECTOR_TYPE = 18;
 /** Blocks player/enemy walk; shots and hitscan pass. */
 export const WINDOW_SECTOR_TYPE = 19;
+export const ELEVATOR_LOWER_SECTOR_TYPE = 20;
+export const ELEVATOR_RAISE_SECTOR_TYPE = 21;
 
 export const SECTOR_TYPES = [
   { id: 0, name: 'Normal' },
@@ -77,6 +79,8 @@ export const SECTOR_TYPES = [
   { id: 17, name: 'Light flicker' },
   { id: DOOR_SECTOR_TYPE, name: 'Door' },
   { id: WINDOW_SECTOR_TYPE, name: 'Window' },
+  { id: ELEVATOR_LOWER_SECTOR_TYPE, name: 'Elevator lower' },
+  { id: ELEVATOR_RAISE_SECTOR_TYPE, name: 'Elevator raise' },
 ];
 
 export function isDoorSector(sector) {
@@ -87,7 +91,12 @@ export function isWindowSector(sector) {
   return (sector?.sectorType ?? 0) === WINDOW_SECTOR_TYPE;
 }
 
-/** Types that resolve a targetTag when cooking (Window does not). */
+export function isElevatorSector(sector) {
+  const t = sector?.sectorType ?? 0;
+  return t === ELEVATOR_LOWER_SECTOR_TYPE || t === ELEVATOR_RAISE_SECTOR_TYPE;
+}
+
+/** @deprecated Prefer always resolving non-empty targetTag when cooking. */
 export function sectorTypeNeedsTarget(type) {
   const t = (type ?? 0) & 0xff;
   return t !== 0 && t !== WINDOW_SECTOR_TYPE;
