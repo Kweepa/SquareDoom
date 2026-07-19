@@ -16,4 +16,4 @@ if not exist "%~dp0squaredoom.prg" (
 )
 
 rem mode 1
-start "" "%VICE%" -autostart "%~dp0squaredoom.prg" -autostartprgmode 1
+start "" "%VICE%" -silent -autostart "%~dp0squaredoom.prg" -autostartprgmode 1
