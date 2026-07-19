@@ -221,7 +221,7 @@ pickup_message
 	sta info_name_l
 	lda pickup_name_hi,y
 	sta info_name_h
-	; len = "picked up " (10) + namelen + "." (1)
+	; len = "picked up the " (14) + namelen + "." (1)
 	ldy #0
 .pm_len
 	lda (info_name_l),y
@@ -231,7 +231,7 @@ pickup_message
 .pm_got
 	tya
 	clc
-	adc #11				; prefix + '.'
+	adc #15				; prefix + '.'
 	sta info_len
 	lda #INFO_MS_L
 	sta info_ms_l
@@ -273,13 +273,13 @@ draw_info_msg
 .di_go
 	lda #0
 	sta col				; write left→right along top row
-	; "picked up "
+	; "picked up the "
 	ldx #0
 .di_pref
 	lda pickup_prefix,x
 	jsr .di_putc
 	inx
-	cpx #10
+	cpx #14
 	bcc .di_pref
 	; name
 	ldy #0
@@ -323,7 +323,7 @@ draw_info_msg
 	rts
 
 pickup_prefix
-	!scr "picked up "
+	!scr "picked up the "
 
 ; Name table indexed by (typeId - ITEM_TYPE_HEALTH)
 pickup_name_lo
