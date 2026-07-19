@@ -347,13 +347,13 @@ next_menu
 
 ; ==================================================================
 draw_title_banner
-	lda #HILITE_COL
+	lda #6 ; blue
 	sta ui_text_col
 	lda #<str_title
 	ldy #>str_title
 	ldx #2
 	jsr print_centered
-	lda #TEXT_COL
+	lda #8 ; orange
 	sta ui_text_col
 	lda #<str_subtitle
 	ldy #>str_subtitle
@@ -421,7 +421,7 @@ draw_menu_item
 	lda #HILITE_COL
 	sta ui_text_col
 	ldx pr_row
-	lda #0
+	lda #8
 	jsr cell_addr
 	lda #MENU_CURSOR			; skull (@)
 	ldy #0
@@ -1199,17 +1199,25 @@ text_scr_hi
 	!byte >txt_credits, >txt_help, >txt_order
 
 txt_credits
-	!scr "squaredoom for the commodore 64", 0
-    !scr "ported by ^steve mccrea^",0
+	!scr "^doom^ for the ^commodore 64^", 0
+    !scr " ",0
+    !scr "ported by ^steve mccrea^, july 2026.",0
+    !scr " ",0
     !scr "developed using the ^acme^ assembler",0
-    !scr "and the ^vice^ emulator",0
-	!scr "based on ^vicdoom^", 0
-    !scr "written in july 2016",0
+    !scr "by ^marco baye^.",0
+    !scr " ",0
+    !scr "tested using the ^vice^ emulator",0
+    !scr "by ^andreas boose^ and the ^vice team^.",0
+    !scr " ",0
+	!scr "based on ^the keep^ and ^vicdoom^",0
+    !scr "by ^steve mccrea^.", 0
+    !scr " ",0
 	!scr "press a key", 0
 	!byte 0
 
 txt_help
 	!scr "^controls^",0
+    !scr " ",0
 	!scr "move forward      w",0
 	!scr "move backward     s",0
 	!scr "strafe left       a",0
@@ -1218,8 +1226,10 @@ txt_help
 	!scr "turn right        l",0
 	!scr "use               k",0
 	!scr "fire              i",0
+    !scr " ",0
 	!scr "switch weapon     2345",0
 	!scr "menu              runstop",0
+    !scr " ",0
 	!scr "press a key",0
 	!byte 0
 
@@ -1232,6 +1242,7 @@ txt_order
     !scr "avoid the terrifying confrontations",0
     !scr "with cacodemons and lost souls that",0
     !scr "infest ^inferno^.",0
+    !scr " ",0
     !scr "or, act like a man! slap a few shells",0
     !scr "into your shotgun and let's kick some",0
     !scr "demonic butt. order the entire ^doom^",0
@@ -1239,6 +1250,8 @@ txt_order
     !scr "end up in hell eventually. shouldn't",0
     !scr "you know your way around before you",0
     !scr "make the extended visit?",0
+    !scr " ",0
     !scr "to order ^doom^, call ^1-800-]games^.",0
+    !scr " ",0
     !scr "press a key",0
 	!byte 0

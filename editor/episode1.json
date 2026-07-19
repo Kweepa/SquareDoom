@@ -368,12 +368,12 @@
         },
         "37": {
           "floorHeight": 4,
-          "ceilingHeight": 10,
+          "ceilingHeight": 4,
           "sectorType": 18,
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 12,
+          "ceilingColor": 7,
           "brightness": 7
         },
         "38": {
@@ -504,16 +504,6 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 5,
-          "brightness": 7
-        },
-        "51": {
-          "floorHeight": 4,
-          "ceilingHeight": 4,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
           "brightness": 7
         },
         "52": {
@@ -854,6 +844,16 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 6,
+          "brightness": 7
+        },
+        "86": {
+          "floorHeight": 4,
+          "ceilingHeight": 4,
+          "sectorType": 18,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 9,
           "brightness": 7
         },
         "90": {
@@ -1433,7 +1433,7 @@
         34,
         3,
         70,
-        51,
+        86,
         45,
         0,
         54,
