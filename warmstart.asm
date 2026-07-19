@@ -33,9 +33,7 @@ warmstart
 	jsr init_sqtabs
 	jsr prof_init
 	jsr input_irq_init
-	jsr start_level
-	cli
-	jmp gameloop
+	jmp game_start
 
 ; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
 init_charset
@@ -94,6 +92,15 @@ init_charset
 	inx
 	cpx #26 * 8
 	bne .msgfont
+
+	; Skull (@) — doomfont char 0; dither owns slot 0, so keep at 218
+	ldx #0
+.skull
+	lda doomfont_udgs,x
+	sta CHARSET + 218 * 8,x
+	inx
+	cpx #8
+	bne .skull
 
 	lda #CHARSET_PTR
 	sta $d018

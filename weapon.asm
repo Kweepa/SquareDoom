@@ -98,6 +98,13 @@ init_weapon
 	ldx #0
 	jmp switch_weapon
 
+; Hide HUD weapon sprites (menus / intermission)
+hide_weapon
+	lda #0
+	sta wpn_visible
+	sta $d015
+	rts
+
 ; After first blit — allow $d015 writes and enable current spr_en.
 show_weapon
 	lda #$ff

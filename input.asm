@@ -656,3 +656,110 @@ push_walls
 	sta playery
 .pw_done
 	rts
+
+; ------------------------------------------------------------------
+; UI keys (menus / pause) — direct CIA1 sample, edge in ui_pressed
+; Bits: UP=1 DOWN=2 LEFT=4 RIGHT=8 SELECT=16 ESC=32
+; ------------------------------------------------------------------
+UI_UP = 1
+UI_DOWN = 2
+UI_LEFT = 4
+UI_RIGHT = 8
+UI_SELECT = 16
+UI_ESC = 32
+
+ui_keys		!byte 0
+ui_old		!byte 0
+ui_pressed	!byte 0
+
+; ui_read_keys — set ui_keys / ui_pressed (new presses this call)
+ui_read_keys
+	sei
+	lda ui_keys
+	sta ui_old
+	lda #0
+	sta ui_keys
+
+	; W / A / S (PA1 = $FD)
+	lda #$fd
+	sta $dc00
+	lda $dc01
+	tax
+	and #$02				; W
+	bne .urk_now
+	lda ui_keys
+	ora #UI_UP
+	sta ui_keys
+.urk_now
+	txa
+	and #$20				; S
+	bne .urk_nos
+	lda ui_keys
+	ora #UI_DOWN
+	sta ui_keys
+.urk_nos
+	txa
+	and #$04				; A
+	bne .urk_noa
+	lda ui_keys
+	ora #UI_LEFT
+	sta ui_keys
+.urk_noa
+
+	; D (PA2 = $FB)
+	lda #$fb
+	sta $dc00
+	lda $dc01
+	and #$04
+	bne .urk_nod
+	lda ui_keys
+	ora #UI_RIGHT
+	sta ui_keys
+.urk_nod
+
+	; RETURN (PA0 = $FE, PB1)
+	lda #$fe
+	sta $dc00
+	lda $dc01
+	and #$02
+	bne .urk_noret
+	lda ui_keys
+	ora #UI_SELECT
+	sta ui_keys
+.urk_noret
+
+	; Run/Stop (PA7 = $7F, PB7)
+	lda #$7f
+	sta $dc00
+	lda $dc01
+	and #$80
+	bne .urk_noesc
+	lda ui_keys
+	ora #UI_ESC
+	sta ui_keys
+.urk_noesc
+
+	lda ui_old
+	eor #$ff
+	and ui_keys
+	sta ui_pressed
+	cli
+	rts
+
+; C=1 if bit A set in ui_pressed
+ui_pressed_bit
+	and ui_pressed
+	beq .upb_no
+	sec
+	rts
+.upb_no
+	clc
+	rts
+
+; Wait until ESC (Run/Stop) released
+ui_wait_esc_up
+	jsr ui_read_keys
+	lda ui_keys
+	and #UI_ESC
+	bne ui_wait_esc_up
+	rts

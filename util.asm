@@ -119,3 +119,30 @@ GetRandom8
 	adc #193
 	sta random8
 	rts
+
+; From Stephen Judd's Fridge rand1.s (Deathchase); new = 5 * old + $3611
+; Clobber: A, tmp0. Result in random / random+1.
+GetRandom16
+	lda random + 1
+	sta tmp0
+	lda random
+	asl
+	rol tmp0
+	asl
+	rol tmp0
+	clc
+	adc random
+	pha
+	lda tmp0
+	adc random + 1
+	sta random + 1
+	pla
+	clc				; kweepa fix vs Judd
+	adc #$11
+	sta random
+	lda random + 1
+	adc #$36
+	sta random + 1
+	rts
+
+random	!word $a3b7			; 16-bit LCG state

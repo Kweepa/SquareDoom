@@ -48,6 +48,7 @@ tmp4		= $27
 tmp5		= $28
 ptr_l		= $29
 ptr_h		= $2a
+scr_ptr		= ptr_l			; Deathchase-style alias ($0400 cell)
 
 near_floor	= $2b
 near_ceil	= $2c
@@ -70,6 +71,7 @@ sq4_h		= $3a
 
 aux_l		= $3b
 aux_h		= $3c
+col_ptr		= aux_l			; Deathchase-style alias ($d800 cell)
 rcr_abase	= $3d			; rebuild_col_rays: playera − 64 (north-aligned base)
 
 fracx		= $3e
@@ -127,6 +129,9 @@ in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b
 key_wpn_shotgun	= $9c
+; Menu/UI string pointer (safe outside pickup message window)
+ui_str_l	= $9d
+ui_str_h	= $9e
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
@@ -290,3 +295,7 @@ MOBJ_END	= MOBJ_AIMZ + MAX_MOBJ
 ; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
 SEC_FLATGRP	= MOBJ_END		; 256 bytes, index = sector id
 SEC_FLATGRP_END	= SEC_FLATGRP + 256
+
+; Pristine item table snapshot for level restarts (before pickups/kills)
+level_items_bak	= SEC_FLATGRP_END	; MAX_ITEMS * ITEM_BYTES
+LEVEL_ITEMS_BAK_END = level_items_bak + 48 * 4
