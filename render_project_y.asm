@@ -3,50 +3,81 @@
 ; ============================================================================
 ; render_project_y.asm — PROFILE P (world height → screen row)
 ; ============================================================================
-; TheKeep-style: walk texstep from HORIZON until |height − eyeheight| is
-; covered, one screen row per successful step. Used only for flats/ledges
-; (not solid wall strips). See learnings.txt for sum vs divide experiments.
+; Row offset from HORIZON is n = ceil(|Δh|·256 / texstep), clamped to the
+; screen rails (12 rows up / 13 down). For texstep_h=0 that whole function
+; is a lookup: py_tab[(|Δh|−1)·256 + texstep_l] = min(n,13) for |Δh| 1..12,
+; and |Δh| ≥ 13 is always offscreen (ceil(13·256/255) = 14 > 13) → constant
+; row 0 / 25. Table built by tools/genpytab.js; matches the old walk loops
+; bit-for-bit. texstep_h≠0 keeps the hi / one-step walk (rare, short).
 ;
 ; Entry: A = world height (0..31). Uses texstep_l/h from calc_wallz.
 ; Exit:  py_row = screen row 0..25. Must not clobber tmp4/tmp5 (portal).
-;
-; Paths:
-;   Δh = 0     → HORIZON
-;   Δh > 0     → walk up (DEX); lo: DEC signed remaining on carry
-;   Δh < 0     → walk down (INX); lo: INC signed remaining on carry
-;   texstep_h=0  → lo path (A = running acc_l)
-;   texstep_h≠0  → hi / one-step (tmp1 = |Δh| when going down)
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
 ; project_y — A = world y → py_row
 ;
-; tmp3 = signed remaining (lo). tmp1 = |Δh| (hi-down only). Lo loop: A=acc_l.
+; Fast path uses A/Y + SMC operand only. Hi paths: tmp3 = Δh (up),
+; tmp1 = |Δh| (down); acc_l/h walk as before.
 ; ---------------------------------------------------------------------------
 project_y
 	sec
 	sbc eyeheight			; A = signed Δh = height − eye
 	beq .py_at_eye
 	bmi .py_going_down
-	jmp .py_going_up
+
+	; ----- Δh > 0: height above eye → row above horizon -----
+	ldy texstep_h
+	bne .py_up_hi
+	cmp #13
+	bcs .py_up_edge			; |Δh| ≥ 13: offscreen above
+	adc #>py_tab - 1		; carry clear; page for this Δh
+	sta .py_up_ld+2
+	ldy texstep_l
+.py_up_ld
+	lda py_tab,y			; offset 2..13 (SMC hi byte)
+	eor #$ff
+	adc #HORIZON+1			; carry clear (page add ≤ $AA) → 12 − offset
+	bcs .py_store_a			; offset ≤ 12 → on-screen row
+.py_up_edge
+	lda #0
+.py_store_a
+	sta py_row
+	rts
 
 .py_at_eye
 	lda #HORIZON
 	sta py_row
 	rts
 
-	; ----- Δh < 0: height below eye → walk screen downward (INX) -----
+	; ----- Δh < 0: height below eye → row below horizon -----
 .py_going_down
-	sta tmp3				; signed remaining (negative)
-	lda texstep_h
-	beq .py_lo_going_down
-	lda tmp3
+	ldy texstep_h
+	bne .py_dn_hi
+	cmp #$100-12
+	bcc .py_dn_edge			; |Δh| ≥ 13: offscreen below
+	eor #$ff			; |Δh|−1 = page index
+	adc #>py_tab - 1		; carry set from cmp → + page base
+	sta .py_dn_ld+2
+	ldy texstep_l
+.py_dn_ld
+	lda py_tab,y			; offset 2..13 (SMC hi byte)
+	adc #HORIZON			; carry clear (page add ≤ $AA) → 12 + offset ≤ 25
+	sta py_row
+	rts
+.py_dn_edge
+	lda #25
+	sta py_row
+	rts
+
+	; ----- texstep_h ≠ 0, Δh < 0: |Δh| into tmp1, one-step or walk -----
+.py_dn_hi
 	eor #$ff
 	clc
 	adc #1
-	sta tmp1				; |Δh| for one-step / hi compare
-	lda texstep_h
-	cmp tmp1					; same cheap test as going_up
+	sta tmp1			; |Δh| for one-step / hi compare
+	tya				; texstep_h
+	cmp tmp1
 	bcc .py_hi_going_down
 	; texstep_h >= |Δh| → one row below horizon
 	ldx #HORIZON
@@ -73,26 +104,10 @@ project_y
 	bcc .py_hi_going_down_lp
 	bcs .py_store_row
 
-.py_lo_going_down
-	; 8-bit texstep: A = acc_l; on carry, INC tmp3 toward 0
-	ldx #HORIZON
-	lda #0
-.py_lo_going_down_lp
-	cpx #25
-	beq .py_store_row
-	inx
-	clc
-	adc texstep_l
-	bcc .py_lo_going_down_lp
-	inc tmp3
-	bne .py_lo_going_down_lp
-	beq .py_store_row
-
-	; ----- Δh > 0: height above eye → walk screen upward (DEX) -----
-.py_going_up
+	; ----- texstep_h ≠ 0, Δh > 0: one-step or walk vs tmp3 -----
+.py_up_hi
 	sta tmp3				; positive remaining
-	lda texstep_h
-	beq .py_lo_going_up
+	tya				; texstep_h
 	cmp tmp3
 	bcc .py_hi_going_up
 	; texstep_h >= Δh → one row above horizon
@@ -119,20 +134,6 @@ project_y
 	cmp tmp3				; stop when acc_h >= Δh
 	bcc .py_hi_going_up_lp
 	bcs .py_store_row
-
-.py_lo_going_up
-	; On carry out of acc_l, DEC remaining until 0
-	ldx #HORIZON
-	lda #0
-.py_lo_going_up_lp
-	cpx #0
-	beq .py_store_row
-	dex
-	clc
-	adc texstep_l
-	bcc .py_lo_going_up_lp
-	dec tmp3
-	bne .py_lo_going_up_lp
 
 .py_store_row
 	stx py_row

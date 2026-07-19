@@ -16,8 +16,12 @@ if (!level) {
   console.error('No level', levelName);
   process.exit(1);
 }
-const { bytes, warnings } = cookLevel(level);
+const { bytes, warnings, errors } = cookLevel(level);
 for (const w of warnings) console.warn(w);
+if (errors?.length) {
+  for (const e of errors) console.error(e);
+  process.exit(1);
+}
 const outPath = join(root, 'levels', `${levelName.toLowerCase()}.bin`);
 writeFileSync(outPath, bytes);
 console.log('wrote', outPath, bytes.length, 'bytes');

@@ -13,7 +13,7 @@ FLOOR_PAT = $10			; floorudg.png (flats)
 ITEM_PAT = $11			; itemudg.png shading glyph
 
 MAX_DDA = 32
-PROFILE = 0
+PROFILE = 1
 DBG_FPS = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
@@ -64,6 +64,10 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "hud.asm"
 !source "pickup.asm"
 !source "weapon.asm"
+; P + clip moved out of low (which is nearly full); py_tab needs page alignment
+!source "render_project_y.asm"
+!source "render_clip.asm"
+!source "pytab.asm"
 
 end_mid = *
 free_mid = MEM_MID_LIMIT - end_mid
@@ -110,6 +114,8 @@ level_name = level_sector_max + 1	; ASCII, null-padded
 !source "item_bitmaps.asm"
 !source "enemy_sprites.asm"
 
+!zone 0
+
 end_high = *
 free_high = MEM_HIGH_LIMIT - end_high
 !if free_high < 0 {
@@ -117,8 +123,8 @@ free_high = MEM_HIGH_LIMIT - end_high
 }
 !warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
 
-; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj; tail free to $10000
-free_kernal = $10000 - MOBJ_END
+; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj, flatgrp; tail free to $10000
+free_kernal = $10000 - SEC_FLATGRP_END
 free_total = free_low + free_mid + free_high + free_kernal
-!warn "mem: kernal BSS $e000..$", MOBJ_END - 1, " free tail =", free_kernal
+!warn "mem: kernal BSS $e000..$", SEC_FLATGRP_END - 1, " free tail =", free_kernal
 !warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"

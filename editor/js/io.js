@@ -43,6 +43,7 @@ import {
   gameItemCount,
   normalizeColor,
   enforceSectorShapes,
+  validateVoidBorder,
   angleToByte,
   byteToAngle,
   setSpawn,
@@ -187,8 +188,10 @@ export function levelFromJSON(data) {
   }
 
   const shapeWarnings = enforceSectorShapes(level);
-  if (shapeWarnings.length) {
-    level._loadWarnings = shapeWarnings;
+  const borderIssues = validateVoidBorder(level);
+  const loadWarn = [...shapeWarnings, ...borderIssues];
+  if (loadWarn.length) {
+    level._loadWarnings = loadWarn;
   }
   return level;
 }
@@ -227,7 +230,10 @@ export function episodeFromJSON(data) {
 export function cookLevel(level) {
   /** @type {string[]} */
   const warnings = [];
+  /** @type {string[]} */
+  const errors = [];
   warnings.push(...enforceSectorShapes(level));
+  errors.push(...validateVoidBorder(level));
 
   const floors = new Uint8Array(SECTOR_TABLE_SIZE);
   const ceils = new Uint8Array(SECTOR_TABLE_SIZE);
@@ -344,7 +350,7 @@ export function cookLevel(level) {
   out[o] = sectorMax & 0xff;
   o += 1;
   out.set(nameBytes, o);
-  return { bytes: out, warnings };
+  return { bytes: out, warnings, errors };
 }
 
 function clamp(v, lo, hi) {
@@ -555,8 +561,11 @@ export async function loadEpisodeJSON() {
 
 export function cookAndDownload(episode, levelName) {
   const level = episode.levels[levelName];
-  const { bytes, warnings } = cookLevel(level);
+  const { bytes, warnings, errors } = cookLevel(level);
+  if (errors?.length) {
+    return { warnings, errors };
+  }
   const blob = new Blob([bytes], { type: 'application/octet-stream' });
   downloadBlob(blob, `${levelName.toLowerCase()}.bin`);
-  return warnings;
+  return { warnings, errors: [] };
 }

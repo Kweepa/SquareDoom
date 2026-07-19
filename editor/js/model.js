@@ -775,6 +775,31 @@ export function splitSectorIntoContiguousComponents(level, sectorId) {
 }
 
 /**
+ * Runtime DDA assumes a sealed id-0 border so marches never leave the map array.
+ * @returns {string[]} issues (empty if ok)
+ */
+export function validateVoidBorder(level) {
+  /** @type {string[]} */
+  const issues = [];
+  const last = MAP_SIZE - 1;
+  for (let i = 0; i < MAP_SIZE; i++) {
+    if (level.map[i] !== 0) {
+      issues.push(`Void border required: non-void at (${i},0)`);
+    }
+    if (level.map[last * MAP_SIZE + i] !== 0) {
+      issues.push(`Void border required: non-void at (${i},${last})`);
+    }
+    if (level.map[i * MAP_SIZE] !== 0) {
+      issues.push(`Void border required: non-void at (0,${i})`);
+    }
+    if (level.map[i * MAP_SIZE + last] !== 0) {
+      issues.push(`Void border required: non-void at (${last},${i})`);
+    }
+  }
+  return issues;
+}
+
+/**
  * Fix every sector that is non-rectangular or larger than MAX_SECTOR_SPAN.
  * @returns {string[]}
  */

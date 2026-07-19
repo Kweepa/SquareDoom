@@ -36,7 +36,8 @@ import {
   clampLevelName,
   itemsInTiles,
   MAX_ITEMS,
-} from './model.js?v=28';
+  validateVoidBorder,
+} from './model.js?v=29';
 import { MapView } from './mapView.js?v=25';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
@@ -111,6 +112,11 @@ async function saveNow(okMsg = 'Saved') {
   saving = true;
   setStatus('Saving…');
   try {
+    const borderIssues = validateVoidBorder(activeLevel(episode));
+    if (borderIssues.length) {
+      setStatus(borderIssues[0], true);
+      return;
+    }
     const how = hasEpisodeFileHandle()
       ? await autosaveEpisodeJSON(episode)
       : await saveEpisodeJSON(episode, EPISODE_FILE);
@@ -952,9 +958,11 @@ document.getElementById('btn-load').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-cook').addEventListener('click', () => {
-  const warnings = cookAndDownload(episode, episode.activeLevel);
-  if (warnings?.length) {
-    setStatus(`Cooked ${episode.activeLevel} — ${warnings[0]}`, true);
+  const result = cookAndDownload(episode, episode.activeLevel);
+  if (result?.errors?.length) {
+    setStatus(`Cook blocked — ${result.errors[0]}`, true);
+  } else if (result?.warnings?.length) {
+    setStatus(`Cooked ${episode.activeLevel} — ${result.warnings[0]}`, true);
   } else {
     setStatus(`Cooked ${episode.activeLevel}`);
   }

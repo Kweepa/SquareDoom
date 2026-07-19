@@ -11,6 +11,20 @@ What the histograms showed
 
 What helped P
 -------------
+- py_tab lookup (tools/genpytab.js): offset n = ceil(|Δh|·256/texstep) is
+  what both walk loops computed (carry count / acc_h compare). n saturates
+  at 13 (screen rails), and with texstep_h=0 any |Δh| ≥ 13 gives n ≥ 14 →
+  always offscreen. So py_tab[(|Δh|−1)·256 + texstep_l] = min(n,13) for
+  |Δh| 1..12 (12 pages, page-aligned, mid region) replaces the entire lo
+  path: SMC hi-byte page pick + abs,Y load + HORIZON±offset epilogue,
+  ~35 cy flat. |Δh| ≥ 13 is a constant row 0/25. Lo loops deleted; hi
+  (texstep_h≠0) one-step/walk kept. Bit-identical to the loops (verified
+  exhaustively in JS and by pixel-identical VICE screenshots).
+  P at spawn pose: 108 → 084 (PROFILE=1 units; fixed per-call profiler
+  overhead means the PROFILE=0 gain is proportionally larger).
+- Low region was full → render_project_y.asm + render_clip.asm moved to
+  the mid region (order within render.asm's sources doesn't matter; all
+  routines are rts-bounded, JSRs absolute).
 - Lo-only sum when texstep_h=0: keep A=acc_l; DEC (up) / INC (down)
   signed remaining Δh on carry until 0 — no absolute value on that path.
 - Hi / one-step: need a positive CMP target. Going_up already has Δh>0;

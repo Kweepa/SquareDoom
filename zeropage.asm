@@ -137,8 +137,8 @@ pat_base_h	= $77
 fill_pat	= $78			; screen code written with colour fills
 wall_pat	= $79			; min(15, wallz_h) for wall strips
 
-dda_steps	= $4c
-dda_peak	= $4d
+dda_steps	= $4c			; countdown remaining this column; also item-draw scratch
+xsgn		= $4d			; $00/$FF sign-extend for ±X tile_h updates
 
 ; CIA profiler snap
 prof_snap_l	= $4e
@@ -165,16 +165,23 @@ fracx_inv	= $5d			; fracx ^ $FF (TheKeep +X/+Y distance factor)
 fracy_inv	= $5e
 last_playera	= $5f			; $FF = force rebuild_col_rays
 
+; COL_CLIP_SEC + col*CLIP_MAX — set once per column (clip_col_reset / bind)
+clip_base_l	= $5b
+clip_base_h	= $5c
+
 !if DBG_PORTAL = 1 {
-dbg_n		= $5b			; # portal dump lines this frame (0..24)
-dbg_far_y	= $5c			; raw project_y(far_floor); $FF if none
+dbg_n		= $a0			; # portal dump lines this frame (0..24)
+dbg_far_y	= $a1			; raw project_y(far_floor); $FF if none
 }
 
 ; Same-flat paint_near skip (per column) + fill_span ends + frame span count
-last_near_floor	= $60
-last_near_ceil	= $61
-last_near_fcol	= $62
-last_near_ccol	= $63
+; last_near_flatgrp: SEC_FLATGRP of last paint_near. Aliased last_near_* below
+; are item-draw scratch after columns (must not overlap during cast_column).
+last_near_flatgrp = $60
+last_near_floor	= $60			; item scratch (alias; after all columns)
+last_near_ceil	= $61			; item scratch
+last_near_fcol	= $62			; item scratch
+last_near_ccol	= $63			; item scratch
 last_near_ok	= $64			; 0 = no flats cached this column
 span_lo		= $65
 span_hi		= $66
@@ -278,3 +285,7 @@ ITEM_CORPSE_TEX	= MOBJ_FOR_ITEM + 48	; 48: $FF live, else enemy spr idx
 MOBJ_AIMY	= ITEM_CORPSE_TEX + 48	; mid Y on MUZZLE_COL; $FF = not on muzzle
 MOBJ_AIMZ	= MOBJ_AIMY + MAX_MOBJ	; depth when AIMY was set (for closest pick)
 MOBJ_END	= MOBJ_AIMZ + MAX_MOBJ
+
+; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
+SEC_FLATGRP	= MOBJ_END		; 256 bytes, index = sector id
+SEC_FLATGRP_END	= SEC_FLATGRP + 256

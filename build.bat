@@ -9,6 +9,8 @@ node tools\cook.js
 if errorlevel 1 exit /b 1
 node tools\gentables.js
 if errorlevel 1 exit /b 1
+node tools\genpytab.js
+if errorlevel 1 exit /b 1
 node tools\genblit.js
 if errorlevel 1 exit /b 1
 node tools\gendither.js

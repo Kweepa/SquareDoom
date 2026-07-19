@@ -12,7 +12,7 @@
 ;   render_wallz.asm      W — texstep from incremental wz
 ;   render_near.asm       N — near ceil/floor strips
 ;   render_ledge.asm      L — portal ledges + solid wall colour
-;   render_project_y.asm  P — world height → screen row
+;   render_project_y.asm  P — world height → screen row (mid region + py_tab)
 ;   render_items.asm      I — item billboards
 ;
 ; Clip: open window is [ytop, ybot). Front-to-back: near flats then ledges
@@ -33,7 +33,6 @@ TEXSTEP_SHIFT = 2
 ; ---------------------------------------------------------------------------
 render
 	lda #0
-	sta dda_peak
 	sta span_lo
 	sta span_hi
 !if DBG_PORTAL = 1 {
@@ -100,21 +99,12 @@ on_cell
 }
 	lda cur_id
 	beq .void_enter			; leaving void: just adopt next_id
-	; Same-flat skip: identical flats/colours already painted this column
+	; Same-flat skip: identical flat group already painted this column
 	lda last_near_ok
 	beq .do_near
 	ldx cur_id
-	lda SEC_FLOOR,x
-	cmp last_near_floor
-	bne .do_near
-	lda SEC_CEIL,x
-	cmp last_near_ceil
-	bne .do_near
-	lda SEC_FCOL,x
-	cmp last_near_fcol
-	bne .do_near
-	lda SEC_CCOL,x
-	cmp last_near_ccol
+	lda SEC_FLATGRP,x
+	cmp last_near_flatgrp
 	bne .do_near
 	lda next_id
 	beq .after_near			; solid wall — span_a/b unused
@@ -132,14 +122,9 @@ on_cell
 .do_near
 	jsr load_near_sector
 	jsr paint_near			; N: ceil/floor strips + span_a/b
-	lda near_floor
-	sta last_near_floor
-	lda near_ceil
-	sta last_near_ceil
-	lda near_fcol
-	sta last_near_fcol
-	lda near_ccol
-	sta last_near_ccol
+	ldx cur_id
+	lda SEC_FLATGRP,x
+	sta last_near_flatgrp
 	lda #1
 	sta last_near_ok
 .after_near
@@ -221,6 +206,4 @@ on_cell
 !source "render_wallz.asm"
 !source "render_near.asm"
 !source "render_ledge.asm"
-!source "render_project_y.asm"
-!source "render_clip.asm"
 !source "render_items.asm"

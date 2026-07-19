@@ -10,6 +10,7 @@ start_level
 	jsr init_hud_state
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
+	jsr build_sec_flatgrp
 	jsr update_eye
 	rts
 
@@ -55,4 +56,82 @@ update_eye
 .ue_empty
 	lda #11
 	sta eyeheight
+	rts
+
+; ---------------------------------------------------------------------------
+; build_sec_flatgrp — SEC_FLATGRP[id] = group of identical floor/ceil/colours
+;
+; Once at level load. Door sectors and any SEC_TARGET id get a unique group
+; (their own id) so soft-portal matching never ties them to static rooms —
+; floor/ceil motion does not require rebuilding this table.
+; Void (id 0) is group 0. Clobbers: tmp0, X, Y, A; uses SEC_SEEN as scratch.
+; ---------------------------------------------------------------------------
+build_sec_flatgrp
+	jsr clear_sector_seen		; SEC_SEEN = 0
+	lda level_sector_max
+	beq .bf_done
+	; Mark mutables: DOOR_TYPE and every SEC_TARGET → SEC_SEEN[$ff]
+	ldx #1
+.bf_mark
+	lda SEC_TARGET,x
+	beq .bf_mdoor
+	tay
+	lda #$ff
+	sta SEC_SEEN,y
+.bf_mdoor
+	lda SEC_TYPE,x
+	cmp #DOOR_TYPE
+	bne .bf_mnext
+	lda #$ff
+	sta SEC_SEEN,x
+.bf_mnext
+	cpx level_sector_max
+	bcs .bf_assign
+	inx
+	bne .bf_mark
+
+.bf_assign
+	lda #0
+	sta SEC_FLATGRP			; void
+	ldx #1
+.bf_i
+	lda SEC_SEEN,x
+	bne .bf_new			; mutable → unique group = id
+	stx tmp0
+	ldy #1
+	cpy tmp0
+	bcs .bf_new
+.bf_j
+	lda SEC_SEEN,y
+	bne .bf_jn			; never inherit from a mutable
+	lda SEC_FLOOR,x
+	cmp SEC_FLOOR,y
+	bne .bf_jn
+	lda SEC_CEIL,x
+	cmp SEC_CEIL,y
+	bne .bf_jn
+	lda SEC_FCOL,x
+	cmp SEC_FCOL,y
+	bne .bf_jn
+	lda SEC_CCOL,x
+	cmp SEC_CCOL,y
+	bne .bf_jn
+	lda SEC_FLATGRP,y
+	sta SEC_FLATGRP,x
+	jmp .bf_next
+.bf_jn
+	iny
+	cpy tmp0
+	bcc .bf_j
+.bf_new
+	txa
+	sta SEC_FLATGRP,x
+.bf_next
+	cpx level_sector_max
+	bcs .bf_wipe
+	inx
+	bne .bf_i
+.bf_wipe
+	jmp clear_sector_seen		; drop mark scratch before play
+.bf_done
 	rts

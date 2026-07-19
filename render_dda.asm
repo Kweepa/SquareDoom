@@ -7,8 +7,8 @@
 ; then TheKeep-style march comparing sdx vs sdy. Same-id cells skip on_cell
 ; (cheap add only). Sector changes call on_cell in render.asm.
 ;
-; Incremental wz: each .add_sdx/y also does wz += ddw (COL_DDWX/Y from setup).
-; calc_wallz then only shifts — no fish mul at edges.
+; Incremental wz: each step does wz += ddw then s += dd (inlined; COL_DDWX/Y
+; from setup). calc_wallz then only shifts — no fish mul at edges.
 ;
 ; PROFILE: S closes after preamble (.cc_init); D covers the inner march.
 ; ============================================================================
@@ -23,7 +23,7 @@ cast_column
 !if PROFILE = 1 {
 	jsr prof_snap
 }
-	; Restore player cell — previous columns left map*/tile* mutated
+	; Restore player cell — previous columns left tile* mutated
 	lda plr_mapx
 	sta mapx
 	lda plr_mapy
@@ -49,6 +49,13 @@ cast_column
 	sta ddwy_h
 	lda COL_XSTEP,y
 	sta xstep
+	; Sign-extend byte for tile_h on ±X steps ($00 / $FF)
+	ldx #0
+	cmp #0
+	bpl .xs_pos
+	dex
+.xs_pos
+	stx xsgn
 	lda COL_YSTEP,y
 	sta ystep
 
@@ -96,8 +103,9 @@ cast_column
 	; Info message leaves row 0 free for cols 0..info_len-1.
 	lda #0
 	sta ytop
-	sta dda_steps
 	sta last_near_ok
+	lda #MAX_DDA				; countdown: dec/beq ends march
+	sta dda_steps
 	lda info_len
 	beq .ytop_ok
 	ldx col
@@ -131,53 +139,39 @@ cast_column
 	ldy #PROF_SETUP
 	jsr prof_add_bucket		; preamble counts as S
 }
+	ldy #0				; Y=0 invariant for (tile_l) reads
 
-; Inner: pick nearer of sdx/sdy; advance map/tile; same id → add only
+; Inner: pick nearer of sdx/sdy; advance map/tile; same id → add only.
+; Clip closure is only reported by on_cell (C=1) — no per-step ytop/ybot check.
 .inner
-	lda ytop
-	cmp ybot
-	bcc .igo
-!if PROFILE = 1 {
-	ldy #PROF_DDA
-	jsr prof_add_bucket
-}
-	rts				; clip already closed — nothing left to paint
-.igo
 	; Choose axis with smaller remaining s (tie → Y)
 	lda sdx_h
 	cmp sdy_h
 	bcc .adv_x
-	bne .adv_y
+	bne .to_adv_y
 	lda sdx_l
 	cmp sdy_l
-	bcs .adv_y
+	bcc .adv_x
+.to_adv_y
+	jmp .adv_y
 
 .adv_x
-	lda #0
-	sta side
-	ldx #0
-	lda xstep
-	bpl .axp
-	dex				; X = $ff for tile_h sign-extend on −X
-.axp
-	clc
-	adc mapx
-	sta mapx
-	cmp #MAP_SIZE
-	bcs .ax_oob
+	; Map is sealed with id-0 border — no mapx OOB check (tile walk is enough)
 	clc
 	lda tile_l
-	adc xstep			; ±1 in map row (sign-extend via X)
+	adc xstep			; ±1 in map row
 	sta tile_l
-	txa
-	adc tile_h
+	lda tile_h
+	adc xsgn				; sign-extend from preamble
 	sta tile_h
-	ldy #0
-	lda (tile_l),y
-	sta next_id
+	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ax_same			; same sector — cheap path
-	jsr flats_equal_cur_next
+	sta next_id
+	ldx cur_id
+	lda SEC_FLATGRP,x
+	ldx next_id
+	cmp SEC_FLATGRP,x
 	beq .ax_soft			; identical flats — no paint, keep walking
 	jmp .ax_cell
 .ax_soft
@@ -189,39 +183,60 @@ cast_column
 	jsr mark_seen
 	lda cur_id
 	jsr clip_col_push_if_new
+	ldy #0				; restore Y=0 after jsr
 .ax_same
-	jsr dda_bump
-	bcs .ax_done
-	jsr .add_sdx
+	dec dda_steps
+	beq .ax_done
+	; wz_x += ddwx, then sdx += ddx (C = s overflow)
+	clc
+	lda wz_x_l
+	adc ddwx_l
+	sta wz_x_l
+	lda wz_x_h
+	adc ddwx_h
+	sta wz_x_h
+	clc
+	lda sdx_l
+	adc ddx_l
+	sta sdx_l
+	lda sdx_h
+	adc ddx_h
+	sta sdx_h
 	bcs .ax_done
 	jmp .inner
 .ax_done
 	jmp .done
-.ax_oob
-	lda #0
-	sta next_id			; off-map = solid void
 .ax_cell
+	lda #0
+	sta side
 !if PROFILE = 1 {
 	ldy #PROF_DDA
 	jsr prof_add_bucket
 }
 	jsr on_cell
 	bcs .ax_done
-	jsr dda_bump
-	bcs .ax_done
-	jsr .add_sdx
+	ldy #0
+	dec dda_steps
+	beq .ax_done
+	clc
+	lda wz_x_l
+	adc ddwx_l
+	sta wz_x_l
+	lda wz_x_h
+	adc ddwx_h
+	sta wz_x_h
+	clc
+	lda sdx_l
+	adc ddx_l
+	sta sdx_l
+	lda sdx_h
+	adc ddx_h
+	sta sdx_h
 	bcs .ax_done
 	jmp .inner
 
 .adv_y
-	lda #1
-	sta side
-	clc
-	lda mapy
-	adc ystep
-	sta mapy
-	cmp #MAP_SIZE
-	bcs .ay_oob
+	; Map is sealed with id-0 border — no mapy OOB check
 	lda ystep
 	bmi .ay_n
 	; +Y: tile pointer += MAP_SIZE (next row in map array)
@@ -243,12 +258,14 @@ cast_column
 	sbc #0
 	sta tile_h
 .ay_rd
-	ldy #0
-	lda (tile_l),y
-	sta next_id
+	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ay_same
-	jsr flats_equal_cur_next
+	sta next_id
+	ldx cur_id
+	lda SEC_FLATGRP,x
+	ldx next_id
+	cmp SEC_FLATGRP,x
 	beq .ay_soft
 	jmp .ay_cell
 .ay_soft
@@ -260,84 +277,10 @@ cast_column
 	jsr mark_seen
 	lda cur_id
 	jsr clip_col_push_if_new
+	ldy #0
 .ay_same
-	jsr dda_bump
-	bcs .ay_done
-	jsr .add_sdy
-	bcs .ay_done
-	jmp .inner
-.ay_done
-	jmp .done
-.ay_oob
-	lda #0
-	sta next_id
-.ay_cell
-!if PROFILE = 1 {
-	ldy #PROF_DDA
-	jsr prof_add_bucket
-}
-	jsr on_cell
-	bcs .ay_done
-	jsr dda_bump
-	bcs .ay_done
-	jsr .add_sdy
-	bcs .ay_done
-	jmp .inner
-
-; ---------------------------------------------------------------------------
-; flats_equal_cur_next — Z=1 if cur_id and next_id share floor/ceil/colours
-; (soft portal: rectangular splits of one room should not re-paint).
-; ---------------------------------------------------------------------------
-flats_equal_cur_next
-	ldx cur_id
-	ldy next_id
-	lda SEC_FLOOR,x
-	cmp SEC_FLOOR,y
-	bne .fe_no
-	lda SEC_CEIL,x
-	cmp SEC_CEIL,y
-	bne .fe_no
-	lda SEC_FCOL,x
-	cmp SEC_FCOL,y
-	bne .fe_no
-	lda SEC_CCOL,x
-	cmp SEC_CCOL,y
-	bne .fe_no
-	lda #0				; Z=1
-	rts
-.fe_no
-	lda #1				; Z=0
-	rts
-
-; s += dd and wz += ddw; C = s overflow (ray end). wz overflow ignored.
-.add_sdx
-	clc
-	lda sdx_l
-	adc ddx_l
-	sta sdx_l
-	lda sdx_h
-	adc ddx_h
-	sta sdx_h
-	php				; preserve s overflow for caller
-	clc
-	lda wz_x_l
-	adc ddwx_l
-	sta wz_x_l
-	lda wz_x_h
-	adc ddwx_h
-	sta wz_x_h
-	plp
-	rts
-
-.add_sdy
-	clc
-	lda sdy_l
-	adc ddy_l
-	sta sdy_l
-	lda sdy_h
-	adc ddy_h
-	sta sdy_h
-	php
+	dec dda_steps
+	beq .ay_done
 	clc
 	lda wz_y_l
 	adc ddwy_l
@@ -345,8 +288,45 @@ flats_equal_cur_next
 	lda wz_y_h
 	adc ddwy_h
 	sta wz_y_h
-	plp
-	rts
+	clc
+	lda sdy_l
+	adc ddy_l
+	sta sdy_l
+	lda sdy_h
+	adc ddy_h
+	sta sdy_h
+	bcs .ay_done
+	jmp .inner
+.ay_done
+	jmp .done
+.ay_cell
+	lda #1
+	sta side
+!if PROFILE = 1 {
+	ldy #PROF_DDA
+	jsr prof_add_bucket
+}
+	jsr on_cell
+	bcs .ay_done
+	ldy #0
+	dec dda_steps
+	beq .ay_done
+	clc
+	lda wz_y_l
+	adc ddwy_l
+	sta wz_y_l
+	lda wz_y_h
+	adc ddwy_h
+	sta wz_y_h
+	clc
+	lda sdy_l
+	adc ddy_l
+	sta sdy_l
+	lda sdy_h
+	adc ddy_h
+	sta sdy_h
+	bcs .ay_done
+	jmp .inner
 
 .done
 !if PROFILE = 1 {
@@ -354,19 +334,6 @@ flats_equal_cur_next
 	jsr prof_add_bucket
 }
 	jmp fill_open_remainder
-
-; ---------------------------------------------------------------------------
-; dda_bump — inc dda_steps / dda_peak; C=1 if >= MAX_DDA
-; ---------------------------------------------------------------------------
-dda_bump
-	inc dda_steps
-	lda dda_steps
-	cmp dda_peak
-	bcc .dc_chk
-	sta dda_peak
-.dc_chk
-	cmp #MAX_DDA
-	rts
 
 ; ---------------------------------------------------------------------------
 ; fill_open_remainder — if clip still open after ray stop, flood with cur

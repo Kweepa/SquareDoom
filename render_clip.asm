@@ -5,6 +5,9 @@
 ; ============================================================================
 ; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_SEC/TOP/BOT. Entry 0 =
 ; nearest (player sector); higher n = farther after portals.
+;
+; clip_base_l/h = &COL_CLIP_SEC[col*CLIP_MAX] — computed once per column so
+; push / push_if_new skip clip_mul_col on the hot soft-portal path.
 ; ============================================================================
 
 CLIP_STRIDE = COL_NUM * CLIP_MAX	; bytes between SEC / TOP / BOT tables
@@ -35,13 +38,29 @@ mark_seen
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_reset — COL_CLIP_N[col] = 0
+; clip_col_bind — clip_base = COL_CLIP_SEC + col*CLIP_MAX
+; Clobbers: tmp1, ptr_l/h, X, A
+; ---------------------------------------------------------------------------
+clip_col_bind
+	lda col
+	jsr clip_mul_col
+	clc
+	lda ptr_l
+	adc #<COL_CLIP_SEC
+	sta clip_base_l
+	lda ptr_h
+	adc #>COL_CLIP_SEC
+	sta clip_base_h
+	rts
+
+; ---------------------------------------------------------------------------
+; clip_col_reset — COL_CLIP_N[col] = 0; bind clip_base for this column
 ; ---------------------------------------------------------------------------
 clip_col_reset
 	ldy col
 	lda #0
 	sta COL_CLIP_N,y
-	rts
+	jmp clip_col_bind
 
 ; ---------------------------------------------------------------------------
 ; clip_mul_col — A = col → ptr_l/h = col * CLIP_MAX (16-bit)
@@ -85,7 +104,7 @@ clip_mul_col
 
 ; ---------------------------------------------------------------------------
 ; clip_col_push — push {A=sector, ytop, ybot} for current col if n < CLIP_MAX
-; Clobbers: tmp0..tmp4, ptr_l/h, aux_l/h, X, Y
+; Requires clip_base already bound for col. Clobbers: tmp0,tmp2, ptr_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_push
 	sta tmp2				; sector id
@@ -94,22 +113,13 @@ clip_col_push
 	cmp #CLIP_MAX
 	bcs .ccp_full
 	sta tmp0				; n
-	lda col
-	jsr clip_mul_col			; ptr = col*CLIP_MAX
+	; ptr = clip_base + n
 	clc
-	lda ptr_l
+	lda clip_base_l
 	adc tmp0
 	sta ptr_l
-	lda ptr_h
+	lda clip_base_h
 	adc #0
-	sta ptr_h
-	; SEC
-	clc
-	lda ptr_l
-	adc #<COL_CLIP_SEC
-	sta ptr_l
-	lda ptr_h
-	adc #>COL_CLIP_SEC
 	sta ptr_h
 	ldy #0
 	lda tmp2
@@ -147,7 +157,7 @@ clip_col_push
 ; clip_col_push_if_new — A = sector; push with current ytop/ybot only if that
 ; id is not already on this column's stack. Soft same-flat uses this so every
 ; visited rect keeps its aperture (rewrite would lose earlier ids).
-; Clobbers: tmp0..tmp4, ptr_l/h, aux_l/h, X, Y
+; Requires clip_base bound. Clobbers: tmp0,tmp2,tmp3, ptr_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_push_if_new
 	sta tmp2
@@ -155,14 +165,9 @@ clip_col_push_if_new
 	lda COL_CLIP_N,y
 	beq .ccpn_do
 	sta tmp3
-	lda col
-	jsr clip_mul_col
-	clc
-	lda ptr_l
-	adc #<COL_CLIP_SEC
+	lda clip_base_l
 	sta ptr_l
-	lda ptr_h
-	adc #>COL_CLIP_SEC
+	lda clip_base_h
 	sta ptr_h
 .ccpn_lp
 	ldy #0
@@ -185,7 +190,8 @@ clip_col_push_if_new
 ; clip_col_find — find sector A in column's clip stack (search far→near)
 ; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found
 ; Exact id only. Soft steps use clip_col_push_if_new. Skips empty windows.
-; Clobbers: tmp2,tmp3,ptr_l/h,aux_l/h, X, Y
+; Re-binds clip_base (item draw walks many cols). Clobbers: tmp2,tmp3,
+; ptr_l/h, aux_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_find
 	sta tmp2				; wanted sector
@@ -193,23 +199,15 @@ clip_col_find
 	lda COL_CLIP_N,y
 	beq .ccf_miss
 	sta tmp3				; n count
-	lda col
-	jsr clip_mul_col			; ptr = col*CLIP_MAX
+	jsr clip_col_bind
 	lda tmp3
 	sec
 	sbc #1				; n-1 (n ≥ 1 here)
 	clc
-	adc ptr_l				; 16-bit ptr += n-1 (carry must reach ptr_h)
+	adc clip_base_l
 	sta ptr_l
-	lda ptr_h
+	lda clip_base_h
 	adc #0
-	sta ptr_h
-	clc
-	lda ptr_l
-	adc #<COL_CLIP_SEC
-	sta ptr_l
-	lda ptr_h
-	adc #>COL_CLIP_SEC
 	sta ptr_h
 .ccf_lp
 	ldy #0
