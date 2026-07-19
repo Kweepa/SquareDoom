@@ -9,6 +9,31 @@ What the histograms showed
 - |Δh| is world height vs eyeheight, not on-screen wall size.
 - Walls do not call project_y (only ceil/floor near + portal flats).
 
+What helped N
+-------------
+- fill_span colour in X: tax on entry, then txa / sta colour / lda fill_pat /
+  sta pat per row. Dropped pha/pla (30 → 25 cy/row) across N, L, and
+  fill_open_remainder. Clobbers X — callers do not need it after the fill.
+  Empty-span (fill_y0==fill_y1) semantics unchanged. ~10% off N at spawn
+  (N → 102 PROFILE units).
+- Inline load_near_sector into on_cell .do_near and stash SEC_FLATGRP while
+  X is still cur_id (before paint_near → fill_span clobbers X).
+- paint_near inlines clamp_span via +clamp_span_inline macro (saves jsr/rts
+  ×2); render_ledge keeps the subroutine.
+- fill_span's span_lo/hi count gated to PROFILE=1 (diagnostic only).
+- Colour-only flat fills (LIGHTFRAME pre-set to FLOOR_PAT + dirty-band
+  reset) skipped: flats will soon vary by sector type (sludge/lava/dirt/
+  stone patterns), so a single FLOOR_PAT preset won’t hold.
+- Absolute N ≈ 102 was largely PROFILE sample inflation, not fill work.
+  Hard bound: ≤~25 ms of dual-FB fills for N+L combined (40×25×25 cy).
+  Mid-paint PROF_NEAR samples (.pn_go / .pn_floor) removed; one N bookend
+  at .after_near + prof_add_py around project_y only (was 3 N + 2 P per
+  edge). Use PROFILE=0 F for real fps; PROFILE buckets for relative cost
+  after sample counts are comparable.
+- paint_near dual-inlines FLOOR_PAT imm fills (no jsr fill_span); remainder
+  uses fill_flat_span helper so the loop is not triplicated. ~+40 B low
+  (free_low 304→265). Walls/ledges keep variable fill_pat fill_span.
+
 What helped P
 -------------
 - py_tab lookup (tools/genpytab.js): offset n = ceil(|Δh|·256/texstep) is

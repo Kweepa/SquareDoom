@@ -65,14 +65,10 @@ mul_8x8
 
 ; TheKeep API: aux * A → A=lo X=hi (middle 16 of 24-bit product).
 ; Used for mid(dd*fish) cache + initial wz = mid(s*fish).
-mul_16x8
-	sta mul_fac
-	jmp .mid
+; mul_16x8_eor: treat factor as A^$ff (sq1/2 = fac^$ff, sq3/4 = fac).
 mul_16x8_eor
 	eor #$ff
-	sta mul_fac
-.mid
-	lda mul_fac
+mul_16x8
 	sta sq1_l
 	sta sq2_l
 	eor #$ff
@@ -105,7 +101,6 @@ mul_16x8_eor
 
 ; Column setup: mid(ddx * A) → sdx. A = fac.
 calc_sdx
-	sta mul_fac
 	sta sq1_l
 	sta sq2_l
 	eor #$ff
@@ -137,7 +132,6 @@ calc_sdx
 
 ; mid(ddy * A) → sdy
 calc_sdy
-	sta mul_fac
 	sta sq1_l
 	sta sq2_l
 	eor #$ff

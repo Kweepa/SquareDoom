@@ -171,14 +171,11 @@ paint_portal
 
 ; ---------------------------------------------------------------------------
 ; wall_colour_ns_ew — side 0 → WALL_NS, side 1 → WALL_EW → wall_col
+; Requires WALL_EW = WALL_NS + 1 (side is always 0/1).
 ; ---------------------------------------------------------------------------
 wall_colour_ns_ew
 	lda side
-	bne .ew
-	lda #WALL_NS
-	sta wall_col
-	rts
-.ew
-	lda #WALL_EW
+	clc
+	adc #WALL_NS
 	sta wall_col
 	rts

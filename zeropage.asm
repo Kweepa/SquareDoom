@@ -70,7 +70,7 @@ sq4_h		= $3a
 
 aux_l		= $3b
 aux_h		= $3c
-mul_fac		= $3d
+rcr_abase	= $3d			; rebuild_col_rays: playera − 64 (north-aligned base)
 
 fracx		= $3e
 fracy		= $3f
@@ -183,7 +183,7 @@ last_near_ceil	= $61			; item scratch
 last_near_fcol	= $62			; item scratch
 last_near_ccol	= $63			; item scratch
 last_near_ok	= $64			; 0 = no flats cached this column
-span_lo		= $65
+span_lo		= $65			; fill_span count (PROFILE=1 only)
 span_hi		= $66
 fill_y0		= $67			; fill_span start (inclusive)
 fill_y1		= $68			; fill_span end (exclusive)

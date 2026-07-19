@@ -348,9 +348,11 @@ fill_open_remainder
 	lda cur_id
 	beq .for_done
 	tax
-	lda #FLOOR_PAT
-	sta fill_pat
 	lda SEC_FCOL,x
-	jsr fill_col_span
+	ldy ytop
+	sty fill_y0
+	ldy ybot
+	sty fill_y1
+	jsr fill_flat_span
 .for_done
 	rts

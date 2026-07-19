@@ -29,6 +29,7 @@ player_tile
 	rts
 
 ; Fill colour+pattern column: A = colour, ytop..ybot-1
+; Clobbers X (colour kept in X across the dual-FB store).
 fill_col_span
 	ldy ytop
 	sty fill_y0
@@ -36,23 +37,49 @@ fill_col_span
 	sty fill_y1
 	; fall through
 ; A = colour, fill_pat = screen code; fill_y0..fill_y1-1 into both FBs
+; Clobbers X. Empty span (fill_y0 == fill_y1) is a no-op.
 fill_span
+!if PROFILE = 1 {
 	inc span_lo
 	bne .fs_go
 	inc span_hi
 .fs_go
+}
+	tax				; colour in X — avoids pha/pla per row (30→25 cy)
 	ldy fill_y0
 	jmp .fs_loop_test
 .fs_loop
+	txa
 	sta (col_base_l),y
-	pha
 	lda fill_pat
 	sta (pat_base_l),y
-	pla
 	iny
 .fs_loop_test
 	cpy fill_y1
 	bne .fs_loop
+	rts
+
+; A = colour; fill_y0..fill_y1-1 with FLOOR_PAT imm (flat remainder path).
+; Clobbers X. paint_near inlines its own copies to avoid jsr tax.
+fill_flat_span
+!if PROFILE = 1 {
+	inc span_lo
+	bne .ffs_go
+	inc span_hi
+.ffs_go
+}
+	tax
+	ldy fill_y0
+	jmp .ffs_test
+.ffs_lp
+	txa
+	sta (col_base_l),y
+	lda #FLOOR_PAT
+	sta (pat_base_l),y
+	iny
+.ffs_test
+	cpy fill_y1
+	bne .ffs_lp
 	rts
 
 ; col_base = FRAMEBUFFER + col * 25; pat_base = LIGHTFRAME + col * 25

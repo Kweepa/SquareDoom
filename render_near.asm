@@ -8,8 +8,23 @@
 ; Front-to-back: ceil first; floor only if clip still open (and floor not
 ; above HORIZON — raised floors keep span_b but do not yank ybot).
 ;
-; project_y cost is bucketed to P via prof_add_py, not N.
+; N is sampled once at on_cell .after_near (not mid-paint). project_y
+; cost is bucketed to P via prof_add_py.
+; Flat fills are inlined with lda #FLOOR_PAT (no jsr fill_span).
 ; ============================================================================
+
+; A = row → clamp into [ytop, ybot]; result in A. Macro-local @ labels.
+!macro clamp_span_inline {
+	cmp ytop
+	bcs @cs1
+	lda ytop
+	jmp @cs2
+@cs1
+	cmp ybot
+	bcc @cs2
+	lda ybot
+@cs2
+}
 
 ; ---------------------------------------------------------------------------
 ; paint_near — fill near ceil/floor strips; update ytop/ybot and span_a/b
@@ -26,12 +41,6 @@ paint_near
 	sta span_b			; clip closed — no floor Y for ledge
 	rts
 .pn_go
-!if PROFILE = 1 {
-	ldy #PROF_NEAR
-	jsr prof_add_bucket
-}
-	lda #FLOOR_PAT			; flats: fully lit horizontal dither
-	sta fill_pat
 	; --- Ceiling strip ---
 	lda near_ceil
 	jsr project_y
@@ -41,18 +50,30 @@ paint_near
 	lda py_row
 	sta span_a			; nearCeilY for paint_portal
 
-	jsr clamp_span
+	+clamp_span_inline
 	sta tmp1			; ceilEnd in [ytop,ybot]
 	cmp ytop
 	beq .nc
 	bcc .nc
 	; Fill [ytop, ceilEnd) even when ceilEnd==ybot (close false openings)
+!if PROFILE = 1 {
+	inc span_lo
+	bne .pn_cf_go
+	inc span_hi
+.pn_cf_go
+}
+	ldx near_ccol
 	ldy ytop
-	sty fill_y0
-	ldy tmp1
-	sty fill_y1
-	lda near_ccol
-	jsr fill_span
+	jmp .pn_cf_test
+.pn_cf_lp
+	txa
+	sta (col_base_l),y
+	lda #FLOOR_PAT
+	sta (pat_base_l),y
+	iny
+.pn_cf_test
+	cpy tmp1
+	bne .pn_cf_lp
 	lda tmp1
 	sta ytop			; shrink open window from the top
 .nc
@@ -63,10 +84,6 @@ paint_near
 	sta span_b
 	rts
 .pn_floor
-!if PROFILE = 1 {
-	ldy #PROF_NEAR
-	jsr prof_add_bucket
-}
 	; --- Floor strip (only when at/below HORIZON) ---
 	lda near_floor
 	jsr project_y
@@ -77,7 +94,7 @@ paint_near
 	sta span_b			; nearFloorY kept even if we skip fill
 	cmp #HORIZON
 	bcc .pnd			; raised floor: span_b only, leave ybot
-	jsr clamp_span
+	+clamp_span_inline
 	sta tmp1
 	cmp ybot
 	bcs .pnd
@@ -85,30 +102,27 @@ paint_near
 	bcc .pnd
 	beq .pnd
 	; Fill [floorStart, ybot) and pull ybot up
+!if PROFILE = 1 {
+	inc span_lo
+	bne .pn_ff_go
+	inc span_hi
+.pn_ff_go
+}
+	ldx near_fcol
 	ldy tmp1
-	sty fill_y0
-	ldy ybot
-	sty fill_y1
-	lda near_fcol
-	jsr fill_span
+	jmp .pn_ff_test
+.pn_ff_lp
+	txa
+	sta (col_base_l),y
+	lda #FLOOR_PAT
+	sta (pat_base_l),y
+	iny
+.pn_ff_test
+	cpy ybot
+	bne .pn_ff_lp
 	lda tmp1
 	sta ybot
 .pnd
-	rts
-
-; ---------------------------------------------------------------------------
-; load_near_sector — cur_id → near_floor/ceil/fcol/ccol (SoA tables)
-; ---------------------------------------------------------------------------
-load_near_sector
-	ldx cur_id
-	lda SEC_FLOOR,x
-	sta near_floor
-	lda SEC_CEIL,x
-	sta near_ceil
-	lda SEC_FCOL,x
-	sta near_fcol
-	lda SEC_CCOL,x
-	sta near_ccol
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -136,15 +150,8 @@ refresh_near_spans
 
 ; ---------------------------------------------------------------------------
 ; clamp_span — A = row → clamp into [ytop, ybot]; result in A
+; Used by render_ledge; paint_near inlines via +clamp_span_inline.
 ; ---------------------------------------------------------------------------
 clamp_span
-	cmp ytop
-	bcs .c1
-	lda ytop
-	rts
-.c1
-	cmp ybot
-	bcc .c2
-	lda ybot
-.c2
+	+clamp_span_inline
 	rts

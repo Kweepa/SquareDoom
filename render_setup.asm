@@ -74,16 +74,19 @@ setup_player_tile
 ; COL_DDWX/Y; sign of angle axes → COL_XSTEP/YSTEP (±1).
 ; ---------------------------------------------------------------------------
 rebuild_col_rays
+	; base = playera − 64 (north alignment); per-col angle = angtab[col] + base
+	lda playera
+	sec
+	sbc #64
+	sta rcr_abase
 	lda #0
 	sta col
 .rcr_lp
-	; Column world angle: angtab[col] + playera − 64 (north alignment)
+	; Column world angle: angtab[col] + playera − 64
 	ldy col
 	lda angtab,y
 	clc
-	adc playera
-	sec
-	sbc #64
+	adc rcr_abase
 	sta angle
 
 	; ---- X secant + fish-scaled Δwz per X-step ----

@@ -120,11 +120,20 @@ on_cell
 	jsr refresh_near_spans		; project only; flats already on screen
 	jmp .after_near
 .do_near
-	jsr load_near_sector
-	jsr paint_near			; N: ceil/floor strips + span_a/b
+	; Inline load_near_sector + flatgrp while X is still cur_id
+	; (paint_near → fill_span clobbers X).
 	ldx cur_id
+	lda SEC_FLOOR,x
+	sta near_floor
+	lda SEC_CEIL,x
+	sta near_ceil
+	lda SEC_FCOL,x
+	sta near_fcol
+	lda SEC_CCOL,x
+	sta near_ccol
 	lda SEC_FLATGRP,x
 	sta last_near_flatgrp
+	jsr paint_near			; N: ceil/floor strips + span_a/b
 	lda #1
 	sta last_near_ok
 .after_near
