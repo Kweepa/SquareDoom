@@ -11,13 +11,13 @@ MOTION_STEP_MS = 128			; 1 height unit per 128 ms
 
 player_prev_sec	!byte 0			; last player sector (walk trigger)
 elev_mode	!byte 0			; 0 = lower, 1 = raise
+elev_remote	!byte 0			; 0 = K-use (local), 1 = walk target (remote)
 elev_found	!byte 0
 elev_home	!byte 0
 elev_cell_x	!byte 0
 elev_cell_y	!byte 0
 
 ELEV_RECLOSE_REMOTE_MS = 15000
-
 ELEV_RECLOSE_LOCAL_MS = 5000
 
 ; Clear all process slots
@@ -237,6 +237,8 @@ try_use
 .tu_elev
 	lda SEC_TARGET,x
 	bne .tu_far			; target set → walk-only
+	lda #0
+	sta elev_remote
 	lda SEC_TYPE,x
 	cmp #ELEVATOR_RAISE_TYPE
 	beq .tu_elev_r
@@ -312,6 +314,8 @@ try_walk_elevator
 	lda SEC_TARGET,x
 	beq .twe_rts
 	sta tmp1				; moved = target
+	lda #1
+	sta elev_remote
 	lda SEC_TYPE,x
 	cmp #ELEVATOR_RAISE_TYPE
 	beq .twe_r
@@ -325,6 +329,7 @@ try_walk_elevator
 
 ; ------------------------------------------------------------------
 ; elevator_activate — tmp1 = moved sector, elev_mode = 0 lower / 1 raise
+; elev_remote = 0 → ELEV_RECLOSE_LOCAL_MS, 1 → ELEV_RECLOSE_REMOTE_MS
 ; ------------------------------------------------------------------
 elevator_activate
 	jsr proc_sector_busy
@@ -369,10 +374,19 @@ elevator_activate
 	sta tmp0
 	lda elev_found
 	sta tmp2
+	lda elev_remote
+	bne .ea_rem
 	lda #<ELEV_RECLOSE_LOCAL_MS
 	sta tmp3
 	lda #>ELEV_RECLOSE_LOCAL_MS
 	sta tmp4
+	jmp .ea_timer
+.ea_rem
+	lda #<ELEV_RECLOSE_REMOTE_MS
+	sta tmp3
+	lda #>ELEV_RECLOSE_REMOTE_MS
+	sta tmp4
+.ea_timer
 	jsr proc_alloc
 	bcs .ea_fail
 	lda elev_home
