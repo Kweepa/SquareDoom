@@ -1,12 +1,12 @@
 # Square Doom
 
-A port of Doom for the stock Commodore 64.
+A Doom-lite for the stock Commodore 64.
 
 This differs from my vicdoom port in that the map is a grid like Wolfenstein, but there are floor and ceiling heights and "textured" floors and ceilings to make this look much more like Doom.
 
 It's fullscreen, using dither patterns to allow for lighting, so the pixel grid is just 40x25, which is a little rough.
 
-The huge advantage of the tile grid is ray casting is much faster, and so is wall collision. Doors and elevators are also tile-based. Even Wolfenstein-style doors are kind of expensive. Floor heights are snapped to approximately half a meter, but the framerate is low enough that moving doors and elevators look reasonable.
+The huge advantage of the tile grid is ray casting is much faster, and so is wall collision. Doors and elevators are also tile-based. Even Wolfenstein-style mid-tile doors are kind of expensive, plus I wanted double wide doors and elevators. Floor heights are snapped to approximately half a meter, but the framerate is low enough that moving doors and elevators look reasonable.
 
 I wrote an editor for this first, much like the editor I wrote for vicdoom (with the same sprites), but with height tweaking and a preview panel. Also, written in javascript instead of Adventure Game Studio.
 
@@ -16,35 +16,35 @@ I had already experimented with squeezing the Doom levels into 32x32 tiles some 
 
 # Tech
 
-The renderer is broken down into a few steps. It's not quite a pipeline. I considered making it a pipeline so I could profile it more easily, but it would have added some overhead and the later stages are hard to pipeline cleanly.
+The renderer is broken down into a few steps. I profile them separately (setup, DDA, wallz, near, ledge, project Y, items) without trying to turn the whole thing into a real pipeline.
 
 ## Setup
 
-The screen buffer is a transposed array, so columns are laid out in a linear block of memory. Each column, I take the player position and view angle and add a fisheye corrected angle to it, then make a dx and dy. Multiplies use the standard 2k table-based 8x8 multiply.
+The screen buffer is transposed, so each column is a contiguous block of memory. When the look angle changes I rebuild a per-column ray cache (step sizes and fisheye-scaled depth deltas). Multiplies use table-based mid-products.
 
 ## DDA
 
-The dx and dy are used to step through the tiles in a standard DDA approach. At each tile crossing, I determine if the tile properties have changed, and determine if the clip bounds would change. For a ledge that would narrow the clip or a crossing that changes floor or ceiling colour I need to project the crossing into screen space. I keep track of each sector entered and the clip top and bottom for each column.
+A standard DDA walks the tile grid. Same-looking sectors get a cheap advance; when the floor, ceiling, or colours change I stop to paint. Depth is tracked incrementally with the fisheye scale already baked in, so later stages can just shift it to scale it.
 
 ## Render near
 
-This is a floor and ceiling fill. Floors and ceilings aren't depth shaded, because I would need to calculate a depth per pixel. A span buffer and a depth per span would be possible. In the worst case would need to calculate that depth, and with the low resolution, most spans are relatively short, so it would end up pretty expensive. Instead, I just draw the floors with a dark colour, unless they are toxic sludge or the sky, which are supposed to glow.
+This is a floor and ceiling fill. Floors and ceilings aren't depth shaded; that would need a depth per pixel or per span, and at this resolution that's almost the same thing and I decided (for now...?) it isn't worth it. Instead, I just draw the flats with a dark colour, unless they are toxic sludge or the sky, which are supposed to glow.
 
 ## Render ledge
 
-This is a step or wall fill. I use the distance traversed during the DDA to look up the dither pattern to use to fill the wall. I pick between orange and brown for the walls, similar to how Wolfenstein brightens or darkens its walls depending on whether they are east-west or north-south.
+This fills steps and solid walls between sectors. Distance picks the dither pattern; walls are orange or brown depending on north-south vs east-west, Wolfenstein-style.
 
 ## Project Y
 
-This converts a world space height into a screen space offset from the horizon. Normally this would be a divide, or following The Keep, a sum until the texture step (a DDA residual result) reaches the world height. The low resolution helps here because knowing that the result can only be 0..13 and the world heights are 0..31 I can use a 3k lookup table for mid to distant crossings, which are paradoxically the expensive ones.
+This converts a world height into a screen row relative to the horizon. Normally that would be a divide, or a sum-until like The Keep. With only a dozen or so possible rows I use a lookup table for the common mid-distance cases.
 
 ## Items
 
-The DDA keeps a stack of entered sectors with narrowing clip ranges, and a bit set of which sectors are visible. For each item I check if its sector is visible, then project the item onto the screen, and for each column, clip the enemy sprite. I also use mip maps for the items so that they look less noisy in the distance.
+While casting I remember which sectors were seen and keep a clip stack per column. Items and enemies in visible sectors get projected, depth-sorted, and clipped against that stack. Mip maps keep distant billboards from looking too noisy.
 
 ## Blit
 
-I have a 6k fully unrolled loop to re-transpose the render to the screen and colour simultaneously.
+Two fully unrolled passes re-transpose the render into colour RAM and the screen. I must get around to interleaving the colour and screen writes...
 
 # To do list
 
@@ -55,6 +55,13 @@ This is more for me than you, the reader.
 Currently the pattern and colour blits run in separate passes.
 This results in a millisecond or so of mismatched pattern and colour.
 If I interleave the blit, I can minimise the mismatch.
+
+## Per sector wall colours
+
+I think it would be pretty cheap to add NS/EW wall colours per sector.
+Also, to add dither patterns per colour, both for the walls and the flats.
+That would give an almost textured look. Of course it would need some decent art.
+The limit here is the content, not the tech.
 
 ## Load levels from disk
 
