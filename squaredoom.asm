@@ -29,7 +29,7 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "zeropage.asm"
 !source "basicstub.asm"
 !source "warmstart.asm"
-!source "multiply.asm"
+!source "maths.asm"
 !source "util.asm"
 !source "input.asm"
 !source "profil.asm"

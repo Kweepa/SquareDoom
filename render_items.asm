@@ -589,7 +589,7 @@ item_draw_one
 	bcs .id_imip_got			; ≥2 → mip2
 	ldx #3				; else mip3 (W==1)
 .id_imip_got
-	stx fracy				; mip index (udiv16x8 clobbers tmp5)
+	stx fracy				; mip index
 	lda item_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 	jmp .id_clp_go
@@ -610,10 +610,22 @@ item_draw_one
 	bcs .id_mip_got			; ≥2 → mip3
 	ldx #4				; else mip4
 .id_mip_got
-	stx fracy				; mip index (udiv16x8 clobbers tmp5)
+	stx fracy				; mip index
 	lda enemy_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 .id_clp_go
+	; Cache recip[W]/recip[H] once per sprite (Larsson); U/V use mul not div.
+	; wish_* are move scratch — free during item draw.
+	ldx last_near_ok			; projected W
+	lda recip_lo,x
+	sta wish_x_l
+	lda recip_hi,x
+	sta wish_x_h
+	ldx far_ceil				; projected H
+	lda recip_lo,x
+	sta wish_y_l
+	lda recip_hi,x
+	sta wish_y_h
 	lda span_a
 	sta col
 .id_clp
@@ -709,8 +721,7 @@ item_draw_one
 	dex
 	bne .id32_uxlp
 .id32_ux0
-	lda last_near_ok
-	jsr udiv16x8
+	jsr udiv_aux_rec_w			; (ox * mip_w) / W
 	cmp last_near_ceil		; >= mip_w → clamp
 	bcc .id32_xok
 	lda last_near_ceil
@@ -768,6 +779,10 @@ item_draw_one
 	lda ptr_h
 	adc aux_h
 	sta ptr_h
+	; V DDA: step = mip_h/H in 8.8; acc seeded at py_row
+	ldx fracy
+	lda enemy_mip_h,x
+	jsr item_vdda_setup			; texstep=step, acc=v; tmp5=mip_h
 	ldy py_row
 .id32_rlp
 	cpy dda_steps
@@ -775,29 +790,10 @@ item_draw_one
 	jmp .id_cnx
 .id32_row
 	sty tmp4
-	tya
-	sec
-	sbc near_fcol			; unclamped top (signed byte OK)
-	sta aux_l
-	lda #0
-	sta aux_h
-	; * mip_h / H
-	ldx fracy
-	lda enemy_mip_vshift,x
-	beq .id32_vy0
-	tax
-.id32_vylp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .id32_vylp
-.id32_vy0
-	lda far_ceil
-	jsr udiv16x8
-	ldx fracy
-	cmp enemy_mip_h,x
+	lda acc_h				; bmp_y
+	cmp tmp5
 	bcc .id32_yok
-	lda enemy_mip_h,x
+	lda tmp5
 	sec
 	sbc #1
 .id32_yok
@@ -809,6 +805,13 @@ item_draw_one
 	lda #ITEM_PAT
 	sta (pat_base_l),y
 .id32_skip
+	clc
+	lda acc_l
+	adc texstep_l
+	sta acc_l
+	lda acc_h
+	adc texstep_h
+	sta acc_h
 	ldy tmp4
 	iny
 	jmp .id32_rlp
@@ -842,8 +845,7 @@ item_draw_one
 	dex
 	bne .id8_uxlp
 .id8_ux0
-	lda last_near_ok
-	jsr udiv16x8
+	jsr udiv_aux_rec_w			; (ox * mip_w) / W
 	cmp last_near_ceil		; >= mip_w → clamp
 	bcc .id8_xok
 	lda last_near_ceil
@@ -883,6 +885,9 @@ item_draw_one
 	lda ptr_h
 	adc aux_h
 	sta ptr_h
+	ldx fracy
+	lda item_mip_h,x
+	jsr item_vdda_setup
 	ldy py_row
 .id_rlp
 	cpy dda_steps
@@ -890,28 +895,10 @@ item_draw_one
 	jmp .id_cnx
 .id_row
 	sty tmp4
-	tya
-	sec
-	sbc near_fcol
-	sta aux_l
-	lda #0
-	sta aux_h
-	ldx fracy
-	lda item_mip_vshift,x
-	beq .id8_vy0
-	tax
-.id8_vylp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .id8_vylp
-.id8_vy0
-	lda far_ceil
-	jsr udiv16x8
-	ldx fracy
-	cmp item_mip_h,x
+	lda acc_h
+	cmp tmp5
 	bcc .id8_yok
-	lda item_mip_h,x
+	lda tmp5
 	sec
 	sbc #1
 .id8_yok
@@ -923,6 +910,59 @@ item_draw_one
 	lda #ITEM_PAT
 	sta (pat_base_l),y
 .id_skip
+	clc
+	lda acc_l
+	adc texstep_l
+	sta acc_l
+	lda acc_h
+	adc texstep_h
+	sta acc_h
 	ldy tmp4
 	iny
 	jmp .id_rlp
+
+; ---------------------------------------------------------------------------
+; item_vdda_setup — A = mip_h; wish_y = recip[H]; py_row / near_fcol set
+; Exit: texstep = mip_h/H in 8.8, acc = v at py_row (8.8), tmp5 = mip_h
+; Clobbers: tmp0..tmp2, X, Y
+; ---------------------------------------------------------------------------
+item_vdda_setup
+	sta tmp5				; mip_h for clamp
+	tay
+	lda wish_y_l
+	jsr mul_8x8				; mip_h * recip_lo
+	sta tmp0				; hi
+	ldy tmp5
+	lda wish_y_h
+	jsr mul_8x8				; mip_h * recip_hi
+	sta tmp1				; hi(mip*rh)
+	clc
+	txa					; lo(mip*rh)
+	adc tmp0				; + hi(mip*rl) → (mip*recip)>>8
+	sta texstep_l
+	lda tmp1
+	adc #0
+	sta texstep_h
+	; acc = (py_row - near_fcol) * step  (low 16 of 8×16)
+	lda py_row
+	sec
+	sbc near_fcol
+	sta tmp2				; dy (unsigned distance from sprite top)
+	beq .ivs_z
+	tay
+	lda texstep_l
+	jsr mul_8x8
+	stx acc_l
+	sta tmp0				; hi(dy*step_l)
+	ldy tmp2
+	lda texstep_h
+	jsr mul_8x8
+	clc
+	txa
+	adc tmp0
+	sta acc_h
+	rts
+.ivs_z
+	sta acc_l
+	sta acc_h
+	rts

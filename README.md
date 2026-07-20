@@ -42,7 +42,7 @@ This converts a world height into a screen row relative to the horizon. Normally
 
 While casting I remember which sectors were seen and keep a clip stack per column. Items and enemies in visible sectors get projected, depth-sorted, and clipped against that stack. Mip maps keep distant billboards from looking too noisy.
 
-Billboard projection (centre column, height, and feet row) uses a 65536/z reciprocal table plus fast table multiplies instead of a divide - the same approach as Andreas Larsson's C64 Doom workstage / Andropolis portal engine.
+Billboard projection (centre column, height, and feet row) uses a 65536/z reciprocal table plus fast table multiplies instead of a divide - the same approach as Andreas Larsson's C64 Doom workstage / Andropolis portal engine. Sprite U mapping caches recip[W] once per billboard; V walks an 8.8 DDA (mip_h/H per row) so a tall strip is adds, not per-row divides.
 
 ## Blit
 
