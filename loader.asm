@@ -25,7 +25,12 @@ FormatDosName
 	rts
 
 ; LoadLevel — C64 needs IOINIT so CIA2 is IEC-ready (profil_init owns CIA2 timers).
+; After LOAD, hold until ~2s of jiffies have elapsed (pads fast FSDrive loads).
 ; C=0 ok, C=1 error.
+ENTER_MIN_JIFFIES = 120			; ~2s NTSC / 2.4s PAL
+
+load_jiffy0	!byte 0
+
 LoadLevel
 	sei
 	lda #$7f
@@ -60,6 +65,9 @@ LoadLevel
 	jsr $ffe7				; CLALL
 
 	cli
+	lda $a2					; jiffy low (ticks under KERNAL IRQ)
+	sta load_jiffy0
+
 	lda #4
 	ldx #<level_dos_name
 	ldy #>level_dos_name
@@ -71,8 +79,20 @@ LoadLevel
 	lda #0
 	jsr $ffd5				; LOAD
 	php
-	sei
 
+	; Keep ENTERING up for at least ENTER_MIN_JIFFIES (skip pad on error)
+	plp
+	php
+	bcs .ll_done
+.ll_pad
+	lda $a2
+	sec
+	sbc load_jiffy0
+	cmp #ENTER_MIN_JIFFIES
+	bcc .ll_pad
+
+.ll_done
+	sei
 	lda #$35
 	sta $01
 	lda #0
