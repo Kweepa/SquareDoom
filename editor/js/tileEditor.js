@@ -122,7 +122,7 @@ export class TileEditor {
       }
       const p = document.createElement('p');
       p.className = 'muted';
-      p.textContent = 'Select tiles on the map. Shift+click empty to add.';
+      p.textContent = 'Select tiles on the map. Shift+click empty to add; Shift+Alt overwrites.';
       this.root.appendChild(p);
       return;
     }
@@ -150,7 +150,8 @@ export class TileEditor {
     if (!occupied) {
       const p = document.createElement('p');
       p.className = 'muted';
-      p.textContent = 'No properties — Shift+click to paint, or select occupied tiles.';
+      p.textContent =
+        'No properties — Shift+click empty to paint, Shift+Alt to overwrite, or select occupied tiles.';
       this.root.appendChild(p);
       this.#actions();
       return;

@@ -109,7 +109,7 @@ def main() -> None:
         <canvas id="map-canvas" tabindex="0"></canvas>
       </div>
       <p class="hint">
-        Drag box select · Ctrl+drag add · Click select · Shift+click paint · Del clears
+        Drag box select · Ctrl+drag add · Click select · Shift+click empty · Shift+Alt overwrite · Del clears
       </p>
     </section>
 

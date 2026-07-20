@@ -152,6 +152,7 @@ export class MapView {
       item,
       sectorId: getCell(level, tx, ty),
       shift: e.shiftKey,
+      alt: e.altKey,
       ctrl: e.ctrlKey || e.metaKey,
     });
   }

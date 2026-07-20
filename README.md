@@ -97,4 +97,8 @@ Finish levels :)
 ## Editor
 
 - Undo stack
-- Don't overwrite a tile with Shift-Click. I too often do that accidentally when I want to multiselect. Instead require Shift-Alt-Click.
+- determine the max sector count. currently it's 255 but I expect it will be closer to 140
+
+## Weapons
+
+Animate the weapons in and out, and change the highlight colour on the weapon depending on the sector brightness.

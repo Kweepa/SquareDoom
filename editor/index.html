@@ -540,7 +540,7 @@ button.danger {
         <canvas id="map-canvas" tabindex="0"></canvas>
       </div>
       <p class="hint">
-        Drag box select · Ctrl+drag add · Click select · Shift+click paint · Del clears
+        Drag box select · Ctrl+drag add · Click select · Shift+click empty · Shift+Alt overwrite · Del clears
       </p>
     </section>
 
@@ -2374,6 +2374,7 @@ class MapView {
       item,
       sectorId: getCell(level, tx, ty),
       shift: e.shiftKey,
+      alt: e.altKey,
       ctrl: e.ctrlKey || e.metaKey,
     });
   }
@@ -3092,7 +3093,7 @@ class TileEditor {
       }
       const p = document.createElement('p');
       p.className = 'muted';
-      p.textContent = 'Select tiles on the map. Shift+click empty to add.';
+      p.textContent = 'Select tiles on the map. Shift+click empty to add; Shift+Alt overwrites.';
       this.root.appendChild(p);
       return;
     }
@@ -3120,7 +3121,8 @@ class TileEditor {
     if (!occupied) {
       const p = document.createElement('p');
       p.className = 'muted';
-      p.textContent = 'No properties — Shift+click to paint, or select occupied tiles.';
+      p.textContent =
+        'No properties — Shift+click empty to paint, Shift+Alt to overwrite, or select occupied tiles.';
       this.root.appendChild(p);
       this.#actions();
       return;
@@ -4344,8 +4346,8 @@ function handlePointer(e, info) {
     e.currentTarget.setPointerCapture(e.pointerId);
   } catch (_) { /* ignore */ }
 
-  // Shift+click: paint / add tile
-  if (info.shift) {
+  // Shift+click empty: paint/add. Occupied tiles need Shift+Alt to overwrite.
+  if (info.shift && (!info.sectorId || info.alt)) {
     selection.items.clear();
     const brush = brushProps();
     if (!addTile(level, info.tx, info.ty, brush)) {

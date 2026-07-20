@@ -766,8 +766,8 @@ function handlePointer(e, info) {
     e.currentTarget.setPointerCapture(e.pointerId);
   } catch (_) { /* ignore */ }
 
-  // Shift+click: paint / add tile
-  if (info.shift) {
+  // Shift+click empty: paint/add. Occupied tiles need Shift+Alt to overwrite.
+  if (info.shift && (!info.sectorId || info.alt)) {
     selection.items.clear();
     const brush = brushProps();
     if (!addTile(level, info.tx, info.ty, brush)) {
