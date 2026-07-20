@@ -12,8 +12,9 @@
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
- *   6. name: LEVEL_NAME_LEN (20) bytes — ASCII, null-padded
+ * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
+
  * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
  */
 
@@ -28,7 +29,6 @@ import {
   coerceSwitchItem,
   switchCookType,
   LEVEL_NAMES,
-  LEVEL_NAME_LEN,
   MAP_CELLS,
   MAX_ITEMS,
   MAX_SECTORS,
@@ -323,13 +323,8 @@ export function cookLevel(level) {
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
-  const nameBytes = new Uint8Array(LEVEL_NAME_LEN);
-  const nameStr = clampLevelName(level.name);
-  for (let i = 0; i < nameStr.length; i++) {
-    nameBytes[i] = nameStr.charCodeAt(i) & 0x7f;
-  }
   const out = new Uint8Array(
-    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1 + LEVEL_NAME_LEN,
+    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1,
   );
   let o = 0;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
@@ -343,8 +338,6 @@ export function cookLevel(level) {
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
   out[o] = sectorMax & 0xff;
-  o += 1;
-  out.set(nameBytes, o);
   return { bytes: out, warnings, errors };
 }
 

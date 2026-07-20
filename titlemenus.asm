@@ -55,6 +55,19 @@ game_start
 
 next_level
 	jsr hide_weapon
+	jsr show_entering
+	jsr FormatDosName
+	jsr LoadLevel
+	bcs .nl_fail
+	lda #0
+	sta items_bak_ok
+	jsr begin_level_play
+	jmp gameloop
+.nl_fail
+	jmp game_start
+
+; clear + "entering" / level title
+show_entering
 	jsr clear_screen
 	lda #TEXT_COL
 	sta ui_text_col
@@ -64,13 +77,9 @@ next_level
 	jsr print_centered
 	lda #UI_COL
 	sta ui_text_col
-	lda #<level_name
-	ldy #>level_name
+	jsr get_level_title
 	ldx #10
-	jsr print_centered
-	jsr wait_frames_120		; ~2 seconds
-	jsr begin_level_play
-	jmp gameloop
+	jmp print_centered
 
 begin_level_play
 	lda items_bak_ok
@@ -111,6 +120,11 @@ after_level_end
 	jsr wait_frames_120		; hold blank after melt ~2s
 	jsr summary_screen
 	inc level_num
+	lda level_num
+	cmp #10
+	bcc .ale_next
+	jmp game_start
+.ale_next
 	jmp next_level
 
 gameloop_check_esc
@@ -627,8 +641,7 @@ summary_screen
 	jsr clear_screen
 	lda #UI_COL
 	sta ui_text_col
-	lda #<level_name
-	ldy #>level_name
+	jsr get_level_title
 	ldx #1
 	jsr print_centered
 	lda #TEXT_COL
@@ -1160,6 +1173,37 @@ try_end_switch
 	rts
 
 ; ==================================================================
+; get_level_title — A/Y = ptr to title for level_num (1..9)
+get_level_title
+	lda level_num
+	sec
+	sbc #1
+	cmp #9
+	bcc .glt_ok
+	lda #0
+.glt_ok
+	tax
+	lda level_title_lo,x
+	ldy level_title_hi,x
+	rts
+
+level_title_lo
+	!byte <str_e1m1, <str_e1m2, <str_e1m3, <str_e1m4, <str_e1m5
+	!byte <str_e1m6, <str_e1m7, <str_e1m8, <str_e1m9
+level_title_hi
+	!byte >str_e1m1, >str_e1m2, >str_e1m3, >str_e1m4, >str_e1m5
+	!byte >str_e1m6, >str_e1m7, >str_e1m8, >str_e1m9
+
+str_e1m1		!scr "hangar",0
+str_e1m2		!scr "nuclear plant",0
+str_e1m3		!scr "toxin refinery",0
+str_e1m4		!scr "command control",0
+str_e1m5		!scr "phobos lab",0
+str_e1m6		!scr "central processing",0
+str_e1m7		!scr "computer station",0
+str_e1m8		!scr "phobos anomaly",0
+str_e1m9		!scr "military base",0
+
 str_title		    !scr "doom",0
 str_subtitle		!scr "logo",0
 str_entering		!scr "entering",0

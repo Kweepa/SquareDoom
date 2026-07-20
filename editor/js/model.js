@@ -318,7 +318,7 @@ export function clampLevelName(name) {
 
 export function createEmptyLevel() {
   return {
-    /** Display name (max LEVEL_NAME_LEN); cooked into binary. */
+    /** Display name (max LEVEL_NAME_LEN); editor JSON only (not in cooked binary). */
     name: '',
     /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..255) */
     sectors: new Map(),

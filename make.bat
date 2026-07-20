@@ -10,10 +10,10 @@ if not exist "%VICE%" (
   echo VICE not found: %VICE%
   exit /b 1
 )
-if not exist "%~dp0squaredoom.prg" (
-  echo squaredoom.prg missing after build
+if not exist "%~dp0squaredoom.d64" (
+  echo squaredoom.d64 missing after build
   exit /b 1
 )
 
-rem mode 1
-start "" "%VICE%" -silent -autostart "%~dp0squaredoom.prg" -autostartprgmode 1
+rem Attach full d64 (autostart alone can leave a temp disk with only SQUAREDOOM)
+start "" "%VICE%" -silent -autostartprgmode 0 -8 "%~dp0squaredoom.d64" -autostart "%~dp0squaredoom.d64"

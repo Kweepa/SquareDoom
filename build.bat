@@ -33,6 +33,9 @@ if errorlevel 1 (
 )
 python tools\sort_lbl.py squaredoom.lbl
 if errorlevel 1 exit /b 1
-echo Built squaredoom.prg
+python tools\mkdisk.py --out squaredoom.d64 --prg squaredoom.prg --levels levels
+if errorlevel 1 exit /b 1
+echo Built squaredoom.prg and squaredoom.d64
 echo Memory: see mem: TOTAL free warn above ^(low+mid+high+kernal-tail^)
 dir squaredoom.prg
+dir squaredoom.d64

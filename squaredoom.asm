@@ -65,6 +65,7 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "pickup.asm"
 !source "weapon.asm"
 !source "titlemenus.asm"
+!source "loader.asm"
 ; P + clip moved out of low (which is nearly full); py_tab needs page alignment
 !source "render_project_y.asm"
 !source "render_clip.asm"
@@ -78,12 +79,13 @@ free_mid = MEM_MID_LIMIT - end_mid
 !warn "mem: mid  end=$", end_mid, " free to $a000 =", free_mid
 
 ; ------------------------------------------------------------------
-; Level + tables under BASIC ROM ($A000), RAM with $01=$35
-; SoA layout: 7×256 sector attr tables (id-indexed), map, spawn, items
+; Level window under BASIC ROM ($A000), RAM with $01=$35 — loaded from disk
+; SoA layout: 7×256 sector attr tables (id-indexed), map, spawn, items, sector_max
 ; ------------------------------------------------------------------
+LEVEL_BYTES = 3012
 *=$a000
 level_data
-	!binary "levels/e1m1.bin"
+	!fill LEVEL_BYTES, 0
 
 MAP_SIZE = 32
 MAP_CELLS = 1024
@@ -110,8 +112,9 @@ level_map = SEC_BRIGHT + SEC_TABLE_SIZE
 level_spawn = level_map + MAP_CELLS	; x, y, angle (playera)
 level_items = level_spawn + SPAWN_BYTES
 level_sector_max = level_items + MAX_ITEMS * ITEM_BYTES
-LEVEL_NAME_LEN = 20
-level_name = level_sector_max + 1	; ASCII, null-padded
+!if level_sector_max + 1 - level_data != LEVEL_BYTES {
+	!error "LEVEL_BYTES mismatch vs layout"
+}
 
 !source "tables.asm"
 !source "item_bitmaps.asm"

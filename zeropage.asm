@@ -116,12 +116,8 @@ has_backpack	= $8c			; 1 after backpack pickup
 in_turn_l	= $8d			; J held ms this frame
 in_turn_r	= $8e			; L held ms
 in_fwd		= $8f			; W
-in_back		= $90			; S
-in_strafel	= $91			; A
-in_strafer	= $92			; D
-in_use		= $93			; OR-latch: K held any sample
-in_fire		= $94			; OR-latch: I held any sample
-vel_ms		= $95			; hold-ms fed to turn_deliver / scale_vel
+; $90-$95 — KERNAL serial/IEC during LOAD (ST, C3PO, BSOUR, …). Do not place
+; game ZP here; stray $90 (ST) bit6/7 aborts KERNAL LOAD early (see JSW zp.asm).
 cur_weapon	= $96			; 0=pistol, 1=shotgun
 wpn_fire_ms_l	= $97			; active weapon fire interval (ms)
 wpn_fire_ms_h	= $98
@@ -132,6 +128,13 @@ key_wpn_shotgun	= $9c
 ; Menu/UI string pointer (safe outside pickup message window)
 ui_str_l	= $9d
 ui_str_h	= $9e
+; Input hold times moved off $90-$95 (KERNAL LOAD clobber)
+in_back		= $a2			; S
+in_strafel	= $a3			; A
+in_strafer	= $a4			; D
+in_use		= $a5			; OR-latch: K held any sample
+in_fire		= $a6			; OR-latch: I held any sample
+vel_ms		= $a7			; hold-ms fed to turn_deliver / scale_vel
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
