@@ -90,11 +90,12 @@ save_xl		= $48
 save_xh		= $49
 old_floor	= $7a			; SEC_FLOOR at move start (step-up gate)
 
-; Status bar (drawn post-blit on row 24)
+; Status bar (drawn into FB row 24 when hud_dirty; blit copies it)
 ammo		= $7b			; 0–255, shown as 3 digits
 health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
+hud_dirty	= $a8			; nonzero → redraw HUD into FB before blit
 key_use		= $7f			; 1 = K held (use / open door)
 key_fire	= $84			; 1 = I held (shoot)
 muzzle_ms_l	= $80			; muzzle flash ms remaining (16-bit)

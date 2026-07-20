@@ -44,17 +44,11 @@ While casting I remember which sectors were seen and keep a clip stack per colum
 
 ## Blit
 
-Two fully unrolled passes re-transpose the render into colour RAM and the screen. I must get around to interleaving the colour and screen writes...
+A compact column-loop blit (~300 bytes) re-transposes colour + pattern together: X = column, 25 rows unrolled. About 23 ms vs 16 ms for a fully unrolled blit (12K). The HUD and pickup messages are painted into the transposed framebuffer, then the blit copies everything.
 
 # To do list
 
 This is more for me than you, the reader.
-
-## Interleave the pattern and colour blits
-
-Currently the pattern and colour blits run in separate passes.
-This results in a millisecond or so of mismatched pattern and colour.
-If I interleave the blit, I can minimise the mismatch.
 
 ## Per sector wall colours
 

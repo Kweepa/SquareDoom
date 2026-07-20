@@ -214,6 +214,8 @@ pickup_apply
 ; pickup_message — A = typeId; set info line + 4s timer; C=1
 ; ---------------------------------------------------------------------------
 pickup_message
+	ldx #1
+	stx hud_dirty
 	sec
 	sbc #ITEM_TYPE_HEALTH
 	tay				; index = typeId - HEALTH (lo/hi tables)

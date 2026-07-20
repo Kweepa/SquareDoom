@@ -204,6 +204,8 @@ damage_shotgun
 	sec
 	sbc #1
 	sta ammo
+	lda #1
+	sta hud_dirty
 	lda #<MUZZLE_MS
 	sta muzzle_ms_l
 	lda #>MUZZLE_MS

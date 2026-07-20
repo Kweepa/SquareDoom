@@ -49,9 +49,8 @@ free_low = SHOTGUN_SPRITES - end_low
 *=PISTOL_SPRITES
 !source "pistol_sprites.asm"
 
-; Char blit + rest after charset window $3800–$3FFF
+; Rest after charset window $3800–$3FFF
 *=$4000
-!source "blit_chars.asm"
 !source "gameloop.asm"
 !source "level.asm"
 !source "process.asm"

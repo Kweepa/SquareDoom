@@ -30,6 +30,8 @@ init_hud_state
 	sta info_ms_h
 	sta info_len
 	sta has_backpack
+	lda #1
+	sta hud_dirty
 	rts
 
 ; Load player start from level_spawn (x, y, angle)

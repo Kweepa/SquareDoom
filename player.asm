@@ -40,4 +40,6 @@ damage_player
 	lda #0
 .dp_ok
 	sta health
+	lda #1
+	sta hud_dirty
 	rts

@@ -63,9 +63,8 @@ render
 	bcc .col_loop
 	jsr render_items
 	jsr draw_info_msg
-	jsr blit_fb_to_color
-	jsr blit_fb_to_chars
 	jsr draw_hud
+	jsr blit_fb
 	jsr show_weapon			; HUD sprites after first (and every) blit
 	jsr prof_frame_sample
 	jsr prof_print
