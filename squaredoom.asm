@@ -116,6 +116,7 @@ level_sector_max = level_items + MAX_ITEMS * ITEM_BYTES
 }
 
 !source "tables.asm"
+!source "recip.asm"
 !source "item_bitmaps.asm"
 !source "enemy_sprites.asm"
 

@@ -42,6 +42,8 @@ This converts a world height into a screen row relative to the horizon. Normally
 
 While casting I remember which sectors were seen and keep a clip stack per column. Items and enemies in visible sectors get projected, depth-sorted, and clipped against that stack. Mip maps keep distant billboards from looking too noisy.
 
+Billboard projection (centre column, height, and feet row) uses a 65536/z reciprocal table plus fast table multiplies instead of a divide - the same approach as Andreas Larsson's C64 Doom workstage / Andropolis portal engine.
+
 ## Blit
 
 A compact column-loop blit (~300 bytes) re-transposes colour + pattern together: X = column, 25 rows unrolled. About 23 ms vs 16 ms for a fully unrolled blit (12K). The HUD and pickup messages are painted into the transposed framebuffer, then the blit copies everything.
@@ -56,12 +58,6 @@ I think it would be pretty cheap to add NS/EW wall colours per sector.
 Also, to add dither patterns per colour, both for the walls and the flats.
 That would give an almost textured look. Of course it would need some decent art.
 The limit here is the content, not the tech.
-
-## Load levels from disk
-
-Currently the level is baked into the prg.
-Just need to ensure that the disk loading code doesn't stomp anything important; mostly thinking about the zeropage.
-Do exactly what Willy is doing.
 
 ## Sound effects
 

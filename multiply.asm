@@ -160,3 +160,70 @@ calc_sdy
 	inc sdy_h
 .csy
 	rts
+
+; ---------------------------------------------------------------------------
+; mul_recip_z — A = signed v, X = depth z (1..255)
+; Exit: A = clamp(v*32/z, -127..127)
+; Uses recip_lo/hi (65536/z): result = (v * recip) >> 11.
+; Larsson workstage / Andropolis-style reciprocal projection.
+; Clobbers: tmp0..tmp4, Y
+; ---------------------------------------------------------------------------
+mul_recip_z
+	sta tmp2				; signed v
+	stx tmp3				; depth z (mul_8x8 clobbers X)
+	lda #0
+	sta tmp4				; sign flag
+	lda tmp2
+	bpl .mrz_abs
+	eor #$ff
+	clc
+	adc #1
+	sta tmp2
+	inc tmp4
+.mrz_abs
+	; mid16 = (|v| * recip) >> 8 = hi(|v|*lo) + |v|*hi
+	ldx tmp3
+	ldy recip_lo,x
+	lda tmp2
+	jsr mul_8x8				; X=lo A=hi of |v|*recip_lo
+	sta tmp0				; hi(|v|*lo)
+	ldx tmp3
+	ldy recip_hi,x
+	lda tmp2
+	jsr mul_8x8				; X=lo A=hi of |v|*recip_hi
+	sta tmp1				; hi(|v|*hi)
+	txa					; lo(|v|*hi)
+	clc
+	adc tmp0
+	sta tmp0				; mid lo
+	lda tmp1
+	adc #0
+	sta tmp1				; mid hi (= product >> 8)
+	; >>3 more → product >> 11 = v*32/z
+	ldx #3
+.mrz_shr
+	lsr tmp1
+	ror tmp0
+	dex
+	bne .mrz_shr
+	; clamp |result| to 127
+	lda tmp1
+	bne .mrz_sat			; ≥256 after >>11 → sat
+	lda tmp0
+	cmp #128
+	bcc .mrz_ok
+.mrz_sat
+	lda #127
+	sta tmp0
+.mrz_ok
+	lda tmp4
+	beq .mrz_out
+	lda tmp0
+	eor #$ff
+	clc
+	adc #1
+	rts
+.mrz_out
+	lda tmp0
+	rts
+

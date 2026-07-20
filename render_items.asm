@@ -244,19 +244,11 @@ item_calc_screen
 	ror aux_l
 	dex
 	bne .ics_shr
-	; (lateral << 5) / depth
+	; centre col = 19 + lateral*32/z  (Larsson recip: mul_recip_z)
+	; |lateral| fits signed 8-bit after >>6 (axis≤120, |sin|≤64)
 	lda aux_l
-	sta tmp0
-	lda aux_h
-	sta tmp1
-	ldx #5
-.ics_asl
-	asl tmp0
-	rol tmp1
-	dex
-	bne .ics_asl
-	lda wallz_h			; depth
-	jsr sdiv16x8			; A = quot
+	ldx wallz_h
+	jsr mul_recip_z
 	clc
 	adc #19
 	sta last_near_fcol
@@ -334,57 +326,6 @@ smul_8x8
 	adc #0
 	sta tmp1
 .sm_ok
-	rts
-
-; (tmp1:tmp0) / A → A signed quot
-sdiv16x8
-	sta tmp5
-	lda #0
-	sta tmp4
-	lda tmp1
-	bpl .sd_abs
-	inc tmp4
-	lda tmp0
-	eor #$ff
-	clc
-	adc #1
-	sta tmp0
-	lda tmp1
-	eor #$ff
-	adc #0
-	sta tmp1
-.sd_abs
-	lda tmp5
-	beq .sd_z
-	ldx #0
-.sd_lp
-	lda tmp1
-	bne .sd_sub
-	lda tmp0
-	cmp tmp5
-	bcc .sd_done
-.sd_sub
-	sec
-	lda tmp0
-	sbc tmp5
-	sta tmp0
-	lda tmp1
-	sbc #0
-	sta tmp1
-	inx
-	cpx #127				; cap |quot| — 19±127 can't wrap the centre col
-	bne .sd_lp
-.sd_done
-	txa
-	ldy tmp4
-	beq .sd_out
-	eor #$ff
-	clc
-	adc #1
-.sd_out
-	rts
-.sd_z
-	lda #0
 	rts
 
 ; aux_h:aux_l / A → A unsigned quot (8-bit)
@@ -496,21 +437,22 @@ item_draw_one
 .id_dpthok
 	sta wallz_h
 	jsr item_calc_screen
+	; screen H = (64 or 128)/z via recip_hi (≈256/z) shifts
+	ldx wallz_h
+	lda recip_hi,x			; ~256/z
+	lsr					; ~128/z
+	sta tmp0
 	lda wall_col
 	cmp #ITEM_TYPE_ENEMY_LO
 	bcc .id_half
 	cmp #ITEM_TYPE_ENEMY_HI+1
 	bcs .id_half
-	lda #128			; worldH 4 × proj 32
-	bne .id_hd
+	lda tmp0				; enemies: worldH 4 × proj 32
+	jmp .id_h0
 .id_half
-	lda #64				; half-height pickups
-.id_hd
-	sta aux_l
-	lda #0
-	sta aux_h
-	lda wallz_h
-	jsr udiv16x8
+	lda tmp0
+	lsr					; pickups: half-height
+.id_h0
 	cmp #1
 	bcs .id_h1
 	lda #1
@@ -521,7 +463,7 @@ item_draw_one
 	bcc .id_h2
 	lda #127
 .id_h2
-	sta far_ceil			; screen H (survives sdiv/udiv)
+	sta far_ceil			; screen H
 	ldx turn
 	jsr enemy_get_texture
 	bcc .id_w_sq
@@ -557,14 +499,9 @@ item_draw_one
 	lda eyeheight
 	sec
 	sbc tmp2
-	sta tmp2
-	lda #0
-	sta aux_l
-	sta aux_h
-	lda tmp2
-	ldy #32
-	jsr smul_aux_add
-	jsr sdiv_aux_depth
+	sta tmp2				; signed (eye − feet); *32/z via recip
+	ldx wallz_h
+	jsr mul_recip_z
 	clc
 	adc #HORIZON
 	clc
@@ -989,11 +926,3 @@ item_draw_one
 	ldy tmp4
 	iny
 	jmp .id_rlp
-
-sdiv_aux_depth
-	lda aux_l
-	sta tmp0
-	lda aux_h
-	sta tmp1
-	lda wallz_h
-	jmp sdiv16x8
