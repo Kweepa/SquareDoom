@@ -143,6 +143,8 @@ run_menu
 	lda #$7f
 	sta $dc0d
 	lda $dc0d
+	lda #TEXT_COL			; red border while in menus
+	sta $d020
 	jsr ui_wait_esc_up
 	jsr clear_screen
 	jsr draw_title_banner
@@ -191,6 +193,8 @@ menu_exit
 	; Re-enable CIA1 Timer A IRQ for gameplay
 	lda #$81
 	sta $dc0d
+	lda #0				; black border for play / other UI
+	sta $d020
 	pla
 	rts
 
