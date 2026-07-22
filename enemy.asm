@@ -405,15 +405,20 @@ enemy_think
 	jsr cache_player_sector
 	ldx #0
 .et_lp
+	stx enemy_actor			; loop index (actions may clobber X)
 	lda MOBJ_ALLOC,x
 	beq .et_nx
-	stx enemy_actor
 	lda MOBJ_OBJ,x
 	sta enemy_obj
 	lda MOBJ_INFO,x
 	sta enemy_info
 	; missile always thinks while allocated
 	cmp #MOBJINFO_IMPSHOT
+	beq .et_run
+	; dying must finish even if sector not in view this frame
+	ldy MOBJ_STATE,x
+	lda state_action,y
+	cmp #ACTION_FALL
 	beq .et_run
 	jsr obj_sector
 	beq .et_nx
@@ -423,6 +428,7 @@ enemy_think
 .et_run
 	jsr enemy_single_think
 .et_nx
+	ldx enemy_actor
 	inx
 	cpx #MAX_MOBJ
 	bcc .et_lp
@@ -1151,6 +1157,8 @@ a_chase
 ; jumped to chase the same frame as the hit — pain never reached a render.
 a_flinch
 	ldx enemy_actor
+	lda MOBJ_HEALTH,x
+	beq .afl_dead			; 0 HP must not return to chase
 	lda MOBJ_MOVECNT,x
 	beq .afl_done
 	dec MOBJ_MOVECNT,x
@@ -1159,6 +1167,13 @@ a_flinch
 	rts
 .afl_done
 	jmp goto_chase_state
+.afl_dead
+	lda #2
+	sta MOBJ_MOVECNT,x
+	ldy enemy_info
+	lda mobj_death_state,y
+	sta MOBJ_STATE,x
+	rts
 
 ; Hitscan already CLEAR (chase only enters POSSHOOT then). Accuracy + damage.
 a_shoot
@@ -1350,9 +1365,12 @@ missile_scale_mom
 
 a_fall
 	ldx enemy_actor
+	lda MOBJ_MOVECNT,x
+	beq .af_corpse			; already 0 — do not dec into $FF
 	dec MOBJ_MOVECNT,x
 	lda MOBJ_MOVECNT,x
 	bne .af_done
+.af_corpse
 	; pos/imp → corpse item type; demon/caco → ITEM_CORPSE_TEX stub
 	lda MOBJ_INFO,x
 	cmp #2
@@ -1507,7 +1525,7 @@ enemy_damage
 	sta MOBJ_MOVECNT,x
 	ldy enemy_info
 	lda mobj_death_sound,y
-	jsr play_sound			; clobbers X (tax = sound id)
+	jsr play_sound			; preserves X/Y; reload actor anyway
 	ldx enemy_actor
 	ldy enemy_info
 	lda mobj_death_state,y

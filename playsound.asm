@@ -39,6 +39,8 @@ sound_priority		!byte 0
 sound_count		!byte 0
 sound_max		!byte 0
 sfx_temp_vol		!byte 0
+ps_save_x		!byte 0
+ps_save_y		!byte 0
 
 ; ------------------------------------------------------------------
 ; play_sound_init — clear SID; noise voice ready; idle vol = music_vol
@@ -69,9 +71,12 @@ play_sound_init
 
 ; ------------------------------------------------------------------
 ; play_sound — A = sound index; higher-or-equal priority preempts
+; Preserves X,Y; A clobbered
 ; ------------------------------------------------------------------
 play_sound
 	sei
+	stx ps_save_x
+	sty ps_save_y
 	tax
 	lda sound_priorities,x
 	cmp sound_priority
@@ -102,6 +107,8 @@ play_sound
 	; start the new sound playing
 	stx sound_index
 .ps_skip
+	ldx ps_save_x
+	ldy ps_save_y
 	cli
 	rts
 
