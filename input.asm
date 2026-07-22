@@ -1,6 +1,6 @@
-﻿!zone input
+!zone input
 
-; CIA1 keys (sampled by Timer A IRQ ~every 25 binary-ms):
+; CIA1 keys (sampled by Timer A IRQ ~every SAMPLE_MS binary-ms):
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
 ;   K = use (PA4/PB5) — open door; I = fire (PA4/PB1)
 ;   W/A/S = PA1 column; D = PA2 column; 3 = shotgun (PA1/PB0)
@@ -15,14 +15,23 @@
 ; sintab AMP=64; identity: sin=64, dt=1024 → 2048 = 8.0 world.
 ;
 ; Use/fire: OR-latch if held on any sample this frame.
+;
+; CIA1 Timer B runs separately at ~140 Hz for PC speaker SFX (update_sfx).
 
 SAMPLE_MS = 25
-; Timer load = SAMPLE_MS * 1024 - 1 (binary-ms, φ2 ticks)
+; Timer A load = SAMPLE_MS * 1024 - 1 (binary-ms, φ2 ticks)
 SAMPLE_TA_LO = <$63FF
 SAMPLE_TA_HI = >$63FF
+; Timer B: ~140 Hz PC speaker step (7 binary-ms)
+SFX_TB_LO = <$1BFF
+SFX_TB_HI = >$1BFF
+
+; Menus set this so Timer A skips $dc00 (ui_read_keys); Timer B still runs SFX
+input_paused	!byte 0
+irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
 
 ; ------------------------------------------------------------------
-; input_irq_init — CIA1 TA IRQ @ SAMPLE_MS; vector at $FFFE (KERNAL out)
+; input_irq_init — CIA1 TA @ SAMPLE_MS (keys), TB @ ~140 Hz (SFX)
 ; ------------------------------------------------------------------
 input_irq_init
 	lda #0
@@ -36,6 +45,7 @@ input_irq_init
 	sta in_fire
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
+	sta input_paused
 	sta $d01a				; no VIC IRQs
 
 	lda #$7f
@@ -45,18 +55,23 @@ input_irq_init
 	sta $dc04
 	lda #SAMPLE_TA_HI
 	sta $dc05
+	lda #SFX_TB_LO
+	sta $dc06
+	lda #SFX_TB_HI
+	sta $dc07
 	lda #<input_irq
 	sta $fffe
 	lda #>input_irq
 	sta $ffff
-	lda #$81				; set + enable Timer A IRQ
+	lda #$83				; set + enable Timer A + Timer B IRQ
 	sta $dc0d
 	lda #$11				; start + force load, continuous φ2
-	sta $dc0e
+	sta $dc0e				; Timer A
+	sta $dc0f				; Timer B
 	rts
 
 ; ------------------------------------------------------------------
-; input_irq — sample matrix; bump hold ms / OR use+fire. No tmp*.
+; input_irq — TB → SFX; TA → key sample (unless input_paused). No tmp*.
 ; ------------------------------------------------------------------
 input_irq
 	pha
@@ -64,6 +79,22 @@ input_irq
 	pha
 	tya
 	pha
+
+	lda $dc0d				; ack + source (bit0=TA, bit1=TB)
+	sta irq_ifr
+	and #$02
+	beq .irq_check_ta
+	jsr update_sfx
+.irq_check_ta
+	lda irq_ifr
+	and #$01
+	bne .irq_try_keys
+	jmp .irq_rti
+.irq_try_keys
+	lda input_paused
+	beq .irq_keys
+	jmp .irq_rti
+.irq_keys
 
 	; J / K / I (PA4 = $EF)
 	lda #$ef
@@ -153,7 +184,7 @@ input_irq
 	sta in_wpn_pistol
 .irq_no2
 
-	lda $dc0d				; ack Timer A
+.irq_rti
 	pla
 	tay
 	pla

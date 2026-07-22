@@ -100,5 +100,10 @@ LoadLevel
 	sta $d021
 	jsr prof_init
 	jsr input_irq_init
+	; LoadLevel wiped $90-$98 (KERNAL); restore weapon fire interval
+	lda #$ff
+	sta cur_weapon
+	ldx #0
+	jsr switch_weapon
 	plp
 	rts

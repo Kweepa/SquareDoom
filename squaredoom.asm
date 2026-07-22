@@ -18,6 +18,7 @@ DBG_FPS = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
 MUZZLE_COL = 20			; pistol muzzle aim column
+AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE±this (18..22)
 
 ; Memory ceilings:
 ;   low  → CHARSET at $3800 (COL/SQTAB/profil are under KERNAL $E000+)
@@ -53,6 +54,7 @@ free_low = SHOTGUN_SPRITES - end_low
 *=$4000
 !source "gameloop.asm"
 !source "level.asm"
+!source "playsound.asm"
 !source "process.asm"
 !source "player.asm"
 !source "enemy.asm"
@@ -69,6 +71,7 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "render_project_y.asm"
 !source "render_clip.asm"
 !source "pytab.asm"
+!source "dpsounds.asm"
 
 end_mid = *
 free_mid = MEM_MID_LIMIT - end_mid

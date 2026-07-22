@@ -104,6 +104,8 @@ clip_mul_col
 
 ; ---------------------------------------------------------------------------
 ; clip_col_push — push {A=sector, ytop, ybot} for current col if n < CLIP_MAX
+; Always uses the live aperture (current ytop/ybot). Soft enters push before
+; any ledge shrink; hard portals push after paint_portal (post-shrink).
 ; Requires clip_base already bound for col. Clobbers: tmp0,tmp2, ptr_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_push
@@ -189,9 +191,9 @@ clip_col_push_if_new
 ; ---------------------------------------------------------------------------
 ; clip_col_find — find sector A in column's clip stack (search far→near)
 ; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found
-; Exact id only. Soft steps use clip_col_push_if_new. Skips empty windows.
-; Re-binds clip_base (item draw walks many cols). Clobbers: tmp2,tmp3,
-; ptr_l/h, aux_l/h, X, Y
+; Exact id only. Soft room steps push every traversed sector with the current
+; aperture so billboards can find their sector. Skips empty windows.
+; Re-binds clip_base. Clobbers: tmp2,tmp3, ptr_l/h, aux_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_find
 	sta tmp2				; wanted sector

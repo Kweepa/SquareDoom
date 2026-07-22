@@ -214,6 +214,10 @@ pickup_apply
 ; pickup_message — A = typeId; set info line + 4s timer; C=1
 ; ---------------------------------------------------------------------------
 pickup_message
+	pha
+	lda #SOUND_ITEMUP
+	jsr play_sound
+	pla
 	ldx #1
 	stx hud_dirty
 	sec

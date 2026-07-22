@@ -10,7 +10,6 @@ gameloop
 	jsr player_frame
 	jsr calc_frame_dt
 	jsr read_input
-	jsr update_muzzle_flash
 	clc
 	lda playera
 	adc turn
@@ -24,6 +23,8 @@ gameloop
 	jsr update_info_msg
 	jsr update_eye
 	jsr render
+	; After render so TryDamageEnemy sees this frame's COL_AIM_*
+	jsr update_muzzle_flash
 	jsr hitscan_process
 	jsr enemy_think
 	jmp .frame

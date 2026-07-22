@@ -1,14 +1,27 @@
 #!/usr/bin/env python3
-"""Sort ACME --vicelabels output by address."""
+"""Sort ACME --vicelabels output by address; drop empty/invalid names."""
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
+# VICE ll rejects bare "." and non-ASCII junk (e.g. UTF-8 BOM as a label).
+_VALID_NAME = re.compile(r"\.[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _keep(line: str) -> bool:
+    parts = line.split()
+    return len(parts) >= 3 and bool(_VALID_NAME.fullmatch(parts[2]))
+
 
 def sort_lbl(path: Path) -> None:
-    lines = [line for line in path.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
+    lines = [
+        line
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+        if line.strip() and _keep(line)
+    ]
 
     def key(line: str) -> int:
         parts = line.split()

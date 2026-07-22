@@ -153,10 +153,9 @@ gameloop_check_esc
 ; ==================================================================
 run_menu
 	sta menu_can_ret
-	; Pause CIA1 Timer A IRQ — contending with ui_read_keys on $dc00 hangs
-	lda #$7f
-	sta $dc0d
-	lda $dc0d
+	; Pause key sampling in IRQ — ui_read_keys owns $dc00; SFX still ticks
+	lda #1
+	sta input_paused
 	lda #TEXT_COL			; red border while in menus
 	sta $d020
 	jsr ui_wait_esc_up
@@ -204,9 +203,9 @@ run_menu
 	lda #0
 menu_exit
 	pha
-	; Re-enable CIA1 Timer A IRQ for gameplay
-	lda #$81
-	sta $dc0d
+	; Resume key sampling in IRQ for gameplay
+	lda #0
+	sta input_paused
 	lda #0				; black border for play / other UI
 	sta $d020
 	pla
@@ -247,6 +246,8 @@ menu_move_up
 	dex
 .mmu
 	stx menu_item
+	lda #SOUND_STNMOV
+	jsr play_sound
 	jmp draw_menu
 
 menu_move_down
@@ -257,6 +258,8 @@ menu_move_down
 	ldx #0
 .mmd
 	stx menu_item
+	lda #SOUND_STNMOV
+	jsr play_sound
 	jmp draw_menu
 
 menu_esc
@@ -283,6 +286,8 @@ menu_esc
 	rts
 
 menu_select
+	lda #SOUND_PISTOL
+	jsr play_sound
 	lda menu_id
 	cmp #1
 	bne .ms_se
@@ -483,6 +488,15 @@ vol_mus_dec
 	and #15
 	sta music_vol
 sync_redraw
+	; Apply music volume immediately when no SFX is playing
+	lda sound_index
+	cmp #$ff
+	bne .sr_ui
+	lda music_vol
+	sta $d418
+.sr_ui
+	lda #SOUND_STNMOV
+	jsr play_sound
 	jsr sync_vol_strings
 	jmp draw_menu
 

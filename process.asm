@@ -282,6 +282,8 @@ try_use
 	bcc .tu_got_raise
 	jmp .tu_far
 .tu_got_raise
+	lda #SOUND_DOROPN
+	jsr play_sound
 	lda #PROC_TIMER
 	sta tmp0
 	lda #PROC_LOWER_CEIL
@@ -370,6 +372,8 @@ elevator_activate
 	sta tmp4
 	jsr proc_alloc
 	bcs .ea_fail
+	lda #SOUND_STNMOV
+	jsr play_sound
 	lda #PROC_TIMER
 	sta tmp0
 	lda elev_found
@@ -541,6 +545,12 @@ proc_update
 	sta tmp1
 	lda PROC_B,x
 	sta tmp0
+	cmp #PROC_LOWER_CEIL
+	bne .pu_tim_ns
+	lda #SOUND_DORCLS
+	jsr play_sound
+	lda tmp0
+.pu_tim_ns
 	cmp #PROC_RAISE_FLOOR
 	beq .pu_tim_fl
 	cmp #PROC_LOWER_FLOOR

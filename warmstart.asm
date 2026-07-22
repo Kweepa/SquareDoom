@@ -32,6 +32,7 @@ warmstart
 
 	jsr init_sqtabs
 	jsr prof_init
+	jsr play_sound_init
 	jsr input_irq_init
 	jmp game_start
 

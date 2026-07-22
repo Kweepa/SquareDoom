@@ -29,6 +29,8 @@ player_frame
 ; ---------------------------------------------------------------------------
 damage_player
 	sta tmp0
+	lda #SOUND_OOF
+	jsr play_sound
 	lda #1
 	sta hurt_flash
 	lda #2

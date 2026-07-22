@@ -119,9 +119,8 @@ in_turn_r	= $8e			; L held ms
 in_fwd		= $8f			; W
 ; $90-$95 — KERNAL serial/IEC during LOAD (ST, C3PO, BSOUR, …). Do not place
 ; game ZP here; stray $90 (ST) bit6/7 aborts KERNAL LOAD early (see JSW zp.asm).
-cur_weapon	= $96			; 0=pistol, 1=shotgun
-wpn_fire_ms_l	= $97			; active weapon fire interval (ms)
-wpn_fire_ms_h	= $98
+; $96-$98 also wiped by LoadLevel (through LDTND) — keep weapon interval out.
+cur_weapon	= $96			; 0=pistol, 1=shotgun (re-set after LOAD)
 in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b
@@ -136,6 +135,12 @@ in_strafer	= $a4			; D
 in_use		= $a5			; OR-latch: K held any sample
 in_fire		= $a6			; OR-latch: I held any sample
 vel_ms		= $a7			; hold-ms fed to turn_deliver / scale_vel
+; SFX playback pointer (IRQ-safe; not shared with render temps)
+sound_ptr_l	= $a9
+sound_ptr_h	= $aa
+; Active weapon fire interval (ms) — must not sit in $90-$98 (LoadLevel wipe)
+wpn_fire_ms_l	= $ab
+wpn_fire_ms_h	= $ac
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
@@ -292,9 +297,11 @@ MOBJ_YFRAC	= MOBJ_XFRAC + MAX_MOBJ
 MOBJ_OBJ	= MOBJ_YFRAC + MAX_MOBJ	; item slot for this mobj
 MOBJ_FOR_ITEM	= MOBJ_OBJ + MAX_MOBJ	; 48: mobj idx or $FF
 ITEM_CORPSE_TEX	= MOBJ_FOR_ITEM + 48	; 48: $FF live, else enemy spr idx
-MOBJ_AIMY	= ITEM_CORPSE_TEX + 48	; mid Y on MUZZLE_COL; $FF = not on muzzle
-MOBJ_AIMZ	= MOBJ_AIMY + MAX_MOBJ	; depth when AIMY was set (for closest pick)
-MOBJ_END	= MOBJ_AIMZ + MAX_MOBJ
+; Per-column aim (filled far→near during item draw; nearer overwrites)
+COL_AIM_SLOT	= ITEM_CORPSE_TEX + 48	; 40: item slot or $FF empty
+COL_AIM_Z	= COL_AIM_SLOT + COL_NUM	; 40: depth (wallz_h) for melee range
+aim_item	= COL_AIM_Z + COL_NUM	; current billboard slot for aim ($FF none)
+MOBJ_END	= aim_item + 1
 
 ; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
 SEC_FLATGRP	= MOBJ_END		; 256 bytes, index = sector id

@@ -213,14 +213,24 @@ damage_shotgun
 	lda spr_en
 	ora #$03
 	jsr .wpn_en
+	lda cur_weapon
+	bne .fs_sg
+	lda #SOUND_PISTOL
+	bne .fs_snd
+.fs_sg
+	lda #SOUND_SHOTGN
+.fs_snd
+	jsr play_sound
 	jsr wpn_damage
 	clc
 	rts
 .fs_empty
+	lda #SOUND_OOF
+	jsr play_sound
 	sec
 	rts
 
-; Call once per frame after read_input.
+; Call once per frame after render (COL_AIM_* set in render_items).
 ; While I held: fire when fire_rpt is 0, then wait wpn_fire_ms.
 ; Note: $d015 is write-only — use spr_en mirror; gated by wpn_visible.
 update_muzzle_flash

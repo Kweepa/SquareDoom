@@ -5,6 +5,7 @@
 ; ============================================================================
 ; Collect items in seen sectors, depth-sort far→near, project, draw clipped
 ; against COL_CLIP_* stack. Column-major item mips (byte colour, 0=clear).
+; Live enemies stamp COL_AIM_SLOT/Z per column (nearer overwrites).
 ; ============================================================================
 
 ITEM_DEPTH_MIN = 1			; editor uses ~0.8 world units
@@ -17,7 +18,7 @@ ITEM_TYPE_FIREBALL = 23
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
-;   turn = item slot
+;   item_slot = current billboard item index (not ZP — once per item)
 ;   wall_col = typeId
 ;   wallz_h = depth
 ;   near_floor / near_ceil = floor height / sector
@@ -27,6 +28,9 @@ TEX_ANIMATE = 64
 ;   last_near_ccol = sort index / draw scratch
 ;   span_a = visible count during collect/sort
 
+; Current item index during collect/draw (keep off ZP; turn $32 is player yaw)
+item_slot	!byte 0
+
 ; ---------------------------------------------------------------------------
 ; render_items
 ; ---------------------------------------------------------------------------
@@ -34,13 +38,13 @@ render_items
 !if PROFILE = 1 {
 	jsr prof_snap
 }
-	; Clear muzzle aim markers ($FF = not on MUZZLE_COL this frame)
+	; Clear per-column aim ($FF = no live enemy this frame)
 	ldx #0
 	lda #$ff
 .ri_clr_aim
-	sta MOBJ_AIMY,x
+	sta COL_AIM_SLOT,x
 	inx
-	cpx #MAX_MOBJ
+	cpx #COL_NUM
 	bne .ri_clr_aim
 	lda #0
 	sta span_a
@@ -67,27 +71,27 @@ render_items
 	lsr
 	lsr
 	sta mapy
-	stx turn
+	stx item_slot
 	jsr map_sector_id
 	beq .ri_nx2
 	tay
 	lda SEC_SEEN,y
 	beq .ri_nx2
 	sty near_ceil
-	ldx turn
+	ldx item_slot
 	jsr item_calc_depth
 	bcs .ri_nx2
 	; A = depth
 	ldy span_a
 	sta ITEM_SORT_DEPTH,y
-	lda turn
+	lda item_slot
 	sta ITEM_SORT_SLOT,y
 	iny
 	sty span_a
 	cpy #MAX_ITEMS
 	bcs .ri_go
 .ri_nx2
-	ldx turn
+	ldx item_slot
 .ri_nx
 	inx
 	cpx #MAX_ITEMS
@@ -105,7 +109,7 @@ render_items
 	bcs .ri_done
 	tax
 	lda ITEM_SORT_SLOT,x
-	sta turn
+	sta item_slot
 	lda ITEM_SORT_DEPTH,x
 	sta wallz_h
 	jsr item_draw_one
@@ -396,10 +400,12 @@ item_sort_depth
 	rts
 
 ; ---------------------------------------------------------------------------
-; item_draw_one — turn=slot, wallz_h=depth (from sort)
+; item_draw_one — item_slot set, wallz_h=depth (from sort)
 ; ---------------------------------------------------------------------------
 item_draw_one
-	ldx turn
+	lda #$ff
+	sta aim_item
+	ldx item_slot
 	txa
 	asl
 	asl
@@ -430,7 +436,7 @@ item_draw_one
 .id_seen
 	lda SEC_FLOOR,y
 	sta near_floor
-	ldx turn
+	ldx item_slot
 	jsr item_calc_depth
 	bcc .id_dpthok
 	rts
@@ -464,7 +470,7 @@ item_draw_one
 	lda #127
 .id_h2
 	sta far_ceil			; screen H
-	ldx turn
+	ldx item_slot
 	jsr enemy_get_texture
 	bcc .id_w_sq
 	sta far_floor			; tex (+ TEX_ANIMATE); mip path
@@ -626,6 +632,23 @@ item_draw_one
 	sta wish_y_l
 	lda recip_hi,x
 	sta wish_y_h
+	; Live enemy: lock aim_item (MOBJ_OBJ is authoritative via mobj_for_slot)
+	ldx item_slot
+	lda wall_col
+	cmp #ITEM_TYPE_ENEMY_LO
+	bcc .id_clp_start
+	cmp #ITEM_TYPE_ENEMY_HI+1
+	bcs .id_clp_start
+	jsr mobj_for_slot
+	bcs .id_clp_start
+	lda MOBJ_HEALTH,y
+	beq .id_clp_start
+	lda MOBJ_INFO,y
+	cmp #4
+	bcs .id_clp_start
+	lda item_slot
+	sta aim_item
+.id_clp_start
 	lda span_a
 	sta col
 .id_clp
@@ -638,7 +661,9 @@ item_draw_one
 	bcs .id_cnx
 	lda near_ceil
 	jsr clip_col_find
-	bcs .id_cnx
+	bcc .id_found
+	jmp .id_cnx
+.id_found
 	lda fill_y0
 	cmp tmp0
 	bcs .id_yt
@@ -658,34 +683,14 @@ item_draw_one
 	inc col
 	jmp .id_clp
 .id_spanok
-	; Muzzle column: record mid Y of drawn span for live enemies
-	lda col
-	cmp #MUZZLE_COL
-	bne .id_draw
-	ldx turn
-	lda wall_col
-	cmp #ITEM_TYPE_ENEMY_LO
-	bcc .id_draw
-	cmp #ITEM_TYPE_ENEMY_HI+1
-	bcs .id_draw
-	lda MOBJ_FOR_ITEM,x
+	; Live enemy: stamp this drawn column (aim_item set at loop entry)
+	lda aim_item
 	cmp #$ff
 	beq .id_draw
-	tay
-	lda MOBJ_ALLOC,y
-	beq .id_draw
-	lda MOBJ_HEALTH,y
-	beq .id_draw
-	lda MOBJ_INFO,y
-	cmp #4				; skip impshot
-	bcs .id_draw
-	lda py_row
-	clc
-	adc dda_steps
-	lsr					; mid Y of drawn column
-	sta MOBJ_AIMY,y
+	ldy col
+	sta COL_AIM_SLOT,y
 	lda wallz_h
-	sta MOBJ_AIMZ,y
+	sta COL_AIM_Z,y
 .id_draw
 	jsr set_col_base
 	lda far_floor

@@ -72,7 +72,7 @@ mobj_speed
 mobj_pain_chance
 	!byte 2,3,4,5
 mobj_spawn_health
-	!byte 10,20,20,99
+	!byte 20,30,60,99		; pos/imp/demon/caco (pistol ~1-16)
 mobj_chase_state
 	!byte STATE_POSCHASE, STATE_IMPCHASE, STATE_DMNCHASE, STATE_CACCHASE
 mobj_pain_state
@@ -83,6 +83,8 @@ mobj_shoot_state
 	!byte STATE_POSSHOOT, STATE_IMPMISSILE, $ff, STATE_CACMISSILE
 mobj_death_state
 	!byte STATE_POSFALL, STATE_IMPFALL, STATE_DMNFALL, STATE_CACFALL
+mobj_death_sound
+	!byte SOUND_SGTDTH, SOUND_PLPAIN, SOUND_DMPAIN, SOUND_POPAIN
 
 ; Pos/imp: 16×32 enemy mips (frames 0–2 pos, 3–5 imp). Demon/caco still stub.
 state_texture
@@ -116,6 +118,12 @@ enemy_actor		!byte 0
 enemy_obj		!byte 0
 enemy_dist		!byte 0
 enemy_info		!byte 0
+alloc_item_slot		!byte 0		; item slot for alloc_mobj (not tmp*)
+unlink_mobj_idx		!byte 0		; mobj idx for mobj_unlink
+mobj_lookup_slot	!byte 0		; item slot for mobj_for_slot
+damage_amount		!byte 0		; enemy_damage / TryDamageEnemy payload
+tde_best_z		!byte 0		; TryDamageEnemy scan
+tde_best_slot		!byte 0
 new_chase_dir_frame	!byte 0
 anim_frame		!byte 0
 missile_momx_l		!byte 0
@@ -127,12 +135,6 @@ missile_momz_h		!byte 0
 missile_z		!byte 0		; world Z (hitscan-style)
 missile_zfrac		!byte 0
 player_sector		!byte 0
-
-; ---------------------------------------------------------------------------
-; play_sound — stub
-; ---------------------------------------------------------------------------
-play_sound
-	rts
 
 ; ---------------------------------------------------------------------------
 ; P_ApproxDistance — |dx|+|dy|/2 on signed 8-bit world deltas in tmp0/tmp1 → A
@@ -186,13 +188,6 @@ enemy_reset
 	inx
 	cpx #48				; MAX_ITEMS (literal — defined later in root)
 	bne .er_i
-	ldx #0
-	lda #$ff
-.er_aim
-	sta MOBJ_AIMY,x
-	inx
-	cpx #MAX_MOBJ
-	bne .er_aim
 	; Reserve missile item slot
 	lda #ITEM_MISSILE
 	asl
@@ -222,7 +217,7 @@ enemy_alloc_all
 	bcc .eaa_nx
 	cmp #ITEM_TYPE_ENEMY_LAST+1
 	bcs .eaa_nx
-	stx tmp0			; item slot
+	stx alloc_item_slot
 	txa
 	pha				; alloc_mobj clobbers X
 	jsr alloc_mobj
@@ -235,7 +230,54 @@ enemy_alloc_all
 	rts
 
 ; ---------------------------------------------------------------------------
-; alloc_mobj — tmp0 = item slot → C=0 ok / C=1 fail
+; mobj_unlink — A = mobj idx; clear every FOR_ITEM[i] that pointed at A
+; ---------------------------------------------------------------------------
+mobj_unlink
+	sta unlink_mobj_idx
+	ldx #0
+.mu_lp
+	lda MOBJ_FOR_ITEM,x
+	cmp unlink_mobj_idx
+	bne .mu_nx
+	lda #$ff
+	sta MOBJ_FOR_ITEM,x
+.mu_nx
+	inx
+	cpx #48
+	bne .mu_lp
+	rts
+
+; ---------------------------------------------------------------------------
+; mobj_for_slot — X = item slot → C=0 Y=A=mobj / C=1 none
+; MOBJ_OBJ is authoritative; repairs FOR_ITEM when a live owner is found.
+; ---------------------------------------------------------------------------
+mobj_for_slot
+	stx mobj_lookup_slot
+	ldx #0
+.mfs_lp
+	lda MOBJ_ALLOC,x
+	beq .mfs_nx
+	lda MOBJ_OBJ,x
+	cmp mobj_lookup_slot
+	bne .mfs_nx
+	txa
+	ldy mobj_lookup_slot
+	sta MOBJ_FOR_ITEM,y		; keep forward map in sync
+	tay
+	clc
+	rts
+.mfs_nx
+	inx
+	cpx #MAX_MOBJ
+	bcc .mfs_lp
+	lda #$ff
+	ldx mobj_lookup_slot
+	sta MOBJ_FOR_ITEM,x		; drop stale forward
+	sec
+	rts
+
+; ---------------------------------------------------------------------------
+; alloc_mobj — alloc_item_slot = item → C=0 ok / C=1 fail
 ; ---------------------------------------------------------------------------
 alloc_mobj
 	ldx #0
@@ -249,9 +291,12 @@ alloc_mobj
 	rts
 .am_got
 	stx enemy_actor
+	txa
+	jsr mobj_unlink			; drop any stale FOR_ITEM → this index
+	ldx enemy_actor
 	lda #1
 	sta MOBJ_ALLOC,x
-	lda tmp0
+	lda alloc_item_slot
 	sta MOBJ_OBJ,x
 	tay
 	txa
@@ -265,7 +310,7 @@ alloc_mobj
 	lda #2
 	sta MOBJ_REACT,x
 	; info = typeId - 1
-	lda tmp0
+	lda alloc_item_slot
 	asl
 	asl
 	tay
@@ -281,7 +326,7 @@ alloc_mobj
 	ldy enemy_info
 	lda mobj_chase_state,y
 	sta MOBJ_STATE,x
-	ldy tmp0
+	ldy alloc_item_slot
 	lda #$ff
 	sta ITEM_CORPSE_TEX,y
 	clc
@@ -1119,15 +1164,28 @@ a_chase
 	jsr GetRandom8
 	cmp #3
 	bcs .ac_done
-	; gurgle stub
+	lda #SOUND_GURGLE
+	jsr play_sound
 .ac_done
 	rts
 
+; Hold pain state for MOVECNT thinks (set in enemy_damage). Old path
+; jumped to chase the same frame as the hit — pain never reached a render.
 a_flinch
+	ldx enemy_actor
+	lda MOBJ_MOVECNT,x
+	beq .afl_done
+	dec MOBJ_MOVECNT,x
+	lda MOBJ_MOVECNT,x
+	beq .afl_done
+	rts
+.afl_done
 	jmp goto_chase_state
 
 ; Hitscan already CLEAR (chase only enters POSSHOOT then). Accuracy + damage.
 a_shoot
+	lda #SOUND_PISTOL
+	jsr play_sound
 	jsr calc_enemy_dist
 	lda enemy_dist
 	cmp #29
@@ -1161,6 +1219,8 @@ a_melee
 	ldx enemy_actor
 	lda MOBJ_MOVECNT,x
 	bne .ame_done
+	lda #SOUND_CLAW
+	jsr play_sound
 	jsr GetRandom8
 	and #7
 	clc
@@ -1321,15 +1381,15 @@ a_fall
 	dec MOBJ_MOVECNT,x
 	lda MOBJ_MOVECNT,x
 	bne .af_done
-	; corpse: keep this state's pain tex, free mobj
+	; corpse tex on this mobj's item; unlink every FOR_ITEM → this mobj
 	lda MOBJ_STATE,x
 	tay
 	lda state_texture,y
 	and #$bf				; clear TEX_ANIMATE
-	ldy enemy_obj
+	ldy MOBJ_OBJ,x
 	sta ITEM_CORPSE_TEX,y
-	lda #$ff
-	sta MOBJ_FOR_ITEM,y
+	txa				; mobj idx
+	jsr mobj_unlink
 	ldx enemy_actor
 	lda #0
 	sta MOBJ_ALLOC,x
@@ -1426,12 +1486,10 @@ a_fly
 ; enemy_damage — X = item slot, A = damage
 ; ---------------------------------------------------------------------------
 enemy_damage
-	sta tmp1
-	lda MOBJ_FOR_ITEM,x
-	cmp #$ff
-	beq .ed_rts
-	tay
-	lda MOBJ_ALLOC,y
+	sta damage_amount
+	jsr mobj_for_slot
+	bcs .ed_rts
+	lda MOBJ_HEALTH,y
 	beq .ed_rts
 	sty enemy_actor
 	lda MOBJ_OBJ,y
@@ -1442,16 +1500,15 @@ enemy_damage
 	bcs .ed_rts
 	; P_DamageMobj
 	lda MOBJ_HEALTH,y
-	beq .ed_rts
 	sec
-	sbc tmp1
+	sbc damage_amount
 	sta MOBJ_HEALTH,y
 	beq .ed_kill
 	bcc .ed_kill
 	lda MOBJ_FLAGS,y
 	ora #MF_JUSTATTACKED
 	sta MOBJ_FLAGS,y
-	lda tmp1
+	lda damage_amount
 	ldy enemy_info
 	cmp mobj_pain_chance,y
 	bcc .ed_rts
@@ -1460,6 +1517,8 @@ enemy_damage
 	lda mobj_pain_state,y
 	ldx enemy_actor
 	sta MOBJ_STATE,x
+	lda #4				; ~4 thinks of pain before chase
+	sta MOBJ_MOVECNT,x
 	rts
 .ed_kill
 	ldx enemy_actor
@@ -1467,6 +1526,10 @@ enemy_damage
 	sta MOBJ_HEALTH,x
 	lda #2
 	sta MOBJ_MOVECNT,x
+	ldy enemy_info
+	lda mobj_death_sound,y
+	jsr play_sound			; clobbers X (tax = sound id)
+	ldx enemy_actor
 	ldy enemy_info
 	lda mobj_death_state,y
 	sta MOBJ_STATE,x
@@ -1494,12 +1557,8 @@ enemy_get_texture
 	sec
 	rts				; A = corpse tex, C=1
 .egt_live
-	lda MOBJ_FOR_ITEM,x
-	cmp #$ff
-	beq .egt_item8
-	tay
-	lda MOBJ_ALLOC,y
-	beq .egt_item8
+	jsr mobj_for_slot		; X = item slot
+	bcs .egt_item8
 	lda MOBJ_INFO,y
 	cmp #MOBJINFO_IMPSHOT		; missile uses fireball item atlas
 	bcs .egt_item8
@@ -1514,43 +1573,44 @@ enemy_get_texture
 	rts
 
 ; ---------------------------------------------------------------------------
-; TryDamageEnemy — A = damage; hit closest live enemy on MUZZLE_COL
-; Uses MOBJ_AIMY ≠ $FF; nearer = smaller MOBJ_AIMZ. No hit → rts.
-; (Melee weapons can add a max-AIMZ range check before calling.)
+; TryDamageEnemy — A = damage; nearest live enemy on MUZZLE±AIM_COL_SLACK
+; via COL_AIM_* (per-column stamp; pick lowest COL_AIM_Z in the cone).
 ; ---------------------------------------------------------------------------
 TryDamageEnemy
-	sta tmp2			; damage
+	sta damage_amount
 	lda #$ff
-	sta tmp0			; best item slot
-	lda #$ff
-	sta tmp1			; best depth
-	ldx #0
-.tde_lp
-	lda MOBJ_ALLOC,x
-	beq .tde_nx
-	lda MOBJ_AIMY,x
+	sta tde_best_z
+	sta tde_best_slot
+	ldx #MUZZLE_COL - AIM_COL_SLACK
+.tde_scan
+	lda COL_AIM_SLOT,x
 	cmp #$ff
 	beq .tde_nx
-	lda MOBJ_HEALTH,x
-	beq .tde_nx
-	lda MOBJ_INFO,x
-	cmp #4
+	lda COL_AIM_Z,x
+	cmp tde_best_z
 	bcs .tde_nx
-	lda MOBJ_AIMZ,x
-	cmp tmp1
-	bcs .tde_nx			; farther or equal
-	sta tmp1
-	lda MOBJ_OBJ,x
-	sta tmp0
+	sta tde_best_z
+	lda COL_AIM_SLOT,x
+	sta tde_best_slot
 .tde_nx
 	inx
-	cpx #MAX_MOBJ
-	bcc .tde_lp
-	lda tmp0
+	cpx #MUZZLE_COL + AIM_COL_SLACK + 1
+	bcc .tde_scan
+	lda tde_best_slot
 	cmp #$ff
-	beq .tde_rts
+	bne .tde_slot
+	rts
+.tde_slot
 	tax
-	lda tmp2
+	jsr mobj_for_slot
+	bcs .tde_rts
+	lda MOBJ_HEALTH,y
+	beq .tde_rts
+	lda MOBJ_INFO,y
+	cmp #4
+	bcs .tde_rts
+	ldx tde_best_slot
+	lda damage_amount
 	jmp enemy_damage
 .tde_rts
 	rts
