@@ -141,6 +141,7 @@ sound_ptr_h	= $aa
 ; Active weapon fire interval (ms) — must not sit in $90-$98 (LoadLevel wipe)
 wpn_fire_ms_l	= $ab
 wpn_fire_ms_h	= $ac
+near_fpat	= $ad			; floor/ceil dither screen code for paint_near
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a

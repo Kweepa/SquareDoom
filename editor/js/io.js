@@ -122,7 +122,7 @@ export function levelFromJSON(data) {
         targetTag: String(s.targetTag ?? d.targetTag ?? '').trim(),
         floorColor: normalizeColor(s.floorColor, d.floorColor),
         ceilingColor: normalizeColor(s.ceilingColor, d.ceilingColor),
-        brightness: clamp(s.brightness ?? d.brightness, 0, 7),
+        brightness: clamp(s.brightness ?? d.brightness, 0, 16),
       });
     }
   }
@@ -262,7 +262,7 @@ export function cookLevel(level) {
     targets[id] = targetId & 0xff;
     fcols[id] = colorIndex(s.floorColor) & 15;
     ccols[id] = colorIndex(s.ceilingColor) & 15;
-    brights[id] = s.brightness & 7;
+    brights[id] = Math.min(16, s.brightness & 31);
   }
 
   const mapBytes = new Uint8Array(level.map);

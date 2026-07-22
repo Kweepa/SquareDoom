@@ -287,9 +287,9 @@ export function defaultSector() {
     tag: '',
     /** Editor-only; when sectorType ≠ 0, names the target sector's tag. */
     targetTag: '',
-    floorColor: 0,
-    ceilingColor: 0,
-    brightness: 7,
+    floorColor: 11,
+    ceilingColor: 11,
+    brightness: 15,
   };
 }
 
@@ -1358,7 +1358,7 @@ export function applyTilePatch(level, tiles, patch) {
     if ('sectorType' in patch) next.sectorType = clampNum(patch.sectorType, 0, 255);
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
-    if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 7);
+    if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 16);
     if ('floorColor' in patch) next.floorColor = normalizeColor(patch.floorColor);
     if ('ceilingColor' in patch) next.ceilingColor = normalizeColor(patch.ceilingColor);
     return next;

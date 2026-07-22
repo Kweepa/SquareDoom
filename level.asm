@@ -64,7 +64,7 @@ update_eye
 	rts
 
 ; ---------------------------------------------------------------------------
-; build_sec_flatgrp — SEC_FLATGRP[id] = group of identical floor/ceil/colours
+; build_sec_flatgrp — SEC_FLATGRP[id] = group of identical floor/ceil/colours/bright
 ;
 ; Once at level load. Door / elevator sectors and any SEC_TARGET id get a
 ; unique group (their own id) so soft-portal matching never ties them to
@@ -128,6 +128,9 @@ build_sec_flatgrp
 	bne .bf_jn
 	lda SEC_CCOL,x
 	cmp SEC_CCOL,y
+	bne .bf_jn
+	lda SEC_BRIGHT,x
+	cmp SEC_BRIGHT,y
 	bne .bf_jn
 	lda SEC_FLATGRP,y
 	sta SEC_FLATGRP,x

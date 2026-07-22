@@ -106,12 +106,34 @@ hide_weapon
 	rts
 
 ; After first blit — allow $d015 writes and enable current spr_en.
+; Also refresh weapon highlight colour from player sector brightness.
 show_weapon
 	lda #$ff
 	sta wpn_visible
 	lda spr_en
 	sta $d015
+	ldx player_sector
+	lda SEC_BRIGHT,x
+	cmp #17
+	bcc .sw_hi
+	lda #16
+.sw_hi
+	tax
+	lda bright_to_wpn_hi,x
+	ldx cur_weapon
+	bne .sw_sg
+	sta $d02a			; pistol sprite 3 (weapon light)
 	rts
+.sw_sg
+	sta $d029			; shotgun sprite 2 (highlight)
+	rts
+
+; SEC_BRIGHT 0..16 → weapon highlight C64 colour
+bright_to_wpn_hi
+	!byte 11,11,11,11,11		; 0–4 darkest
+	!byte 12,12,12,12,12		; 5–9
+	!byte 15,15,15,15,15,15		; 10–15 lightest grey
+	!byte 1				; 16 full bright white
 
 ; A = enable mask → spr_en; $d015 only if wpn_visible.
 .wpn_en

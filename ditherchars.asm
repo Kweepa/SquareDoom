@@ -1,5 +1,5 @@
-; Auto-generated from lightingdither.png + floorudg.png + itemudg.png — do not edit
-; Wall UDGs $00–$0F, floor $10 (floorudg.png), item $11 (itemudg.png)
+; Auto-generated from lightingdither.png (floors = walls 90° CW) + itemudg.png — do not edit
+; Wall UDGs $00–$0F; floors → chars 219–234 (rotated); item → 235
 !zone ditherchars
 
 dither_wall_glyphs
@@ -19,7 +19,22 @@ dither_wall_glyphs
 	!byte $00,$08,$88,$80,$00,$02,$22,$20	; light 13
 	!byte $00,$08,$80,$00,$00,$02,$20,$00	; light 14
 	!byte $00,$00,$00,$00,$00,$00,$00,$00	; light 15
-dither_floor_glyph
-	!byte $22,$ff,$88,$ff,$22,$ff,$11,$ff
+dither_floor_glyphs
+	!byte $ff,$df,$ff,$fd,$ff,$bf,$ff,$fb	; floor light 0
+	!byte $ff,$cf,$ff,$fc,$ff,$9f,$ff,$f9	; floor light 1
+	!byte $ff,$8f,$ff,$f8,$ff,$1f,$ff,$f1	; floor light 2
+	!byte $ff,$87,$ff,$f0,$ff,$0f,$ff,$e1	; floor light 3
+	!byte $ff,$07,$ff,$e0,$ff,$0e,$ff,$c1	; floor light 4
+	!byte $ff,$06,$ff,$60,$ff,$0c,$ff,$c0	; floor light 5
+	!byte $ff,$02,$ff,$20,$ff,$04,$ff,$40	; floor light 6
+	!byte $33,$cc,$33,$cc,$33,$cc,$33,$cc	; floor light 7
+	!byte $ef,$00,$bf,$00,$fb,$00,$df,$00	; floor light 8
+	!byte $9f,$00,$f9,$00,$cf,$00,$fc,$00	; floor light 9
+	!byte $1f,$00,$f1,$00,$8f,$00,$f8,$00	; floor light 10
+	!byte $1e,$00,$e1,$00,$0f,$00,$f0,$00	; floor light 11
+	!byte $0e,$00,$e0,$00,$07,$00,$70,$00	; floor light 12
+	!byte $0c,$00,$c0,$00,$06,$00,$60,$00	; floor light 13
+	!byte $04,$00,$40,$00,$02,$00,$20,$00	; floor light 14
+	!byte $00,$00,$00,$00,$00,$00,$00,$00	; floor light 15
 dither_item_glyph
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff

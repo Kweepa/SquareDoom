@@ -348,6 +348,10 @@ fill_open_remainder
 	lda cur_id
 	beq .for_done
 	tax
+	lda SEC_BRIGHT,x
+	jsr bright_to_floor_pat
+	sta fill_pat
+	ldx cur_id
 	lda SEC_FCOL,x
 	ldy ytop
 	sty fill_y0

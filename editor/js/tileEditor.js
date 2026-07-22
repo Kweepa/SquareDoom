@@ -168,7 +168,7 @@ export class TileEditor {
 
     const floor = numInput('te-floor', 'Floor height', 0, 31, s.floorHeight, s._mixed.floorHeight);
     const ceil = numInput('te-ceil', 'Ceiling height', 0, 31, s.ceilingHeight, s._mixed.ceilingHeight);
-    const bright = numInput('te-bright', 'Brightness', 0, 7, s.brightness, s._mixed.brightness);
+    const bright = numInput('te-bright', 'Brightness', 0, 16, s.brightness, s._mixed.brightness);
 
     const typeWrap = document.createElement('label');
     typeWrap.className = 'field';

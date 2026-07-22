@@ -3,7 +3,7 @@
 !zone titlemenus
 
 MSG_LET0 = 192
-MENU_CURSOR = 218			; skull (@); dither owns charset 0
+MENU_CURSOR = 218			; skull (@); wall dither owns charset 0
 MENU_Y = 11
 TEXT_COL = 2
 HILITE_COL = 7
@@ -48,7 +48,7 @@ game_start
 	jsr clear_screen
 	lda #0
 	jsr run_menu
-	lda #2
+	lda #1
 	sta level_num
 	lda #0
 	sta health

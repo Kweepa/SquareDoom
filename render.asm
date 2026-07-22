@@ -132,6 +132,9 @@ on_cell
 	sta near_ccol
 	lda SEC_FLATGRP,x
 	sta last_near_flatgrp
+	lda SEC_BRIGHT,x
+	jsr bright_to_floor_pat
+	sta near_fpat
 	jsr paint_near			; N: ceil/floor strips + span_a/b
 	lda #1
 	sta last_near_ok

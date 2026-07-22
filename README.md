@@ -92,4 +92,4 @@ Finish levels :)
 
 ## Weapons
 
-Animate the weapons in and out, and change the highlight colour on the weapon depending on the sector brightness.
+Animate the weapons in and out.

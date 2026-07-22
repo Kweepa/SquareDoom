@@ -9,8 +9,8 @@ LIGHTFRAME = $cc00
 CHARSET = $3800
 SHOTGUN_SPRITES = $3480	; 8×64-byte shotgun+flash (VIC bank 0)
 PISTOL_SPRITES = $3680		; 6×64-byte pistol+flash overlays (VIC bank 0)
-FLOOR_PAT = $10			; floorudg.png (flats)
-ITEM_PAT = $11			; itemudg.png shading glyph
+FLOOR_PAT_BASE = 219		; floor dither glyphs 219–234 (after skull @ 218)
+ITEM_PAT = 235			; itemudg.png shading glyph
 
 MAX_DDA = 32
 PROFILE = 0

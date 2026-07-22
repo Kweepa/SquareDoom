@@ -21,7 +21,7 @@ Each sector has the following data:
 - target sector (editor: tag string; cooked: sector id of the tagged sector; only when type ≠ 0)
 - sector tag (editor-only; used to resolve targets when cooking — not stored in binary)
 - floor/ceiling colour (0-15, Commodore 64 palette)
-- brightness (0-7)
+- brightness (0-16; 16 = full bright, no distance darken on walls)
 
 Items in the map have a x,y 0-255, so each map square is 8 units.
 Player height is 4 height units.

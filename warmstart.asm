@@ -75,17 +75,34 @@ init_charset
 	inx
 	bne .copy_df
 
-	; Patch light UDGs $00–$11 (16 wall + floor + item = 144 bytes)
-	; overwrites doomfont chars 0–17 (view patterns)
+	; Wall dither $00–$0F only (leave doomfont 16–63 for HUD/space)
 	ldx #0
-.patch
+.patch_wall
 	lda dither_wall_glyphs,x
 	sta CHARSET,x
 	inx
-	cpx #144
-	bcc .patch
+	cpx #128
+	bcc .patch_wall
 
-	; A–Z for top-line messages at screen codes 192–217 (dither owns 0–17)
+	; Floor dither → chars 219–234
+	ldx #0
+.patch_floor
+	lda dither_floor_glyphs,x
+	sta CHARSET + 219 * 8,x
+	inx
+	cpx #128
+	bcc .patch_floor
+
+	; Item glyph → char 235
+	ldx #0
+.patch_item
+	lda dither_item_glyph,x
+	sta CHARSET + 235 * 8,x
+	inx
+	cpx #8
+	bcc .patch_item
+
+	; A–Z for top-line messages at screen codes 192–217 (walls own 0–15)
 	ldx #0
 .msgfont
 	lda doomfont_udgs + 8,x		; char 1 = 'A'
@@ -94,7 +111,7 @@ init_charset
 	cpx #26 * 8
 	bne .msgfont
 
-	; Skull (@) — doomfont char 0; dither owns slot 0, so keep at 218
+	; Skull (@) — doomfont char 0; walls own slot 0, so keep at 218
 	ldx #0
 .skull
 	lda doomfont_udgs,x

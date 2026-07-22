@@ -59,7 +59,7 @@ fill_span
 	bne .fs_loop
 	rts
 
-; A = colour; fill_y0..fill_y1-1 with FLOOR_PAT imm (flat remainder path).
+; A = colour; fill_y0..fill_y1-1 with fill_pat (flat remainder path).
 ; Clobbers X. paint_near inlines its own copies to avoid jsr tax.
 fill_flat_span
 !if PROFILE = 1 {
@@ -74,7 +74,7 @@ fill_flat_span
 .ffs_lp
 	txa
 	sta (col_base_l),y
-	lda #FLOOR_PAT
+	lda fill_pat
 	sta (pat_base_l),y
 	iny
 .ffs_test
@@ -96,16 +96,56 @@ set_col_base
 	sta pat_base_h
 	rts
 
-; wall_pat = min(15, wallz_h); also → fill_pat for wall strips
+; wall_pat = min(15, min(15, wallz_h) + (15 - SEC_BRIGHT[cur_id]))
+; SEC_BRIGHT 16 = full bright (pattern 0, no distance darken).
+; also → fill_pat for wall strips. Clobbers X.
 set_wall_pat
-	lda wallz_h
+	ldx cur_id
+	lda SEC_BRIGHT,x
 	cmp #16
-	bcc .swp_ok
-	lda #15
-.swp_ok
+	bcc .swp_dim
+	lda #0				; full bright: ignore wallz
 	sta wall_pat
 	sta fill_pat
 	rts
+.swp_dim
+	tax
+	lda bright_to_darken,x
+	sta fill_pat			; scratch: darken stops (overwritten below)
+	lda wallz_h
+	cmp #16
+	bcc .swp_zok
+	lda #15
+.swp_zok
+	clc
+	adc fill_pat
+	tax
+	lda pat_clamp,x
+	sta wall_pat
+	sta fill_pat
+	rts
+
+; A = SEC_BRIGHT → A = floor screen code FLOOR_PAT_BASE..+15 (16 → base). Clobbers X.
+bright_to_floor_pat
+	cmp #16
+	bcc .btfp_dim
+	lda #FLOOR_PAT_BASE
+	rts
+.btfp_dim
+	tax
+	lda bright_to_darken,x
+	clc
+	adc #FLOOR_PAT_BASE
+	rts
+
+; SEC_BRIGHT 0..15 → extra dither stops (15 = distance only, 0 = +15 stops)
+bright_to_darken
+	!byte 15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
+
+; pat_clamp[i] = min(15, i) for i = 0..30 (max depth15 + darken15)
+pat_clamp
+	!byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+	!byte 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15
 
 ; Deathchase GetRandom8 — new = 9 * old + 193
 GetRandom8

@@ -607,8 +607,10 @@ const MAP_SIZE = 32;
 const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 const MAX_SECTORS = 255;
 const MAX_ITEMS = 48;
+/** Live enemy mobjs; last mobj slot is reserved for missile (matches game MAX_MOBJ). */
 const MAX_MOBJ = 32;
 const MAX_ENEMIES = MAX_MOBJ - 1;
+
 /** Fixed cooked level-name length (ASCII, null-padded). */
 const LEVEL_NAME_LEN = 20;
 const WORLD_PER_TILE = 8;
@@ -726,6 +728,8 @@ const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 const FIREBALL_TYPE = 'fireball';
 const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse']);
+
+/** Types that allocate an mobj at level start (missile excluded). */
 const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
 /** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
@@ -886,9 +890,9 @@ function defaultSector() {
     tag: '',
     /** Editor-only; when sectorType ≠ 0, names the target sector's tag. */
     targetTag: '',
-    floorColor: 0,
-    ceilingColor: 0,
-    brightness: 7,
+    floorColor: 11,
+    ceilingColor: 11,
+    brightness: 15,
   };
 }
 
@@ -1957,7 +1961,7 @@ function applyTilePatch(level, tiles, patch) {
     if ('sectorType' in patch) next.sectorType = clampNum(patch.sectorType, 0, 255);
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
-    if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 7);
+    if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 16);
     if ('floorColor' in patch) next.floorColor = normalizeColor(patch.floorColor);
     if ('ceilingColor' in patch) next.ceilingColor = normalizeColor(patch.ceilingColor);
     return next;
@@ -2163,7 +2167,7 @@ function activeLevel(episode) {
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
- *      meta: skillBits or switch target sector
+ *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard) or switch target sector
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
@@ -2245,7 +2249,7 @@ function levelFromJSON(data) {
         targetTag: String(s.targetTag ?? d.targetTag ?? '').trim(),
         floorColor: normalizeColor(s.floorColor, d.floorColor),
         ceilingColor: normalizeColor(s.ceilingColor, d.ceilingColor),
-        brightness: clamp(s.brightness ?? d.brightness, 0, 7),
+        brightness: clamp(s.brightness ?? d.brightness, 0, 16),
       });
     }
   }
@@ -2385,7 +2389,7 @@ function cookLevel(level) {
     targets[id] = targetId & 0xff;
     fcols[id] = colorIndex(s.floorColor) & 15;
     ccols[id] = colorIndex(s.ceilingColor) & 15;
-    brights[id] = s.brightness & 7;
+    brights[id] = Math.min(16, s.brightness & 31);
   }
 
   const mapBytes = new Uint8Array(level.map);
@@ -2396,11 +2400,11 @@ function cookLevel(level) {
     errors.push(`Too many enemies (${nEnemies}/${MAX_ENEMIES})`);
   }
 
-  const itemTypes = new Uint8Array(MAX_ITEMS);
-  const itemXs = new Uint8Array(MAX_ITEMS);
-  const itemYs = new Uint8Array(MAX_ITEMS);
-  const itemMetas = new Uint8Array(MAX_ITEMS);
-  itemTypes.fill(EMPTY_ITEM_TYPE);
+  const typesArr = new Uint8Array(MAX_ITEMS);
+  const xs = new Uint8Array(MAX_ITEMS);
+  const ys = new Uint8Array(MAX_ITEMS);
+  const metas = new Uint8Array(MAX_ITEMS);
+  typesArr.fill(EMPTY_ITEM_TYPE);
   for (let i = 0; i < MAX_ITEMS; i++) {
     const it = gameItems[i];
     if (!it) continue;
@@ -2408,9 +2412,9 @@ function cookLevel(level) {
       const sw = coerceSwitchItem(it);
       const cookType = switchCookType(sw.switchAction);
       const typeId = ITEM_TYPES.indexOf(cookType);
-      itemTypes[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-      itemXs[i] = sw.x & 0xff;
-      itemYs[i] = sw.y & 0xff;
+      typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
+      xs[i] = sw.x & 0xff;
+      ys[i] = sw.y & 0xff;
       const tag = (sw.targetTag || '').trim();
       let targetId = 0;
       if (!tag) {
@@ -2421,24 +2425,24 @@ function cookLevel(level) {
           warnings.push(`Switch at (${sw.x},${sw.y}): target tag "${tag}" not found`);
         }
       }
-      itemMetas[i] = targetId & 0xff;
+      metas[i] = targetId & 0xff;
       continue;
     }
     const typeId = ITEM_TYPES.indexOf(it.type);
-    itemTypes[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-    itemXs[i] = it.x & 0xff;
-    itemYs[i] = it.y & 0xff;
+    typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
+    xs[i] = it.x & 0xff;
+    ys[i] = it.y & 0xff;
     let bits = 0;
     if (it.skills.easy) bits |= 1;
     if (it.skills.normal) bits |= 2;
     if (it.skills.hard) bits |= 4;
-    itemMetas[i] = bits;
+    metas[i] = bits;
   }
   const itemTable = new Uint8Array(MAX_ITEMS * ITEM_BYTES);
-  itemTable.set(itemTypes, 0);
-  itemTable.set(itemXs, MAX_ITEMS);
-  itemTable.set(itemYs, MAX_ITEMS * 2);
-  itemTable.set(itemMetas, MAX_ITEMS * 3);
+  itemTable.set(typesArr, 0);
+  itemTable.set(xs, MAX_ITEMS);
+  itemTable.set(ys, MAX_ITEMS * 2);
+  itemTable.set(metas, MAX_ITEMS * 3);
 
   const spawn = level.spawn ?? defaultSpawn();
   const spawnBytes = new Uint8Array([
@@ -3027,7 +3031,7 @@ const ITEM_WORLD_HEIGHT = 4;
 const TAN_HALF_FOV = Math.tan(FOV / 2);
 
 /** Enemies keep full preview height; everything else is half size. */
-// ENEMY_TYPES defined with item types above
+const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
 // side 0 = north/south wall (orange), side 1 = east/west wall (brown)
 const WALL_NS = 8;
@@ -3606,7 +3610,7 @@ class TileEditor {
 
     const floor = numInput('te-floor', 'Floor height', 0, 31, s.floorHeight, s._mixed.floorHeight);
     const ceil = numInput('te-ceil', 'Ceiling height', 0, 31, s.ceilingHeight, s._mixed.ceilingHeight);
-    const bright = numInput('te-bright', 'Brightness', 0, 7, s.brightness, s._mixed.brightness);
+    const bright = numInput('te-bright', 'Brightness', 0, 16, s.brightness, s._mixed.brightness);
 
     const typeWrap = document.createElement('label');
     typeWrap.className = 'field';

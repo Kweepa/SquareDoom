@@ -1,6 +1,7 @@
 /**
  * Read lightingdither.png (8×8 tiles, closest→furthest) and emit
- * ditherchars.asm: wall glyphs $00–$0F + floor $10 (floorudg.png) + item $11.
+ * ditherchars.asm: wall glyphs (runtime $00–$0F) + floor glyphs (walls
+ * rotated 90° CW; runtime chars 219–234) + item (itemudg.png; runtime 235).
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -148,7 +149,22 @@ function fmtBytes(bytes) {
   return bytes.map((b) => `$${b.toString(16).padStart(2, '0')}`).join(',');
 }
 
+/** Rotate an 8-byte charset tile 90° clockwise (row-major, bit7 = left). */
+function rotate90cw(tile) {
+  const out = new Array(8).fill(0);
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const bit = (tile[y] >> (7 - x)) & 1;
+      const nx = 7 - y;
+      const ny = x;
+      out[ny] |= bit << (7 - nx);
+    }
+  }
+  return out;
+}
+
 const WALL_LEVELS = 16;
+const DITHER_BYTES = WALL_LEVELS * 8 * 2 + 8; // walls + floors + item = 264
 
 const png = readFileSync(join(root, 'lightingdither.png'));
 const { width, height, pixels } = decodePng(png);
@@ -160,13 +176,7 @@ const walls = [];
 for (let t = 0; t < WALL_LEVELS; t++) {
   walls.push(tileBytes(pixels, width, t));
 }
-
-const floorPng = readFileSync(join(root, 'floorudg.png'));
-const floorImg = decodePng(floorPng);
-if (floorImg.width !== 8 || floorImg.height !== 8) {
-  throw new Error(`floorudg.png: expected 8×8, got ${floorImg.width}×${floorImg.height}`);
-}
-const floor = tileBytes(floorImg.pixels, floorImg.width, 0);
+const floors = walls.map(rotate90cw);
 
 const itemPng = readFileSync(join(root, 'itemudg.png'));
 const itemImg = decodePng(itemPng);
@@ -175,20 +185,22 @@ if (itemImg.width !== 8 || itemImg.height !== 8) {
 }
 const item = tileBytes(itemImg.pixels, itemImg.width, 0);
 
-let asm = `; Auto-generated from lightingdither.png + floorudg.png + itemudg.png — do not edit\n`;
-asm += `; Wall UDGs $00–$0F, floor $10 (floorudg.png), item $11 (itemudg.png)\n`;
+let asm = `; Auto-generated from lightingdither.png (floors = walls 90° CW) + itemudg.png — do not edit\n`;
+asm += `; Wall UDGs $00–$0F; floors → chars 219–234 (rotated); item → 235\n`;
 asm += `!zone ditherchars\n\n`;
 asm += `dither_wall_glyphs\n`;
 for (let t = 0; t < WALL_LEVELS; t++) {
   asm += `\t!byte ${fmtBytes(walls[t])}\t; light ${t}\n`;
 }
-asm += `dither_floor_glyph\n`;
-asm += `\t!byte ${fmtBytes(floor)}\n`;
+asm += `dither_floor_glyphs\n`;
+for (let t = 0; t < WALL_LEVELS; t++) {
+  asm += `\t!byte ${fmtBytes(floors[t])}\t; floor light ${t}\n`;
+}
 asm += `dither_item_glyph\n`;
 asm += `\t!byte ${fmtBytes(item)}\n`;
 
 writeFileSync(join(root, 'ditherchars.asm'), asm);
-console.log(`wrote ditherchars.asm (${WALL_LEVELS} wall + floor + item glyphs)`);
+console.log(`wrote ditherchars.asm (${WALL_LEVELS} wall + ${WALL_LEVELS} floor + item = ${DITHER_BYTES} bytes)`);
 console.log('walls:', walls.map(fmtBytes).join(' | '));
-console.log('floor:', fmtBytes(floor));
+console.log('floors:', floors.map(fmtBytes).join(' | '));
 console.log('item:', fmtBytes(item));

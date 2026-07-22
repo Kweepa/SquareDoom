@@ -10,7 +10,7 @@
 ;
 ; N is sampled once at on_cell .after_near (not mid-paint). project_y
 ; cost is bucketed to P via prof_add_py.
-; Flat fills are inlined with lda #FLOOR_PAT (no jsr fill_span).
+; Flat fills are inlined with lda near_fpat (no jsr fill_span).
 ; ============================================================================
 
 ; A = row → clamp into [ytop, ybot]; result in A. Macro-local @ labels.
@@ -68,7 +68,7 @@ paint_near
 .pn_cf_lp
 	txa
 	sta (col_base_l),y
-	lda #FLOOR_PAT
+	lda near_fpat
 	sta (pat_base_l),y
 	iny
 .pn_cf_test
@@ -114,7 +114,7 @@ paint_near
 .pn_ff_lp
 	txa
 	sta (col_base_l),y
-	lda #FLOOR_PAT
+	lda near_fpat
 	sta (pat_base_l),y
 	iny
 .pn_ff_test
