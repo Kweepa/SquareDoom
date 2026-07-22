@@ -48,7 +48,7 @@ game_start
 	jsr clear_screen
 	lda #0
 	jsr run_menu
-	lda #1
+	lda #2
 	sta level_num
 	lda #0
 	sta health
@@ -1144,18 +1144,12 @@ try_end_switch
 .te_g
 	ldx #0
 .te_l
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
+	lda level_item_type,x
 	cmp #ITEM_TYPE_SWITCH_END
 	bne .te_n
-	iny
-	lda level_items,y
+	lda level_item_x,x
 	sta tmp0
-	iny
-	lda level_items,y
+	lda level_item_y,x
 	sta tmp1
 	lda tmp0
 	sec

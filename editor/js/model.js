@@ -4,6 +4,10 @@ export const MAP_SIZE = 32;
 export const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 export const MAX_SECTORS = 255;
 export const MAX_ITEMS = 48;
+/** Live enemy mobjs; last mobj slot is reserved for missile (matches game MAX_MOBJ). */
+export const MAX_MOBJ = 32;
+export const MAX_ENEMIES = MAX_MOBJ - 1;
+
 /** Fixed cooked level-name length (ASCII, null-padded). */
 export const LEVEL_NAME_LEN = 20;
 export const WORLD_PER_TILE = 8;
@@ -110,6 +114,7 @@ export const ITEM_TYPES = [
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
   'fireball',
+  'poscorpse', 'impcorpse',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -117,8 +122,12 @@ export const SPAWN_TYPE = 'spawn';
 export const CAMERA_TYPE = 'camera';
 /** Palette placeable; fans out to switch_* cook types. */
 export const SWITCH_TYPE = 'switch';
-/** Runtime-only (missile); not placeable in the editor. */
+/** Runtime-only (missile / death corpses); not placeable in the editor. */
 export const FIREBALL_TYPE = 'fireball';
+export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse']);
+
+/** Types that allocate an mobj at level start (missile excluded). */
+export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
 /** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
 export const SWITCH_ACTIONS = [
@@ -131,7 +140,7 @@ const SWITCH_COOK_TYPES = new Set(SWITCH_ACTIONS.map((a) => a.cookType));
 
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 export const EDITOR_ITEM_TYPES = [
-  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t) && t !== FIREBALL_TYPE),
+  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t) && !RUNTIME_ONLY_TYPES.has(t)),
   SWITCH_TYPE,
   CAMERA_TYPE,
 ];
@@ -210,6 +219,10 @@ export function defaultSpawn() {
 
 export function gameItemCount(level) {
   return level.items.filter((it) => isGameItem(it.type)).length;
+}
+
+export function enemyCount(level) {
+  return level.items.filter((it) => ENEMY_TYPES.has(it.type)).length;
 }
 
 export function getSectorAtWorld(level, wx, wy) {
@@ -513,77 +526,217 @@ export function itemsInTiles(level, tiles) {
 }
 
 /**
+ * Group occupied selected tiles by their current sector id.
+ * @param {{tx:number,ty:number}[]} tiles
+ * @returns {Map<number, {tx:number,ty:number}[]>}
+ */
+function groupTilesBySector(level, tiles) {
+  /** @type {Map<number, {tx:number,ty:number}[]>} */
+  const bySector = new Map();
+  for (const { tx, ty } of tiles) {
+    const id = getCell(level, tx, ty);
+    if (!id || !level.sectors.has(id)) continue;
+    let list = bySector.get(id);
+    if (!list) {
+      list = [];
+      bySector.set(id, list);
+    }
+    list.push({ tx, ty });
+  }
+  return bySector;
+}
+
+/**
+ * Apply new props per selected sector: mutate in place when the whole sector is
+ * selected, otherwise one fresh id for the selection (avoids per-tile alloc).
+ * @param {Map<number, {tx:number,ty:number}[]>} bySector
+ * @param {(cur: ReturnType<typeof defaultSector>) => ReturnType<typeof defaultSector>} nextProps
+ */
+function applyPropsBySector(level, bySector, nextProps) {
+  for (const [sectorId, selected] of bySector) {
+    const cur = level.sectors.get(sectorId);
+    if (!cur) continue;
+    const next = nextProps(cur);
+    const total = sectorCellCount(level, sectorId);
+    if (selected.length >= total) {
+      level.sectors.set(sectorId, next);
+      continue;
+    }
+    const nid = allocSectorId(level);
+    if (!nid) continue;
+    level.sectors.set(nid, next);
+    for (const { tx, ty } of selected) setCell(level, tx, ty, nid);
+    dropSectorIfEmpty(level, sectorId);
+  }
+}
+
+/**
  * Raise/lower floor and ceiling together by delta on listed tiles.
  * Each height is clamped independently to 0–31.
  */
 export function nudgeTileHeights(level, tiles, delta) {
   if (!delta) return;
-  for (const { tx, ty } of tiles) {
-    const cur = getTileProps(level, tx, ty);
-    if (!cur) continue;
+  applyPropsBySector(level, groupTilesBySector(level, tiles), (cur) => {
     const next = cloneSector(cur);
     next.floorHeight = clampNum(cur.floorHeight + delta, 0, 31);
     next.ceilingHeight = clampNum(cur.ceilingHeight + delta, 0, 31);
-    setTileProps(level, tx, ty, next);
-  }
+    return next;
+  });
   rebuildSectors(level);
 }
 
+const NEIGHBOR_4 = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+
 /**
- * Merge identical sectors only when the unified tile set is a filled ≤15×15 rectangle.
- * Invalid / non-mergeable groups keep separate ids (lowest id kept as rep).
+ * 4-connected groups of tiles whose sector props match via sectorsEqual.
+ * @returns {{ props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[], oldIds: number[] }[]}
+ */
+export function equalPropConnectedComponents(level) {
+  const visited = new Uint8Array(MAP_CELLS);
+  /** @type {{ props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[], oldIds: number[] }[]} */
+  const components = [];
+
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      const start = cellIndex(tx, ty);
+      const startId = level.map[start];
+      if (!startId || visited[start]) continue;
+      const props = level.sectors.get(startId);
+      if (!props) {
+        level.map[start] = 0;
+        continue;
+      }
+
+      /** @type {{tx:number,ty:number}[]} */
+      const tiles = [];
+      const oldIdSet = new Set();
+      /** @type {{tx:number,ty:number}[]} */
+      const stack = [{ tx, ty }];
+      visited[start] = 1;
+
+      while (stack.length) {
+        const cur = stack.pop();
+        const cid = getCell(level, cur.tx, cur.ty);
+        tiles.push(cur);
+        oldIdSet.add(cid);
+        for (const [dx, dy] of NEIGHBOR_4) {
+          const nx = cur.tx + dx;
+          const ny = cur.ty + dy;
+          if (nx < 0 || ny < 0 || nx >= MAP_SIZE || ny >= MAP_SIZE) continue;
+          const nidx = cellIndex(nx, ny);
+          if (visited[nidx]) continue;
+          const nid = level.map[nidx];
+          if (!nid) continue;
+          const np = level.sectors.get(nid);
+          if (!np || !sectorsEqual(props, np)) continue;
+          visited[nidx] = 1;
+          stack.push({ tx: nx, ty: ny });
+        }
+      }
+
+      components.push({
+        props: cloneSector(props),
+        tiles,
+        oldIds: [...oldIdSet].sort((a, b) => a - b),
+      });
+    }
+  }
+  return components;
+}
+
+/**
+ * Repack identical-property connected tiles into filled ≤15×15 rectangles.
+ * Uses minimum rectangle partition so sector count is ideal per component.
+ * Reuses the lowest existing ids from each component when possible.
  */
 export function mergeIdenticalSectors(level) {
-  // First split any already-invalid ids into shape-legal pieces
-  enforceSectorShapes(level);
+  const components = equalPropConnectedComponents(level);
+  /** @type {{ id: number, props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[] }[]} */
+  const assignments = [];
+  /** @type {{ props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[] }[]} */
+  const pending = [];
+  const claimed = new Set();
 
-  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
-  /** @type {Map<number, number>} */
-  const remap = new Map();
-  /** @type {{ sector: object, id: number, tiles: {tx:number,ty:number}[] }[]} */
-  const reps = [];
-
-  for (const id of ids) {
-    const s = level.sectors.get(id);
-    if (!s) continue;
-    const tiles = tilesInSector(level, id);
-    if (!tiles.length) continue;
-    let found = null;
-    for (const r of reps) {
-      if (!sectorsEqual(r.sector, s)) continue;
-      const union = r.tiles.concat(tiles);
-      if (!tilesAreValidSectorShape(union)) continue;
-      found = r;
-      break;
+  for (const comp of components) {
+    /** @type {{tx:number,ty:number}[][] | null} */
+    let seed = null;
+    let seedOk = true;
+    /** @type {Map<number, {tx:number,ty:number}[]>} */
+    const byId = new Map();
+    for (const t of comp.tiles) {
+      const id = getCell(level, t.tx, t.ty);
+      let list = byId.get(id);
+      if (!list) {
+        list = [];
+        byId.set(id, list);
+      }
+      list.push(t);
     }
-    if (found) {
-      remap.set(id, found.id);
-      found.tiles = found.tiles.concat(tiles);
-    } else {
-      reps.push({ sector: s, id, tiles: tiles.slice() });
-      remap.set(id, id);
+    for (const id of comp.oldIds) {
+      const tiles = byId.get(id);
+      if (!tiles || !tilesAreValidSectorShape(tiles)) {
+        seedOk = false;
+        break;
+      }
+    }
+    if (seedOk) {
+      seed = comp.oldIds.map((id) => byId.get(id)).filter(Boolean);
+    }
+
+    const parts = partitionTilesIntoMinRectangles(comp.tiles, seed);
+    let oi = 0;
+    for (const chunk of parts) {
+      let id = 0;
+      while (oi < comp.oldIds.length) {
+        const cand = comp.oldIds[oi++];
+        if (!claimed.has(cand)) {
+          id = cand;
+          break;
+        }
+      }
+      if (id) {
+        claimed.add(id);
+        assignments.push({ id, props: cloneSector(comp.props), tiles: chunk });
+      } else {
+        pending.push({ props: cloneSector(comp.props), tiles: chunk });
+      }
     }
   }
 
-  for (let i = 0; i < MAP_CELLS; i++) {
-    const id = level.map[i];
-    if (id && remap.has(id)) level.map[i] = remap.get(id);
+  for (const p of pending) {
+    let id = 0;
+    for (let n = 1; n <= MAX_SECTORS; n++) {
+      if (!claimed.has(n)) {
+        id = n;
+        break;
+      }
+    }
+    if (!id) break;
+    claimed.add(id);
+    assignments.push({ id, props: p.props, tiles: p.tiles });
   }
 
-  for (const id of ids) {
-    if (remap.get(id) !== id) level.sectors.delete(id);
+  level.map.fill(0);
+  level.sectors.clear();
+  for (const a of assignments) {
+    level.sectors.set(a.id, a.props);
+    for (const { tx, ty } of a.tiles) {
+      setCell(level, tx, ty, a.id);
+    }
   }
 }
 
 /**
- * Merge identical sectors and drop unused records.
+ * Repack sectors into valid rectangles and drop unused records.
  * Call after any tile property edit.
  */
 export function rebuildSectors(level) {
   mergeIdenticalSectors(level);
-  for (const id of [...level.sectors.keys()]) {
-    if (sectorCellCount(level, id) === 0) level.sectors.delete(id);
-  }
 }
 
 export function sectorCount(level) {
@@ -694,7 +847,295 @@ export function canAddTileToSector(level, sectorId, tx, ty) {
 }
 
 /**
+ * Partition via row-runs merged vertically when x-range matches (or transposed).
+ * Respects MAX_SECTOR_SPAN. Fast upper bound, not always minimal with holes.
+ * @param {{tx:number,ty:number}[]} tiles
+ * @param {boolean} transpose
+ * @returns {{tx:number,ty:number}[][]}
+ */
+export function stripPartitionTiles(tiles, transpose = false) {
+  if (!tiles.length) return [];
+  const pts = transpose
+    ? tiles.map((t) => ({ tx: t.ty, ty: t.tx }))
+    : tiles.map((t) => ({ tx: t.tx, ty: t.ty }));
+  const keys = new Set(pts.map((t) => tileKey(t.tx, t.ty)));
+  const b = sectorBounds(pts);
+  if (!b) return [];
+
+  /** @type {{ y: number, x0: number, x1: number }[]} */
+  const runs = [];
+  for (let y = b.minY; y <= b.maxY; y++) {
+    let x = b.minX;
+    while (x <= b.maxX) {
+      while (x <= b.maxX && !keys.has(tileKey(x, y))) x++;
+      if (x > b.maxX) break;
+      const x0 = x;
+      while (x <= b.maxX && keys.has(tileKey(x, y))) x++;
+      runs.push({ y, x0, x1: x - 1 });
+    }
+  }
+
+  const used = new Array(runs.length).fill(false);
+  /** @type {{ x0: number, x1: number, y0: number, y1: number }[]} */
+  const rects = [];
+  for (let i = 0; i < runs.length; i++) {
+    if (used[i]) continue;
+    const { y, x0, x1 } = runs[i];
+    let y1 = y;
+    used[i] = true;
+    let growing = true;
+    while (growing) {
+      growing = false;
+      if (y1 - y + 1 >= MAX_SECTOR_SPAN) break;
+      for (let j = i + 1; j < runs.length; j++) {
+        if (used[j]) continue;
+        const r = runs[j];
+        if (r.y === y1 + 1 && r.x0 === x0 && r.x1 === x1) {
+          used[j] = true;
+          y1 = r.y;
+          growing = true;
+          break;
+        }
+      }
+    }
+    for (let xa = x0; xa <= x1; xa += MAX_SECTOR_SPAN) {
+      const xb = Math.min(x1, xa + MAX_SECTOR_SPAN - 1);
+      for (let ya = y; ya <= y1; ya += MAX_SECTOR_SPAN) {
+        const yb = Math.min(y1, ya + MAX_SECTOR_SPAN - 1);
+        rects.push({ x0: xa, x1: xb, y0: ya, y1: yb });
+      }
+    }
+  }
+
+  return rects.map(({ x0, x1, y0, y1 }) => {
+    /** @type {{tx:number,ty:number}[]} */
+    const part = [];
+    for (let ty = y0; ty <= y1; ty++) {
+      for (let tx = x0; tx <= x1; tx++) {
+        part.push(transpose ? { tx: ty, ty: tx } : { tx, ty });
+      }
+    }
+    return part;
+  });
+}
+
+function popcountBigInt(x) {
+  let n = 0;
+  let v = x;
+  while (v) {
+    v &= v - 1n;
+    n++;
+  }
+  return n;
+}
+
+/**
+ * Minimum partition into filled ≤MAX_SECTOR_SPAN rectangles.
+ * Seeds from strip H/V (and optional prior partition), runs a bounded exact-cover
+ * DFS, then randomized greedy restarts — enough to hit ideal counts at map scale.
+ * @param {{tx:number,ty:number}[]} tiles
+ * @param {{tx:number,ty:number}[][]} [seedParts] optional known valid partition
+ * @returns {{tx:number,ty:number}[][]}
+ */
+export function partitionTilesIntoMinRectangles(tiles, seedParts = null) {
+  if (!tiles.length) return [];
+  if (tiles.length === 1) return [[{ tx: tiles[0].tx, ty: tiles[0].ty }]];
+
+  const ordered = tiles.slice().sort((a, b) => a.ty - b.ty || a.tx - b.tx);
+  if (tilesAreValidSectorShape(ordered)) return [ordered.map((t) => ({ ...t }))];
+
+  const n = ordered.length;
+  /** @type {Map<string, number>} */
+  const indexOf = new Map();
+  for (let i = 0; i < n; i++) {
+    indexOf.set(tileKey(ordered[i].tx, ordered[i].ty), i);
+  }
+  const has = (tx, ty) => indexOf.has(tileKey(tx, ty));
+
+  const stripH = stripPartitionTiles(ordered, false);
+  const stripV = stripPartitionTiles(ordered, true);
+  /** @type {{tx:number,ty:number}[][]} */
+  let bestParts = stripH.length <= stripV.length ? stripH : stripV;
+  let best = bestParts.length;
+
+  if (
+    Array.isArray(seedParts) &&
+    seedParts.length > 0 &&
+    seedParts.length < best &&
+    seedParts.every((p) => tilesAreValidSectorShape(p))
+  ) {
+    best = seedParts.length;
+    bestParts = seedParts.map((p) => p.map((t) => ({ ...t })));
+  }
+
+  const areaCap = MAX_SECTOR_SPAN * MAX_SECTOR_SPAN;
+  const minPossible = Math.ceil(n / areaCap);
+  if (best <= minPossible) return bestParts;
+
+  /** @type {{ mask: bigint, area: number }[]} */
+  const cands = [];
+  for (let i = 0; i < n; i++) {
+    const { tx: x0, ty: y0 } = ordered[i];
+    for (let h = 1; h <= MAX_SECTOR_SPAN; h++) {
+      if (!has(x0, y0 + h - 1)) break;
+      let maxW = MAX_SECTOR_SPAN;
+      for (let dy = 0; dy < h; dy++) {
+        let rowW = 0;
+        while (rowW < maxW && has(x0 + rowW, y0 + dy)) rowW++;
+        if (rowW < maxW) maxW = rowW;
+        if (!maxW) break;
+      }
+      for (let w = 1; w <= maxW; w++) {
+        let mask = 0n;
+        for (let dy = 0; dy < h; dy++) {
+          for (let dx = 0; dx < w; dx++) {
+            mask |= 1n << BigInt(indexOf.get(tileKey(x0 + dx, y0 + dy)));
+          }
+        }
+        cands.push({ mask, area: w * h });
+      }
+    }
+  }
+  cands.sort((a, b) => b.area - a.area);
+
+  /** @type {number[][]} */
+  const coverOf = Array.from({ length: n }, () => []);
+  for (let ci = 0; ci < cands.length; ci++) {
+    let m = cands[ci].mask;
+    let bit = 0;
+    while (m) {
+      if (m & 1n) coverOf[bit].push(ci);
+      m >>= 1n;
+      bit++;
+    }
+  }
+
+  function partsFromMasks(masks) {
+    return masks.map((mask) => {
+      /** @type {{tx:number,ty:number}[]} */
+      const part = [];
+      for (let i = 0; i < n; i++) {
+        if (mask & (1n << BigInt(i))) part.push({ ...ordered[i] });
+      }
+      return part;
+    });
+  }
+
+  /** @type {bigint[]} */
+  const chosen = [];
+  const full = (1n << BigInt(n)) - 1n;
+  let nodes = 0;
+  const nodeLimit = 80000;
+
+  function dfs(uncovered, depth) {
+    if (depth >= best) return;
+    if (++nodes > nodeLimit) return;
+    if (uncovered === 0n) {
+      best = depth;
+      bestParts = partsFromMasks(chosen);
+      return;
+    }
+    if (depth + Math.ceil(popcountBigInt(uncovered) / areaCap) >= best) return;
+
+    let bit = -1;
+    let fewest = Infinity;
+    for (let i = 0; i < n; i++) {
+      if ((uncovered & (1n << BigInt(i))) === 0n) continue;
+      let count = 0;
+      for (const ci of coverOf[i]) {
+        if ((cands[ci].mask & uncovered) === cands[ci].mask) count++;
+      }
+      if (count < fewest) {
+        fewest = count;
+        bit = i;
+        if (count <= 1) break;
+      }
+    }
+    if (bit < 0 || fewest === 0) return;
+
+    for (const ci of coverOf[bit]) {
+      const { mask } = cands[ci];
+      if ((mask & uncovered) !== mask) continue;
+      chosen.push(mask);
+      dfs(uncovered ^ mask, depth + 1);
+      chosen.pop();
+      if (best <= minPossible || nodes > nodeLimit) return;
+    }
+  }
+
+  dfs(full, 0);
+  if (best <= minPossible) return bestParts;
+
+  // Randomized greedy restarts — finds covers the bounded DFS misses (e.g. holed regions).
+  const seeded = Array.isArray(seedParts) && seedParts.length > 0;
+  const restartLimit = seeded
+    ? Math.min(400, 40 + n * 4)
+    : n >= 40
+      ? 6000
+      : Math.min(2500, 200 + n * 30);
+  let stagnant = 0;
+  for (let trial = 0; trial < restartLimit; trial++) {
+    let uncovered = full;
+    /** @type {bigint[]} */
+    const masks = [];
+    let failed = false;
+    while (uncovered !== 0n) {
+      if (masks.length + 1 >= best) {
+        failed = true;
+        break;
+      }
+      /** @type {number[]} */
+      const bits = [];
+      for (let i = 0; i < n; i++) {
+        if (uncovered & (1n << BigInt(i))) bits.push(i);
+      }
+      let bit = bits[0];
+      let fewest = Infinity;
+      for (const i of bits) {
+        let count = 0;
+        for (const ci of coverOf[i]) {
+          if ((cands[ci].mask & uncovered) === cands[ci].mask) count++;
+        }
+        const score = count + Math.random() * 0.75;
+        if (score < fewest) {
+          fewest = score;
+          bit = i;
+        }
+      }
+      /** @type {number[]} */
+      const opts = [];
+      for (const ci of coverOf[bit]) {
+        if ((cands[ci].mask & uncovered) === cands[ci].mask) opts.push(ci);
+      }
+      if (!opts.length) {
+        failed = true;
+        break;
+      }
+      opts.sort((a, b) => cands[b].area - cands[a].area);
+      const topN = Math.min(opts.length, 1 + ((Math.random() * 6) | 0));
+      const pick = opts[(Math.random() * topN) | 0];
+      masks.push(cands[pick].mask);
+      uncovered ^= cands[pick].mask;
+    }
+    if (!failed && uncovered === 0n && masks.length < best) {
+      best = masks.length;
+      bestParts = partsFromMasks(masks);
+      stagnant = 0;
+      if (best <= minPossible) break;
+      // Beating strip on a large region is enough — stop burning CPU looking for more.
+      if (!seeded && n >= 40) break;
+    } else if (seeded && ++stagnant > 200) {
+      break;
+    }
+  }
+
+  return bestParts;
+}
+
+/**
  * Partition tiles into filled rectangles each ≤ MAX_SECTOR_SPAN on either axis.
+ * Greedy max-area from top-left; used for splitting a single illegal sector id.
+ * Prefer partitionTilesIntoMinRectangles when minimizing sector count.
  * @param {{tx:number,ty:number}[]} tiles
  * @returns {{tx:number,ty:number}[][]}
  */
@@ -910,9 +1351,7 @@ export function addTile(level, tx, ty, brush = null) {
  * Rebuilds sectors afterward.
  */
 export function applyTilePatch(level, tiles, patch) {
-  for (const { tx, ty } of tiles) {
-    const cur = getTileProps(level, tx, ty);
-    if (!cur) continue;
+  applyPropsBySector(level, groupTilesBySector(level, tiles), (cur) => {
     const next = cloneSector(cur);
     if ('floorHeight' in patch) next.floorHeight = clampNum(patch.floorHeight, 0, 31);
     if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
@@ -922,8 +1361,8 @@ export function applyTilePatch(level, tiles, patch) {
     if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 7);
     if ('floorColor' in patch) next.floorColor = normalizeColor(patch.floorColor);
     if ('ceilingColor' in patch) next.ceilingColor = normalizeColor(patch.ceilingColor);
-    setTileProps(level, tx, ty, next);
-  }
+    return next;
+  });
   rebuildSectors(level);
 }
 
@@ -936,26 +1375,50 @@ export function clearTiles(level, tiles) {
 /**
  * Move tiles by (dtx, dty). Off-map tiles are deleted.
  * Returns the new tile positions that remain on the map.
+ * Allocates at most one sector id per original sector group (not per tile).
  */
 export function moveTiles(level, tiles, dtx, dty) {
   if (!dtx && !dty) return tiles.map((t) => ({ ...t }));
 
+  /** @type {{ tx: number, ty: number, props: ReturnType<typeof defaultSector>, sectorId: number }[]} */
   const entries = [];
   for (const { tx, ty } of tiles) {
+    const sectorId = getCell(level, tx, ty);
+    if (!sectorId || !level.sectors.has(sectorId)) continue;
     const props = getTileProps(level, tx, ty);
     if (!props) continue;
-    entries.push({ tx, ty, props });
+    entries.push({ tx, ty, props, sectorId });
   }
 
   for (const e of entries) clearTile(level, e.tx, e.ty);
 
-  const placed = [];
+  /** @type {Map<number, { props: ReturnType<typeof defaultSector>, dests: {tx:number,ty:number}[] }>} */
+  const groups = new Map();
   for (const e of entries) {
     const ntx = e.tx + dtx;
     const nty = e.ty + dty;
     if (ntx < 0 || ntx >= MAP_SIZE || nty < 0 || nty >= MAP_SIZE) continue;
-    setTileProps(level, ntx, nty, e.props);
-    placed.push({ tx: ntx, ty: nty });
+    let g = groups.get(e.sectorId);
+    if (!g) {
+      g = { props: e.props, dests: [] };
+      groups.set(e.sectorId, g);
+    }
+    g.dests.push({ tx: ntx, ty: nty });
+  }
+
+  const placed = [];
+  for (const [oldId, g] of groups) {
+    // Reuse the old id when clearTile dropped the sector (whole sector moved).
+    let nid = level.sectors.has(oldId) ? 0 : oldId;
+    if (!nid) nid = allocSectorId(level);
+    if (!nid) break;
+    level.sectors.set(nid, cloneSector(g.props));
+    for (const d of g.dests) {
+      const old = getCell(level, d.tx, d.ty);
+      setCell(level, d.tx, d.ty, nid);
+      if (old && old !== nid) dropSectorIfEmpty(level, old);
+      placed.push(d);
+    }
   }
   rebuildSectors(level);
   return placed;
@@ -1059,6 +1522,7 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
     return item;
   }
   if (gameItemCount(level) >= MAX_ITEMS) return null;
+  if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) return null;
   const item = {
     type,
     x: clampWorld(x),

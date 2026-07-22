@@ -50,23 +50,17 @@ render_items
 	sta span_a
 	ldx #0
 .ri_col
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
+	lda level_item_type,x
 	cmp #ITEM_TYPE_EMPTY
 	beq .ri_nx
 	cmp #ITEM_TYPE_SPAWN
 	beq .ri_nx
-	iny
-	lda level_items,y
+	lda level_item_x,x
 	lsr
 	lsr
 	lsr
 	sta mapx
-	iny
-	lda level_items,y
+	lda level_item_y,x
 	lsr
 	lsr
 	lsr
@@ -129,17 +123,11 @@ render_items
 ; Leaves fracy=dx, fracx=dy (signed 8-bit) for item_calc_screen
 ; ---------------------------------------------------------------------------
 item_calc_depth
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
+	lda level_item_type,x
 	sta wall_col
-	iny
-	lda level_items,y
+	lda level_item_x,x
 	sta tmp0			; ix
-	iny
-	lda level_items,y
+	lda level_item_y,x
 	sta tmp1			; iy
 	lda tmp0			; ix
 	sta tmp2
@@ -406,20 +394,14 @@ item_draw_one
 	lda #$ff
 	sta aim_item
 	ldx item_slot
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
+	lda level_item_type,x
 	sta wall_col
-	iny
-	lda level_items,y
+	lda level_item_x,x
 	lsr
 	lsr
 	lsr
 	sta mapx
-	iny
-	lda level_items,y
+	lda level_item_y,x
 	lsr
 	lsr
 	lsr

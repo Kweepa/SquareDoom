@@ -280,7 +280,7 @@ ITEM_SORT_SLOT	= ITEM_SORT_DEPTH + 48
 ITEM_SORT_END	= ITEM_SORT_SLOT + 48
 
 ; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last = missile)
-MAX_MOBJ		= 21
+MAX_MOBJ		= 32
 MOBJ_MISSILE	= MAX_MOBJ - 1
 ITEM_MISSILE	= 47			; reserved last item slot (= MAX_ITEMS-1)
 

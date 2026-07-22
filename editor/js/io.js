@@ -6,9 +6,8 @@
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
- *   4. Items: 48 * 4 bytes: typeId, x, y, skillBits
- *      skillBits: bit0=easy, bit1=normal, bit2=hard (non-switch items)
- *      switches: typeId = switch_* action; byte3 = target sector id (from targetTag)
+ *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
+ *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard) or switch target sector
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
@@ -31,7 +30,10 @@ import {
   LEVEL_NAMES,
   MAP_CELLS,
   MAX_ITEMS,
+  MAX_ENEMIES,
   MAX_SECTORS,
+  ENEMY_TYPES,
+  enemyCount,
   colorIndex,
   clampLevelName,
   createEmptyLevel,
@@ -266,21 +268,26 @@ export function cookLevel(level) {
   const mapBytes = new Uint8Array(level.map);
 
   const gameItems = level.items.filter((it) => isGameItem(it.type));
-  const itemTable = new Uint8Array(MAX_ITEMS * ITEM_BYTES);
+  const nEnemies = enemyCount(level);
+  if (nEnemies > MAX_ENEMIES) {
+    errors.push(`Too many enemies (${nEnemies}/${MAX_ENEMIES})`);
+  }
+
+  const typesArr = new Uint8Array(MAX_ITEMS);
+  const xs = new Uint8Array(MAX_ITEMS);
+  const ys = new Uint8Array(MAX_ITEMS);
+  const metas = new Uint8Array(MAX_ITEMS);
+  typesArr.fill(EMPTY_ITEM_TYPE);
   for (let i = 0; i < MAX_ITEMS; i++) {
-    const off = i * ITEM_BYTES;
     const it = gameItems[i];
-    if (!it) {
-      itemTable[off] = EMPTY_ITEM_TYPE;
-      continue;
-    }
+    if (!it) continue;
     if (isSwitch(it)) {
       const sw = coerceSwitchItem(it);
       const cookType = switchCookType(sw.switchAction);
       const typeId = ITEM_TYPES.indexOf(cookType);
-      itemTable[off] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-      itemTable[off + 1] = sw.x & 0xff;
-      itemTable[off + 2] = sw.y & 0xff;
+      typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
+      xs[i] = sw.x & 0xff;
+      ys[i] = sw.y & 0xff;
       const tag = (sw.targetTag || '').trim();
       let targetId = 0;
       if (!tag) {
@@ -291,19 +298,24 @@ export function cookLevel(level) {
           warnings.push(`Switch at (${sw.x},${sw.y}): target tag "${tag}" not found`);
         }
       }
-      itemTable[off + 3] = targetId & 0xff;
+      metas[i] = targetId & 0xff;
       continue;
     }
     const typeId = ITEM_TYPES.indexOf(it.type);
-    itemTable[off] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-    itemTable[off + 1] = it.x & 0xff;
-    itemTable[off + 2] = it.y & 0xff;
+    typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
+    xs[i] = it.x & 0xff;
+    ys[i] = it.y & 0xff;
     let bits = 0;
     if (it.skills.easy) bits |= 1;
     if (it.skills.normal) bits |= 2;
     if (it.skills.hard) bits |= 4;
-    itemTable[off + 3] = bits;
+    metas[i] = bits;
   }
+  const itemTable = new Uint8Array(MAX_ITEMS * ITEM_BYTES);
+  itemTable.set(typesArr, 0);
+  itemTable.set(xs, MAX_ITEMS);
+  itemTable.set(ys, MAX_ITEMS * 2);
+  itemTable.set(metas, MAX_ITEMS * 3);
 
   const spawn = level.spawn ?? defaultSpawn();
   const spawnBytes = new Uint8Array([

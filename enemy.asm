@@ -56,6 +56,8 @@ ITEM_TYPE_ENEMY_LAST = 4
 ITEM_TYPE_SOLDIER = 1
 ITEM_TYPE_IMP = 2
 ITEM_TYPE_FIREBALL = 23
+ITEM_TYPE_POSCORPSE = 24
+ITEM_TYPE_IMPCORPSE = 25
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -189,12 +191,8 @@ enemy_reset
 	cpx #48				; MAX_ITEMS (literal — defined later in root)
 	bne .er_i
 	; Reserve missile item slot
-	lda #ITEM_MISSILE
-	asl
-	asl
-	tay
 	lda #ITEM_TYPE_EMPTY_E
-	sta level_items,y
+	sta level_item_type + ITEM_MISSILE
 	lda #0
 	sta anim_frame
 	sta new_chase_dir_frame
@@ -208,11 +206,7 @@ enemy_alloc_all
 	jsr enemy_reset
 	ldx #0
 .eaa_lp
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
+	lda level_item_type,x
 	cmp #ITEM_TYPE_ENEMY_FIRST
 	bcc .eaa_nx
 	cmp #ITEM_TYPE_ENEMY_LAST+1
@@ -310,11 +304,8 @@ alloc_mobj
 	lda #2
 	sta MOBJ_REACT,x
 	; info = typeId - 1
-	lda alloc_item_slot
-	asl
-	asl
-	tay
-	lda level_items,y
+	ldy alloc_item_slot
+	lda level_item_type,y
 	sec
 	sbc #1
 	sta MOBJ_INFO,x
@@ -337,39 +328,26 @@ alloc_mobj
 ; ---------------------------------------------------------------------------
 ; → A = type at enemy_obj
 obj_type
-	lda enemy_obj
-	asl
-	asl
-	tay
-	lda level_items,y
+	ldx enemy_obj
+	lda level_item_type,x
 	rts
 
 ; → tmp0=x_h tmp1=y_h
 obj_xy
-	lda enemy_obj
-	asl
-	asl
-	tay
-	iny
-	lda level_items,y
+	ldx enemy_obj
+	lda level_item_x,x
 	sta tmp0
-	iny
-	lda level_items,y
+	lda level_item_y,x
 	sta tmp1
 	rts
 
 ; write tmp0/tmp1 as x_h/y_h
 obj_set_xy
-	lda enemy_obj
-	asl
-	asl
-	tay
-	iny
+	ldx enemy_obj
 	lda tmp0
-	sta level_items,y
-	iny
+	sta level_item_x,x
 	lda tmp1
-	sta level_items,y
+	sta level_item_y,x
 	rts
 
 ; → A = sector id (0 if void)
@@ -1294,18 +1272,12 @@ a_missile
 	sta missile_momz_h
 	; spawn at enemy pos
 	jsr obj_xy
-	lda #ITEM_MISSILE
-	asl
-	asl
-	tay
 	lda #ITEM_TYPE_FIREBALL
-	sta level_items,y
-	iny
+	sta level_item_type + ITEM_MISSILE
 	lda tmp0
-	sta level_items,y
-	iny
+	sta level_item_x + ITEM_MISSILE
 	lda tmp1
-	sta level_items,y
+	sta level_item_y + ITEM_MISSILE
 	ldx #MOBJ_MISSILE
 	lda #1
 	sta MOBJ_ALLOC,x
@@ -1381,13 +1353,24 @@ a_fall
 	dec MOBJ_MOVECNT,x
 	lda MOBJ_MOVECNT,x
 	bne .af_done
-	; corpse tex on this mobj's item; unlink every FOR_ITEM → this mobj
+	; pos/imp → corpse item type; demon/caco → ITEM_CORPSE_TEX stub
+	lda MOBJ_INFO,x
+	cmp #2
+	bcs .af_stub
+	ldy MOBJ_OBJ,x
+	clc
+	adc #ITEM_TYPE_POSCORPSE	; 0→24, 1→25
+	sta level_item_type,y
+	jmp .af_free
+.af_stub
 	lda MOBJ_STATE,x
 	tay
 	lda state_texture,y
 	and #$bf				; clear TEX_ANIMATE
 	ldy MOBJ_OBJ,x
 	sta ITEM_CORPSE_TEX,y
+.af_free
+	ldx enemy_actor
 	txa				; mobj idx
 	jsr mobj_unlink
 	ldx enemy_actor
@@ -1469,12 +1452,8 @@ a_fly
 	adc tmp0
 	jsr damage_player
 .afy_die
-	lda #ITEM_MISSILE
-	asl
-	asl
-	tay
 	lda #ITEM_TYPE_EMPTY_E
-	sta level_items,y
+	sta level_item_type + ITEM_MISSILE
 	lda #$ff
 	sta MOBJ_FOR_ITEM + ITEM_MISSILE
 	ldx #MOBJ_MISSILE
@@ -1538,24 +1517,20 @@ enemy_damage
 
 ; ---------------------------------------------------------------------------
 ; enemy_get_texture — X = item slot → A = tex (bit6=animate), C=1 if 16×32
+; Live enemies (types 1–4) use enemy_sprites; pos/imp corpses are item types
+; 24–25 (item atlas). Demon/caco still use ITEM_CORPSE_TEX until art exists.
 ; ---------------------------------------------------------------------------
-; X = item slot → A = tex byte (bit6=animate); C=1 use 16×32 enemy bank
 enemy_get_texture
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
-	cmp #ITEM_TYPE_SOLDIER
-	beq .egt_enemy
-	cmp #ITEM_TYPE_IMP
-	bne .egt_item8
-.egt_enemy
+	lda level_item_type,x
+	cmp #ITEM_TYPE_ENEMY_FIRST
+	bcc .egt_item8
+	cmp #ITEM_TYPE_ENEMY_LAST+1
+	bcs .egt_item8
 	lda ITEM_CORPSE_TEX,x
 	cmp #$ff
 	beq .egt_live
 	sec
-	rts				; A = corpse tex, C=1
+	rts				; A = corpse tex stub (demon/caco)
 .egt_live
 	jsr mobj_for_slot		; X = item slot
 	bcs .egt_item8

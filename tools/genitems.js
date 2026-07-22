@@ -21,6 +21,7 @@ const ITEM_TYPES = [
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
   'fireball',
+  'poscorpse', 'impcorpse',
 ];
 
 /** No item atlas: spawn is never drawn; enemies use enemy_sprites mips. */
@@ -243,9 +244,11 @@ for (const type of ITEM_TYPES) {
   // Switch actions share one atlas: itemgraphics/switch.png
   if (type.startsWith('switch_')) {
     path = join(gfxDir, 'switch.png');
+  } else if (!existsSync(path)) {
+    path = join(gfxDir, 'multicolour', `${type}.png`);
   }
   if (!existsSync(path)) {
-    missingMips.push(`${type}: missing file ${path}`);
+    missingMips.push(`${type}: missing file ${type}.png (itemgraphics/ or multicolour/)`);
     continue;
   }
   const { width, height, pixels } = decodePngRgb(readFileSync(path));

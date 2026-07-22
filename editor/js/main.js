@@ -4,6 +4,9 @@ import {
   SPAWN_TYPE,
   SWITCH_TYPE,
   MAP_SIZE,
+  MAX_ITEMS,
+  MAX_ENEMIES,
+  ENEMY_TYPES,
   WORLD_PER_TILE,
   WORLD_MAX,
   activeLevel,
@@ -13,9 +16,10 @@ import {
   clearTiles,
   createEpisode,
   defaultSkills,
+  enemyCount,
+  gameItemCount,
   defaultSwitchAction,
   findPreviewCamera,
-  gameItemCount,
   getCell,
   getTileProps,
   isCamera,
@@ -35,7 +39,6 @@ import {
   clampWorld,
   clampLevelName,
   itemsInTiles,
-  MAX_ITEMS,
   validateVoidBorder,
 } from './model.js?v=29';
 import { MapView } from './mapView.js?v=25';
@@ -537,6 +540,10 @@ function placeItem(type, wx, wy) {
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
   if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_ITEMS) {
     setStatus(`Max ${MAX_ITEMS} items`, true);
+    return;
+  }
+  if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) {
+    setStatus(`Max ${MAX_ENEMIES} enemies (mobj limit)`, true);
     return;
   }
   pushUndo();

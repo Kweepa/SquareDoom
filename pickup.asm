@@ -33,21 +33,15 @@ ITEM_TYPE_YELLOWCARD = 17
 try_pickups
 	ldx #0
 .tp_loop
-	txa
-	asl
-	asl
-	tay
-	lda level_items,y
+	lda level_item_type,x
 	cmp #ITEM_TYPE_HEALTH
 	bcc .tp_next
 	cmp #ITEM_TYPE_YELLOWCARD + 1
 	bcs .tp_next
 	sta tmp4			; typeId
-	iny
-	lda level_items,y
+	lda level_item_x,x
 	sta tmp0			; item x
-	iny
-	lda level_items,y
+	lda level_item_y,x
 	sta tmp1			; item y
 
 	; |ix - playerx_h|
@@ -78,12 +72,9 @@ try_pickups
 	jsr pickup_apply
 	bcc .tp_done			; not taken
 	; consume item
-	lda tmp5
-	asl
-	asl
-	tay
+	ldx tmp5
 	lda #ITEM_TYPE_EMPTY
-	sta level_items,y
+	sta level_item_type,x
 .tp_done
 	rts
 .tp_next
