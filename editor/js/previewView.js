@@ -60,6 +60,7 @@ export class PreviewView {
    *   getCamera: () => {x:number,y:number,angle:number}|null,
    *   onRotate: (angle: number) => void,
    *   onMove: (x: number, y: number) => void,
+   *   onEditEnd?: () => void,
    *   images: Record<string, HTMLImageElement>,
    *   getRaycasts?: () => number,
    *   getColumnHeight?: () => number,
@@ -104,6 +105,7 @@ export class PreviewView {
     }
 
     if (e.type === 'pointerup' || e.type === 'lostpointercapture') {
+      if (this.dragging) this.opts.onEditEnd?.();
       this.dragging = false;
       return;
     }

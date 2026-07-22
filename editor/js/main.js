@@ -43,7 +43,7 @@ import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
 import { TileEditor } from './tileEditor.js?v=27';
 import { ItemEditor } from './itemEditor.js?v=26';
-import { PreviewView } from './previewView.js?v=28';
+import { PreviewView } from './previewView.js?v=29';
 import { initShiftControls } from './shiftControls.js?v=24';
 import {
   allowStoredEpisodeFile,
@@ -52,19 +52,31 @@ import {
   episodeFileName,
   getStoredEpisodeHandle,
   hasEpisodeFileHandle,
+  levelFromJSON,
+  levelToJSON,
   loadEpisodeJSON,
   saveEpisodeJSON,
   tryRestoreEpisodeFile,
-} from './io.js?v=25';
+} from './io.js?v=26';
 
 const statusEl = document.getElementById('status');
 const titleEl = document.querySelector('.toolbar h1');
+const btnUndo = document.getElementById('btn-undo');
+const btnRedo = document.getElementById('btn-redo');
 const AUTOSAVE_MS = 10000;
 const EPISODE_FILE = 'episode1.json';
+const UNDO_LIMIT = 30;
 
 let dirty = false;
 let autosaveTimer = null;
 let saving = false;
+
+/** @type {string[]} JSON snapshots of the active level (pre-edit). */
+let undoStack = [];
+/** @type {string[]} */
+let redoStack = [];
+/** When true, further pushUndo calls are ignored (one entry per drag gesture). */
+let undoGestureActive = false;
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || '';
@@ -75,6 +87,69 @@ function updateDirtyIndicator() {
   const star = dirty ? '*' : '';
   if (titleEl) titleEl.textContent = `SquareDoom${star}`;
   document.title = dirty ? 'SquareDoom *' : 'SquareDoom Map Editor';
+}
+
+function updateUndoButtons() {
+  if (btnUndo) btnUndo.disabled = undoStack.length === 0;
+  if (btnRedo) btnRedo.disabled = redoStack.length === 0;
+}
+
+function levelSnapshot() {
+  return JSON.stringify(levelToJSON(activeLevel(episode)));
+}
+
+/** Push current level JSON before a mutation. No-op during an open gesture. */
+function pushUndo() {
+  if (undoGestureActive) return;
+  undoStack.push(levelSnapshot());
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoButtons();
+}
+
+/** Push once for a multi-step gesture (item drag, camera walk). */
+function beginUndoGesture() {
+  if (undoGestureActive) return;
+  pushUndo();
+  undoGestureActive = true;
+}
+
+function endUndoGesture() {
+  undoGestureActive = false;
+}
+
+function clearUndoHistory() {
+  undoStack.length = 0;
+  redoStack.length = 0;
+  undoGestureActive = false;
+  updateUndoButtons();
+}
+
+function restoreLevelFromSnapshot(jsonStr) {
+  episode.levels[episode.activeLevel] = levelFromJSON(JSON.parse(jsonStr));
+  clearSelection();
+  markDirty();
+  refreshAll();
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  endUndoGesture();
+  redoStack.push(levelSnapshot());
+  if (redoStack.length > UNDO_LIMIT) redoStack.shift();
+  restoreLevelFromSnapshot(undoStack.pop());
+  setStatus('Undo');
+  updateUndoButtons();
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  endUndoGesture();
+  undoStack.push(levelSnapshot());
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  restoreLevelFromSnapshot(redoStack.pop());
+  setStatus('Redo');
+  updateUndoButtons();
 }
 
 function markDirty() {
@@ -194,7 +269,9 @@ const images = await loadImages();
 const levelList = new LevelList(document.getElementById('level-list'), {
   getActive: () => episode.activeLevel,
   onSelect: (name) => {
+    if (name === episode.activeLevel) return;
     episode.activeLevel = name;
+    clearUndoHistory();
     clearSelection();
     refreshAll();
   },
@@ -223,6 +300,7 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
     const level = activeLevel(episode);
     const next = clampLevelName(name);
     if (level.name === next) return;
+    pushUndo();
     level.name = next;
     markDirty();
     setStatus(next ? `Level name: ${next}` : 'Level name cleared');
@@ -231,6 +309,7 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
   onChange: (patch) => {
     const level = activeLevel(episode);
     const tiles = [...selection.tiles].map(parseTileKey);
+    pushUndo();
     applyTilePatch(level, tiles, patch);
     markDirty();
     setStatus(`Updated ${tiles.length} tile(s) · ${sectorCount(level)} sectors`);
@@ -248,6 +327,7 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
   getItems: () => [...selection.items],
   onChange: (patch) => {
     const items = [...selection.items];
+    pushUndo();
     for (const item of items) {
       if ('type' in patch) {
         if (isSpawn(item)) continue; // spawn type is fixed
@@ -346,6 +426,7 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
     const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
+    beginUndoGesture();
     cam.angle = angle;
     markDirty();
     if (selection.items.has(cam)) itemEditor.render();
@@ -356,6 +437,7 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
     const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
+    beginUndoGesture();
     // Keep fractional world coords while walking; |0 truncate made forward stick.
     cam.x = Math.max(0, Math.min(WORLD_MAX, x));
     cam.y = Math.max(0, Math.min(WORLD_MAX, y));
@@ -363,6 +445,9 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     if (selection.items.has(cam)) itemEditor.render();
     mapView.draw();
     previewView.draw();
+  },
+  onEditEnd: () => {
+    endUndoGesture();
   },
 });
 
@@ -454,8 +539,11 @@ function placeItem(type, wx, wy) {
     setStatus(`Max ${MAX_ITEMS} items`, true);
     return;
   }
+  pushUndo();
   const item = addItem(level, type, wx, wy);
   if (!item) {
+    undoStack.pop();
+    updateUndoButtons();
     setStatus('Could not place item', true);
     return;
   }
@@ -475,6 +563,7 @@ function doDeleteItems() {
     setStatus('Spawn cannot be deleted', true);
     return;
   }
+  pushUndo();
   for (const it of toDelete) removeItem(level, it);
   selection.items = new Set([...selection.items].filter((it) => isSpawn(it)));
   markDirty();
@@ -489,6 +578,7 @@ function doClearTiles() {
   }
   const level = activeLevel(episode);
   const tiles = selectedTileList();
+  pushUndo();
   clearTiles(level, tiles);
   selection.tiles.clear();
   selection.primaryTile = null;
@@ -520,6 +610,7 @@ function doShift(dx, dy) {
   const level = activeLevel(episode);
   const dir = dy < 0 ? 'up' : dy > 0 ? 'down' : dx < 0 ? 'left' : 'right';
 
+  pushUndo();
   if (selection.tiles.size > 0) {
     const tiles = selectedTileList();
     const occupied = tiles.filter(({ tx, ty }) => level.map[ty * MAP_SIZE + tx] !== 0);
@@ -579,6 +670,7 @@ function doHeightNudge(delta) {
     setStatus(selection.tiles.size ? 'No occupied tiles in selection' : 'Map is empty', true);
     return;
   }
+  pushUndo();
   nudgeTileHeights(level, tiles, delta);
   markDirty();
   setStatus(
@@ -691,6 +783,7 @@ function handlePointer(e, info) {
         const dx = info.wx - drag.lastWx;
         const dy = info.wy - drag.lastWy;
         if (dx || dy) {
+          beginUndoGesture();
           const kept = moveItemsBy(level, [...selection.items], dx, dy);
           selection.items = new Set(kept);
           drag.lastWx = info.wx;
@@ -748,6 +841,7 @@ function handlePointer(e, info) {
         return;
       }
 
+      endUndoGesture();
       drag = null;
       const n = sectorCount(level);
       if (selection.tiles.size || selection.items.size) {
@@ -770,7 +864,10 @@ function handlePointer(e, info) {
   if (info.shift && (!info.sectorId || info.alt)) {
     selection.items.clear();
     const brush = brushProps();
+    pushUndo();
     if (!addTile(level, info.tx, info.ty, brush)) {
+      undoStack.pop();
+      updateUndoButtons();
       setStatus('No free sector ids', true);
       return;
     }
@@ -847,6 +944,20 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    const key = e.key.toLowerCase();
+    if (key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if (key === 'y' || (key === 'z' && e.shiftKey)) {
+      e.preventDefault();
+      redo();
+      return;
+    }
+  }
+
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
     if (!selection.tiles.size && !selection.primaryTile) return;
     e.preventDefault();
@@ -862,6 +973,14 @@ document.addEventListener('keydown', (e) => {
   else if (selection.tiles.size) doClearTiles();
 });
 
+document.getElementById('btn-undo').addEventListener('click', () => {
+  undo();
+});
+
+document.getElementById('btn-redo').addEventListener('click', () => {
+  redo();
+});
+
 document.getElementById('btn-save').addEventListener('click', async () => {
   await saveNow('Saved');
 });
@@ -871,6 +990,7 @@ function applyLoadedEpisode(loaded) {
   if (loaded.activeLevel && episode.levels[loaded.activeLevel]) {
     episode.activeLevel = loaded.activeLevel;
   }
+  clearUndoHistory();
   clearSelection();
   /** @type {string[]} */
   const shapeNotes = [];

@@ -87,6 +87,8 @@ def main() -> None:
   <header class="toolbar">
     <h1>SquareDoom</h1>
     <div class="toolbar-actions">
+      <button type="button" id="btn-undo" title="Ctrl+Z" disabled>Undo</button>
+      <button type="button" id="btn-redo" title="Ctrl+Y" disabled>Redo</button>
       <button type="button" id="btn-save">Save</button>
       <button type="button" id="btn-load">Load</button>
       <button type="button" id="btn-cook">Cook</button>
@@ -109,7 +111,7 @@ def main() -> None:
         <canvas id="map-canvas" tabindex="0"></canvas>
       </div>
       <p class="hint">
-        Drag box select · Ctrl+drag add · Click select · Shift+click empty · Shift+Alt overwrite · Del clears
+        Drag box select · Ctrl+drag add · Click select · Shift+click empty · Shift+Alt overwrite · Del clears · Ctrl+Z/Y undo/redo
       </p>
     </section>
 
