@@ -80,7 +80,7 @@ build_sec_flatgrp
 	bne .bf_go
 	rts
 .bf_go
-	; Mark mutables: DOOR/ELEVATOR/STAIRS types and every SEC_TARGET → SEC_SEEN[$ff]
+	; Mark mutables: door/floor/stairs actions and every SEC_TARGET → SEC_SEEN[$ff]
 	ldx #1
 .bf_mark
 	lda SEC_TARGET,x
@@ -89,16 +89,24 @@ build_sec_flatgrp
 	lda #$ff
 	sta SEC_SEEN,y
 .bf_mdoor
-	lda SEC_TYPE,x
-	cmp #DOOR_TYPE
+	jsr sec_action
+	cmp #ACT_OPEN_DOOR
 	beq .bf_mut
-	cmp #ELEVATOR_LOWER_TYPE
+	cmp #ACT_OPEN_DOOR_FOREVER
 	beq .bf_mut
-	cmp #ELEVATOR_RAISE_TYPE
+	cmp #ACT_OPEN_DOOR_10S
 	beq .bf_mut
-	cmp #START_STAIRS_TYPE
+	cmp #ACT_OPEN_DOOR_30S
 	beq .bf_mut
-	cmp #CONTINUE_STAIRS_TYPE
+	cmp #ACT_LOWER_FLOOR
+	beq .bf_mut
+	cmp #ACT_LOWER_FLOOR_FOREVER
+	beq .bf_mut
+	cmp #ACT_RAISE_FLOOR
+	beq .bf_mut
+	cmp #ACT_RAISE_STAIRS
+	beq .bf_mut
+	cmp #ACT_CONTINUE_STAIRS
 	beq .bf_mut
 	jmp .bf_mnext
 .bf_mut

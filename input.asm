@@ -558,8 +558,8 @@ tile_blocked
 	cmp #0
 	beq .tb_yes
 	tax
-	lda SEC_TYPE,x
-	cmp #WINDOW_TYPE
+	jsr sec_action
+	cmp #ACT_WINDOW
 	beq .tb_yes			; window: bodies stop, shots pass
 	lda SEC_CEIL,x
 	sec

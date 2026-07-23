@@ -1,13 +1,15 @@
 /**
  * Cooked binary layout (no header), per level — structure-of-arrays:
  *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
- *      order: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
+ *      order: floor, ceil, special (packed trigger|oneshot|action), targetSector,
+ *      floorColor, ceilingColor, brightness
+ *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
  *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
- *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard) or switch target sector
+ *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
@@ -22,11 +24,15 @@ import {
   CAMERA_TYPE,
   SPAWN_TYPE,
   SWITCH_TYPE,
-  DOOR_SECTOR_TYPE,
+  WORLD_PER_TILE,
   isGameItem,
   isSwitch,
   coerceSwitchItem,
-  switchCookType,
+  packSectorSpecial,
+  migrateLegacySectorType,
+  migrateSwitchAction,
+  normalizeTrigger,
+  normalizeAction,
   LEVEL_NAMES,
   MAP_CELLS,
   MAX_ITEMS,
@@ -49,6 +55,7 @@ import {
   byteToAngle,
   normalizeAngle,
   setSpawn,
+  getCell,
 } from './model.js';
 
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
@@ -63,7 +70,9 @@ export function levelToJSON(level) {
     sectorObj[String(id)] = {
       floorHeight: s.floorHeight,
       ceilingHeight: s.ceilingHeight,
-      sectorType: s.sectorType ?? 0,
+      trigger: normalizeTrigger(s.trigger),
+      singleShot: !!s.singleShot,
+      action: normalizeAction(s.action),
       tag: s.tag || '',
       targetTag: s.targetTag || '',
       floorColor: s.floorColor,
@@ -91,13 +100,7 @@ export function levelToJSON(level) {
       }
       if (isSwitch(it)) {
         const sw = coerceSwitchItem(it);
-        return {
-          type: SWITCH_TYPE,
-          x: sw.x,
-          y: sw.y,
-          switchAction: sw.switchAction,
-          targetTag: sw.targetTag,
-        };
+        return { type: SWITCH_TYPE, x: sw.x, y: sw.y };
       }
       return { ...base, skills: { ...it.skills } };
     }),
@@ -112,15 +115,27 @@ export function levelFromJSON(data) {
       const id = Number(key);
       if (id < 1 || id > MAX_SECTORS) continue;
       const d = defaultSector();
-      let sectorType = clamp(s.sectorType ?? d.sectorType, 0, 255);
-      // Migrate legacy door checkbox → Door sector type
-      if (s.door && sectorType === 0) sectorType = DOOR_SECTOR_TYPE;
+      const targetTag = String(s.targetTag ?? d.targetTag ?? '').trim();
+      let trigger = s.trigger;
+      let singleShot = s.singleShot;
+      let action = s.action;
+      // Migrate legacy sectorType / door checkbox
+      if (trigger == null && action == null && (s.sectorType != null || s.door)) {
+        let sectorType = clamp(s.sectorType ?? 0, 0, 255);
+        if (s.door && sectorType === 0) sectorType = 18;
+        const mig = migrateLegacySectorType(sectorType, targetTag);
+        trigger = mig.trigger;
+        singleShot = mig.singleShot;
+        action = mig.action;
+      }
       level.sectors.set(id, {
         floorHeight: clamp(s.floorHeight ?? d.floorHeight, 0, 31),
         ceilingHeight: clamp(s.ceilingHeight ?? d.ceilingHeight, 0, 31),
-        sectorType,
+        trigger: normalizeTrigger(trigger ?? d.trigger),
+        singleShot: !!(singleShot ?? d.singleShot),
+        action: normalizeAction(action ?? d.action),
         tag: String(s.tag ?? d.tag ?? '').trim(),
-        targetTag: String(s.targetTag ?? d.targetTag ?? '').trim(),
+        targetTag,
         floorColor: normalizeColor(s.floorColor, d.floorColor),
         ceilingColor: normalizeColor(s.ceilingColor, d.ceilingColor),
         brightness: clamp(s.brightness ?? d.brightness, 0, 16),
@@ -135,6 +150,8 @@ export function levelFromJSON(data) {
 
   // Spawn: dedicated field, or migrate legacy item type "spawn"
   let legacySpawn = null;
+  /** @type {{ x: number, y: number, switchAction?: string, targetTag?: string }[]} */
+  const legacySwitches = [];
   if (Array.isArray(data.items)) {
     for (const it of data.items) {
       if (it.type === CAMERA_TYPE) {
@@ -154,6 +171,14 @@ export function levelFromJSON(data) {
       if (asSwitch) {
         if (gameItemCount(level) >= MAX_ITEMS) break;
         level.items.push(asSwitch);
+        if (it.switchAction || it.targetTag) {
+          legacySwitches.push({
+            x: asSwitch.x,
+            y: asSwitch.y,
+            switchAction: it.switchAction || it.type,
+            targetTag: it.targetTag,
+          });
+        }
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
@@ -169,6 +194,23 @@ export function levelFromJSON(data) {
         },
       });
     }
+  }
+
+  // Apply legacy switch actions onto the sector under each switch
+  for (const sw of legacySwitches) {
+    const mig = migrateSwitchAction(sw.switchAction);
+    if (!mig) continue;
+    const tx = Math.floor(sw.x / WORLD_PER_TILE);
+    const ty = Math.floor(sw.y / WORLD_PER_TILE);
+    const sid = getCell(level, tx, ty);
+    if (!sid) continue;
+    const sec = level.sectors.get(sid);
+    if (!sec) continue;
+    sec.trigger = mig.trigger;
+    sec.singleShot = mig.singleShot;
+    sec.action = mig.action;
+    const tag = String(sw.targetTag ?? '').trim();
+    if (tag) sec.targetTag = tag;
   }
 
   if (data.spawn) {
@@ -248,7 +290,7 @@ export function cookLevel(level) {
   for (let id = 1; id <= MAX_SECTORS; id++) {
     const s = level.sectors.get(id);
     if (!s) continue;
-    const type = (s.sectorType ?? 0) & 0xff;
+    const type = packSectorSpecial(s.trigger, s.singleShot, s.action);
     let targetId = 0;
     const tag = (s.targetTag || '').trim();
     if (tag) {
@@ -284,22 +326,11 @@ export function cookLevel(level) {
     if (!it) continue;
     if (isSwitch(it)) {
       const sw = coerceSwitchItem(it);
-      const cookType = switchCookType(sw.switchAction);
-      const typeId = ITEM_TYPES.indexOf(cookType);
+      const typeId = ITEM_TYPES.indexOf(SWITCH_TYPE);
       typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
       xs[i] = sw.x & 0xff;
       ys[i] = sw.y & 0xff;
-      const tag = (sw.targetTag || '').trim();
-      let targetId = 0;
-      if (!tag) {
-        warnings.push(`Switch at (${sw.x},${sw.y}): empty target tag`);
-      } else {
-        targetId = findSectorIdByTag(level, tag);
-        if (!targetId) {
-          warnings.push(`Switch at (${sw.x},${sw.y}): target tag "${tag}" not found`);
-        }
-      }
-      metas[i] = targetId & 0xff;
+      metas[i] = 0;
       continue;
     }
     const typeId = ITEM_TYPES.indexOf(it.type);

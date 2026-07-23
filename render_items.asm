@@ -14,7 +14,7 @@ ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
-ITEM_TYPE_FIREBALL = 23
+ITEM_TYPE_FIREBALL = 21
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):

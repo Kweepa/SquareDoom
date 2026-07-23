@@ -66,7 +66,6 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "pickup.asm"
 !source "weapon.asm"
 !source "titlemenus.asm"
-!source "mapscreen.asm"
 !source "loader.asm"
 ; P + clip moved out of low (which is nearly full); py_tab needs page alignment
 !source "render_project_y.asm"
@@ -98,13 +97,32 @@ MAX_SECTORS = 255
 MAX_ITEMS = 48
 ITEM_BYTES = 4			; SoA: 4 arrays × MAX_ITEMS
 SPAWN_BYTES = 3
-DOOR_TYPE = 18
-WINDOW_TYPE = 19			; walk-blocked; hitscan/missiles pass
-ELEVATOR_LOWER_TYPE = 20
-ELEVATOR_RAISE_TYPE = 21
-START_STAIRS_TYPE = 22
-CONTINUE_STAIRS_TYPE = 23
+; SEC_TYPE packed: action[4:0] | trigger[6:5] | single_shot[7]
+ACT_MASK = $1f
+TRIG_MASK = $60
+TRIG_SHIFT = 5
+TRIG_NONE = 0
+TRIG_WALK = 1
+TRIG_USE = 2
+TRIG_SWITCH = 3
+SHOT_BIT = $80			; bmi after lda SEC_TYPE,x
+
+ACT_NONE = 0
+ACT_WINDOW = 1			; walk-blocked; hitscan/missiles pass
+ACT_OPEN_DOOR = 2		; raise ceil +5, reclose 5s
+ACT_OPEN_DOOR_FOREVER = 3
+ACT_OPEN_DOOR_30S = 4
+ACT_LOWER_FLOOR = 5		; min adjacent + return timer
+ACT_RAISE_FLOOR = 6		; max adjacent, permanent
+ACT_RAISE_STAIRS = 7
+ACT_CONTINUE_STAIRS = 8
+ACT_END_LEVEL = 9
+ACT_LOWER_FLOOR_FOREVER = 10	; min adjacent, permanent
+ACT_OPEN_DOOR_10S = 11		; raise ceil +5, reclose 10s
+
 SEC_TABLE_SIZE = 256
+
+; level_item_meta: skill bits (switches use meta=0)
 
 ; Attribute tables (index = sector id; [0] unused)
 SEC_FLOOR  = level_data
@@ -131,6 +149,7 @@ level_sector_max = level_item_meta + MAX_ITEMS
 !source "tables.asm"
 !source "recip.asm"
 !source "item_bitmaps.asm"
+!source "mapscreen.asm"
 
 !zone 0
 

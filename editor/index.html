@@ -410,14 +410,18 @@ button.danger {
 
 .field {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.55rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
   font-size: 0.8rem;
 }
 
 .field > span {
   color: var(--muted);
+  flex: 0 0 6.5rem;
+  min-width: 6.5rem;
+  white-space: nowrap;
 }
 
 .field input[type="number"],
@@ -428,6 +432,24 @@ button.danger {
   color: var(--text);
   padding: 0.3rem 0.4rem;
   font-size: 0.85rem;
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.color-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.color-field > span {
+  flex: none;
+  min-width: 0;
+}
+
+.color-field .color-swatches {
+  flex: none;
   width: 100%;
 }
 
@@ -470,7 +492,6 @@ button.danger {
 }
 
 .field select {
-  width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
@@ -485,10 +506,18 @@ button.danger {
   margin-top: 0.75rem;
 }
 
+.field.skills {
+  align-items: center;
+}
+
 .skill-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .skill-row label {
@@ -660,57 +689,119 @@ const LEGACY_COLOR_TO_C64 = {
   white: 1,
 };
 
-/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window / Elevator. */
-const DOOR_SECTOR_TYPE = 18;
-/** Blocks player/enemy walk; shots and hitscan pass. */
-const WINDOW_SECTOR_TYPE = 19;
-const ELEVATOR_LOWER_SECTOR_TYPE = 20;
-const ELEVATOR_RAISE_SECTOR_TYPE = 21;
-const START_STAIRS_SECTOR_TYPE = 22;
-const CONTINUE_STAIRS_SECTOR_TYPE = 23;
-
-const SECTOR_TYPES = [
-  { id: 0, name: 'Normal' },
-  { id: 1, name: 'Light blink random' },
-  { id: 2, name: 'Light blink 0.5s' },
-  { id: 3, name: 'Light blink 1.0s' },
-  { id: 4, name: 'Damage 20% + blink' },
-  { id: 5, name: 'Damage 10%' },
-  { id: 7, name: 'Damage 5%' },
-  { id: 8, name: 'Light oscillate' },
-  { id: 9, name: 'Secret' },
-  { id: 10, name: 'Door close (30s)' },
-  { id: 11, name: 'Damage end level' },
-  { id: 12, name: 'Light blink sync 1s' },
-  { id: 13, name: 'Light blink sync 0.5s' },
-  { id: 14, name: 'Door open (300s)' },
-  { id: 16, name: 'Damage 20%' },
-  { id: 17, name: 'Light flicker' },
-  { id: DOOR_SECTOR_TYPE, name: 'Door' },
-  { id: WINDOW_SECTOR_TYPE, name: 'Window' },
-  { id: ELEVATOR_LOWER_SECTOR_TYPE, name: 'Elevator lower' },
-  { id: ELEVATOR_RAISE_SECTOR_TYPE, name: 'Elevator raise' },
-  { id: START_STAIRS_SECTOR_TYPE, name: 'Start stairs' },
-  { id: CONTINUE_STAIRS_SECTOR_TYPE, name: 'Continue stairs' },
+/** Packed SEC_TYPE: action[4:0] | trigger[6:5] | single_shot[7] */
+const TRIGGERS = [
+  { id: 'none', name: 'None', value: 0 },
+  { id: 'walk_into', name: 'Walk into', value: 1 },
+  { id: 'use', name: 'Use', value: 2 },
+  { id: 'switch', name: 'Switch', value: 3 },
 ];
 
+const ACTIONS = [
+  { id: 'none', name: 'None', value: 0 },
+  { id: 'window', name: 'Window', value: 1 },
+  { id: 'open_door', name: 'Open door (5s)', value: 2 },
+  { id: 'open_door_forever', name: 'Open door forever', value: 3 },
+  { id: 'open_door_10s', name: 'Open door (10s)', value: 11 },
+  { id: 'open_door_30s', name: 'Open door (30s)', value: 4 },
+  { id: 'lower_floor', name: 'Lower floor (5 sec)', value: 5 },
+  { id: 'lower_floor_forever', name: 'Lower floor forever', value: 10 },
+  { id: 'raise_floor', name: 'Raise floor', value: 6 },
+  { id: 'raise_stairs', name: 'Raise stairs', value: 7 },
+  { id: 'continue_stairs', name: 'Continue stairs', value: 8 },
+  { id: 'end_level', name: 'End level', value: 9 },
+];
+
+const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t]));
+const ACTION_BY_ID = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
+const TRIGGER_BY_VALUE = Object.fromEntries(TRIGGERS.map((t) => [t.value, t]));
+const ACTION_BY_VALUE = Object.fromEntries(ACTIONS.map((a) => [a.value, a]));
+
+function normalizeTrigger(id) {
+  return TRIGGER_BY_ID[id] ? id : 'none';
+}
+
+function normalizeAction(id) {
+  return ACTION_BY_ID[id] ? id : 'none';
+}
+
+function packSectorSpecial(trigger, singleShot, action) {
+  const t = TRIGGER_BY_ID[normalizeTrigger(trigger)]?.value ?? 0;
+  const a = ACTION_BY_ID[normalizeAction(action)]?.value ?? 0;
+  return (a & 31) | ((t & 3) << 5) | (singleShot ? 0x80 : 0);
+}
+
+function unpackSectorSpecial(byte) {
+  const b = (byte ?? 0) & 0xff;
+  return {
+    trigger: TRIGGER_BY_VALUE[(b >> 5) & 3]?.id ?? 'none',
+    singleShot: !!(b & 0x80),
+    action: ACTION_BY_VALUE[b & 31]?.id ?? 'none',
+  };
+}
+
+/** Legacy Doom-style sectorType → trigger/action/singleShot (for JSON migration). */
+function migrateLegacySectorType(sectorType, targetTag = '') {
+  const t = (sectorType ?? 0) & 0xff;
+  const hasTarget = String(targetTag || '').trim() !== '';
+  switch (t) {
+    case 18: // Door
+      return { trigger: 'use', singleShot: false, action: 'open_door' };
+    case 19: // Window
+      return { trigger: 'none', singleShot: false, action: 'window' };
+    case 20: // Elevator lower
+      return {
+        trigger: hasTarget ? 'walk_into' : 'use',
+        singleShot: false,
+        action: 'lower_floor',
+      };
+    case 21: // Elevator raise
+      return {
+        trigger: hasTarget ? 'walk_into' : 'use',
+        singleShot: false,
+        action: 'raise_floor',
+      };
+    case 22: // Start stairs
+      return { trigger: 'walk_into', singleShot: true, action: 'raise_stairs' };
+    case 23: // Continue stairs
+      return { trigger: 'none', singleShot: false, action: 'continue_stairs' };
+    case 10: // Door open 30s
+      return { trigger: 'walk_into', singleShot: false, action: 'open_door_30s' };
+    case 14: // Door open forever
+      return { trigger: 'walk_into', singleShot: false, action: 'open_door_forever' };
+    default:
+      return { trigger: 'none', singleShot: false, action: 'none' };
+  }
+}
+
+/** Legacy switchAction → sector fields (applied to sector under the switch). */
+function migrateSwitchAction(switchAction) {
+  const a = String(switchAction || '');
+  if (a === 'end_level' || a === 'switch_endlevel') {
+    return { trigger: 'switch', singleShot: false, action: 'end_level' };
+  }
+  if (a === 'open_door' || a === 'switch_opendoor') {
+    return { trigger: 'switch', singleShot: false, action: 'open_door' };
+  }
+  if (a === 'lower_lift' || a === 'switch_lowerlift') {
+    return { trigger: 'switch', singleShot: false, action: 'lower_floor' };
+  }
+  return null;
+}
+
 function isDoorSector(sector) {
-  return (sector?.sectorType ?? 0) === DOOR_SECTOR_TYPE;
+  const a = normalizeAction(sector?.action);
+  return a === 'open_door' || a === 'open_door_forever'
+    || a === 'open_door_10s' || a === 'open_door_30s';
 }
 
 function isWindowSector(sector) {
-  return (sector?.sectorType ?? 0) === WINDOW_SECTOR_TYPE;
+  return normalizeAction(sector?.action) === 'window';
 }
 
 function isElevatorSector(sector) {
-  const t = sector?.sectorType ?? 0;
-  return t === ELEVATOR_LOWER_SECTOR_TYPE || t === ELEVATOR_RAISE_SECTOR_TYPE;
-}
-
-/** @deprecated Prefer always resolving non-empty targetTag when cooking. */
-function sectorTypeNeedsTarget(type) {
-  const t = (type ?? 0) & 0xff;
-  return t !== 0 && t !== WINDOW_SECTOR_TYPE;
+  const a = normalizeAction(sector?.action);
+  return a === 'lower_floor' || a === 'lower_floor_forever' || a === 'raise_floor';
 }
 
 const ITEM_TYPES = [
@@ -719,7 +810,7 @@ const ITEM_TYPES = [
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
-  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+  'switch',
   'fireball',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
 ];
@@ -727,28 +818,22 @@ const ITEM_TYPES = [
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
 const SPAWN_TYPE = 'spawn';
 const CAMERA_TYPE = 'camera';
-/** Palette placeable; fans out to switch_* cook types. */
 const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 const FIREBALL_TYPE = 'fireball';
 const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse']);
 
+/** Legacy cook type ids that map to SWITCH_TYPE. */
+const LEGACY_SWITCH_COOK_TYPES = new Set([
+  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+]);
+
 /** Types that allocate an mobj at level start (missile excluded). */
 const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
-/** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
-const SWITCH_ACTIONS = [
-  { id: 'open_door', name: 'Open door', cookType: 'switch_opendoor' },
-  { id: 'end_level', name: 'End level', cookType: 'switch_endlevel' },
-  { id: 'lower_lift', name: 'Lower lift', cookType: 'switch_lowerlift' },
-];
-
-const SWITCH_COOK_TYPES = new Set(SWITCH_ACTIONS.map((a) => a.cookType));
-
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 const EDITOR_ITEM_TYPES = [
-  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t) && !RUNTIME_ONLY_TYPES.has(t)),
-  SWITCH_TYPE,
+  ...ITEM_TYPES.filter((t) => !RUNTIME_ONLY_TYPES.has(t)),
   CAMERA_TYPE,
 ];
 
@@ -765,49 +850,21 @@ function isSpawn(item) {
 }
 
 function isSwitchCookType(type) {
-  return SWITCH_COOK_TYPES.has(type);
+  return type === SWITCH_TYPE || LEGACY_SWITCH_COOK_TYPES.has(type);
 }
 
 function isSwitch(item) {
   return item?.type === SWITCH_TYPE || isSwitchCookType(item?.type);
 }
 
-function defaultSwitchAction() {
-  return SWITCH_ACTIONS[0].id;
-}
-
-function normalizeSwitchAction(action) {
-  if (SWITCH_ACTIONS.some((a) => a.id === action)) return action;
-  const byCook = SWITCH_ACTIONS.find((a) => a.cookType === action);
-  return byCook?.id ?? defaultSwitchAction();
-}
-
-function switchCookType(action) {
-  const a = SWITCH_ACTIONS.find((x) => x.id === normalizeSwitchAction(action));
-  return a.cookType;
-}
-
-/** Map legacy/cook type ids to editor switch fields. */
+/** Map legacy/cook type ids to a plain switch prop. */
 function coerceSwitchItem(it) {
-  if (it.type === SWITCH_TYPE) {
-    return {
-      type: SWITCH_TYPE,
-      x: it.x,
-      y: it.y,
-      switchAction: normalizeSwitchAction(it.switchAction),
-      targetTag: String(it.targetTag ?? '').trim(),
-    };
-  }
-  if (isSwitchCookType(it.type)) {
-    return {
-      type: SWITCH_TYPE,
-      x: it.x,
-      y: it.y,
-      switchAction: normalizeSwitchAction(it.type),
-      targetTag: String(it.targetTag ?? '').trim(),
-    };
-  }
-  return null;
+  if (!isSwitch(it) && !isSwitchCookType(it?.type)) return null;
+  return {
+    type: SWITCH_TYPE,
+    x: it.x,
+    y: it.y,
+  };
 }
 
 /** Wrap radians into [0, 2π). */
@@ -896,10 +953,12 @@ function defaultSector() {
   return {
     floorHeight: 8,
     ceilingHeight: 13,
-    sectorType: 0,
+    trigger: 'none',
+    singleShot: false,
+    action: 'none',
     /** Editor-only name; baked away — used to resolve targetTag → sector id. */
     tag: '',
-    /** Editor-only; when sectorType ≠ 0, names the target sector's tag. */
+    /** Editor-only; names the target sector's tag (→ SEC_TARGET). */
     targetTag: '',
     floorColor: 11,
     ceilingColor: 11,
@@ -915,7 +974,9 @@ function sectorsEqual(a, b) {
   return (
     a.floorHeight === b.floorHeight &&
     a.ceilingHeight === b.ceilingHeight &&
-    a.sectorType === b.sectorType &&
+    normalizeTrigger(a.trigger) === normalizeTrigger(b.trigger) &&
+    !!a.singleShot === !!b.singleShot &&
+    normalizeAction(a.action) === normalizeAction(b.action) &&
     (a.tag || '') === (b.tag || '') &&
     (a.targetTag || '') === (b.targetTag || '') &&
     a.floorColor === b.floorColor &&
@@ -1975,7 +2036,9 @@ function applyTilePatch(level, tiles, patch) {
     const next = cloneSector(cur);
     if ('floorHeight' in patch) next.floorHeight = clampNum(patch.floorHeight, 0, 31);
     if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
-    if ('sectorType' in patch) next.sectorType = clampNum(patch.sectorType, 0, 255);
+    if ('trigger' in patch) next.trigger = normalizeTrigger(patch.trigger);
+    if ('singleShot' in patch) next.singleShot = !!patch.singleShot;
+    if ('action' in patch) next.action = normalizeAction(patch.action);
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
     if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 16);
@@ -2133,10 +2196,6 @@ function addItem(level, type, x, y, skills = defaultSkills()) {
       type: SWITCH_TYPE,
       x: clampWorld(x),
       y: clampWorld(y),
-      switchAction: isSwitchCookType(type)
-        ? normalizeSwitchAction(type)
-        : defaultSwitchAction(),
-      targetTag: '',
     };
     level.items.push(item);
     return item;
@@ -2178,13 +2237,15 @@ function activeLevel(episode) {
 /**
  * Cooked binary layout (no header), per level — structure-of-arrays:
  *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
- *      order: floor, ceil, sectorType, targetSector, floorColor, ceilingColor, brightness
+ *      order: floor, ceil, special (packed trigger|oneshot|action), targetSector,
+ *      floorColor, ceilingColor, brightness
+ *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
  *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
- *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard) or switch target sector
+ *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
@@ -2206,7 +2267,9 @@ function levelToJSON(level) {
     sectorObj[String(id)] = {
       floorHeight: s.floorHeight,
       ceilingHeight: s.ceilingHeight,
-      sectorType: s.sectorType ?? 0,
+      trigger: normalizeTrigger(s.trigger),
+      singleShot: !!s.singleShot,
+      action: normalizeAction(s.action),
       tag: s.tag || '',
       targetTag: s.targetTag || '',
       floorColor: s.floorColor,
@@ -2234,13 +2297,7 @@ function levelToJSON(level) {
       }
       if (isSwitch(it)) {
         const sw = coerceSwitchItem(it);
-        return {
-          type: SWITCH_TYPE,
-          x: sw.x,
-          y: sw.y,
-          switchAction: sw.switchAction,
-          targetTag: sw.targetTag,
-        };
+        return { type: SWITCH_TYPE, x: sw.x, y: sw.y };
       }
       return { ...base, skills: { ...it.skills } };
     }),
@@ -2255,15 +2312,27 @@ function levelFromJSON(data) {
       const id = Number(key);
       if (id < 1 || id > MAX_SECTORS) continue;
       const d = defaultSector();
-      let sectorType = clamp(s.sectorType ?? d.sectorType, 0, 255);
-      // Migrate legacy door checkbox → Door sector type
-      if (s.door && sectorType === 0) sectorType = DOOR_SECTOR_TYPE;
+      const targetTag = String(s.targetTag ?? d.targetTag ?? '').trim();
+      let trigger = s.trigger;
+      let singleShot = s.singleShot;
+      let action = s.action;
+      // Migrate legacy sectorType / door checkbox
+      if (trigger == null && action == null && (s.sectorType != null || s.door)) {
+        let sectorType = clamp(s.sectorType ?? 0, 0, 255);
+        if (s.door && sectorType === 0) sectorType = 18;
+        const mig = migrateLegacySectorType(sectorType, targetTag);
+        trigger = mig.trigger;
+        singleShot = mig.singleShot;
+        action = mig.action;
+      }
       level.sectors.set(id, {
         floorHeight: clamp(s.floorHeight ?? d.floorHeight, 0, 31),
         ceilingHeight: clamp(s.ceilingHeight ?? d.ceilingHeight, 0, 31),
-        sectorType,
+        trigger: normalizeTrigger(trigger ?? d.trigger),
+        singleShot: !!(singleShot ?? d.singleShot),
+        action: normalizeAction(action ?? d.action),
         tag: String(s.tag ?? d.tag ?? '').trim(),
-        targetTag: String(s.targetTag ?? d.targetTag ?? '').trim(),
+        targetTag,
         floorColor: normalizeColor(s.floorColor, d.floorColor),
         ceilingColor: normalizeColor(s.ceilingColor, d.ceilingColor),
         brightness: clamp(s.brightness ?? d.brightness, 0, 16),
@@ -2278,6 +2347,8 @@ function levelFromJSON(data) {
 
   // Spawn: dedicated field, or migrate legacy item type "spawn"
   let legacySpawn = null;
+  /** @type {{ x: number, y: number, switchAction?: string, targetTag?: string }[]} */
+  const legacySwitches = [];
   if (Array.isArray(data.items)) {
     for (const it of data.items) {
       if (it.type === CAMERA_TYPE) {
@@ -2297,6 +2368,14 @@ function levelFromJSON(data) {
       if (asSwitch) {
         if (gameItemCount(level) >= MAX_ITEMS) break;
         level.items.push(asSwitch);
+        if (it.switchAction || it.targetTag) {
+          legacySwitches.push({
+            x: asSwitch.x,
+            y: asSwitch.y,
+            switchAction: it.switchAction || it.type,
+            targetTag: it.targetTag,
+          });
+        }
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
@@ -2312,6 +2391,23 @@ function levelFromJSON(data) {
         },
       });
     }
+  }
+
+  // Apply legacy switch actions onto the sector under each switch
+  for (const sw of legacySwitches) {
+    const mig = migrateSwitchAction(sw.switchAction);
+    if (!mig) continue;
+    const tx = Math.floor(sw.x / WORLD_PER_TILE);
+    const ty = Math.floor(sw.y / WORLD_PER_TILE);
+    const sid = getCell(level, tx, ty);
+    if (!sid) continue;
+    const sec = level.sectors.get(sid);
+    if (!sec) continue;
+    sec.trigger = mig.trigger;
+    sec.singleShot = mig.singleShot;
+    sec.action = mig.action;
+    const tag = String(sw.targetTag ?? '').trim();
+    if (tag) sec.targetTag = tag;
   }
 
   if (data.spawn) {
@@ -2391,7 +2487,7 @@ function cookLevel(level) {
   for (let id = 1; id <= MAX_SECTORS; id++) {
     const s = level.sectors.get(id);
     if (!s) continue;
-    const type = (s.sectorType ?? 0) & 0xff;
+    const type = packSectorSpecial(s.trigger, s.singleShot, s.action);
     let targetId = 0;
     const tag = (s.targetTag || '').trim();
     if (tag) {
@@ -2427,22 +2523,11 @@ function cookLevel(level) {
     if (!it) continue;
     if (isSwitch(it)) {
       const sw = coerceSwitchItem(it);
-      const cookType = switchCookType(sw.switchAction);
-      const typeId = ITEM_TYPES.indexOf(cookType);
+      const typeId = ITEM_TYPES.indexOf(SWITCH_TYPE);
       typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
       xs[i] = sw.x & 0xff;
       ys[i] = sw.y & 0xff;
-      const tag = (sw.targetTag || '').trim();
-      let targetId = 0;
-      if (!tag) {
-        warnings.push(`Switch at (${sw.x},${sw.y}): empty target tag`);
-      } else {
-        targetId = findSectorIdByTag(level, tag);
-        if (!targetId) {
-          warnings.push(`Switch at (${sw.x},${sw.y}): target tag "${tag}" not found`);
-        }
-      }
-      metas[i] = targetId & 0xff;
+      metas[i] = 0;
       continue;
     }
     const typeId = ITEM_TYPES.indexOf(it.type);
@@ -3524,7 +3609,7 @@ function colorPicker(id, label, value, mixed) {
 function summarizeProps(propList) {
   if (!propList.length) return null;
   const keys = [
-    'floorHeight', 'ceilingHeight', 'sectorType',
+    'floorHeight', 'ceilingHeight', 'trigger', 'singleShot', 'action',
     'tag', 'targetTag', 'brightness', 'floorColor', 'ceilingColor',
   ];
   const out = { ...propList[0], _mixed: {} };
@@ -3626,33 +3711,70 @@ class TileEditor {
     const ceil = numInput('te-ceil', 'Ceiling height', 0, 31, s.ceilingHeight, s._mixed.ceilingHeight);
     const bright = numInput('te-bright', 'Brightness', 0, 16, s.brightness, s._mixed.brightness);
 
-    const typeWrap = document.createElement('label');
-    typeWrap.className = 'field';
-    typeWrap.htmlFor = 'te-type';
-    const typeSpan = document.createElement('span');
-    typeSpan.textContent = s._mixed.sectorType ? 'Sector type (mixed)' : 'Sector type';
-    const typeSel = document.createElement('select');
-    typeSel.id = 'te-type';
-    for (const t of SECTOR_TYPES) {
-      const opt = document.createElement('option');
-      opt.value = String(t.id);
-      opt.textContent = `${t.id}: ${t.name}`;
-      typeSel.appendChild(opt);
+    const mkSelect = (id, label, mixed, options, value, onChange) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'field';
+      wrap.htmlFor = id;
+      const span = document.createElement('span');
+      span.textContent = mixed ? `${label} (mixed)` : label;
+      const sel = document.createElement('select');
+      sel.id = id;
+      for (const o of options) {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name;
+        sel.appendChild(opt);
+      }
+      if (!mixed) sel.value = value;
+      else {
+        const ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = 'mixed';
+        ph.disabled = true;
+        ph.selected = true;
+        sel.prepend(ph);
+      }
+      sel.addEventListener('change', () => {
+        if (sel.value === '') return;
+        onChange(sel.value);
+      });
+      wrap.append(span, sel);
+      return wrap;
+    };
+
+    const trigWrap = mkSelect(
+      'te-trigger',
+      'Trigger',
+      s._mixed.trigger,
+      TRIGGERS,
+      normalizeTrigger(s.trigger),
+      (v) => this.opts.onChange({ trigger: v }),
+    );
+    const actWrap = mkSelect(
+      'te-action',
+      'Action',
+      s._mixed.action,
+      ACTIONS,
+      normalizeAction(s.action),
+      (v) => this.opts.onChange({ action: v }),
+    );
+
+    const shotWrap = document.createElement('label');
+    shotWrap.className = 'field';
+    const shotCb = document.createElement('input');
+    shotCb.type = 'checkbox';
+    shotCb.id = 'te-oneshot';
+    if (s._mixed.singleShot) {
+      shotCb.indeterminate = true;
+    } else {
+      shotCb.checked = !!s.singleShot;
     }
-    if (!s._mixed.sectorType) typeSel.value = String(s.sectorType ?? 0);
-    else {
-      const ph = document.createElement('option');
-      ph.value = '';
-      ph.textContent = 'mixed';
-      ph.disabled = true;
-      ph.selected = true;
-      typeSel.prepend(ph);
-    }
-    typeSel.addEventListener('change', () => {
-      if (typeSel.value === '') return;
-      this.opts.onChange({ sectorType: Number(typeSel.value) });
+    shotCb.addEventListener('change', () => {
+      this.opts.onChange({ singleShot: shotCb.checked });
     });
-    typeWrap.append(typeSpan, typeSel);
+    shotWrap.append(shotCb, document.createTextNode(
+      s._mixed.singleShot ? ' Single-shot (mixed)' : ' Single-shot',
+    ));
 
     const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
     tag.input.addEventListener('change', () => {
@@ -3679,7 +3801,7 @@ class TileEditor {
       btn.addEventListener('click', () => this.opts.onChange({ ceilingColor: Number(btn.dataset.color) }));
     }
 
-    this.root.append(floor.wrap, ceil.wrap, bright.wrap, typeWrap);
+    this.root.append(floor.wrap, ceil.wrap, bright.wrap, trigWrap, actWrap, shotWrap);
 
     const target = textInput(
       'te-target',
@@ -3864,9 +3986,7 @@ class ItemEditor {
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
-    } else if (allSwitches) {
-      this.#switchFields(items, item);
-    } else if (noViewpoints) {
+    } else if (!allSwitches && noViewpoints) {
       const skills = document.createElement('div');
       skills.className = 'field skills';
       const skillLabel = document.createElement('span');
@@ -3900,57 +4020,6 @@ class ItemEditor {
       del.addEventListener('click', () => this.opts.onDelete());
       this.root.appendChild(del);
     }
-  }
-
-  #switchFields(items, item) {
-    const actionSame = items.every(
-      (it) => normalizeSwitchAction(it.switchAction) === normalizeSwitchAction(item.switchAction),
-    );
-    const actionLab = document.createElement('label');
-    actionLab.className = 'field';
-    actionLab.innerHTML = '<span>Action</span>';
-    const actionSel = document.createElement('select');
-    if (!actionSame) {
-      const mixed = document.createElement('option');
-      mixed.value = '';
-      mixed.textContent = '(mixed)';
-      mixed.selected = true;
-      actionSel.appendChild(mixed);
-    }
-    for (const a of SWITCH_ACTIONS) {
-      const opt = document.createElement('option');
-      opt.value = a.id;
-      opt.textContent = a.name;
-      if (actionSame && a.id === normalizeSwitchAction(item.switchAction)) {
-        opt.selected = true;
-      }
-      actionSel.appendChild(opt);
-    }
-    actionSel.addEventListener('change', () => {
-      if (!actionSel.value) return;
-      this.opts.onChange({ switchAction: actionSel.value });
-    });
-    actionLab.appendChild(actionSel);
-    this.root.appendChild(actionLab);
-
-    const tagSame = items.every(
-      (it) => (it.targetTag || '') === (item.targetTag || ''),
-    );
-    const tagLab = document.createElement('label');
-    tagLab.className = 'field';
-    const tagSpan = document.createElement('span');
-    tagSpan.textContent = tagSame ? 'Target tag' : 'Target tag (mixed)';
-    const tagInput = document.createElement('input');
-    tagInput.type = 'text';
-    tagInput.autocomplete = 'off';
-    tagInput.spellcheck = false;
-    tagInput.placeholder = tagSame ? 'tag of target sector' : 'mixed';
-    tagInput.value = tagSame ? item.targetTag || '' : '';
-    tagInput.addEventListener('change', () => {
-      this.opts.onChange({ targetTag: tagInput.value });
-    });
-    tagLab.append(tagSpan, tagInput);
-    this.root.appendChild(tagLab);
   }
 
   #numField(label, key, min, max, value) {
@@ -4439,12 +4508,8 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
           item.type = CAMERA_TYPE;
           item.angle = 0;
           delete item.skills;
-          delete item.switchAction;
-          delete item.targetTag;
         } else if (patch.type === SWITCH_TYPE) {
           item.type = SWITCH_TYPE;
-          item.switchAction = item.switchAction || defaultSwitchAction();
-          item.targetTag = item.targetTag || '';
           delete item.skills;
           delete item.angle;
         } else if (patch.type !== CAMERA_TYPE && isCamera(item)) {
@@ -4454,8 +4519,6 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
         } else if (isSwitch(item) && patch.type !== SWITCH_TYPE) {
           item.type = patch.type;
           item.skills = defaultSkills();
-          delete item.switchAction;
-          delete item.targetTag;
         } else {
           item.type = patch.type;
         }
@@ -4465,12 +4528,6 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       if ('angle' in patch) item.angle = normalizeAngle(patch.angle);
       if ('skillKey' in patch && item.skills) {
         item.skills = { ...item.skills, [patch.skillKey]: patch.skillValue };
-      }
-      if ('switchAction' in patch && isSwitch(item)) {
-        item.switchAction = patch.switchAction;
-      }
-      if ('targetTag' in patch && isSwitch(item)) {
-        item.targetTag = String(patch.targetTag ?? '').trim();
       }
     }
     markDirty();

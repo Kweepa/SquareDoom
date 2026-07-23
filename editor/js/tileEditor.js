@@ -1,4 +1,7 @@
-import { C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_ITEMS, SECTOR_TYPES, sectorsEqual } from './model.js';
+import {
+  C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_ITEMS,
+  TRIGGERS, ACTIONS, normalizeTrigger, normalizeAction, sectorsEqual,
+} from './model.js';
 
 function numInput(id, label, min, max, value, mixed) {
   const wrap = document.createElement('label');
@@ -68,7 +71,7 @@ function colorPicker(id, label, value, mixed) {
 function summarizeProps(propList) {
   if (!propList.length) return null;
   const keys = [
-    'floorHeight', 'ceilingHeight', 'sectorType',
+    'floorHeight', 'ceilingHeight', 'trigger', 'singleShot', 'action',
     'tag', 'targetTag', 'brightness', 'floorColor', 'ceilingColor',
   ];
   const out = { ...propList[0], _mixed: {} };
@@ -170,33 +173,70 @@ export class TileEditor {
     const ceil = numInput('te-ceil', 'Ceiling height', 0, 31, s.ceilingHeight, s._mixed.ceilingHeight);
     const bright = numInput('te-bright', 'Brightness', 0, 16, s.brightness, s._mixed.brightness);
 
-    const typeWrap = document.createElement('label');
-    typeWrap.className = 'field';
-    typeWrap.htmlFor = 'te-type';
-    const typeSpan = document.createElement('span');
-    typeSpan.textContent = s._mixed.sectorType ? 'Sector type (mixed)' : 'Sector type';
-    const typeSel = document.createElement('select');
-    typeSel.id = 'te-type';
-    for (const t of SECTOR_TYPES) {
-      const opt = document.createElement('option');
-      opt.value = String(t.id);
-      opt.textContent = `${t.id}: ${t.name}`;
-      typeSel.appendChild(opt);
+    const mkSelect = (id, label, mixed, options, value, onChange) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'field';
+      wrap.htmlFor = id;
+      const span = document.createElement('span');
+      span.textContent = mixed ? `${label} (mixed)` : label;
+      const sel = document.createElement('select');
+      sel.id = id;
+      for (const o of options) {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name;
+        sel.appendChild(opt);
+      }
+      if (!mixed) sel.value = value;
+      else {
+        const ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = 'mixed';
+        ph.disabled = true;
+        ph.selected = true;
+        sel.prepend(ph);
+      }
+      sel.addEventListener('change', () => {
+        if (sel.value === '') return;
+        onChange(sel.value);
+      });
+      wrap.append(span, sel);
+      return wrap;
+    };
+
+    const trigWrap = mkSelect(
+      'te-trigger',
+      'Trigger',
+      s._mixed.trigger,
+      TRIGGERS,
+      normalizeTrigger(s.trigger),
+      (v) => this.opts.onChange({ trigger: v }),
+    );
+    const actWrap = mkSelect(
+      'te-action',
+      'Action',
+      s._mixed.action,
+      ACTIONS,
+      normalizeAction(s.action),
+      (v) => this.opts.onChange({ action: v }),
+    );
+
+    const shotWrap = document.createElement('label');
+    shotWrap.className = 'field';
+    const shotCb = document.createElement('input');
+    shotCb.type = 'checkbox';
+    shotCb.id = 'te-oneshot';
+    if (s._mixed.singleShot) {
+      shotCb.indeterminate = true;
+    } else {
+      shotCb.checked = !!s.singleShot;
     }
-    if (!s._mixed.sectorType) typeSel.value = String(s.sectorType ?? 0);
-    else {
-      const ph = document.createElement('option');
-      ph.value = '';
-      ph.textContent = 'mixed';
-      ph.disabled = true;
-      ph.selected = true;
-      typeSel.prepend(ph);
-    }
-    typeSel.addEventListener('change', () => {
-      if (typeSel.value === '') return;
-      this.opts.onChange({ sectorType: Number(typeSel.value) });
+    shotCb.addEventListener('change', () => {
+      this.opts.onChange({ singleShot: shotCb.checked });
     });
-    typeWrap.append(typeSpan, typeSel);
+    shotWrap.append(shotCb, document.createTextNode(
+      s._mixed.singleShot ? ' Single-shot (mixed)' : ' Single-shot',
+    ));
 
     const tag = textInput('te-tag', 'Sector tag', s.tag || '', s._mixed.tag);
     tag.input.addEventListener('change', () => {
@@ -223,7 +263,7 @@ export class TileEditor {
       btn.addEventListener('click', () => this.opts.onChange({ ceilingColor: Number(btn.dataset.color) }));
     }
 
-    this.root.append(floor.wrap, ceil.wrap, bright.wrap, typeWrap);
+    this.root.append(floor.wrap, ceil.wrap, bright.wrap, trigWrap, actWrap, shotWrap);
 
     const target = textInput(
       'te-target',

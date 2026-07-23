@@ -19,7 +19,7 @@ const ITEM_TYPES = [
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
-  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+  'switch',
   'fireball',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
 ];
@@ -241,8 +241,8 @@ for (const type of ITEM_TYPES) {
     continue;
   }
   let path = join(gfxDir, `${type}.png`);
-  // Switch actions share one atlas: itemgraphics/switch.png
-  if (type.startsWith('switch_')) {
+  // Switch uses itemgraphics/switch.png
+  if (type === 'switch') {
     path = join(gfxDir, 'switch.png');
   } else if (!existsSync(path)) {
     path = join(gfxDir, 'multicolour', `${type}.png`);

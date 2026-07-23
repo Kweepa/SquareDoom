@@ -1,22 +1,33 @@
 !zone process
 
 ; SoA thinkers: TIMER, RAISE/LOWER_CEIL, RAISE/LOWER_FLOOR.
-; Door / elevator K-use: NESW neighbour within 4 world units of the shared face.
-; Elevator walk: enter typed source with SEC_TARGET → move that sector.
-; Start stairs walk: enter Start Stairs → raise SEC_TARGET chain (+1,+2,…); one-shot.
+; Sector specials: packed SEC_TYPE (trigger | single_shot | action).
+; K-use: NESW neighbour with trigger=use.
+; Walk: enter sector with trigger=walk_into.
+; Switch: nearby switch item → sector under it with trigger=switch.
 ; Absolute JMPs used where relative branches would exceed ±127.
 
 DOOR_OPEN_GAP = 5
-DOOR_RECLOSE_MS = 5000
+DOOR_RECLOSE_5S_MS = 5000
+DOOR_RECLOSE_10S_MS = 10000
+DOOR_RECLOSE_30S_MS = 30000
+; elev_mode when calling door_open_activate:
+DOOR_MODE_FOREVER = 0
+DOOR_MODE_5S = 1
+DOOR_MODE_10S = 2
+DOOR_MODE_30S = 3
 MOTION_STEP_MS = 128			; 1 height unit per 128 ms
+ITEM_TYPE_SWITCH = 20
+SWITCH_USE_RADIUS = 6
 
 player_prev_sec	!byte 0			; last player sector (walk trigger)
-elev_mode	!byte 0			; 0 = lower, 1 = raise
+elev_mode	!byte 0			; floor: 0=lower/1=raise; door: DOOR_MODE_*
 elev_remote	!byte 0			; 0 = K-use (local), 1 = walk target (remote)
 elev_found	!byte 0
-elev_home	!byte 0
+elev_home	!byte 0			; elevator return floor (scratch)
 elev_cell_x	!byte 0
 elev_cell_y	!byte 0
+trig_sec	!byte 0			; sector that provided the trigger
 key_use_was	!byte 0			; previous-frame key_use (rising edge)
 
 ELEV_RECLOSE_REMOTE_MS = 15000
@@ -160,8 +171,34 @@ tu_face
 	!byte 0, 1, 1, 0			; 0 = near_lo (≤4), 1 = near_hi (≥4)
 
 ; ------------------------------------------------------------------
-; try_use — K rising edge: NESW neighbour door / self-elevator (target 0)
-; within 4u. Red/yellow/blue ceil doors need the matching keycard.
+; sec_trigger / sec_action — X = sector id → A
+; ------------------------------------------------------------------
+sec_trigger
+	lda SEC_TYPE,x
+	and #TRIG_MASK
+	lsr
+	lsr
+	lsr
+	lsr
+	lsr
+	rts
+
+sec_action
+	lda SEC_TYPE,x
+	and #ACT_MASK
+	rts
+
+; If SHOT_BIT set on sector X, clear trigger bits (→ TRIG_NONE)
+sec_oneshot_if
+	lda SEC_TYPE,x
+	bpl .soi_r			; bit7 clear → not single-shot
+	and #$9f			; clear trigger[6:5]; keep action + shot
+	sta SEC_TYPE,x
+.soi_r
+	rts
+
+; ------------------------------------------------------------------
+; try_use — K rising edge: NESW neighbour with trigger=use, within 4u
 ; ------------------------------------------------------------------
 try_use
 	lda key_use
@@ -232,96 +269,115 @@ try_use
 	bne .tu_got_id
 	jmp .tu_far
 .tu_got_id
-	sta tmp1
+	sta trig_sec			; trigger sector
 	tax
-	lda SEC_TYPE,x
-	cmp #DOOR_TYPE
-	beq .tu_is_door
-	cmp #ELEVATOR_LOWER_TYPE
-	beq .tu_elev
-	cmp #ELEVATOR_RAISE_TYPE
-	beq .tu_elev
+	jsr sec_trigger
+	cmp #TRIG_USE
+	beq .tu_trig_ok
 	jmp .tu_far
-.tu_elev
+.tu_trig_ok
+	; floor actions with target → walk-only
+	ldx trig_sec
+	jsr sec_action
+	cmp #ACT_LOWER_FLOOR
+	beq .tu_chk_local
+	cmp #ACT_LOWER_FLOOR_FOREVER
+	beq .tu_chk_local
+	cmp #ACT_RAISE_FLOOR
+	beq .tu_chk_local
+	jmp .tu_go
+.tu_chk_local
+	ldx trig_sec
 	lda SEC_TARGET,x
-	beq .tu_elev_local
-	jmp .tu_far			; target set → walk-only
-.tu_elev_local
+	beq .tu_go
+	jmp .tu_far
+.tu_go
 	lda #0
 	sta elev_remote
-	lda SEC_TYPE,x
-	cmp #ELEVATOR_RAISE_TYPE
-	beq .tu_elev_r
-	lda #0
-	sta elev_mode
-	jmp elevator_activate
-.tu_elev_r
-	lda #1
-	sta elev_mode
-	jmp elevator_activate
-.tu_is_door
-	; Locked if ceiling colour is red / yellow / blue and key missing
+	jmp trigger_action
+
+; Door open (tmp1 = door sector; elev_mode = DOOR_MODE_*).
+; Key check via SEC_CCOL runs for use, walk-into, and switch alike — fine as
+; long as red/yellow/blue doors are never remote (target) activations.
+; Timed modes schedule reclose from door_reclose_*.
+door_open_activate
+	ldx tmp1
 	lda SEC_CCOL,x
 	ldx #0
-.tu_keyscan
+.do_keyscan
 	cmp door_key_cols,x
-	beq .tu_keydoor
+	beq .do_keydoor
 	inx
 	cpx #3
-	bcc .tu_keyscan
-	jmp .tu_door_ok
-.tu_keydoor
+	bcc .do_keyscan
+	jmp .do_ok
+.do_keydoor
 	lda door_key_masks,x
 	bit keys
-	bne .tu_door_ok
-	txa				; 0=red 1=yellow 2=blue
-	jsr door_need_msg
-	jmp .tu_far
-.tu_door_ok
-	ldx tmp1
-	lda SEC_FLOOR,x
-	clc
-	adc #DOOR_OPEN_GAP
-	sta tmp0
-	lda SEC_CEIL,x
-	cmp tmp0
-	bcc .tu_closed
-	jmp .tu_far
-.tu_closed
+	bne .do_ok
+	txa
+	jmp door_need_msg
+.do_ok
 	jsr proc_sector_busy
-	bcc .tu_free
-	jmp .tu_far
-.tu_free
+	bcc .do_free
+	rts
+.do_free
+	lda elev_mode
+	bne .do_need2
+	jsr proc_count_free
+	cmp #1
+	bcs .do_slots
+	rts
+.do_need2
 	jsr proc_count_free
 	cmp #2
-	bcs .tu_slots
-	jmp .tu_far
-.tu_slots
+	bcs .do_slots
+	rts
+.do_slots
 	ldx tmp1
 	lda SEC_FLOOR,x
 	clc
 	adc #DOOR_OPEN_GAP
-	sta tmp2
+	sta tmp2				; dest ceil
+	lda SEC_CEIL,x
+	cmp tmp2
+	bcc .do_closed
+	rts					; already open
+.do_closed
 	lda #PROC_RAISE_CEIL
 	sta tmp0
 	lda #0
 	sta tmp3
 	sta tmp4
 	jsr proc_alloc
-	bcc .tu_got_raise
-	jmp .tu_far
-.tu_got_raise
+	bcs .do_fail
 	lda #SOUND_DOROPN
 	jsr play_sound
+	ldx elev_mode
+	beq .do_fail			; forever: no reclose timer
 	lda #PROC_TIMER
 	sta tmp0
 	lda #PROC_LOWER_CEIL
 	sta tmp2
-	lda #<DOOR_RECLOSE_MS
+	lda door_reclose_lo,x
 	sta tmp3
-	lda #>DOOR_RECLOSE_MS
+	lda door_reclose_hi,x
 	sta tmp4
 	jmp proc_alloc
+.do_fail
+	rts
+
+; Index = DOOR_MODE_*; [0] unused (forever)
+door_reclose_lo
+	!byte 0
+	!byte <DOOR_RECLOSE_5S_MS
+	!byte <DOOR_RECLOSE_10S_MS
+	!byte <DOOR_RECLOSE_30S_MS
+door_reclose_hi
+	!byte 0
+	!byte >DOOR_RECLOSE_5S_MS
+	!byte >DOOR_RECLOSE_10S_MS
+	!byte >DOOR_RECLOSE_30S_MS
 
 ; Ceiling colour → key bit (matches HUD key_masks / SEC_CCOL)
 door_key_cols
@@ -330,47 +386,112 @@ door_key_masks
 	!byte $01, $02, $04
 
 ; ------------------------------------------------------------------
-; try_walk_elevator — sector change → elevator target / start stairs
+; try_walk_into — sector change → trigger=walk_into actions
 ; ------------------------------------------------------------------
-try_walk_elevator
+try_walk_into
 	jsr player_tile
 	jsr map_sector_id
 	cmp player_prev_sec
-	beq .twe_rts
+	beq .twi_rts
 	sta player_prev_sec
 	tax
-	beq .twe_rts
-	lda SEC_TYPE,x
-	cmp #ELEVATOR_LOWER_TYPE
-	beq .twe_src
-	cmp #ELEVATOR_RAISE_TYPE
-	beq .twe_src
-	cmp #START_STAIRS_TYPE
-	beq .twe_stairs
-.twe_rts
-	rts
-.twe_stairs
-	stx tmp1				; start stairs sector
-	jmp stairs_activate
-.twe_src
+	beq .twi_rts
+	stx trig_sec			; trigger sector
+	jsr sec_trigger
+	cmp #TRIG_WALK
+	bne .twi_rts
+	; lower / remote timed|forever doors require SEC_TARGET
+	ldx trig_sec
+	jsr sec_action
+	cmp #ACT_LOWER_FLOOR
+	beq .twi_need_tgt
+	cmp #ACT_OPEN_DOOR_10S
+	beq .twi_need_tgt
+	cmp #ACT_OPEN_DOOR_30S
+	beq .twi_need_tgt
+	cmp #ACT_OPEN_DOOR_FOREVER
+	beq .twi_need_tgt
+	jmp .twi_go
+.twi_need_tgt
+	ldx trig_sec
 	lda SEC_TARGET,x
-	beq .twe_rts
-	sta tmp1				; moved = target
+	beq .twi_rts
+.twi_go
 	lda #1
 	sta elev_remote
-	lda SEC_TYPE,x
-	cmp #ELEVATOR_RAISE_TYPE
-	beq .twe_r
-	lda #0
-	sta elev_mode
-	jmp elevator_activate
-.twe_r
-	lda #1
-	sta elev_mode
-	jmp elevator_activate
+	jmp trigger_action
+.twi_rts
+	rts
 
 ; ------------------------------------------------------------------
-; stairs_activate — tmp1 = Start Stairs sector (walk-into one-shot)
+; try_switch — K held near switch item → sector under switch (trigger=switch)
+; ------------------------------------------------------------------
+try_switch
+	lda key_use
+	bne .ts_g
+	rts
+.ts_g
+	ldx #0
+.ts_l
+	lda level_item_type,x
+	cmp #ITEM_TYPE_SWITCH
+	bne .ts_n
+	lda level_item_x,x
+	sta tmp0
+	lda level_item_y,x
+	sta tmp1
+	lda tmp0
+	sec
+	sbc playerx_h
+	bcs .ts_x
+	eor #$ff
+	clc
+	adc #1
+.ts_x
+	cmp #SWITCH_USE_RADIUS
+	bcs .ts_n
+	lda tmp1
+	sec
+	sbc playery_h
+	bcs .ts_y
+	eor #$ff
+	clc
+	adc #1
+.ts_y
+	cmp #SWITCH_USE_RADIUS
+	bcs .ts_n
+	; map switch world → tile → sector
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	stx tmp5				; save item index
+	jsr map_sector_id
+	beq .ts_n2
+	sta trig_sec
+	tax
+	jsr sec_trigger
+	cmp #TRIG_SWITCH
+	bne .ts_n2
+	lda #1
+	sta elev_remote
+	jmp trigger_action
+.ts_n2
+	ldx tmp5
+.ts_n
+	inx
+	cpx #MAX_ITEMS
+	bcc .ts_l
+	rts
+
+; ------------------------------------------------------------------
+; stairs_activate — tmp1 = Raise Stairs sector (walk-into; often single_shot)
 ; Raise SEC_TARGET chain: +1, +2, … while Continue Stairs & target ≠ 0.
 ; ------------------------------------------------------------------
 stairs_activate
@@ -392,8 +513,8 @@ stairs_activate
 	bcs .sa_abort
 	inc elev_found
 	ldx elev_cell_x
-	lda SEC_TYPE,x
-	cmp #CONTINUE_STAIRS_TYPE
+	jsr sec_action
+	cmp #ACT_CONTINUE_STAIRS
 	bne .sa_dry_done
 	lda SEC_TARGET,x
 	bne .sa_dry
@@ -401,12 +522,12 @@ stairs_activate
 	jsr proc_count_free
 	cmp elev_found
 	bcc .sa_abort
-	; Enough slots — disable start stairs, raise chain
+	; Enough slots — oneshot start, raise chain
 	ldx elev_home
-	lda #0
-	sta SEC_TYPE,x
+	jsr sec_oneshot_if
 	lda #1
 	sta elev_mode			; amount
+	ldx elev_home
 	lda SEC_TARGET,x
 .sa_raise
 	sta elev_cell_x
@@ -431,8 +552,8 @@ stairs_activate
 	jsr proc_alloc
 .sa_chain
 	ldx elev_cell_x
-	lda SEC_TYPE,x
-	cmp #CONTINUE_STAIRS_TYPE
+	jsr sec_action
+	cmp #ACT_CONTINUE_STAIRS
 	bne .sa_snd
 	lda SEC_TARGET,x
 	beq .sa_snd
@@ -444,8 +565,53 @@ stairs_activate
 	jmp play_sound
 
 ; ------------------------------------------------------------------
+; raise_floor_activate — tmp1 = sector; permanent raise to highest adjacent
+; lower_floor_forever_activate — permanent lower to lowest adjacent
+; ------------------------------------------------------------------
+raise_floor_activate
+	lda #1
+	sta elev_mode
+	jmp floor_forever_activate
+
+lower_floor_forever_activate
+	lda #0
+	sta elev_mode
+	; fall through
+floor_forever_activate
+	jsr proc_sector_busy
+	bcc .rf_free
+	rts
+.rf_free
+	jsr elevator_find_dest
+	sta tmp2
+	ldx tmp1
+	lda SEC_FLOOR,x
+	cmp tmp2
+	bne .rf_move
+	rts
+.rf_move
+	lda elev_mode
+	bne .rf_raise_k
+	lda #PROC_LOWER_FLOOR
+	bne .rf_kind
+.rf_raise_k
+	lda #PROC_RAISE_FLOOR
+.rf_kind
+	sta tmp0
+	lda #0
+	sta tmp3
+	sta tmp4
+	jsr proc_alloc
+	bcs .rf_fail
+	lda #SOUND_STNMOV
+	jmp play_sound
+.rf_fail
+	rts
+
+; ------------------------------------------------------------------
 ; elevator_activate — tmp1 = moved sector, elev_mode = 0 lower / 1 raise
 ; elev_remote = 0 → ELEV_RECLOSE_LOCAL_MS, 1 → ELEV_RECLOSE_REMOTE_MS
+; Only used for ACT_LOWER_FLOOR (raise-with-return unused; raise is permanent).
 ; ------------------------------------------------------------------
 elevator_activate
 	jsr proc_sector_busy
@@ -511,6 +677,98 @@ elevator_activate
 	sta PROC_E,y
 .ea_fail
 	rts
+
+; ------------------------------------------------------------------
+; trigger_action — trig_sec = trigger sector; run its action
+; Used by try_switch / try_use / try_walk_into.
+; Resolves SEC_TARGET (0 → self) for floor/door. Caller sets elev_remote
+; for ACT_LOWER_FLOOR. Stairs uses trig_sec as start (not target resolve).
+; ------------------------------------------------------------------
+trigger_action
+	ldx trig_sec
+	jsr sec_action
+	cmp #ACT_END_LEVEL
+	beq .ta_end
+	cmp #ACT_OPEN_DOOR
+	beq .ta_door5
+	cmp #ACT_OPEN_DOOR_FOREVER
+	beq .ta_door_f
+	cmp #ACT_OPEN_DOOR_10S
+	beq .ta_door10
+	cmp #ACT_OPEN_DOOR_30S
+	beq .ta_door30
+	cmp #ACT_LOWER_FLOOR
+	beq .ta_lower
+	cmp #ACT_LOWER_FLOOR_FOREVER
+	beq .ta_lower_f
+	cmp #ACT_RAISE_FLOOR
+	beq .ta_raise
+	cmp #ACT_RAISE_STAIRS
+	bne .ta_none
+	jmp .ta_stairs
+.ta_none
+	rts
+.ta_end
+	lda #1
+	sta end_level
+	jmp .ta_shot
+.ta_door5
+	lda #DOOR_MODE_5S
+	jmp .ta_door_go
+.ta_door_f
+	lda #DOOR_MODE_FOREVER
+	jmp .ta_door_go
+.ta_door10
+	lda #DOOR_MODE_10S
+	jmp .ta_door_go
+.ta_door30
+	lda #DOOR_MODE_30S
+.ta_door_go
+	sta elev_mode
+	ldx trig_sec
+	lda SEC_TARGET,x
+	bne .ta_door_t
+	lda trig_sec
+.ta_door_t
+	sta tmp1
+	jsr door_open_activate
+	jmp .ta_shot
+.ta_lower
+	ldx trig_sec
+	lda SEC_TARGET,x
+	bne .ta_lower_t
+	lda trig_sec
+.ta_lower_t
+	sta tmp1
+	lda #0
+	sta elev_mode
+	jsr elevator_activate
+	jmp .ta_shot
+.ta_lower_f
+	ldx trig_sec
+	lda SEC_TARGET,x
+	bne .ta_lower_f_t
+	lda trig_sec
+.ta_lower_f_t
+	sta tmp1
+	jsr lower_floor_forever_activate
+	jmp .ta_shot
+.ta_raise
+	ldx trig_sec
+	lda SEC_TARGET,x
+	bne .ta_raise_t
+	lda trig_sec
+.ta_raise_t
+	sta tmp1
+	jsr raise_floor_activate
+	jmp .ta_shot
+.ta_stairs
+	lda trig_sec
+	sta tmp1
+	jmp stairs_activate		; oneshot inside on success only
+.ta_shot
+	ldx trig_sec
+	jmp sec_oneshot_if
 
 ; ------------------------------------------------------------------
 ; elevator_find_dest — min/max neighbouring open floor for sector tmp1

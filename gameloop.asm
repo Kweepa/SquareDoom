@@ -16,10 +16,10 @@ gameloop
 	adc turn
 	sta playera
 	jsr apply_move
-	jsr try_walk_elevator
+	jsr try_walk_into
 	jsr try_pickups
 	jsr try_use
-	jsr try_end_switch
+	jsr try_switch
 	jsr proc_update
 	jsr update_info_msg
 	jsr update_eye

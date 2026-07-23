@@ -402,14 +402,18 @@ button.danger {
 
 .field {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.55rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
   font-size: 0.8rem;
 }
 
 .field > span {
   color: var(--muted);
+  flex: 0 0 6.5rem;
+  min-width: 6.5rem;
+  white-space: nowrap;
 }
 
 .field input[type="number"],
@@ -420,6 +424,24 @@ button.danger {
   color: var(--text);
   padding: 0.3rem 0.4rem;
   font-size: 0.85rem;
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.color-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.color-field > span {
+  flex: none;
+  min-width: 0;
+}
+
+.color-field .color-swatches {
+  flex: none;
   width: 100%;
 }
 
@@ -462,7 +484,6 @@ button.danger {
 }
 
 .field select {
-  width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
@@ -477,10 +498,18 @@ button.danger {
   margin-top: 0.75rem;
 }
 
+.field.skills {
+  align-items: center;
+}
+
 .skill-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .skill-row label {

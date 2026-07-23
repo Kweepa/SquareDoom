@@ -57,57 +57,119 @@ const LEGACY_COLOR_TO_C64 = {
   white: 1,
 };
 
-/** Doom-style sector specials (as used by VicDoom), plus editor Door / Window / Elevator. */
-export const DOOR_SECTOR_TYPE = 18;
-/** Blocks player/enemy walk; shots and hitscan pass. */
-export const WINDOW_SECTOR_TYPE = 19;
-export const ELEVATOR_LOWER_SECTOR_TYPE = 20;
-export const ELEVATOR_RAISE_SECTOR_TYPE = 21;
-export const START_STAIRS_SECTOR_TYPE = 22;
-export const CONTINUE_STAIRS_SECTOR_TYPE = 23;
-
-export const SECTOR_TYPES = [
-  { id: 0, name: 'Normal' },
-  { id: 1, name: 'Light blink random' },
-  { id: 2, name: 'Light blink 0.5s' },
-  { id: 3, name: 'Light blink 1.0s' },
-  { id: 4, name: 'Damage 20% + blink' },
-  { id: 5, name: 'Damage 10%' },
-  { id: 7, name: 'Damage 5%' },
-  { id: 8, name: 'Light oscillate' },
-  { id: 9, name: 'Secret' },
-  { id: 10, name: 'Door close (30s)' },
-  { id: 11, name: 'Damage end level' },
-  { id: 12, name: 'Light blink sync 1s' },
-  { id: 13, name: 'Light blink sync 0.5s' },
-  { id: 14, name: 'Door open (300s)' },
-  { id: 16, name: 'Damage 20%' },
-  { id: 17, name: 'Light flicker' },
-  { id: DOOR_SECTOR_TYPE, name: 'Door' },
-  { id: WINDOW_SECTOR_TYPE, name: 'Window' },
-  { id: ELEVATOR_LOWER_SECTOR_TYPE, name: 'Elevator lower' },
-  { id: ELEVATOR_RAISE_SECTOR_TYPE, name: 'Elevator raise' },
-  { id: START_STAIRS_SECTOR_TYPE, name: 'Start stairs' },
-  { id: CONTINUE_STAIRS_SECTOR_TYPE, name: 'Continue stairs' },
+/** Packed SEC_TYPE: action[4:0] | trigger[6:5] | single_shot[7] */
+export const TRIGGERS = [
+  { id: 'none', name: 'None', value: 0 },
+  { id: 'walk_into', name: 'Walk into', value: 1 },
+  { id: 'use', name: 'Use', value: 2 },
+  { id: 'switch', name: 'Switch', value: 3 },
 ];
 
+export const ACTIONS = [
+  { id: 'none', name: 'None', value: 0 },
+  { id: 'window', name: 'Window', value: 1 },
+  { id: 'open_door', name: 'Open door (5s)', value: 2 },
+  { id: 'open_door_forever', name: 'Open door forever', value: 3 },
+  { id: 'open_door_10s', name: 'Open door (10s)', value: 11 },
+  { id: 'open_door_30s', name: 'Open door (30s)', value: 4 },
+  { id: 'lower_floor', name: 'Lower floor (5 sec)', value: 5 },
+  { id: 'lower_floor_forever', name: 'Lower floor forever', value: 10 },
+  { id: 'raise_floor', name: 'Raise floor', value: 6 },
+  { id: 'raise_stairs', name: 'Raise stairs', value: 7 },
+  { id: 'continue_stairs', name: 'Continue stairs', value: 8 },
+  { id: 'end_level', name: 'End level', value: 9 },
+];
+
+const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t]));
+const ACTION_BY_ID = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
+const TRIGGER_BY_VALUE = Object.fromEntries(TRIGGERS.map((t) => [t.value, t]));
+const ACTION_BY_VALUE = Object.fromEntries(ACTIONS.map((a) => [a.value, a]));
+
+export function normalizeTrigger(id) {
+  return TRIGGER_BY_ID[id] ? id : 'none';
+}
+
+export function normalizeAction(id) {
+  return ACTION_BY_ID[id] ? id : 'none';
+}
+
+export function packSectorSpecial(trigger, singleShot, action) {
+  const t = TRIGGER_BY_ID[normalizeTrigger(trigger)]?.value ?? 0;
+  const a = ACTION_BY_ID[normalizeAction(action)]?.value ?? 0;
+  return (a & 31) | ((t & 3) << 5) | (singleShot ? 0x80 : 0);
+}
+
+export function unpackSectorSpecial(byte) {
+  const b = (byte ?? 0) & 0xff;
+  return {
+    trigger: TRIGGER_BY_VALUE[(b >> 5) & 3]?.id ?? 'none',
+    singleShot: !!(b & 0x80),
+    action: ACTION_BY_VALUE[b & 31]?.id ?? 'none',
+  };
+}
+
+/** Legacy Doom-style sectorType → trigger/action/singleShot (for JSON migration). */
+export function migrateLegacySectorType(sectorType, targetTag = '') {
+  const t = (sectorType ?? 0) & 0xff;
+  const hasTarget = String(targetTag || '').trim() !== '';
+  switch (t) {
+    case 18: // Door
+      return { trigger: 'use', singleShot: false, action: 'open_door' };
+    case 19: // Window
+      return { trigger: 'none', singleShot: false, action: 'window' };
+    case 20: // Elevator lower
+      return {
+        trigger: hasTarget ? 'walk_into' : 'use',
+        singleShot: false,
+        action: 'lower_floor',
+      };
+    case 21: // Elevator raise
+      return {
+        trigger: hasTarget ? 'walk_into' : 'use',
+        singleShot: false,
+        action: 'raise_floor',
+      };
+    case 22: // Start stairs
+      return { trigger: 'walk_into', singleShot: true, action: 'raise_stairs' };
+    case 23: // Continue stairs
+      return { trigger: 'none', singleShot: false, action: 'continue_stairs' };
+    case 10: // Door open 30s
+      return { trigger: 'walk_into', singleShot: false, action: 'open_door_30s' };
+    case 14: // Door open forever
+      return { trigger: 'walk_into', singleShot: false, action: 'open_door_forever' };
+    default:
+      return { trigger: 'none', singleShot: false, action: 'none' };
+  }
+}
+
+/** Legacy switchAction → sector fields (applied to sector under the switch). */
+export function migrateSwitchAction(switchAction) {
+  const a = String(switchAction || '');
+  if (a === 'end_level' || a === 'switch_endlevel') {
+    return { trigger: 'switch', singleShot: false, action: 'end_level' };
+  }
+  if (a === 'open_door' || a === 'switch_opendoor') {
+    return { trigger: 'switch', singleShot: false, action: 'open_door' };
+  }
+  if (a === 'lower_lift' || a === 'switch_lowerlift') {
+    return { trigger: 'switch', singleShot: false, action: 'lower_floor' };
+  }
+  return null;
+}
+
 export function isDoorSector(sector) {
-  return (sector?.sectorType ?? 0) === DOOR_SECTOR_TYPE;
+  const a = normalizeAction(sector?.action);
+  return a === 'open_door' || a === 'open_door_forever'
+    || a === 'open_door_10s' || a === 'open_door_30s';
 }
 
 export function isWindowSector(sector) {
-  return (sector?.sectorType ?? 0) === WINDOW_SECTOR_TYPE;
+  return normalizeAction(sector?.action) === 'window';
 }
 
 export function isElevatorSector(sector) {
-  const t = sector?.sectorType ?? 0;
-  return t === ELEVATOR_LOWER_SECTOR_TYPE || t === ELEVATOR_RAISE_SECTOR_TYPE;
-}
-
-/** @deprecated Prefer always resolving non-empty targetTag when cooking. */
-export function sectorTypeNeedsTarget(type) {
-  const t = (type ?? 0) & 0xff;
-  return t !== 0 && t !== WINDOW_SECTOR_TYPE;
+  const a = normalizeAction(sector?.action);
+  return a === 'lower_floor' || a === 'lower_floor_forever' || a === 'raise_floor';
 }
 
 export const ITEM_TYPES = [
@@ -116,7 +178,7 @@ export const ITEM_TYPES = [
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',
-  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+  'switch',
   'fireball',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
 ];
@@ -124,28 +186,22 @@ export const ITEM_TYPES = [
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
 export const SPAWN_TYPE = 'spawn';
 export const CAMERA_TYPE = 'camera';
-/** Palette placeable; fans out to switch_* cook types. */
 export const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 export const FIREBALL_TYPE = 'fireball';
 export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse']);
 
+/** Legacy cook type ids that map to SWITCH_TYPE. */
+const LEGACY_SWITCH_COOK_TYPES = new Set([
+  'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
+]);
+
 /** Types that allocate an mobj at level start (missile excluded). */
 export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
-/** Switch actions → cooked ITEM_TYPES entries (share switch.png). */
-export const SWITCH_ACTIONS = [
-  { id: 'open_door', name: 'Open door', cookType: 'switch_opendoor' },
-  { id: 'end_level', name: 'End level', cookType: 'switch_endlevel' },
-  { id: 'lower_lift', name: 'Lower lift', cookType: 'switch_lowerlift' },
-];
-
-const SWITCH_COOK_TYPES = new Set(SWITCH_ACTIONS.map((a) => a.cookType));
-
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 export const EDITOR_ITEM_TYPES = [
-  ...ITEM_TYPES.filter((t) => !SWITCH_COOK_TYPES.has(t) && !RUNTIME_ONLY_TYPES.has(t)),
-  SWITCH_TYPE,
+  ...ITEM_TYPES.filter((t) => !RUNTIME_ONLY_TYPES.has(t)),
   CAMERA_TYPE,
 ];
 
@@ -162,49 +218,21 @@ export function isSpawn(item) {
 }
 
 export function isSwitchCookType(type) {
-  return SWITCH_COOK_TYPES.has(type);
+  return type === SWITCH_TYPE || LEGACY_SWITCH_COOK_TYPES.has(type);
 }
 
 export function isSwitch(item) {
   return item?.type === SWITCH_TYPE || isSwitchCookType(item?.type);
 }
 
-export function defaultSwitchAction() {
-  return SWITCH_ACTIONS[0].id;
-}
-
-export function normalizeSwitchAction(action) {
-  if (SWITCH_ACTIONS.some((a) => a.id === action)) return action;
-  const byCook = SWITCH_ACTIONS.find((a) => a.cookType === action);
-  return byCook?.id ?? defaultSwitchAction();
-}
-
-export function switchCookType(action) {
-  const a = SWITCH_ACTIONS.find((x) => x.id === normalizeSwitchAction(action));
-  return a.cookType;
-}
-
-/** Map legacy/cook type ids to editor switch fields. */
+/** Map legacy/cook type ids to a plain switch prop. */
 export function coerceSwitchItem(it) {
-  if (it.type === SWITCH_TYPE) {
-    return {
-      type: SWITCH_TYPE,
-      x: it.x,
-      y: it.y,
-      switchAction: normalizeSwitchAction(it.switchAction),
-      targetTag: String(it.targetTag ?? '').trim(),
-    };
-  }
-  if (isSwitchCookType(it.type)) {
-    return {
-      type: SWITCH_TYPE,
-      x: it.x,
-      y: it.y,
-      switchAction: normalizeSwitchAction(it.type),
-      targetTag: String(it.targetTag ?? '').trim(),
-    };
-  }
-  return null;
+  if (!isSwitch(it) && !isSwitchCookType(it?.type)) return null;
+  return {
+    type: SWITCH_TYPE,
+    x: it.x,
+    y: it.y,
+  };
 }
 
 /** Wrap radians into [0, 2π). */
@@ -293,10 +321,12 @@ export function defaultSector() {
   return {
     floorHeight: 8,
     ceilingHeight: 13,
-    sectorType: 0,
+    trigger: 'none',
+    singleShot: false,
+    action: 'none',
     /** Editor-only name; baked away — used to resolve targetTag → sector id. */
     tag: '',
-    /** Editor-only; when sectorType ≠ 0, names the target sector's tag. */
+    /** Editor-only; names the target sector's tag (→ SEC_TARGET). */
     targetTag: '',
     floorColor: 11,
     ceilingColor: 11,
@@ -312,7 +342,9 @@ export function sectorsEqual(a, b) {
   return (
     a.floorHeight === b.floorHeight &&
     a.ceilingHeight === b.ceilingHeight &&
-    a.sectorType === b.sectorType &&
+    normalizeTrigger(a.trigger) === normalizeTrigger(b.trigger) &&
+    !!a.singleShot === !!b.singleShot &&
+    normalizeAction(a.action) === normalizeAction(b.action) &&
     (a.tag || '') === (b.tag || '') &&
     (a.targetTag || '') === (b.targetTag || '') &&
     a.floorColor === b.floorColor &&
@@ -1372,7 +1404,9 @@ export function applyTilePatch(level, tiles, patch) {
     const next = cloneSector(cur);
     if ('floorHeight' in patch) next.floorHeight = clampNum(patch.floorHeight, 0, 31);
     if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
-    if ('sectorType' in patch) next.sectorType = clampNum(patch.sectorType, 0, 255);
+    if ('trigger' in patch) next.trigger = normalizeTrigger(patch.trigger);
+    if ('singleShot' in patch) next.singleShot = !!patch.singleShot;
+    if ('action' in patch) next.action = normalizeAction(patch.action);
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
     if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 16);
@@ -1530,10 +1564,6 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
       type: SWITCH_TYPE,
       x: clampWorld(x),
       y: clampWorld(y),
-      switchAction: isSwitchCookType(type)
-        ? normalizeSwitchAction(type)
-        : defaultSwitchAction(),
-      targetTag: '',
     };
     level.items.push(item);
     return item;

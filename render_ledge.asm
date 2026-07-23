@@ -11,7 +11,23 @@
 ; Door sectors: upper ledge uses far ceil colour.
 ; Elevator sectors: lower ledge (riser) uses far floor colour.
 ; Else N/S vs E/W grey.
-; ============================================================================
+; ledge_col_flags[action]: bit0 = upper→SEC_CCOL, bit1 = lower→SEC_FCOL
+; ---------------------------------------------------------------------------
+
+ledge_col_flags
+	!byte 0			; 0 none
+	!byte 0			; 1 window
+	!byte 1			; 2 open_door 5s
+	!byte 1			; 3 open_door forever
+	!byte 1			; 4 open_door 30s
+	!byte 2			; 5 lower_floor
+	!byte 2			; 6 raise_floor
+	!byte 0			; 7 raise_stairs
+	!byte 0			; 8 continue_stairs
+	!byte 0			; 9 end_level
+	!byte 2			; 10 lower_floor forever
+	!byte 1			; 11 open_door 10s
+	!fill 20, 0
 
 ; ---------------------------------------------------------------------------
 ; paint_portal — ledges for next_id vs near_*; may advance ytop/ybot
@@ -116,14 +132,15 @@ paint_portal
 	sty fill_y1
 	ldx next_id
 	lda SEC_TYPE,x
-	cmp #ELEVATOR_LOWER_TYPE
-	beq .pp_lfcol
-	cmp #ELEVATOR_RAISE_TYPE
-	beq .pp_lfcol
-	lda wall_col
-	jmp .pp_lfill
-.pp_lfcol
+	and #ACT_MASK
+	tay
+	lda ledge_col_flags,y
+	and #2
+	beq .pp_lwall
 	lda SEC_FCOL,x
+	jmp .pp_lfill
+.pp_lwall
+	lda wall_col
 .pp_lfill
 	jsr fill_span
 	; Open window becomes [ytop, farFloorY). Never yank ytop to nearFloorY —
@@ -154,12 +171,13 @@ paint_portal
 	sty fill_y1
 	ldx next_id
 	lda SEC_TYPE,x
-	cmp #DOOR_TYPE
-	bne .pdu_grey
-	lda SEC_CCOL,x
-	jmp .pdu_fill
-.pdu_grey
+	and #ACT_MASK
+	tay
+	lda ledge_col_flags,y
+	lsr				; C = upper uses ceil
 	lda wall_col
+	bcc .pdu_fill
+	lda SEC_CCOL,x
 .pdu_fill
 	jsr fill_span
 	lda tmp2

@@ -19,7 +19,6 @@ import {
   defaultSkills,
   enemyCount,
   gameItemCount,
-  defaultSwitchAction,
   findPreviewCamera,
   getCell,
   getTileProps,
@@ -381,12 +380,8 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
           item.type = CAMERA_TYPE;
           item.angle = 0;
           delete item.skills;
-          delete item.switchAction;
-          delete item.targetTag;
         } else if (patch.type === SWITCH_TYPE) {
           item.type = SWITCH_TYPE;
-          item.switchAction = item.switchAction || defaultSwitchAction();
-          item.targetTag = item.targetTag || '';
           delete item.skills;
           delete item.angle;
         } else if (patch.type !== CAMERA_TYPE && isCamera(item)) {
@@ -396,8 +391,6 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
         } else if (isSwitch(item) && patch.type !== SWITCH_TYPE) {
           item.type = patch.type;
           item.skills = defaultSkills();
-          delete item.switchAction;
-          delete item.targetTag;
         } else {
           item.type = patch.type;
         }
@@ -407,12 +400,6 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       if ('angle' in patch) item.angle = normalizeAngle(patch.angle);
       if ('skillKey' in patch && item.skills) {
         item.skills = { ...item.skills, [patch.skillKey]: patch.skillValue };
-      }
-      if ('switchAction' in patch && isSwitch(item)) {
-        item.switchAction = patch.switchAction;
-      }
-      if ('targetTag' in patch && isSwitch(item)) {
-        item.targetTag = String(patch.targetTag ?? '').trim();
       }
     }
     markDirty();
