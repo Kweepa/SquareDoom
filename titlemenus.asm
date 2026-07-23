@@ -14,8 +14,6 @@ NM_CRED = 256 - 1
 NM_HELP = 256 - 2
 NM_ORDER = 256 - 3
 
-ITEM_TYPE_SWITCH_END = 21
-SWITCH_USE_RADIUS = 6
 LEVEL_ITEMS_BYTES = MAX_ITEMS * ITEM_BYTES
 
 difficulty	!byte 2
@@ -1154,50 +1152,6 @@ wait_key
 	jsr ui_read_keys
 	lda ui_pressed
 	beq .wk1
-	rts
-
-; ==================================================================
-try_end_switch
-	lda key_use
-	bne .te_g
-	rts
-.te_g
-	ldx #0
-.te_l
-	lda level_item_type,x
-	cmp #ITEM_TYPE_SWITCH_END
-	bne .te_n
-	lda level_item_x,x
-	sta tmp0
-	lda level_item_y,x
-	sta tmp1
-	lda tmp0
-	sec
-	sbc playerx_h
-	bcs .te_x
-	eor #$ff
-	clc
-	adc #1
-.te_x
-	cmp #SWITCH_USE_RADIUS
-	bcs .te_n
-	lda tmp1
-	sec
-	sbc playery_h
-	bcs .te_y
-	eor #$ff
-	clc
-	adc #1
-.te_y
-	cmp #SWITCH_USE_RADIUS
-	bcs .te_n
-	lda #1
-	sta end_level
-	rts
-.te_n
-	inx
-	cpx #MAX_ITEMS
-	bcc .te_l
 	rts
 
 ; ==================================================================
