@@ -1926,7 +1926,7 @@
       "spawn": {
         "x": 99,
         "y": 101,
-        "angle": 6.273399011522293
+        "angle": 6.273399011522294
       },
       "items": [
         {
@@ -5813,10 +5813,10 @@
           "brightness": 14
         },
         "79": {
-          "floorHeight": 12,
+          "floorHeight": 8,
           "ceilingHeight": 20,
           "sectorType": 0,
-          "tag": "",
+          "tag": "stair4",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
@@ -5863,11 +5863,11 @@
           "brightness": 15
         },
         "84": {
-          "floorHeight": 11,
+          "floorHeight": 8,
           "ceilingHeight": 20,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
+          "sectorType": 23,
+          "tag": "stair3",
+          "targetTag": "stair4",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
@@ -6363,21 +6363,21 @@
           "brightness": 9
         },
         "134": {
-          "floorHeight": 9,
+          "floorHeight": 8,
           "ceilingHeight": 20,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
+          "sectorType": 23,
+          "tag": "stair1",
+          "targetTag": "stair2",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
         },
         "135": {
-          "floorHeight": 10,
+          "floorHeight": 8,
           "ceilingHeight": 20,
-          "sectorType": 0,
-          "tag": "",
-          "targetTag": "",
+          "sectorType": 23,
+          "tag": "stair2",
+          "targetTag": "stair3",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
@@ -6563,6 +6563,36 @@
           "brightness": 8
         },
         "154": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "155": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "sectorType": 22,
+          "tag": "",
+          "targetTag": "stair1",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "156": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "157": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "sectorType": 0,
@@ -6980,8 +7010,8 @@
         0,
         64,
         64,
-        80,
-        80,
+        153,
+        155,
         134,
         135,
         84,
@@ -7012,8 +7042,8 @@
         0,
         66,
         0,
-        80,
-        80,
+        154,
+        154,
         0,
         0,
         0,
@@ -7044,12 +7074,12 @@
         0,
         66,
         0,
-        153,
-        153,
-        153,
-        153,
-        153,
-        153,
+        156,
+        156,
+        156,
+        156,
+        156,
+        156,
         148,
         0,
         0,
@@ -7078,7 +7108,7 @@
         0,
         0,
         0,
-        154,
+        157,
         85,
         85,
         85,

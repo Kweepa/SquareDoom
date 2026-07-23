@@ -666,6 +666,8 @@ const DOOR_SECTOR_TYPE = 18;
 const WINDOW_SECTOR_TYPE = 19;
 const ELEVATOR_LOWER_SECTOR_TYPE = 20;
 const ELEVATOR_RAISE_SECTOR_TYPE = 21;
+const START_STAIRS_SECTOR_TYPE = 22;
+const CONTINUE_STAIRS_SECTOR_TYPE = 23;
 
 const SECTOR_TYPES = [
   { id: 0, name: 'Normal' },
@@ -688,6 +690,8 @@ const SECTOR_TYPES = [
   { id: WINDOW_SECTOR_TYPE, name: 'Window' },
   { id: ELEVATOR_LOWER_SECTOR_TYPE, name: 'Elevator lower' },
   { id: ELEVATOR_RAISE_SECTOR_TYPE, name: 'Elevator raise' },
+  { id: START_STAIRS_SECTOR_TYPE, name: 'Start stairs' },
+  { id: CONTINUE_STAIRS_SECTOR_TYPE, name: 'Continue stairs' },
 ];
 
 function isDoorSector(sector) {
@@ -4222,14 +4226,28 @@ function markDirty() {
 function markClean() {
   dirty = false;
   updateDirtyIndicator();
+  clearAutosaveTimer();
+}
+
+function clearAutosaveTimer() {
   if (autosaveTimer) {
     clearTimeout(autosaveTimer);
     autosaveTimer = null;
   }
 }
 
+function isEditingField(el = document.activeElement) {
+  return (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement ||
+    !!el?.isContentEditable
+  );
+}
+
 function scheduleAutosave() {
-  if (autosaveTimer) clearTimeout(autosaveTimer);
+  clearAutosaveTimer();
+  if (!dirty || isEditingField()) return;
   autosaveTimer = setTimeout(() => {
     autosaveTimer = null;
     void runAutosave();
@@ -4238,8 +4256,24 @@ function scheduleAutosave() {
 
 async function runAutosave() {
   if (!dirty || saving || !hasEpisodeFileHandle()) return;
+  if (isEditingField()) {
+    // Still typing — wait a full idle delay after they leave the field.
+    scheduleAutosave();
+    return;
+  }
   await saveNow('Autosaved');
 }
+
+/** Pause autosave while typing in inputs; restart the idle delay on leave. */
+document.addEventListener('focusin', (e) => {
+  if (isEditingField(e.target)) clearAutosaveTimer();
+});
+document.addEventListener('focusout', () => {
+  // focus may move to another field; check after the new target is active.
+  requestAnimationFrame(() => {
+    if (dirty && !isEditingField()) scheduleAutosave();
+  });
+});
 
 /** Set after UI init — saveNow runs above the bundled async IIFE. */
 let refreshAfterPack = () => {};

@@ -102,6 +102,8 @@ DOOR_TYPE = 18
 WINDOW_TYPE = 19			; walk-blocked; hitscan/missiles pass
 ELEVATOR_LOWER_TYPE = 20
 ELEVATOR_RAISE_TYPE = 21
+START_STAIRS_TYPE = 22
+CONTINUE_STAIRS_TYPE = 23
 SEC_TABLE_SIZE = 256
 
 ; Attribute tables (index = sector id; [0] unused)

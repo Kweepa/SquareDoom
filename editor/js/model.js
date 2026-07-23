@@ -63,6 +63,8 @@ export const DOOR_SECTOR_TYPE = 18;
 export const WINDOW_SECTOR_TYPE = 19;
 export const ELEVATOR_LOWER_SECTOR_TYPE = 20;
 export const ELEVATOR_RAISE_SECTOR_TYPE = 21;
+export const START_STAIRS_SECTOR_TYPE = 22;
+export const CONTINUE_STAIRS_SECTOR_TYPE = 23;
 
 export const SECTOR_TYPES = [
   { id: 0, name: 'Normal' },
@@ -85,6 +87,8 @@ export const SECTOR_TYPES = [
   { id: WINDOW_SECTOR_TYPE, name: 'Window' },
   { id: ELEVATOR_LOWER_SECTOR_TYPE, name: 'Elevator lower' },
   { id: ELEVATOR_RAISE_SECTOR_TYPE, name: 'Elevator raise' },
+  { id: START_STAIRS_SECTOR_TYPE, name: 'Start stairs' },
+  { id: CONTINUE_STAIRS_SECTOR_TYPE, name: 'Continue stairs' },
 ];
 
 export function isDoorSector(sector) {

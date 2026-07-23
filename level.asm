@@ -69,7 +69,7 @@ update_eye
 ; ---------------------------------------------------------------------------
 ; build_sec_flatgrp — SEC_FLATGRP[id] = group of identical floor/ceil/colours/bright
 ;
-; Once at level load. Door / elevator sectors and any SEC_TARGET id get a
+; Once at level load. Door / elevator / stairs sectors and any SEC_TARGET id get a
 ; unique group (their own id) so soft-portal matching never ties them to
 ; static rooms — floor/ceil motion does not require rebuilding this table.
 ; Void (id 0) is group 0. Clobbers: tmp0, X, Y, A; uses SEC_SEEN as scratch.
@@ -80,7 +80,7 @@ build_sec_flatgrp
 	bne .bf_go
 	rts
 .bf_go
-	; Mark mutables: DOOR/ELEVATOR types and every SEC_TARGET → SEC_SEEN[$ff]
+	; Mark mutables: DOOR/ELEVATOR/STAIRS types and every SEC_TARGET → SEC_SEEN[$ff]
 	ldx #1
 .bf_mark
 	lda SEC_TARGET,x
@@ -95,6 +95,10 @@ build_sec_flatgrp
 	cmp #ELEVATOR_LOWER_TYPE
 	beq .bf_mut
 	cmp #ELEVATOR_RAISE_TYPE
+	beq .bf_mut
+	cmp #START_STAIRS_TYPE
+	beq .bf_mut
+	cmp #CONTINUE_STAIRS_TYPE
 	beq .bf_mut
 	jmp .bf_mnext
 .bf_mut

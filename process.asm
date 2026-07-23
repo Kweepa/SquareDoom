@@ -3,6 +3,7 @@
 ; SoA thinkers: TIMER, RAISE/LOWER_CEIL, RAISE/LOWER_FLOOR.
 ; Door / elevator K-use: NESW neighbour within 4 world units of the shared face.
 ; Elevator walk: enter typed source with SEC_TARGET → move that sector.
+; Start stairs walk: enter Start Stairs → raise SEC_TARGET chain (+1,+2,…); one-shot.
 ; Absolute JMPs used where relative branches would exceed ±127.
 
 DOOR_OPEN_GAP = 5
@@ -329,7 +330,7 @@ door_key_masks
 	!byte $01, $02, $04
 
 ; ------------------------------------------------------------------
-; try_walk_elevator — sector change into elevator+target → move target
+; try_walk_elevator — sector change → elevator target / start stairs
 ; ------------------------------------------------------------------
 try_walk_elevator
 	jsr player_tile
@@ -344,8 +345,13 @@ try_walk_elevator
 	beq .twe_src
 	cmp #ELEVATOR_RAISE_TYPE
 	beq .twe_src
+	cmp #START_STAIRS_TYPE
+	beq .twe_stairs
 .twe_rts
 	rts
+.twe_stairs
+	stx tmp1				; start stairs sector
+	jmp stairs_activate
 .twe_src
 	lda SEC_TARGET,x
 	beq .twe_rts
@@ -362,6 +368,80 @@ try_walk_elevator
 	lda #1
 	sta elev_mode
 	jmp elevator_activate
+
+; ------------------------------------------------------------------
+; stairs_activate — tmp1 = Start Stairs sector (walk-into one-shot)
+; Raise SEC_TARGET chain: +1, +2, … while Continue Stairs & target ≠ 0.
+; ------------------------------------------------------------------
+stairs_activate
+	lda tmp1
+	sta elev_home			; start sector
+	tax
+	lda SEC_TARGET,x
+	bne .sa_dry_go
+.sa_abort
+	rts
+.sa_dry_go
+	; Dry-run: count hops, abort if any sector busy
+	ldx #0
+	stx elev_found			; hop count
+.sa_dry
+	sta elev_cell_x
+	sta tmp1
+	jsr proc_sector_busy
+	bcs .sa_abort
+	inc elev_found
+	ldx elev_cell_x
+	lda SEC_TYPE,x
+	cmp #CONTINUE_STAIRS_TYPE
+	bne .sa_dry_done
+	lda SEC_TARGET,x
+	bne .sa_dry
+.sa_dry_done
+	jsr proc_count_free
+	cmp elev_found
+	bcc .sa_abort
+	; Enough slots — disable start stairs, raise chain
+	ldx elev_home
+	lda #0
+	sta SEC_TYPE,x
+	lda #1
+	sta elev_mode			; amount
+	lda SEC_TARGET,x
+.sa_raise
+	sta elev_cell_x
+	sta tmp1
+	tax
+	lda SEC_FLOOR,x
+	clc
+	adc elev_mode
+	cmp #32
+	bcc .sa_clamp
+	lda #31
+.sa_clamp
+	sta tmp2				; dest height
+	lda SEC_FLOOR,x
+	cmp tmp2
+	bcs .sa_chain			; already at/above
+	lda #PROC_RAISE_FLOOR
+	sta tmp0
+	lda #0
+	sta tmp3
+	sta tmp4
+	jsr proc_alloc
+.sa_chain
+	ldx elev_cell_x
+	lda SEC_TYPE,x
+	cmp #CONTINUE_STAIRS_TYPE
+	bne .sa_snd
+	lda SEC_TARGET,x
+	beq .sa_snd
+	inc elev_mode
+	lda SEC_TARGET,x
+	jmp .sa_raise
+.sa_snd
+	lda #SOUND_STNMOV
+	jmp play_sound
 
 ; ------------------------------------------------------------------
 ; elevator_activate — tmp1 = moved sector, elev_mode = 0 lower / 1 raise

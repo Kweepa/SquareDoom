@@ -169,14 +169,28 @@ function markDirty() {
 function markClean() {
   dirty = false;
   updateDirtyIndicator();
+  clearAutosaveTimer();
+}
+
+function clearAutosaveTimer() {
   if (autosaveTimer) {
     clearTimeout(autosaveTimer);
     autosaveTimer = null;
   }
 }
 
+function isEditingField(el = document.activeElement) {
+  return (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement ||
+    !!el?.isContentEditable
+  );
+}
+
 function scheduleAutosave() {
-  if (autosaveTimer) clearTimeout(autosaveTimer);
+  clearAutosaveTimer();
+  if (!dirty || isEditingField()) return;
   autosaveTimer = setTimeout(() => {
     autosaveTimer = null;
     void runAutosave();
@@ -185,8 +199,24 @@ function scheduleAutosave() {
 
 async function runAutosave() {
   if (!dirty || saving || !hasEpisodeFileHandle()) return;
+  if (isEditingField()) {
+    // Still typing — wait a full idle delay after they leave the field.
+    scheduleAutosave();
+    return;
+  }
   await saveNow('Autosaved');
 }
+
+/** Pause autosave while typing in inputs; restart the idle delay on leave. */
+document.addEventListener('focusin', (e) => {
+  if (isEditingField(e.target)) clearAutosaveTimer();
+});
+document.addEventListener('focusout', () => {
+  // focus may move to another field; check after the new target is active.
+  requestAnimationFrame(() => {
+    if (dirty && !isEditingField()) scheduleAutosave();
+  });
+});
 
 /** Set after UI init — saveNow runs above the bundled async IIFE. */
 let refreshAfterPack = () => {};
