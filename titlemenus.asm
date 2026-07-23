@@ -150,6 +150,26 @@ gameloop_check_esc
 	pla
 	jmp next_level
 
+; Rising edge of IRQ-latched M (key_map from read_input)
+gameloop_check_map
+	lda key_map
+	beq .gcm_up
+	lda key_map_was
+	bne .gcm_held
+	lda #1
+	sta key_map_was
+	jsr mapscreen
+	; mapscreen waits for M up; clear so we need a fresh press
+	lda #0
+	sta key_map_was
+	sta key_map
+	sta in_map
+	rts
+.gcm_up
+	sta key_map_was			; A = 0
+.gcm_held
+	rts
+
 ; ==================================================================
 run_menu
 	sta menu_can_ret
@@ -1282,6 +1302,7 @@ txt_help
 	!scr "turn right        l",0
 	!scr "use               k",0
 	!scr "fire              i",0
+	!scr "toggle map        m",0
     !scr " ",0
 	!scr "switch weapon     2345",0
 	!scr "menu              runstop",0

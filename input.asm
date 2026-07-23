@@ -2,7 +2,7 @@
 
 ; CIA1 keys (sampled by Timer A IRQ ~every SAMPLE_MS binary-ms):
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
-;   K = use (PA4/PB5) — open door; I = fire (PA4/PB1)
+;   K = use (PA4/PB5) — open door; I = fire (PA4/PB1); M = map (PA4/PB4)
 ;   W/A/S = PA1 column; D = PA2 column; 3 = shotgun (PA1/PB0)
 ;   2 = pistol (PA7/PB3)
 ;   W forward, S back, A strafe left, D strafe right
@@ -14,7 +14,7 @@
 ;   move 1 tile/sec = 8 world/sec → delta_8_8 = (sintab * vel_ms) >> 5
 ; sintab AMP=64; identity: sin=64, dt=1024 → 2048 = 8.0 world.
 ;
-; Use/fire: OR-latch if held on any sample this frame.
+; Use/fire/map: OR-latch if held on any sample this frame.
 ;
 ; CIA1 Timer B runs separately at ~140 Hz for PC speaker SFX (update_sfx).
 
@@ -29,6 +29,9 @@ SFX_TB_HI = >$1BFF
 ; Menus set this so Timer A skips $dc00 (ui_read_keys); Timer B still runs SFX
 input_paused	!byte 0
 irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
+in_map		!byte 0			; OR-latch: M held any IRQ sample this frame
+key_map		!byte 0			; snapshot from read_input
+key_map_was	!byte 0			; previous-frame key_map for rising-edge map toggle
 
 ; ------------------------------------------------------------------
 ; input_irq_init — CIA1 TA @ SAMPLE_MS (keys), TB @ ~140 Hz (SFX)
@@ -43,9 +46,11 @@ input_irq_init
 	sta in_strafer
 	sta in_use
 	sta in_fire
+	sta in_map
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
 	sta input_paused
+	sta key_map_was
 	sta $d01a				; no VIC IRQs
 
 	lda #$7f
@@ -96,7 +101,7 @@ input_irq
 	jmp .irq_rti
 .irq_keys
 
-	; J / K / I (PA4 = $EF)
+	; J / K / I / M (PA4 = $EF)
 	lda #$ef
 	sta $dc00
 	lda $dc01
@@ -119,6 +124,12 @@ input_irq
 	lda #1
 	sta in_fire
 .irq_noi
+	txa
+	and #$10				; M
+	bne .irq_nom
+	lda #1
+	sta in_map
+.irq_nom
 
 	; L (PA5 = $DF)
 	lda #$df
@@ -217,6 +228,8 @@ read_input
 	sta key_use
 	lda in_fire
 	sta key_fire
+	lda in_map
+	sta key_map
 	lda in_wpn_pistol
 	sta key_wpn_pistol
 	lda in_wpn_shotgun
@@ -242,6 +255,7 @@ read_input
 	sta in_strafer
 	sta in_use
 	sta in_fire
+	sta in_map
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
 	cli
@@ -710,7 +724,7 @@ push_walls
 
 ; ------------------------------------------------------------------
 ; UI keys (menus / pause) — direct CIA1 sample, edge in ui_pressed
-; Bits: UP=1 DOWN=2 LEFT=4 RIGHT=8 SELECT=16 ESC=32
+; Bits: UP=1 DOWN=2 LEFT=4 RIGHT=8 SELECT=16 ESC=32 MAP=64
 ; ------------------------------------------------------------------
 UI_UP = 1
 UI_DOWN = 2
@@ -718,6 +732,7 @@ UI_LEFT = 4
 UI_RIGHT = 8
 UI_SELECT = 16
 UI_ESC = 32
+UI_MAP = 64
 
 ui_keys		!byte 0
 ui_old		!byte 0
@@ -790,6 +805,17 @@ ui_read_keys
 	sta ui_keys
 .urk_noesc
 
+	; M (PA4 = $EF, PB4)
+	lda #$ef
+	sta $dc00
+	lda $dc01
+	and #$10
+	bne .urk_nom
+	lda ui_keys
+	ora #UI_MAP
+	sta ui_keys
+.urk_nom
+
 	lda ui_old
 	eor #$ff
 	and ui_keys
@@ -813,4 +839,12 @@ ui_wait_esc_up
 	lda ui_keys
 	and #UI_ESC
 	bne ui_wait_esc_up
+	rts
+
+; Wait until M released
+ui_wait_map_up
+	jsr ui_read_keys
+	lda ui_keys
+	and #UI_MAP
+	bne ui_wait_map_up
 	rts

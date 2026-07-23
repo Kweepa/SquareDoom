@@ -66,6 +66,7 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "pickup.asm"
 !source "weapon.asm"
 !source "titlemenus.asm"
+!source "mapscreen.asm"
 !source "loader.asm"
 ; P + clip moved out of low (which is nearly full); py_tab needs page alignment
 !source "render_project_y.asm"
@@ -137,8 +138,8 @@ free_high = MEM_HIGH_LIMIT - end_high
 }
 !warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
 
-; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj, flatgrp; tail free to $10000
-free_kernal = $10000 - LEVEL_ITEMS_BAK_END
+; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj, flatgrp, visited; tail free to $10000
+free_kernal = $10000 - SEC_VISITED_END
 free_total = free_low + free_mid + free_high + free_kernal
-!warn "mem: kernal BSS $e000..$", LEVEL_ITEMS_BAK_END - 1, " free tail =", free_kernal
+!warn "mem: kernal BSS $e000..$", SEC_VISITED_END - 1, " free tail =", free_kernal
 !warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"

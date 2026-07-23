@@ -10,6 +10,7 @@ gameloop
 	jsr player_frame
 	jsr calc_frame_dt
 	jsr read_input
+	jsr gameloop_check_map
 	clc
 	lda playera
 	adc turn

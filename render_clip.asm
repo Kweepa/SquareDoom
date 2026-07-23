@@ -27,13 +27,28 @@ clear_sector_seen
 	rts
 
 ; ---------------------------------------------------------------------------
-; mark_seen — X = sector id; mark visible this frame (id 0 ignored)
+; clear_sector_visited — clear SEC_VISITED[1..level_sector_max] (automap fog)
+; ---------------------------------------------------------------------------
+clear_sector_visited
+	lda #0
+	ldx level_sector_max
+	beq .csv_done
+.csv_lp
+	sta SEC_VISITED,x
+	dex
+	bne .csv_lp
+.csv_done
+	rts
+
+; ---------------------------------------------------------------------------
+; mark_seen — X = sector id; mark visible this frame + ever-visited (id 0 ignored)
 ; ---------------------------------------------------------------------------
 mark_seen
 	txa
 	beq .ms_done
 	lda #$ff
 	sta SEC_SEEN,x
+	sta SEC_VISITED,x
 .ms_done
 	rts
 

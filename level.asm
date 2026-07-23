@@ -11,6 +11,7 @@ start_level
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr build_sec_flatgrp
+	jsr clear_sector_visited		; automap fog starts cleared
 	jsr player_tile
 	jsr map_sector_id
 	sta player_prev_sec
