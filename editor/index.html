@@ -717,7 +717,7 @@ const ITEM_TYPES = [
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
   'fireball',
-  'poscorpse', 'impcorpse', 'demoncorpse',
+  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -727,7 +727,7 @@ const CAMERA_TYPE = 'camera';
 const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 const FIREBALL_TYPE = 'fireball';
-const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse']);
+const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse']);
 
 /** Types that allocate an mobj at level start (missile excluded). */
 const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
@@ -806,10 +806,17 @@ function coerceSwitchItem(it) {
   return null;
 }
 
+/** Wrap radians into [0, 2π). */
+function normalizeAngle(rad) {
+  const t = Number(rad) || 0;
+  const twoPi = Math.PI * 2;
+  return ((t % twoPi) + twoPi) % twoPi;
+}
+
 /** Radians ↔ cooked playera byte (0..255 full circle). */
 function angleToByte(rad) {
-  const t = Number(rad) || 0;
-  return ((Math.round((t / (Math.PI * 2)) * 256) % 256) + 256) % 256;
+  const t = normalizeAngle(rad);
+  return Math.round((t / (Math.PI * 2)) * 256) % 256;
 }
 
 function byteToAngle(b) {
@@ -2098,7 +2105,7 @@ function setSpawn(level, x, y, angle) {
   level.spawn.type = SPAWN_TYPE;
   level.spawn.x = clampWorld(x);
   level.spawn.y = clampWorld(y);
-  if (angle !== undefined) level.spawn.angle = Number(angle) || 0;
+  if (angle !== undefined) level.spawn.angle = normalizeAngle(angle);
   return level.spawn;
 }
 
@@ -2274,7 +2281,7 @@ function levelFromJSON(data) {
           type: CAMERA_TYPE,
           x: clamp(it.x ?? 0, 0, 255),
           y: clamp(it.y ?? 0, 0, 255),
-          angle: Number(it.angle) || 0,
+          angle: normalizeAngle(it.angle),
         });
         continue;
       }
@@ -3838,8 +3845,8 @@ class ItemEditor {
       span.textContent = 'Angle (deg)';
       const input = document.createElement('input');
       input.type = 'number';
-      input.min = '-180';
-      input.max = '180';
+      input.min = '0';
+      input.max = '360';
       input.step = '1';
       if (angleSame) input.value = String(deg);
       else {
@@ -3848,7 +3855,8 @@ class ItemEditor {
       }
       input.addEventListener('change', () => {
         if (input.value === '') return;
-        this.opts.onChange({ angle: (Number(input.value) * Math.PI) / 180 });
+        const clamped = Math.max(0, Math.min(360, Number(input.value) || 0));
+        this.opts.onChange({ angle: normalizeAngle((clamped * Math.PI) / 180) });
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
@@ -4420,7 +4428,7 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       }
       if ('x' in patch) item.x = clampWorld(patch.x);
       if ('y' in patch) item.y = clampWorld(patch.y);
-      if ('angle' in patch) item.angle = Number(patch.angle) || 0;
+      if ('angle' in patch) item.angle = normalizeAngle(patch.angle);
       if ('skillKey' in patch && item.skills) {
         item.skills = { ...item.skills, [patch.skillKey]: patch.skillValue };
       }
@@ -4488,7 +4496,7 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
     beginUndoGesture();
-    cam.angle = angle;
+    cam.angle = normalizeAngle(angle);
     markDirty();
     if (selection.items.has(cam)) itemEditor.render();
     mapView.draw();

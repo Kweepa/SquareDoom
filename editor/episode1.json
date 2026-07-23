@@ -5118,7 +5118,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5138,7 +5138,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -5148,7 +5148,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5248,7 +5248,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -5398,7 +5398,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5508,7 +5508,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5558,7 +5558,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5568,7 +5568,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5618,7 +5618,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 12
         },
@@ -5648,7 +5648,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 15
         },
@@ -5748,7 +5748,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 15
         },
@@ -6118,7 +6118,7 @@
           "sectorType": 18,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 15
         },
@@ -6228,7 +6228,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 16
         },
@@ -6238,7 +6238,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6248,7 +6248,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6258,7 +6258,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6278,7 +6278,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6288,7 +6288,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6298,7 +6298,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6308,7 +6308,7 @@
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 7
         },
@@ -6506,6 +6506,16 @@
           "floorHeight": 13,
           "ceilingHeight": 20,
           "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 15
+        },
+        "149": {
+          "floorHeight": 8,
+          "ceilingHeight": 8,
+          "sectorType": 18,
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -7233,7 +7243,7 @@
         49,
         49,
         0,
-        113,
+        149,
         0,
         51,
         51,
@@ -7540,8 +7550,8 @@
         0
       ],
       "spawn": {
-        "x": 124,
-        "y": 245,
+        "x": 124.52287772649368,
+        "y": 243.73352172716537,
         "angle": 0
       },
       "items": [

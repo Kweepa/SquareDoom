@@ -14,7 +14,8 @@ MOBJINFO_POS = 0
 MOBJINFO_IMP = 1
 MOBJINFO_DEMON = 2
 MOBJINFO_CACO = 3
-MOBJINFO_IMPSHOT = 4
+MOBJINFO_BARON = 4
+MOBJINFO_IMPSHOT = 5
 
 STATE_POSCHASE = 0
 STATE_POSPAIN = 1
@@ -34,7 +35,12 @@ STATE_CACPAIN = 14
 STATE_CACBITE = 15
 STATE_CACMISSILE = 16
 STATE_CACFALL = 17
-STATE_IMPSHOTFLY = 18
+STATE_BRNCHASE = 18
+STATE_BRNPAIN = 19
+STATE_BRNBITE = 20
+STATE_BRNMISSILE = 21
+STATE_BRNFALL = 22
+STATE_IMPSHOTFLY = 23
 
 ACTION_CHASE = 0
 ACTION_FLINCH = 1
@@ -53,15 +59,18 @@ ENEMY_TEX_IMP_PAIN = 5
 ENEMY_TEX_DEMON_WALK = 6
 ENEMY_TEX_DEMON_ATK = 7
 ENEMY_TEX_DEMON_PAIN = 8
+ENEMY_TEX_BARON_WALK = 9
+ENEMY_TEX_BARON_ATK = 10
 
 ITEM_TYPE_ENEMY_FIRST = 1
-ITEM_TYPE_ENEMY_LAST = 4
+ITEM_TYPE_ENEMY_LAST = 5
 ITEM_TYPE_SOLDIER = 1
 ITEM_TYPE_IMP = 2
 ITEM_TYPE_FIREBALL = 23
 ITEM_TYPE_POSCORPSE = 24
 ITEM_TYPE_IMPCORPSE = 25
 ITEM_TYPE_DEMONCORPSE = 26
+ITEM_TYPE_BARONCORPSE = 27
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -74,36 +83,38 @@ FU_45 = 22
 ; Tables
 ; ---------------------------------------------------------------------------
 mobj_speed
-	!byte 3,4,6,5
+	!byte 3,4,6,5,4
 mobj_pain_chance
-	!byte 2,3,4,5
+	!byte 2,3,4,5,$ff		; baron $ff = never flinch
 mobj_spawn_health
-	!byte 20,30,60,99		; pos/imp/demon/caco (pistol ~1-16)
+	!byte 20,30,60,99,150		; pos/imp/demon/caco/baron
 mobj_chase_state
-	!byte STATE_POSCHASE, STATE_IMPCHASE, STATE_DMNCHASE, STATE_CACCHASE
+	!byte STATE_POSCHASE, STATE_IMPCHASE, STATE_DMNCHASE, STATE_CACCHASE, STATE_BRNCHASE
 mobj_pain_state
-	!byte STATE_POSPAIN, STATE_IMPPAIN, STATE_DMNPAIN, STATE_CACPAIN
+	!byte STATE_POSPAIN, STATE_IMPPAIN, STATE_DMNPAIN, STATE_CACPAIN, STATE_BRNPAIN
 mobj_melee_state
-	!byte $ff, STATE_IMPCLAW, STATE_DMNBITE, STATE_CACBITE
+	!byte $ff, STATE_IMPCLAW, STATE_DMNBITE, STATE_CACBITE, STATE_BRNBITE
 mobj_shoot_state
-	!byte STATE_POSSHOOT, STATE_IMPMISSILE, $ff, STATE_CACMISSILE
+	!byte STATE_POSSHOOT, STATE_IMPMISSILE, $ff, STATE_CACMISSILE, STATE_BRNMISSILE
 mobj_death_state
-	!byte STATE_POSFALL, STATE_IMPFALL, STATE_DMNFALL, STATE_CACFALL
+	!byte STATE_POSFALL, STATE_IMPFALL, STATE_DMNFALL, STATE_CACFALL, STATE_BRNFALL
 mobj_death_sound
-	!byte SOUND_SGTDTH, SOUND_PLPAIN, SOUND_DMPAIN, SOUND_POPAIN
+	!byte SOUND_SGTDTH, SOUND_PLPAIN, SOUND_DMPAIN, SOUND_POPAIN, SOUND_DMPAIN
 
-; Pos/imp/demon: 16×32 enemy mips (0–2 pos, 3–5 imp, 6–8 demon). Caco still stub.
+; Frames 0–2 pos, 3–5 imp, 6–8 demon, 9–10 baron (pain=walk). Caco still stub.
 state_texture
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_IMP_WALK, ENEMY_TEX_IMP_PAIN, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_DEMON_WALK, ENEMY_TEX_DEMON_PAIN, ENEMY_TEX_DEMON_ATK, ENEMY_TEX_DEMON_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
+	!byte TEX_ANIMATE + ENEMY_TEX_BARON_WALK, ENEMY_TEX_BARON_WALK, ENEMY_TEX_BARON_ATK, ENEMY_TEX_BARON_ATK, ENEMY_TEX_BARON_WALK
 	!byte 0
 
 state_action
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_SHOOT, ACTION_FALL
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_MISSILE, ACTION_FALL
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_FALL
+	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_MISSILE, ACTION_FALL
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_MISSILE, ACTION_FALL
 	!byte ACTION_FLY
 
@@ -204,7 +215,7 @@ enemy_reset
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_alloc_all — bind mobjs to item types 1..4
+; enemy_alloc_all — bind mobjs to item types 1..5 (soldier…baron)
 ; ---------------------------------------------------------------------------
 enemy_alloc_all
 	jsr enemy_reset
@@ -1378,13 +1389,20 @@ a_fall
 	lda MOBJ_MOVECNT,x
 	bne .af_done
 .af_corpse
-	; pos/imp/demon → corpse item type; caco → ITEM_CORPSE_TEX stub
+	; pos/imp/demon → 24–26; baron → 27; caco → ITEM_CORPSE_TEX stub
 	lda MOBJ_INFO,x
-	cmp #3
-	bcs .af_stub
+	cmp #MOBJINFO_BARON
+	beq .af_baron
+	cmp #MOBJINFO_CACO
+	bcs .af_stub			; caco / missile
 	ldy MOBJ_OBJ,x
 	clc
 	adc #ITEM_TYPE_POSCORPSE	; 0→24, 1→25, 2→26
+	sta level_item_type,y
+	jmp .af_free
+.af_baron
+	ldy MOBJ_OBJ,x
+	lda #ITEM_TYPE_BARONCORPSE
 	sta level_item_type,y
 	jmp .af_free
 .af_stub
@@ -1500,7 +1518,7 @@ enemy_damage
 	sta enemy_obj
 	lda MOBJ_INFO,y
 	sta enemy_info
-	cmp #5
+	cmp #MOBJINFO_IMPSHOT
 	bcs .ed_rts
 	; P_DamageMobj
 	lda MOBJ_HEALTH,y
@@ -1542,8 +1560,8 @@ enemy_damage
 
 ; ---------------------------------------------------------------------------
 ; enemy_get_texture — X = item slot → A = tex (bit6=animate), C=1 if 16×32
-; Live enemies (types 1–4) use enemy_sprites; pos/imp/demon corpses are item
-; types 24–26 (item atlas). Caco still uses ITEM_CORPSE_TEX until art exists.
+; Live enemies (types 1–5) use enemy_sprites; pos/imp/demon/baron corpses are
+; item types 24–27. Caco still uses ITEM_CORPSE_TEX until art exists.
 ; ---------------------------------------------------------------------------
 enemy_get_texture
 	lda level_item_type,x

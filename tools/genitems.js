@@ -21,7 +21,7 @@ const ITEM_TYPES = [
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
   'fireball',
-  'poscorpse', 'impcorpse', 'demoncorpse',
+  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
 ];
 
 /** No item atlas: spawn is never drawn; enemies use enemy_sprites mips. */

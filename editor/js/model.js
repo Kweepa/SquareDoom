@@ -114,7 +114,7 @@ export const ITEM_TYPES = [
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
   'fireball',
-  'poscorpse', 'impcorpse', 'demoncorpse',
+  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -124,7 +124,7 @@ export const CAMERA_TYPE = 'camera';
 export const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 export const FIREBALL_TYPE = 'fireball';
-export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse']);
+export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse']);
 
 /** Types that allocate an mobj at level start (missile excluded). */
 export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
@@ -203,10 +203,17 @@ export function coerceSwitchItem(it) {
   return null;
 }
 
+/** Wrap radians into [0, 2π). */
+export function normalizeAngle(rad) {
+  const t = Number(rad) || 0;
+  const twoPi = Math.PI * 2;
+  return ((t % twoPi) + twoPi) % twoPi;
+}
+
 /** Radians ↔ cooked playera byte (0..255 full circle). */
 export function angleToByte(rad) {
-  const t = Number(rad) || 0;
-  return ((Math.round((t / (Math.PI * 2)) * 256) % 256) + 256) % 256;
+  const t = normalizeAngle(rad);
+  return Math.round((t / (Math.PI * 2)) * 256) % 256;
 }
 
 export function byteToAngle(b) {
@@ -1495,7 +1502,7 @@ export function setSpawn(level, x, y, angle) {
   level.spawn.type = SPAWN_TYPE;
   level.spawn.x = clampWorld(x);
   level.spawn.y = clampWorld(y);
-  if (angle !== undefined) level.spawn.angle = Number(angle) || 0;
+  if (angle !== undefined) level.spawn.angle = normalizeAngle(angle);
   return level.spawn;
 }
 

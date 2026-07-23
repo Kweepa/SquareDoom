@@ -1,12 +1,12 @@
 /**
- * Read pos*_mips.png + imp/demon {walk,atk,pain}.png → enemy_sprites.asm
+ * Read pos*_mips.png + imp/demon/baron atlases → enemy_sprites.asm
  *
  * Source atlas per frame: 24×32 (mips baked in)
  *   left 16×32 = mip0
  *   right strip: mip1 8×16 (y0..15), mip2 4×8 (y16..23),
  *                mip3 2×4 (y24..27), mip4 1×2 (y28..29)
  *
- * Frame indices: 0–2 possessed walk/atk/pain, 3–5 imp, 6–8 demon.
+ * Frame indices: 0–2 possessed, 3–5 imp, 6–8 demon, 9–10 baron (walk/atk; pain=walk).
  *
  * Emits standalone column-major frames (gfx[x*H+y], 0=transparent)
  * plus lookup tables for mip W/H and base address [frame*5+mip].
@@ -29,6 +29,8 @@ const FRAMES = [
   { file: 'demonwalk.png', prefix: 'enemy_spr_demon_walk' },
   { file: 'demonatk.png', prefix: 'enemy_spr_demon_atk' },
   { file: 'demonpain.png', prefix: 'enemy_spr_demon_pain' },
+  { file: 'baronwalk.png', prefix: 'enemy_spr_baron_walk' },
+  { file: 'baronatk.png', prefix: 'enemy_spr_baron_atk' },
 ];
 
 const ATLAS_W = 24;
@@ -229,7 +231,7 @@ function extractMip(pixels, atlasW, mip) {
   return col;
 }
 
-let asm = `; Auto-generated from itemgraphics/multicolour/pos*_mips.png + imp*.png + demon*.png — do not edit\n`;
+let asm = `; Auto-generated from itemgraphics/multicolour enemy atlases — do not edit\n`;
 asm += `; Standalone column-major mip frames: gfx[bmp_x*H+bmp_y], 0 = transparent\n`;
 asm += `!zone enemy_sprites\n\n`;
 asm += `ENEMY_MIP_COUNT = ${MIPS.length}\n`;

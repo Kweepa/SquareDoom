@@ -1,9 +1,9 @@
-; Auto-generated from itemgraphics/multicolour/pos*_mips.png + imp*.png + demon*.png — do not edit
+; Auto-generated from itemgraphics/multicolour enemy atlases — do not edit
 ; Standalone column-major mip frames: gfx[bmp_x*H+bmp_y], 0 = transparent
 !zone enemy_sprites
 
 ENEMY_MIP_COUNT = 5
-ENEMY_FRAME_COUNT = 9
+ENEMY_FRAME_COUNT = 11
 
 ; mip source width / height / log2 (index = mip 0..4)
 enemy_mip_w
@@ -18,9 +18,9 @@ enemy_mip_vshift
 ; Base address lo/hi: index = frame*ENEMY_MIP_COUNT + mip
 ; frame 0–2 pos walk/atk/pain, 3–5 imp walk/atk/pain
 enemy_mip_base_lo
-	!byte <enemy_spr_walk_m0,<enemy_spr_walk_m1,<enemy_spr_walk_m2,<enemy_spr_walk_m3,<enemy_spr_walk_m4,<enemy_spr_atk_m0,<enemy_spr_atk_m1,<enemy_spr_atk_m2,<enemy_spr_atk_m3,<enemy_spr_atk_m4,<enemy_spr_pain_m0,<enemy_spr_pain_m1,<enemy_spr_pain_m2,<enemy_spr_pain_m3,<enemy_spr_pain_m4,<enemy_spr_imp_walk_m0,<enemy_spr_imp_walk_m1,<enemy_spr_imp_walk_m2,<enemy_spr_imp_walk_m3,<enemy_spr_imp_walk_m4,<enemy_spr_imp_atk_m0,<enemy_spr_imp_atk_m1,<enemy_spr_imp_atk_m2,<enemy_spr_imp_atk_m3,<enemy_spr_imp_atk_m4,<enemy_spr_imp_pain_m0,<enemy_spr_imp_pain_m1,<enemy_spr_imp_pain_m2,<enemy_spr_imp_pain_m3,<enemy_spr_imp_pain_m4,<enemy_spr_demon_walk_m0,<enemy_spr_demon_walk_m1,<enemy_spr_demon_walk_m2,<enemy_spr_demon_walk_m3,<enemy_spr_demon_walk_m4,<enemy_spr_demon_atk_m0,<enemy_spr_demon_atk_m1,<enemy_spr_demon_atk_m2,<enemy_spr_demon_atk_m3,<enemy_spr_demon_atk_m4,<enemy_spr_demon_pain_m0,<enemy_spr_demon_pain_m1,<enemy_spr_demon_pain_m2,<enemy_spr_demon_pain_m3,<enemy_spr_demon_pain_m4
+	!byte <enemy_spr_walk_m0,<enemy_spr_walk_m1,<enemy_spr_walk_m2,<enemy_spr_walk_m3,<enemy_spr_walk_m4,<enemy_spr_atk_m0,<enemy_spr_atk_m1,<enemy_spr_atk_m2,<enemy_spr_atk_m3,<enemy_spr_atk_m4,<enemy_spr_pain_m0,<enemy_spr_pain_m1,<enemy_spr_pain_m2,<enemy_spr_pain_m3,<enemy_spr_pain_m4,<enemy_spr_imp_walk_m0,<enemy_spr_imp_walk_m1,<enemy_spr_imp_walk_m2,<enemy_spr_imp_walk_m3,<enemy_spr_imp_walk_m4,<enemy_spr_imp_atk_m0,<enemy_spr_imp_atk_m1,<enemy_spr_imp_atk_m2,<enemy_spr_imp_atk_m3,<enemy_spr_imp_atk_m4,<enemy_spr_imp_pain_m0,<enemy_spr_imp_pain_m1,<enemy_spr_imp_pain_m2,<enemy_spr_imp_pain_m3,<enemy_spr_imp_pain_m4,<enemy_spr_demon_walk_m0,<enemy_spr_demon_walk_m1,<enemy_spr_demon_walk_m2,<enemy_spr_demon_walk_m3,<enemy_spr_demon_walk_m4,<enemy_spr_demon_atk_m0,<enemy_spr_demon_atk_m1,<enemy_spr_demon_atk_m2,<enemy_spr_demon_atk_m3,<enemy_spr_demon_atk_m4,<enemy_spr_demon_pain_m0,<enemy_spr_demon_pain_m1,<enemy_spr_demon_pain_m2,<enemy_spr_demon_pain_m3,<enemy_spr_demon_pain_m4,<enemy_spr_baron_walk_m0,<enemy_spr_baron_walk_m1,<enemy_spr_baron_walk_m2,<enemy_spr_baron_walk_m3,<enemy_spr_baron_walk_m4,<enemy_spr_baron_atk_m0,<enemy_spr_baron_atk_m1,<enemy_spr_baron_atk_m2,<enemy_spr_baron_atk_m3,<enemy_spr_baron_atk_m4
 enemy_mip_base_hi
-	!byte >enemy_spr_walk_m0,>enemy_spr_walk_m1,>enemy_spr_walk_m2,>enemy_spr_walk_m3,>enemy_spr_walk_m4,>enemy_spr_atk_m0,>enemy_spr_atk_m1,>enemy_spr_atk_m2,>enemy_spr_atk_m3,>enemy_spr_atk_m4,>enemy_spr_pain_m0,>enemy_spr_pain_m1,>enemy_spr_pain_m2,>enemy_spr_pain_m3,>enemy_spr_pain_m4,>enemy_spr_imp_walk_m0,>enemy_spr_imp_walk_m1,>enemy_spr_imp_walk_m2,>enemy_spr_imp_walk_m3,>enemy_spr_imp_walk_m4,>enemy_spr_imp_atk_m0,>enemy_spr_imp_atk_m1,>enemy_spr_imp_atk_m2,>enemy_spr_imp_atk_m3,>enemy_spr_imp_atk_m4,>enemy_spr_imp_pain_m0,>enemy_spr_imp_pain_m1,>enemy_spr_imp_pain_m2,>enemy_spr_imp_pain_m3,>enemy_spr_imp_pain_m4,>enemy_spr_demon_walk_m0,>enemy_spr_demon_walk_m1,>enemy_spr_demon_walk_m2,>enemy_spr_demon_walk_m3,>enemy_spr_demon_walk_m4,>enemy_spr_demon_atk_m0,>enemy_spr_demon_atk_m1,>enemy_spr_demon_atk_m2,>enemy_spr_demon_atk_m3,>enemy_spr_demon_atk_m4,>enemy_spr_demon_pain_m0,>enemy_spr_demon_pain_m1,>enemy_spr_demon_pain_m2,>enemy_spr_demon_pain_m3,>enemy_spr_demon_pain_m4
+	!byte >enemy_spr_walk_m0,>enemy_spr_walk_m1,>enemy_spr_walk_m2,>enemy_spr_walk_m3,>enemy_spr_walk_m4,>enemy_spr_atk_m0,>enemy_spr_atk_m1,>enemy_spr_atk_m2,>enemy_spr_atk_m3,>enemy_spr_atk_m4,>enemy_spr_pain_m0,>enemy_spr_pain_m1,>enemy_spr_pain_m2,>enemy_spr_pain_m3,>enemy_spr_pain_m4,>enemy_spr_imp_walk_m0,>enemy_spr_imp_walk_m1,>enemy_spr_imp_walk_m2,>enemy_spr_imp_walk_m3,>enemy_spr_imp_walk_m4,>enemy_spr_imp_atk_m0,>enemy_spr_imp_atk_m1,>enemy_spr_imp_atk_m2,>enemy_spr_imp_atk_m3,>enemy_spr_imp_atk_m4,>enemy_spr_imp_pain_m0,>enemy_spr_imp_pain_m1,>enemy_spr_imp_pain_m2,>enemy_spr_imp_pain_m3,>enemy_spr_imp_pain_m4,>enemy_spr_demon_walk_m0,>enemy_spr_demon_walk_m1,>enemy_spr_demon_walk_m2,>enemy_spr_demon_walk_m3,>enemy_spr_demon_walk_m4,>enemy_spr_demon_atk_m0,>enemy_spr_demon_atk_m1,>enemy_spr_demon_atk_m2,>enemy_spr_demon_atk_m3,>enemy_spr_demon_atk_m4,>enemy_spr_demon_pain_m0,>enemy_spr_demon_pain_m1,>enemy_spr_demon_pain_m2,>enemy_spr_demon_pain_m3,>enemy_spr_demon_pain_m4,>enemy_spr_baron_walk_m0,>enemy_spr_baron_walk_m1,>enemy_spr_baron_walk_m2,>enemy_spr_baron_walk_m3,>enemy_spr_baron_walk_m4,>enemy_spr_baron_atk_m0,>enemy_spr_baron_atk_m1,>enemy_spr_baron_atk_m2,>enemy_spr_baron_atk_m3,>enemy_spr_baron_atk_m4
 
 ; Frame mip blobs (pos then imp × walk/atk/pain × m0..m4)
 enemy_spr_base
@@ -465,3 +465,101 @@ enemy_spr_demon_pain_m3
 	!byte $02,$0a,$02,$00,$02,$0a,$0a,$0f
 enemy_spr_demon_pain_m4
 	!byte $02,$0a
+enemy_spr_baron_walk_m0
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$02,$02,$02,$02,$02,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$02,$02,$02,$02,$02,$02,$02,$02,$02
+	!byte $02,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$0a,$0a,$02,$02,$02,$02,$09,$09,$02
+	!byte $02,$02,$0d,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$0c,$01,$00,$00,$00,$02,$0a,$02,$02,$02,$02,$00,$09,$09,$09
+	!byte $02,$02,$0d,$00,$00,$09,$09,$00,$00,$09,$09,$09,$09,$00,$0c,$0c
+	!byte $0c,$01,$00,$00,$02,$02,$02,$0a,$0a,$02,$02,$02,$02,$02,$02,$08
+	!byte $08,$08,$08,$08,$08,$09,$08,$08,$08,$08,$08,$08,$09,$09,$0c,$0c
+	!byte $02,$0a,$02,$0a,$0a,$02,$02,$02,$0a,$02,$02,$0c,$0a,$02,$0a,$0a
+	!byte $08,$08,$08,$08,$08,$09,$09,$09,$08,$08,$08,$09,$09,$0c,$0c,$0c
+	!byte $0a,$0a,$02,$0a,$0a,$02,$02,$09,$02,$02,$02,$0c,$0a,$02,$0a,$02
+	!byte $0a,$08,$08,$08,$09,$09,$09,$08,$08,$08,$09,$09,$09,$0c,$0c,$0c
+	!byte $0a,$0a,$02,$0a,$02,$02,$0c,$09,$0a,$0a,$0c,$02,$02,$02,$02,$02
+	!byte $02,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$00,$00,$00,$00
+	!byte $0a,$0a,$0a,$02,$02,$0c,$02,$0a,$0a,$0a,$02,$0c,$0a,$02,$0a,$02
+	!byte $0a,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$0c,$0c,$00,$00
+	!byte $0c,$02,$02,$0c,$0c,$02,$02,$0a,$0a,$02,$02,$02,$05,$0d,$0d,$05
+	!byte $09,$09,$09,$09,$09,$09,$09,$09,$08,$08,$08,$09,$0c,$0c,$00,$00
+	!byte $0c,$01,$00,$00,$00,$02,$02,$0a,$02,$02,$02,$02,$0d,$02,$02,$0d
+	!byte $09,$09,$09,$09,$09,$09,$09,$09,$09,$08,$08,$09,$0c,$0c,$00,$00
+	!byte $00,$0c,$01,$00,$00,$00,$02,$02,$02,$02,$02,$02,$0d,$02,$02,$02
+	!byte $09,$09,$09,$09,$09,$00,$00,$09,$09,$09,$09,$09,$0c,$0c,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$0a,$02,$0a,$0a,$02,$02,$0a,$02,$02
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$02,$02,$02,$0a,$02,$0a,$0a,$02,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$02,$02,$02,$0a,$0a,$02,$02,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$02,$02,$02,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_baron_walk_m1
+	!byte $00,$00,$00,$00,$02,$02,$02,$02,$02,$00,$00,$00,$00,$00,$00,$00
+	!byte $01,$00,$00,$0a,$02,$02,$09,$09,$02,$05,$09,$00,$09,$09,$09,$0c
+	!byte $02,$0a,$02,$0a,$02,$0c,$02,$0a,$08,$08,$09,$09,$08,$09,$0c,$0c
+	!byte $0a,$0a,$02,$09,$0a,$02,$02,$02,$09,$09,$09,$09,$09,$09,$00,$00
+	!byte $02,$0c,$02,$0a,$0a,$02,$0d,$05,$09,$09,$09,$09,$08,$09,$0c,$00
+	!byte $01,$00,$00,$0a,$02,$0a,$02,$05,$09,$09,$00,$09,$09,$09,$0c,$00
+	!byte $00,$00,$00,$00,$02,$0a,$0a,$02,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$02,$02,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_baron_walk_m2
+	!byte $0f,$00,$02,$09,$05,$09,$08,$0c,$0a,$02,$02,$02,$09,$09,$09,$00
+	!byte $0f,$02,$0a,$05,$09,$08,$0c,$00,$00,$00,$02,$02,$00,$00,$00,$00
+enemy_spr_baron_walk_m3
+	!byte $0a,$02,$09,$0c,$02,$05,$09,$00
+enemy_spr_baron_walk_m4
+	!byte $0a,$09
+enemy_spr_baron_atk_m0
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$09,$09,$09,$0c,$0c,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$05
+	!byte $00,$00,$00,$00,$09,$08,$08,$08,$09,$08,$09,$08,$0c,$0c,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$02,$02,$00,$00,$02,$02,$00,$09
+	!byte $09,$0d,$09,$09,$09,$09,$08,$09,$09,$09,$09,$0c,$0c,$0c,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$02,$0a,$0a,$0a,$02,$0a,$0a,$0a,$02,$02
+	!byte $09,$09,$09,$05,$09,$09,$09,$09,$09,$09,$09,$0c,$0c,$00,$00,$00
+	!byte $00,$0c,$01,$00,$02,$0a,$0a,$02,$02,$02,$02,$02,$02,$02,$0a,$02
+	!byte $02,$02,$0d,$09,$09,$09,$09,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $0c,$01,$02,$00,$02,$02,$02,$0a,$02,$02,$02,$0a,$0a,$02,$02,$0a
+	!byte $02,$02,$05,$0d,$09,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $02,$0a,$02,$0c,$0a,$0a,$0c,$02,$0a,$02,$02,$0c,$02,$02,$02,$0a
+	!byte $02,$02,$05,$05,$05,$05,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $0a,$0a,$0a,$02,$0c,$02,$02,$02,$0c,$02,$02,$0c,$0c,$02,$02,$02
+	!byte $0a,$05,$05,$0d,$09,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $0a,$02,$0a,$0a,$0c,$0a,$0a,$02,$0c,$02,$0c,$0c,$02,$0c,$05,$05
+	!byte $08,$09,$0d,$05,$05,$09,$09,$09,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $02,$02,$0a,$0a,$02,$02,$0a,$0a,$02,$02,$02,$00,$00,$02,$05,$0d
+	!byte $08,$09,$05,$0d,$09,$09,$09,$09,$09,$09,$09,$00,$00,$00,$00,$00
+	!byte $0c,$01,$00,$02,$0a,$02,$02,$02,$02,$00,$00,$00,$00,$00,$00,$05
+	!byte $09,$08,$05,$09,$09,$09,$09,$08,$08,$09,$09,$08,$09,$09,$0c,$00
+	!byte $00,$0c,$01,$00,$00,$0a,$0a,$02,$02,$02,$00,$00,$00,$00,$00,$00
+	!byte $00,$09,$00,$00,$00,$09,$08,$08,$08,$08,$08,$09,$08,$0c,$0c,$0c
+	!byte $00,$00,$00,$00,$00,$00,$0a,$0a,$0a,$02,$00,$00,$00,$00,$00,$05
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$09,$08,$09,$08,$0c,$0c,$0c
+	!byte $00,$00,$00,$00,$00,$00,$00,$0a,$0a,$02,$02,$05,$05,$05,$05,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$09,$08,$0c,$0c
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$08,$08,$09,$09,$0d,$05,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$08,$08,$09,$05,$05,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_baron_atk_m1
+	!byte $00,$00,$00,$00,$00,$00,$00,$0d,$00,$00,$00,$08,$09,$08,$0c,$00
+	!byte $00,$00,$00,$02,$0a,$0a,$0a,$02,$09,$05,$09,$09,$09,$0c,$0c,$00
+	!byte $01,$00,$02,$0a,$02,$0a,$02,$0a,$02,$0d,$09,$09,$00,$00,$00,$00
+	!byte $0a,$02,$02,$02,$02,$0c,$02,$0a,$05,$0d,$00,$00,$00,$00,$00,$00
+	!byte $02,$0a,$02,$0a,$02,$02,$02,$0d,$08,$0d,$09,$09,$09,$00,$00,$00
+	!byte $0c,$00,$0a,$02,$02,$00,$00,$00,$09,$00,$09,$08,$08,$09,$0c,$0c
+	!byte $00,$00,$00,$0a,$02,$05,$05,$00,$00,$00,$00,$00,$00,$09,$08,$0c
+	!byte $00,$00,$00,$00,$08,$09,$0d,$00,$00,$00,$00,$00,$00,$00,$00,$00
+enemy_spr_baron_atk_m2
+	!byte $0c,$02,$0a,$02,$05,$09,$0c,$00,$02,$0a,$0c,$0a,$0d,$00,$00,$00
+	!byte $0c,$0a,$02,$02,$09,$08,$00,$00,$00,$00,$09,$05,$00,$00,$09,$0c
+enemy_spr_baron_atk_m3
+	!byte $0a,$05,$09,$00,$0a,$0d,$09,$0c
+enemy_spr_baron_atk_m4
+	!byte $0d,$09
