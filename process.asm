@@ -16,6 +16,7 @@ elev_found	!byte 0
 elev_home	!byte 0
 elev_cell_x	!byte 0
 elev_cell_y	!byte 0
+key_use_was	!byte 0			; previous-frame key_use (rising edge)
 
 ELEV_RECLOSE_REMOTE_MS = 15000
 ELEV_RECLOSE_LOCAL_MS = 5000
@@ -158,14 +159,20 @@ tu_face
 	!byte 0, 1, 1, 0			; 0 = near_lo (≤4), 1 = near_hi (≥4)
 
 ; ------------------------------------------------------------------
-; try_use — K held: NESW neighbour door / self-elevator (target 0) within 4u
+; try_use — K rising edge: NESW neighbour door / self-elevator (target 0)
+; within 4u. Red/yellow/blue ceil doors need the matching keycard.
 ; ------------------------------------------------------------------
 try_use
 	lda key_use
-	bne .tu_go
+	bne .tu_down
+	sta key_use_was			; A = 0
 .tu_far
 	rts
-.tu_go
+.tu_down
+	lda key_use_was
+	bne .tu_far			; still held
+	lda #1
+	sta key_use_was
 	jsr player_tile
 
 	; Snap playera to NESW: (a+32)>>6 → 0=N 1=E 2=S 3=W
@@ -236,7 +243,9 @@ try_use
 	jmp .tu_far
 .tu_elev
 	lda SEC_TARGET,x
-	bne .tu_far			; target set → walk-only
+	beq .tu_elev_local
+	jmp .tu_far			; target set → walk-only
+.tu_elev_local
 	lda #0
 	sta elev_remote
 	lda SEC_TYPE,x
@@ -250,6 +259,25 @@ try_use
 	sta elev_mode
 	jmp elevator_activate
 .tu_is_door
+	; Locked if ceiling colour is red / yellow / blue and key missing
+	lda SEC_CCOL,x
+	ldx #0
+.tu_keyscan
+	cmp door_key_cols,x
+	beq .tu_keydoor
+	inx
+	cpx #3
+	bcc .tu_keyscan
+	jmp .tu_door_ok
+.tu_keydoor
+	lda door_key_masks,x
+	bit keys
+	bne .tu_door_ok
+	txa				; 0=red 1=yellow 2=blue
+	jsr door_need_msg
+	jmp .tu_far
+.tu_door_ok
+	ldx tmp1
 	lda SEC_FLOOR,x
 	clc
 	adc #DOOR_OPEN_GAP
@@ -293,6 +321,12 @@ try_use
 	lda #>DOOR_RECLOSE_MS
 	sta tmp4
 	jmp proc_alloc
+
+; Ceiling colour → key bit (matches HUD key_masks / SEC_CCOL)
+door_key_cols
+	!byte 2, 7, 6			; red, yellow, blue
+door_key_masks
+	!byte $01, $02, $04
 
 ; ------------------------------------------------------------------
 ; try_walk_elevator — sector change into elevator+target → move target

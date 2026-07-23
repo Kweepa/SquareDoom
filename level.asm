@@ -30,7 +30,9 @@ init_hud_state
 	sta info_ms_l
 	sta info_ms_h
 	sta info_len
+	sta info_kind
 	sta has_backpack
+	sta key_use_was
 	lda #1
 	sta hud_dirty
 	rts

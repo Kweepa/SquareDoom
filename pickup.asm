@@ -1,4 +1,4 @@
-; Walk-over pickups + top-line "picked up …." message
+; Walk-over pickups + top-line info messages (pickup / locked door)
 !zone pickup
 
 PICKUP_RADIUS = 4
@@ -14,6 +14,9 @@ ARMOR_BLUE = 200
 
 MSG_LETTER0 = 192			; screen code for 'A' (glyph bank)
 INFO_COLOR = 7				; yellow
+
+; 0 = "picked up the "+name+"."; 1 = full string at info_name
+info_kind		!byte 0
 
 ITEM_TYPE_HEALTH = 7
 ITEM_TYPE_SHELLS = 8
@@ -209,6 +212,8 @@ pickup_message
 	lda #SOUND_ITEMUP
 	jsr play_sound
 	pla
+	ldx #0
+	stx info_kind
 	ldx #1
 	stx hud_dirty
 	sec
@@ -238,6 +243,26 @@ pickup_message
 	rts
 
 ; ---------------------------------------------------------------------------
+; door_need_msg — A = 0 red / 1 yellow / 2 blue; oof + top-line message
+; ---------------------------------------------------------------------------
+door_need_msg
+	tay
+	lda door_msg_lo,y
+	sta info_name_l
+	lda door_msg_hi,y
+	sta info_name_h
+	lda door_msg_len,y
+	sta info_len
+	lda #1
+	sta info_kind
+	lda #INFO_MS_L
+	sta info_ms_l
+	lda #INFO_MS_H
+	sta info_ms_h
+	lda #SOUND_OOF
+	jmp play_sound
+
+; ---------------------------------------------------------------------------
 ; update_info_msg — tick 4s timer; clear info_len when done
 ; ---------------------------------------------------------------------------
 update_info_msg
@@ -256,6 +281,7 @@ update_info_msg
 	sta info_ms_l
 	sta info_ms_h
 	sta info_len
+	sta info_kind
 .ui_out
 	rts
 
@@ -270,6 +296,8 @@ draw_info_msg
 .di_go
 	lda #0
 	sta col				; write left→right along top row
+	lda info_kind
+	bne .di_raw
 	; "picked up the "
 	ldx #0
 .di_pref
@@ -290,18 +318,30 @@ draw_info_msg
 	bne .di_name
 .di_dot
 	lda #46				; '.'
-	; fall through
+	jmp .di_putc
+.di_raw
+	ldy #0
+.di_rawloop
+	lda (info_name_l),y
+	beq .di_done
+	sty tmp1
+	jsr .di_putc
+	ldy tmp1
+	iny
+	bne .di_rawloop
+.di_done
+	rts
 ; A = raw screen code from !scr → LIGHTFRAME row0 + FRAMEBUFFER colour
 .di_putc
 	sta tmp0
 	cmp #27
-	bcs .di_raw
+	bcs .di_rawch
 	cmp #1
-	bcc .di_raw
+	bcc .di_rawch
 	clc
 	adc #MSG_LETTER0 - 1
 	sta tmp0
-.di_raw
+.di_rawch
 	ldx col
 	lda colbaselo,x
 	sta col_base_l
@@ -364,4 +404,20 @@ name_bluecard
 	!byte 0
 name_yellowcard
 	!scr "yellow keycard"
+	!byte 0
+
+door_msg_lo
+	!byte <msg_need_red, <msg_need_yellow, <msg_need_blue
+door_msg_hi
+	!byte >msg_need_red, >msg_need_yellow, >msg_need_blue
+door_msg_len
+	!byte 36, 39, 37			; screen columns (no trailing NUL)
+msg_need_red
+	!scr "you need a red key to open this door"
+	!byte 0
+msg_need_yellow
+	!scr "you need a yellow key to open this door"
+	!byte 0
+msg_need_blue
+	!scr "you need a blue key to open this door"
 	!byte 0
