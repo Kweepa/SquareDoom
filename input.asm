@@ -441,7 +441,7 @@ neg_a
 	rts
 
 ; Apply wish 8.8; push 1 unit from blocking faces (slide); axis fallback
-; Blocking = void/OOB, headroom < 4, or step-up > 2 height vs old_floor.
+; Blocking = void/OOB, headroom < 4, step-up > 2, or portal opening < 4.
 apply_move
 	lda wish_x_l
 	ora wish_x_h
@@ -465,10 +465,13 @@ apply_move
 	tax
 	lda SEC_FLOOR,x
 	sta old_floor
+	lda SEC_CEIL,x
+	sta old_ceil
 	jmp .am_have_fl
 .am_void_fl
 	lda #0
 	sta old_floor
+	sta old_ceil
 .am_have_fl
 	clc
 	lda playerx
@@ -536,7 +539,7 @@ apply_move
 .am_ok
 	rts
 
-; A = sector id → C=1 blocked, C=0 walkable (vs old_floor)
+; A = sector id → C=1 blocked, C=0 walkable (vs old_floor / old_ceil)
 tile_blocked
 	cmp #0
 	beq .tb_yes
@@ -551,12 +554,29 @@ tile_blocked
 	bcc .tb_yes
 	lda SEC_FLOOR,x
 	cmp old_floor
-	bcc .tb_no
-	beq .tb_no
+	bcc .tb_portal
+	beq .tb_portal
 	sec
 	sbc old_floor
 	cmp #3
 	bcs .tb_yes
+.tb_portal
+	; opening = min(old_ceil, dest_ceil) - max(old_floor, dest_floor)
+	lda old_floor
+	cmp SEC_FLOOR,x
+	bcs .tb_maxf
+	lda SEC_FLOOR,x
+.tb_maxf
+	sta tmp3				; max floor (tmp0/1 live in p_try_move)
+	lda old_ceil
+	cmp SEC_CEIL,x
+	bcc .tb_minc
+	lda SEC_CEIL,x
+.tb_minc
+	sec
+	sbc tmp3				; min ceil - max floor
+	cmp #4
+	bcc .tb_yes
 .tb_no
 	clc
 	rts

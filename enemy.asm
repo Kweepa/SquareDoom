@@ -530,7 +530,7 @@ p_check_missile_range_fixed
 ; ---------------------------------------------------------------------------
 p_try_move
 	jsr obj_xy
-	; old_floor from current sector; tmp4/5 = pre-move mapx/mapy
+	; old_floor/old_ceil from current sector; tmp4/5 = pre-move mapx/mapy
 	lda tmp0
 	lsr
 	lsr
@@ -548,10 +548,13 @@ p_try_move
 	tax
 	lda SEC_FLOOR,x
 	sta old_floor
+	lda SEC_CEIL,x
+	sta old_ceil
 	jmp .ptm_save
 .ptm_voidfl
 	lda #0
 	sta old_floor
+	sta old_ceil
 .ptm_save
 	ldx enemy_actor
 	lda MOBJ_XFRAC,x

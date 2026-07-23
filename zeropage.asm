@@ -88,7 +88,8 @@ wish_y_l	= $46
 wish_y_h	= $47
 save_xl		= $48
 save_xh		= $49
-old_floor	= $7a			; SEC_FLOOR at move start (step-up gate)
+old_floor	= $7a			; SEC_FLOOR at move start (step-up / portal gate)
+old_ceil	= $ae			; SEC_CEIL at move start (portal clearance)
 
 ; Status bar (drawn into FB row 24 when hud_dirty; blit copies it)
 ammo		= $7b			; 0–255, shown as 3 digits
