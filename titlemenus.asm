@@ -1297,13 +1297,13 @@ txt_order
 txt_endgame
 	!scr "once you beat the big badasses and",0
 	!scr "clean out the moon base you're supposed",0
-	!scr "to win, aren't you? where's your fat",0
-	!scr "reward and ticket home? what the hell",0
-	!scr "is this? it's not supposed to end this",0
-	!scr "way!",0
+	!scr "to win, aren't you? aren't you? where's",0
+	!scr "your fat reward and ticket home? what",0
+	!scr "the hell is this? it's not supposed to",0
+	!scr "end this way!",0
 	!scr " ",0
 	!scr "it stinks like rotten meat, but looks",0
-	!scr "like the lost ^deimos^ base. looks like",0
+	!scr "like the lost deimos base. looks like",0
 	!scr "you're stuck on ^the shores of hell^.",0
 	!scr "the only way out is through.",0
 	!scr " ",0
