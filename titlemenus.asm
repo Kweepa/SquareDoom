@@ -117,10 +117,17 @@ after_level_end
 	jsr melt_screen
 	jsr wait_frames_120		; hold blank after melt ~2s
 	jsr summary_screen
+	lda level_num
+	cmp #8
+	beq .ale_end
 	inc level_num
 	lda level_num
 	cmp #10
 	bcc .ale_next
+	jmp game_start
+.ale_end
+	lda #3				; txt_endgame
+	jsr show_text_screen
 	jmp game_start
 .ale_next
 	jmp next_level
@@ -562,7 +569,7 @@ write_vol2
 	rts
 
 ; ==================================================================
-; A = text screen index (0=credits 1=help 2=order)
+; A = text screen index (0=credits 1=help 2=order 3=endgame)
 ; Types out character-by-character (VicDoom style); red default, ^ → yellow
 show_text_screen
 	sta tmp5
@@ -1224,9 +1231,9 @@ menu_str_hi
 	!byte >str_itytd, >str_hmp, >str_uv, >str_back
 
 text_scr_lo
-	!byte <txt_credits, <txt_help, <txt_order
+	!byte <txt_credits, <txt_help, <txt_order, <txt_endgame
 text_scr_hi
-	!byte >txt_credits, >txt_help, >txt_order
+	!byte >txt_credits, >txt_help, >txt_order, >txt_endgame
 
 txt_credits
 	!scr "^doom^ for the ^commodore 64^", 0
@@ -1285,4 +1292,24 @@ txt_order
     !scr "to order ^doom^, call ^1-800-]games^.",0
     !scr " ",0
     !scr "press a key",0
+	!byte 0
+
+txt_endgame
+	!scr "once you beat the big badasses and",0
+	!scr "clean out the moon base you're supposed",0
+	!scr "to win, aren't you? where's your fat",0
+	!scr "reward and ticket home? what the hell",0
+	!scr "is this? it's not supposed to end this",0
+	!scr "way!",0
+	!scr " ",0
+	!scr "it stinks like rotten meat, but looks",0
+	!scr "like the lost ^deimos^ base. looks like",0
+	!scr "you're stuck on ^the shores of hell^.",0
+	!scr "the only way out is through.",0
+	!scr " ",0
+	!scr "to continue the ^doom^ experience, play",0
+	!scr "^the shores of hell^ and its amazing",0
+	!scr "sequel, ^inferno^!",0
+	!scr " ",0
+	!scr "press a key",0
 	!byte 0
