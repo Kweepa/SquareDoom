@@ -114,7 +114,7 @@ export const ITEM_TYPES = [
   'skullpile', 'techcolumn',
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
   'fireball',
-  'poscorpse', 'impcorpse',
+  'poscorpse', 'impcorpse', 'demoncorpse',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -124,7 +124,7 @@ export const CAMERA_TYPE = 'camera';
 export const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 export const FIREBALL_TYPE = 'fireball';
-export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse']);
+export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse']);
 
 /** Types that allocate an mobj at level start (missile excluded). */
 export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);

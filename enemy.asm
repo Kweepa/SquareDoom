@@ -50,6 +50,9 @@ ENEMY_TEX_PAIN = 2
 ENEMY_TEX_IMP_WALK = 3
 ENEMY_TEX_IMP_ATK = 4
 ENEMY_TEX_IMP_PAIN = 5
+ENEMY_TEX_DEMON_WALK = 6
+ENEMY_TEX_DEMON_ATK = 7
+ENEMY_TEX_DEMON_PAIN = 8
 
 ITEM_TYPE_ENEMY_FIRST = 1
 ITEM_TYPE_ENEMY_LAST = 4
@@ -58,6 +61,7 @@ ITEM_TYPE_IMP = 2
 ITEM_TYPE_FIREBALL = 23
 ITEM_TYPE_POSCORPSE = 24
 ITEM_TYPE_IMPCORPSE = 25
+ITEM_TYPE_DEMONCORPSE = 26
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -88,11 +92,11 @@ mobj_death_state
 mobj_death_sound
 	!byte SOUND_SGTDTH, SOUND_PLPAIN, SOUND_DMPAIN, SOUND_POPAIN
 
-; Pos/imp: 16×32 enemy mips (frames 0–2 pos, 3–5 imp). Demon/caco still stub.
+; Pos/imp/demon: 16×32 enemy mips (0–2 pos, 3–5 imp, 6–8 demon). Caco still stub.
 state_texture
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_IMP_WALK, ENEMY_TEX_IMP_PAIN, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_PAIN
-	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
+	!byte TEX_ANIMATE + ENEMY_TEX_DEMON_WALK, ENEMY_TEX_DEMON_PAIN, ENEMY_TEX_DEMON_ATK, ENEMY_TEX_DEMON_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte 0
 
@@ -1374,13 +1378,13 @@ a_fall
 	lda MOBJ_MOVECNT,x
 	bne .af_done
 .af_corpse
-	; pos/imp → corpse item type; demon/caco → ITEM_CORPSE_TEX stub
+	; pos/imp/demon → corpse item type; caco → ITEM_CORPSE_TEX stub
 	lda MOBJ_INFO,x
-	cmp #2
+	cmp #3
 	bcs .af_stub
 	ldy MOBJ_OBJ,x
 	clc
-	adc #ITEM_TYPE_POSCORPSE	; 0→24, 1→25
+	adc #ITEM_TYPE_POSCORPSE	; 0→24, 1→25, 2→26
 	sta level_item_type,y
 	jmp .af_free
 .af_stub
@@ -1538,8 +1542,8 @@ enemy_damage
 
 ; ---------------------------------------------------------------------------
 ; enemy_get_texture — X = item slot → A = tex (bit6=animate), C=1 if 16×32
-; Live enemies (types 1–4) use enemy_sprites; pos/imp corpses are item types
-; 24–25 (item atlas). Demon/caco still use ITEM_CORPSE_TEX until art exists.
+; Live enemies (types 1–4) use enemy_sprites; pos/imp/demon corpses are item
+; types 24–26 (item atlas). Caco still uses ITEM_CORPSE_TEX until art exists.
 ; ---------------------------------------------------------------------------
 enemy_get_texture
 	lda level_item_type,x
@@ -1551,7 +1555,7 @@ enemy_get_texture
 	cmp #$ff
 	beq .egt_live
 	sec
-	rts				; A = corpse tex stub (demon/caco)
+	rts				; A = corpse tex stub (caco)
 .egt_live
 	jsr mobj_for_slot		; X = item slot
 	bcs .egt_item8

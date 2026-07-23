@@ -22,7 +22,7 @@ AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE±this (18..22)
 
 ; Memory ceilings:
 ;   low  → CHARSET at $3800 (COL/SQTAB/profil are under KERNAL $E000+)
-;   mid  → level_data at $a000 (BASIC ROM area, RAM with $01=$35)
+;   mid  → level_data at $a000 (BASIC ROM area, RAM with $01=$35); enemy mips here
 ;   high → FRAMEBUFFER at $c800 ($c000–$c7ff free after SQTAB move)
 MEM_MID_LIMIT = $a000
 MEM_HIGH_LIMIT = FRAMEBUFFER
@@ -73,6 +73,8 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "render_clip.asm"
 !source "pytab.asm"
 !source "dpsounds.asm"
+; Enemy mips in mid (always-RAM); high was full after pinky frames
+!source "enemy_sprites.asm"
 
 end_mid = *
 free_mid = MEM_MID_LIMIT - end_mid
@@ -127,7 +129,6 @@ level_sector_max = level_item_meta + MAX_ITEMS
 !source "tables.asm"
 !source "recip.asm"
 !source "item_bitmaps.asm"
-!source "enemy_sprites.asm"
 
 !zone 0
 
