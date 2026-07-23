@@ -41,6 +41,7 @@ import {
   clampWorld,
   clampLevelName,
   itemsInTiles,
+  normalizeAngle,
   validateVoidBorder,
 } from './model.js?v=30';
 import { MapView } from './mapView.js?v=25';
@@ -373,7 +374,7 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       }
       if ('x' in patch) item.x = clampWorld(patch.x);
       if ('y' in patch) item.y = clampWorld(patch.y);
-      if ('angle' in patch) item.angle = Number(patch.angle) || 0;
+      if ('angle' in patch) item.angle = normalizeAngle(patch.angle);
       if ('skillKey' in patch && item.skills) {
         item.skills = { ...item.skills, [patch.skillKey]: patch.skillValue };
       }
@@ -441,7 +442,7 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     const cam = findPreviewCamera(activeLevel(episode), selected ?? null);
     if (!cam) return;
     beginUndoGesture();
-    cam.angle = angle;
+    cam.angle = normalizeAngle(angle);
     markDirty();
     if (selection.items.has(cam)) itemEditor.render();
     mapView.draw();

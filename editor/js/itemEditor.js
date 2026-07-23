@@ -9,6 +9,7 @@ import {
   isSpawn,
   isSwitch,
   isSwitchCookType,
+  normalizeAngle,
   normalizeSwitchAction,
 } from './model.js';
 
@@ -120,8 +121,8 @@ export class ItemEditor {
       span.textContent = 'Angle (deg)';
       const input = document.createElement('input');
       input.type = 'number';
-      input.min = '-180';
-      input.max = '180';
+      input.min = '0';
+      input.max = '360';
       input.step = '1';
       if (angleSame) input.value = String(deg);
       else {
@@ -130,7 +131,8 @@ export class ItemEditor {
       }
       input.addEventListener('change', () => {
         if (input.value === '') return;
-        this.opts.onChange({ angle: (Number(input.value) * Math.PI) / 180 });
+        const clamped = Math.max(0, Math.min(360, Number(input.value) || 0));
+        this.opts.onChange({ angle: normalizeAngle((clamped * Math.PI) / 180) });
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);

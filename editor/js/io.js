@@ -47,6 +47,7 @@ import {
   validateVoidBorder,
   angleToByte,
   byteToAngle,
+  normalizeAngle,
   setSpawn,
 } from './model.js';
 
@@ -141,7 +142,7 @@ export function levelFromJSON(data) {
           type: CAMERA_TYPE,
           x: clamp(it.x ?? 0, 0, 255),
           y: clamp(it.y ?? 0, 0, 255),
-          angle: Number(it.angle) || 0,
+          angle: normalizeAngle(it.angle),
         });
         continue;
       }
