@@ -253,7 +253,7 @@ damage_shotgun
 	rts
 
 ; Call once per frame after render (COL_AIM_* set in render_items).
-; While I held: fire when fire_rpt is 0, then wait wpn_fire_ms.
+; While SPACE held: fire when fire_rpt is 0, then wait wpn_fire_ms.
 ; Note: $d015 is write-only — use spr_en mirror; gated by wpn_visible.
 update_muzzle_flash
 	; --- muzzle flash sprite timeout ---

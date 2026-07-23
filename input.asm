@@ -2,11 +2,22 @@
 
 ; CIA1 keys (sampled by Timer A IRQ ~every SAMPLE_MS binary-ms):
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
-;   K = use (PA4/PB5) — open door; I = fire (PA4/PB1); M = map (PA4/PB4)
+;   K = use (PA4/PB5) — open door
+;   SPACE = fire (PA7/PB4); F1 = map (PA0/PB4)
 ;   W/A/S = PA1 column; D = PA2 column; 3 = shotgun (PA1/PB0)
 ;   2 = pistol (PA7/PB3)
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
+;
+; Why SPACE / F1 (C64 matrix ghosting):
+;   The keyboard is an undioded 8×8 matrix. Three corners of a rectangle
+;   make the fourth read as pressed. Typical chord W+A+J sits at
+;   PA1/PB1, PA1/PB2, PA4/PB2 — so PA4/PB1 (I) ghosts; W+A+L ghosts P.
+;   Old fire-on-I therefore shot while strafing left and turning.
+;   SPACE (PA7/PB4) is outside that 2×2, so W+(A|D)+(J|L) and W+K do
+;   not invent fire. F1 (PA0/PB4) is likewise outside those chords and
+;   physically away from JKL (M fat-fingered next to turn/use).
+;   (SPACE and F1 share PB4 on different PA rows — both still readable.)
 ;
 ; IRQ accumulates hold times into in_*; read_input snapshots under SEI and
 ; scales turn/wish by those times (not full-frame dt_ms):
@@ -29,7 +40,7 @@ SFX_TB_HI = >$1BFF
 ; Menus set this so Timer A skips $dc00 (ui_read_keys); Timer B still runs SFX
 input_paused	!byte 0
 irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
-in_map		!byte 0			; OR-latch: M held any IRQ sample this frame
+in_map		!byte 0			; OR-latch: F1 held any IRQ sample this frame
 key_map		!byte 0			; snapshot from read_input
 key_map_was	!byte 0			; previous-frame key_map for rising-edge map toggle
 
@@ -101,7 +112,7 @@ input_irq
 	jmp .irq_rti
 .irq_keys
 
-	; J / K / I / M (PA4 = $EF)
+	; J / K (PA4 = $EF)
 	lda #$ef
 	sta $dc00
 	lda $dc01
@@ -118,18 +129,6 @@ input_irq
 	lda #1
 	sta in_use
 .irq_nok
-	txa
-	and #$02
-	bne .irq_noi
-	lda #1
-	sta in_fire
-.irq_noi
-	txa
-	and #$10				; M
-	bne .irq_nom
-	lda #1
-	sta in_map
-.irq_nom
 
 	; L (PA5 = $DF)
 	lda #$df
@@ -185,15 +184,32 @@ input_irq
 	sta in_strafer
 .irq_nod
 
-	; 2 (PA7 = $7F)
+	; 2 / SPACE (PA7 = $7F)
 	lda #$7f
 	sta $dc00
 	lda $dc01
+	tax
 	and #$08
 	bne .irq_no2
 	lda #1
 	sta in_wpn_pistol
 .irq_no2
+	txa
+	and #$10				; SPACE = fire
+	bne .irq_nospc
+	lda #1
+	sta in_fire
+.irq_nospc
+
+	; F1 (PA0 = $FE, PB4) = map
+	lda #$fe
+	sta $dc00
+	lda $dc01
+	and #$10
+	bne .irq_nof1
+	lda #1
+	sta in_map
+.irq_nof1
 
 .irq_rti
 	pla
@@ -783,16 +799,24 @@ ui_read_keys
 	sta ui_keys
 .urk_nod
 
-	; RETURN (PA0 = $FE, PB1)
+	; RETURN / F1 (PA0 = $FE) — F1 = map
 	lda #$fe
 	sta $dc00
 	lda $dc01
+	tax
 	and #$02
 	bne .urk_noret
 	lda ui_keys
 	ora #UI_SELECT
 	sta ui_keys
 .urk_noret
+	txa
+	and #$10				; F1
+	bne .urk_nomap
+	lda ui_keys
+	ora #UI_MAP
+	sta ui_keys
+.urk_nomap
 
 	; Run/Stop (PA7 = $7F, PB7)
 	lda #$7f
@@ -804,17 +828,6 @@ ui_read_keys
 	ora #UI_ESC
 	sta ui_keys
 .urk_noesc
-
-	; M (PA4 = $EF, PB4)
-	lda #$ef
-	sta $dc00
-	lda $dc01
-	and #$10
-	bne .urk_nom
-	lda ui_keys
-	ora #UI_MAP
-	sta ui_keys
-.urk_nom
 
 	lda ui_old
 	eor #$ff
@@ -841,7 +854,7 @@ ui_wait_esc_up
 	bne ui_wait_esc_up
 	rts
 
-; Wait until M released
+; Wait until F1 (map) released
 ui_wait_map_up
 	jsr ui_read_keys
 	lda ui_keys

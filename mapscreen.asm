@@ -25,7 +25,7 @@ map_arrowgfx
 	!byte 231,195,231,231,231,219,219,231
 
 ; ------------------------------------------------------------------
-; mapscreen — overlay; M toggles exit (edge); W/S held scroll 1 row/frame
+; mapscreen — overlay; F1 toggles exit (edge); W/S held scroll 1 row/frame
 ; ------------------------------------------------------------------
 mapscreen
 	jsr hide_weapon

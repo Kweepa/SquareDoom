@@ -148,7 +148,7 @@ gameloop_check_esc
 	pla
 	jmp next_level
 
-; Rising edge of IRQ-latched M (key_map from read_input)
+; Rising edge of IRQ-latched F1 (key_map from read_input)
 gameloop_check_map
 	lda key_map
 	beq .gcm_up
@@ -157,7 +157,7 @@ gameloop_check_map
 	lda #1
 	sta key_map_was
 	jsr mapscreen
-	; mapscreen waits for M up; clear so we need a fresh press
+	; mapscreen waits for F1 up; clear so we need a fresh press
 	lda #0
 	sta key_map_was
 	sta key_map
@@ -1255,8 +1255,8 @@ txt_help
 	!scr "turn left         j",0
 	!scr "turn right        l",0
 	!scr "use               k",0
-	!scr "fire              i",0
-	!scr "toggle map        m",0
+	!scr "fire              space",0
+	!scr "toggle map        f1",0
     !scr " ",0
 	!scr "switch weapon     2345",0
 	!scr "menu              runstop",0
