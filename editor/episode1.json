@@ -1926,7 +1926,7 @@
       "spawn": {
         "x": 99,
         "y": 101,
-        "angle": -0.009786295657293793
+        "angle": 6.273399011522293
       },
       "items": [
         {
@@ -2073,7 +2073,7 @@
           "type": "camera",
           "x": 18.738944554369088,
           "y": 85.20094677325534,
-          "angle": -15.698184140426244
+          "angle": 3.1513717811125144
         },
         {
           "type": "switch",
@@ -4794,7 +4794,7 @@
           "type": "camera",
           "x": 114.19711419590504,
           "y": 148.4188347997267,
-          "angle": -9.287762653432736
+          "angle": 3.2786079609264362
         },
         {
           "type": "imp",
@@ -5040,7 +5040,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 12,
-          "brightness": 15
+          "brightness": 11
         },
         "2": {
           "floorHeight": 8,
@@ -5070,7 +5070,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "5": {
           "floorHeight": 10,
@@ -5120,7 +5120,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "10": {
           "floorHeight": 11,
@@ -5150,7 +5150,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "13": {
           "floorHeight": 8,
@@ -5210,7 +5210,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "19": {
           "floorHeight": 9,
@@ -5330,7 +5330,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "31": {
           "floorHeight": 3,
@@ -5340,7 +5340,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "32": {
           "floorHeight": 3,
@@ -5350,7 +5350,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "33": {
           "floorHeight": 7,
@@ -5360,7 +5360,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "34": {
           "floorHeight": 8,
@@ -5370,7 +5370,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "35": {
           "floorHeight": 9,
@@ -5380,7 +5380,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "36": {
           "floorHeight": 9,
@@ -5390,7 +5390,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "37": {
           "floorHeight": 11,
@@ -5400,7 +5400,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "38": {
           "floorHeight": 9,
@@ -5410,7 +5410,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "39": {
           "floorHeight": 3,
@@ -5430,7 +5430,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "41": {
           "floorHeight": 3,
@@ -5480,7 +5480,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "46": {
           "floorHeight": 8,
@@ -5510,7 +5510,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "49": {
           "floorHeight": 8,
@@ -5520,7 +5520,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "50": {
           "floorHeight": 8,
@@ -5540,7 +5540,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "52": {
           "floorHeight": 8,
@@ -5550,7 +5550,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "53": {
           "floorHeight": 11,
@@ -5560,7 +5560,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "54": {
           "floorHeight": 11,
@@ -5570,7 +5570,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "55": {
           "floorHeight": 8,
@@ -5610,7 +5610,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "59": {
           "floorHeight": 11,
@@ -5620,7 +5620,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "60": {
           "floorHeight": 10,
@@ -5640,7 +5640,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "62": {
           "floorHeight": 10,
@@ -5650,7 +5650,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "63": {
           "floorHeight": 9,
@@ -5660,7 +5660,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "64": {
           "floorHeight": 8,
@@ -5670,7 +5670,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "65": {
           "floorHeight": 9,
@@ -5680,7 +5680,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "66": {
           "floorHeight": 8,
@@ -5690,7 +5690,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "67": {
           "floorHeight": 8,
@@ -5700,7 +5700,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "68": {
           "floorHeight": 8,
@@ -5710,7 +5710,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "69": {
           "floorHeight": 7,
@@ -5720,7 +5720,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "70": {
           "floorHeight": 9,
@@ -5730,7 +5730,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "71": {
           "floorHeight": 8,
@@ -5740,7 +5740,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "72": {
           "floorHeight": 9,
@@ -5750,7 +5750,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "73": {
           "floorHeight": 8,
@@ -5760,17 +5760,17 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "74": {
           "floorHeight": 8,
-          "ceilingHeight": 20,
+          "ceilingHeight": 16,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "floorColor": 12,
+          "ceilingColor": 7,
+          "brightness": 12
         },
         "75": {
           "floorHeight": 8,
@@ -5780,7 +5780,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "76": {
           "floorHeight": 8,
@@ -5790,7 +5790,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "77": {
           "floorHeight": 8,
@@ -5800,7 +5800,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "78": {
           "floorHeight": 3,
@@ -5810,7 +5810,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "79": {
           "floorHeight": 12,
@@ -5820,7 +5820,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "80": {
           "floorHeight": 8,
@@ -5830,7 +5830,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "81": {
           "floorHeight": 3,
@@ -5850,7 +5850,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "83": {
           "floorHeight": 20,
@@ -5870,17 +5870,17 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "85": {
           "floorHeight": 8,
-          "ceilingHeight": 20,
+          "ceilingHeight": 16,
           "sectorType": 0,
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "floorColor": 12,
+          "ceilingColor": 7,
+          "brightness": 8
         },
         "86": {
           "floorHeight": 8,
@@ -5890,7 +5890,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "87": {
           "floorHeight": 8,
@@ -5900,7 +5900,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "88": {
           "floorHeight": 20,
@@ -5920,7 +5920,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "90": {
           "floorHeight": 9,
@@ -5930,7 +5930,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "91": {
           "floorHeight": 9,
@@ -5940,7 +5940,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "92": {
           "floorHeight": 8,
@@ -5950,7 +5950,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "93": {
           "floorHeight": 13,
@@ -5960,7 +5960,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 11
         },
         "94": {
           "floorHeight": 8,
@@ -5970,7 +5970,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "95": {
           "floorHeight": 13,
@@ -5980,7 +5980,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 11
         },
         "96": {
           "floorHeight": 20,
@@ -6030,7 +6030,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "101": {
           "floorHeight": 9,
@@ -6070,7 +6070,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "105": {
           "floorHeight": 20,
@@ -6090,7 +6090,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "107": {
           "floorHeight": 13,
@@ -6100,7 +6100,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "108": {
           "floorHeight": 8,
@@ -6120,7 +6120,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "110": {
           "floorHeight": 11,
@@ -6130,7 +6130,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 7
+          "brightness": 8
         },
         "111": {
           "floorHeight": 9,
@@ -6150,7 +6150,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "113": {
           "floorHeight": 8,
@@ -6160,7 +6160,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "114": {
           "floorHeight": 9,
@@ -6180,7 +6180,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "116": {
           "floorHeight": 9,
@@ -6190,7 +6190,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "117": {
           "floorHeight": 8,
@@ -6200,7 +6200,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "118": {
           "floorHeight": 8,
@@ -6210,7 +6210,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "119": {
           "floorHeight": 11,
@@ -6270,7 +6270,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "125": {
           "floorHeight": 10,
@@ -6340,7 +6340,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 5
+          "brightness": 9
         },
         "132": {
           "floorHeight": 8,
@@ -6360,7 +6360,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "134": {
           "floorHeight": 9,
@@ -6370,7 +6370,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "135": {
           "floorHeight": 10,
@@ -6380,7 +6380,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "136": {
           "floorHeight": 13,
@@ -6390,7 +6390,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "137": {
           "floorHeight": 10,
@@ -6400,7 +6400,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "138": {
           "floorHeight": 11,
@@ -6410,7 +6410,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "139": {
           "floorHeight": 12,
@@ -6420,7 +6420,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 9
         },
         "140": {
           "floorHeight": 19,
@@ -6460,7 +6460,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "144": {
           "floorHeight": 15,
@@ -6510,7 +6510,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 14
         },
         "149": {
           "floorHeight": 8,
@@ -6520,7 +6520,57 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
+        },
+        "150": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "151": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "152": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "153": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "154": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "sectorType": 0,
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
         }
       },
       "map": [
@@ -6672,7 +6722,7 @@
         44,
         44,
         15,
-        19,
+        15,
         65,
         0,
         23,
@@ -6703,7 +6753,7 @@
         16,
         16,
         16,
-        15,
+        19,
         0,
         65,
         0,
@@ -6735,7 +6785,7 @@
         24,
         43,
         43,
-        15,
+        25,
         25,
         65,
         0,
@@ -6836,7 +6886,7 @@
         0,
         0,
         0,
-        0,
+        76,
         74,
         74,
         74,
@@ -6866,12 +6916,12 @@
         0,
         0,
         0,
-        76,
-        76,
-        76,
-        76,
-        76,
-        76,
+        77,
+        77,
+        77,
+        77,
+        77,
+        77,
         136,
         0,
         0,
@@ -6898,8 +6948,8 @@
         0,
         0,
         0,
-        77,
-        77,
+        80,
+        80,
         0,
         0,
         0,
@@ -6930,8 +6980,8 @@
         0,
         64,
         64,
-        77,
-        77,
+        80,
+        80,
         134,
         135,
         84,
@@ -6962,8 +7012,8 @@
         0,
         66,
         0,
-        77,
-        77,
+        80,
+        80,
         0,
         0,
         0,
@@ -6994,12 +7044,12 @@
         0,
         66,
         0,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
+        153,
+        153,
+        153,
+        153,
+        153,
+        153,
         148,
         0,
         0,
@@ -7028,7 +7078,7 @@
         0,
         0,
         0,
-        0,
+        154,
         85,
         85,
         85,
@@ -7075,7 +7125,7 @@
         10,
         129,
         0,
-        131,
+        4,
         0,
         0,
         0,
@@ -7139,7 +7189,7 @@
         10,
         129,
         0,
-        4,
+        131,
         0,
         0,
         35,
@@ -7466,8 +7516,8 @@
         0,
         0,
         0,
-        2,
-        2,
+        150,
+        152,
         2,
         0,
         0,
@@ -7498,9 +7548,9 @@
         0,
         0,
         0,
-        2,
-        2,
-        2,
+        151,
+        151,
+        151,
         0,
         0,
         0,
@@ -7550,16 +7600,16 @@
         0
       ],
       "spawn": {
-        "x": 124.52287772649368,
-        "y": 243.73352172716537,
+        "x": 124,
+        "y": 243,
         "angle": 0
       },
       "items": [
         {
           "type": "camera",
-          "x": 212.18547176811146,
-          "y": 96.52261397177404,
-          "angle": -4.795582349656629
+          "x": 184.44495922955585,
+          "y": 100.63808931265423,
+          "angle": 1.5952575858540818
         },
         {
           "type": "bluecard",
