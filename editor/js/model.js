@@ -651,10 +651,11 @@ export function equalPropConnectedComponents(level) {
 
 /**
  * Repack identical-property connected tiles into filled ≤15×15 rectangles.
- * Uses minimum rectangle partition so sector count is ideal per component.
- * Reuses the lowest existing ids from each component when possible.
+ * @param {{ optimal?: boolean }} [opts] optimal (default false) runs slow min-cover;
+ *   interactive edits use strip packing only.
  */
-export function mergeIdenticalSectors(level) {
+export function mergeIdenticalSectors(level, opts = {}) {
+  const optimal = !!opts.optimal;
   const components = equalPropConnectedComponents(level);
   /** @type {{ id: number, props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[] }[]} */
   const assignments = [];
@@ -688,7 +689,7 @@ export function mergeIdenticalSectors(level) {
       seed = comp.oldIds.map((id) => byId.get(id)).filter(Boolean);
     }
 
-    const parts = partitionTilesIntoMinRectangles(comp.tiles, seed);
+    const parts = partitionTilesIntoMinRectangles(comp.tiles, seed, { optimal });
     let oi = 0;
     for (const chunk of parts) {
       let id = 0;
@@ -733,10 +734,11 @@ export function mergeIdenticalSectors(level) {
 
 /**
  * Repack sectors into valid rectangles and drop unused records.
- * Call after any tile property edit.
+ * Call after any tile property edit (strip-fast). Pass { optimal: true } before save.
+ * @param {{ optimal?: boolean }} [opts]
  */
-export function rebuildSectors(level) {
-  mergeIdenticalSectors(level);
+export function rebuildSectors(level, opts = {}) {
+  mergeIdenticalSectors(level, opts);
 }
 
 export function sectorCount(level) {
@@ -931,13 +933,15 @@ function popcountBigInt(x) {
 
 /**
  * Minimum partition into filled ≤MAX_SECTOR_SPAN rectangles.
- * Seeds from strip H/V (and optional prior partition), runs a bounded exact-cover
- * DFS, then randomized greedy restarts — enough to hit ideal counts at map scale.
+ * Fast path (optimal: false): strip H/V + keep seed if tighter.
+ * Optimal path: bounded exact-cover DFS + randomized restarts.
  * @param {{tx:number,ty:number}[]} tiles
  * @param {{tx:number,ty:number}[][]} [seedParts] optional known valid partition
+ * @param {{ optimal?: boolean }} [opts]
  * @returns {{tx:number,ty:number}[][]}
  */
-export function partitionTilesIntoMinRectangles(tiles, seedParts = null) {
+export function partitionTilesIntoMinRectangles(tiles, seedParts = null, opts = {}) {
+  const optimal = opts.optimal === true;
   if (!tiles.length) return [];
   if (tiles.length === 1) return [[{ tx: tiles[0].tx, ty: tiles[0].ty }]];
 
@@ -967,6 +971,8 @@ export function partitionTilesIntoMinRectangles(tiles, seedParts = null) {
     best = seedParts.length;
     bestParts = seedParts.map((p) => p.map((t) => ({ ...t })));
   }
+
+  if (!optimal) return bestParts;
 
   const areaCap = MAX_SECTOR_SPAN * MAX_SECTOR_SPAN;
   const minPossible = Math.ceil(n / areaCap);

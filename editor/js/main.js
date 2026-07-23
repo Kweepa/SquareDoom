@@ -7,6 +7,7 @@ import {
   MAX_ITEMS,
   MAX_ENEMIES,
   ENEMY_TYPES,
+  LEVEL_NAMES,
   WORLD_PER_TILE,
   WORLD_MAX,
   activeLevel,
@@ -31,6 +32,7 @@ import {
   nudgeTileHeights,
   occupiedTiles,
   parseTileKey,
+  rebuildSectors,
   removeItem,
   sectorCount,
   shiftLevel,
@@ -40,7 +42,7 @@ import {
   clampLevelName,
   itemsInTiles,
   validateVoidBorder,
-} from './model.js?v=29';
+} from './model.js?v=30';
 import { MapView } from './mapView.js?v=25';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
@@ -185,16 +187,25 @@ async function runAutosave() {
   await saveNow('Autosaved');
 }
 
+/** Set after UI init — saveNow runs above the bundled async IIFE. */
+let refreshAfterPack = () => {};
+
 async function saveNow(okMsg = 'Saved') {
   if (saving) return;
   saving = true;
-  setStatus('Saving…');
+  setStatus('Optimizing sectors…');
   try {
+    for (const name of LEVEL_NAMES) {
+      rebuildSectors(episode.levels[name], { optimal: true });
+    }
+    refreshAfterPack();
+
     const borderIssues = validateVoidBorder(activeLevel(episode));
     if (borderIssues.length) {
       setStatus(borderIssues[0], true);
       return;
     }
+    setStatus('Saving…');
     const how = hasEpisodeFileHandle()
       ? await autosaveEpisodeJSON(episode)
       : await saveEpisodeJSON(episode, EPISODE_FILE);
@@ -534,6 +545,8 @@ function refreshAll() {
   mapView.draw();
   previewView.draw();
 }
+
+refreshAfterPack = refreshAll;
 
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);

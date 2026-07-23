@@ -1,5 +1,6 @@
 import {
   C64_HEX,
+  ENEMY_TYPES,
   MAP_SIZE,
   WORLD_PER_TILE,
   getCell,
@@ -19,9 +20,6 @@ const MAX_DEPTH = 128;
 const PROJ_SCALE = 70 / 69;
 const ITEM_WORLD_HEIGHT = 4;
 const TAN_HALF_FOV = Math.tan(FOV / 2);
-
-/** Enemies keep full preview height; everything else is half size. */
-const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
 
 // side 0 = north/south wall (orange), side 1 = east/west wall (brown)
 const WALL_NS = 8;

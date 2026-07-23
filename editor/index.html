@@ -1254,10 +1254,11 @@ function equalPropConnectedComponents(level) {
 
 /**
  * Repack identical-property connected tiles into filled ≤15×15 rectangles.
- * Uses minimum rectangle partition so sector count is ideal per component.
- * Reuses the lowest existing ids from each component when possible.
+ * @param {{ optimal?: boolean }} [opts] optimal (default false) runs slow min-cover;
+ *   interactive edits use strip packing only.
  */
-function mergeIdenticalSectors(level) {
+function mergeIdenticalSectors(level, opts = {}) {
+  const optimal = !!opts.optimal;
   const components = equalPropConnectedComponents(level);
   /** @type {{ id: number, props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[] }[]} */
   const assignments = [];
@@ -1291,7 +1292,7 @@ function mergeIdenticalSectors(level) {
       seed = comp.oldIds.map((id) => byId.get(id)).filter(Boolean);
     }
 
-    const parts = partitionTilesIntoMinRectangles(comp.tiles, seed);
+    const parts = partitionTilesIntoMinRectangles(comp.tiles, seed, { optimal });
     let oi = 0;
     for (const chunk of parts) {
       let id = 0;
@@ -1336,10 +1337,11 @@ function mergeIdenticalSectors(level) {
 
 /**
  * Repack sectors into valid rectangles and drop unused records.
- * Call after any tile property edit.
+ * Call after any tile property edit (strip-fast). Pass { optimal: true } before save.
+ * @param {{ optimal?: boolean }} [opts]
  */
-function rebuildSectors(level) {
-  mergeIdenticalSectors(level);
+function rebuildSectors(level, opts = {}) {
+  mergeIdenticalSectors(level, opts);
 }
 
 function sectorCount(level) {
@@ -1534,13 +1536,15 @@ function popcountBigInt(x) {
 
 /**
  * Minimum partition into filled ≤MAX_SECTOR_SPAN rectangles.
- * Seeds from strip H/V (and optional prior partition), runs a bounded exact-cover
- * DFS, then randomized greedy restarts — enough to hit ideal counts at map scale.
+ * Fast path (optimal: false): strip H/V + keep seed if tighter.
+ * Optimal path: bounded exact-cover DFS + randomized restarts.
  * @param {{tx:number,ty:number}[]} tiles
  * @param {{tx:number,ty:number}[][]} [seedParts] optional known valid partition
+ * @param {{ optimal?: boolean }} [opts]
  * @returns {{tx:number,ty:number}[][]}
  */
-function partitionTilesIntoMinRectangles(tiles, seedParts = null) {
+function partitionTilesIntoMinRectangles(tiles, seedParts = null, opts = {}) {
+  const optimal = opts.optimal === true;
   if (!tiles.length) return [];
   if (tiles.length === 1) return [[{ tx: tiles[0].tx, ty: tiles[0].ty }]];
 
@@ -1570,6 +1574,8 @@ function partitionTilesIntoMinRectangles(tiles, seedParts = null) {
     best = seedParts.length;
     bestParts = seedParts.map((p) => p.map((t) => ({ ...t })));
   }
+
+  if (!optimal) return bestParts;
 
   const areaCap = MAX_SECTOR_SPAN * MAX_SECTOR_SPAN;
   const minPossible = Math.ceil(n / areaCap);
@@ -3030,9 +3036,6 @@ const PROJ_SCALE = 70 / 69;
 const ITEM_WORLD_HEIGHT = 4;
 const TAN_HALF_FOV = Math.tan(FOV / 2);
 
-/** Enemies keep full preview height; everything else is half size. */
-const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
-
 // side 0 = north/south wall (orange), side 1 = east/west wall (brown)
 const WALL_NS = 8;
 const WALL_EW = 9;
@@ -4230,16 +4233,25 @@ async function runAutosave() {
   await saveNow('Autosaved');
 }
 
+/** Set after UI init — saveNow runs above the bundled async IIFE. */
+let refreshAfterPack = () => {};
+
 async function saveNow(okMsg = 'Saved') {
   if (saving) return;
   saving = true;
-  setStatus('Saving…');
+  setStatus('Optimizing sectors…');
   try {
+    for (const name of LEVEL_NAMES) {
+      rebuildSectors(episode.levels[name], { optimal: true });
+    }
+    refreshAfterPack();
+
     const borderIssues = validateVoidBorder(activeLevel(episode));
     if (borderIssues.length) {
       setStatus(borderIssues[0], true);
       return;
     }
+    setStatus('Saving…');
     const how = hasEpisodeFileHandle()
       ? await autosaveEpisodeJSON(episode)
       : await saveEpisodeJSON(episode, EPISODE_FILE);
@@ -4580,6 +4592,8 @@ function refreshAll() {
   mapView.draw();
   previewView.draw();
 }
+
+refreshAfterPack = refreshAll;
 
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
