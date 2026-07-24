@@ -15,7 +15,7 @@ const gfxDir = join(root, 'itemgraphics');
 
 const ITEM_TYPES = [
   'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
-  'health', 'shells', 'shotgun', 'chaingun', 'chainsaw',
+  'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'skullpile', 'techcolumn',

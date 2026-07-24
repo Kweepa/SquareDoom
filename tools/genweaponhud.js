@@ -1,15 +1,17 @@
 /**
- * Cut itemgraphics/multicolour/minigun.png + rocketlauncher.png into
+ * Cut itemgraphics/multicolour/{pistol,minigun,rocketlauncher}.png into
  * 24×21 hi-res VIC layers, write crop PNGs, and emit:
+ *   pistol_sprites.asm  — 8 sprites (flash + gun×3 + hand×3)
  *   minigun_weapon.asm  — 8 sprites (flash + 2 hi + 2 light + 2 dark)
- *   rocket_weapon.asm   — 8 sprites (flash + 2 hi + 4 dark)
+ *   rocket_weapon.asm   — 8 sprites (pink flash×2 + 2 hi + 4 dark)
  *
  * Layout (sprite pixels; ×2 on screen with XY expand):
+ *   Pistol  24×32: gun @y=0 (white/grey/black); hand @y=11 (orange/brown/black)
  *   Minigun 48×28: dark@y=7 side-by-side, light@y=0 (+7), hi centered @y=0/7
  *   Rocket  48×44: pink flash L/R @y=0; body square + hi @y=9 (dy=14)
  *
- * Flash duplicated from pistol_sprites.asm (run genpistol first).
- * Black / alpha = body vs clear — opaque black is a real layer; only alpha clears.
+ * Pistol muzzle flash kept from prior pistol_sprites.asm (not in composite PNG).
+ * Opaque black is a real layer; only alpha clears.
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { deflateSync, inflateSync } from 'zlib';
@@ -234,14 +236,15 @@ function fmtBytes(bytes) {
   return lines.join('\n');
 }
 
-function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true } = {}) {
+function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true, outFile = null } = {}) {
   let asm = `; Auto-generated from itemgraphics/multicolour/${name}.png - do not edit\n`;
   asm += comment;
   asm += `!zone ${zone}\n\n`;
   if (pistolFlash) {
-    asm += `${zone}_flash_white\n`;
+    const prefix = zone === 'pistol_sprites' ? 'pistol' : zone;
+    asm += `${prefix}_flash_white\n`;
     asm += extractPistolSprite('pistol_flash_white');
-    asm += `${zone}_flash_red\n`;
+    asm += `${prefix}_flash_red\n`;
     asm += extractPistolSprite('pistol_flash_red');
   }
   for (const layer of layers) {
@@ -251,36 +254,74 @@ function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true } = {})
     asm += fmtBytes(packed);
     asm += `\n`;
   }
-  writeFileSync(join(root, `${zone}_weapon.asm`), asm);
+  const dest = outFile || `${zone}_weapon.asm`;
+  writeFileSync(join(root, dest), asm);
+}
+
+function processCrops(file, expectW, expectH, crops) {
+  const { width, height, pixels } = decodePngRgba(readFileSync(join(imgDir, file)));
+  if (width !== expectW || height !== expectH) {
+    throw new Error(`${file}: expected ${expectW}×${expectH}, got ${width}×${height}`);
+  }
+  const layers = [];
+  const info = [];
+  for (const c of crops) {
+    const { mask, n } = cropMask(pixels, width, c.x, c.y, c.rgb);
+    if (n === 0) throw new Error(`${c.label}: no pixels matched RGB ${c.rgb}`);
+    const previewRgb = c.rgb[0] || c.rgb[1] || c.rgb[2] ? c.rgb : [0x4a, 0x4a, 0x4a];
+    writeCropPng(join(imgDir, `${c.label}.png`), mask, previewRgb);
+    layers.push({ label: c.label, mask });
+    info.push(`${c.label}.png: opaque=${n}`);
+  }
+  return { layers, info };
+}
+
+// --- Pistol: 24×32 (gun @y=0; hand @y=11) — run first so flash source stays valid ---
+{
+  const WHITE = [255, 255, 255];
+  const GREY = [98, 98, 98];
+  const BLACK = [0, 0, 0];
+  const BROWN = [109, 84, 18];
+  const ORANGE = [161, 104, 60];
+  const { layers, info } = processCrops('pistol.png', 24, 32, [
+    { label: 'pistol_hi', x: 0, y: 0, rgb: WHITE },
+    { label: 'pistol_mid', x: 0, y: 0, rgb: GREY },
+    { label: 'pistol_dark', x: 0, y: 0, rgb: BLACK },
+    { label: 'pistol_orange', x: 0, y: 11, rgb: ORANGE },
+    { label: 'pistol_brown', x: 0, y: 11, rgb: BROWN },
+    { label: 'pistol_hand_dark', x: 0, y: 11, rgb: BLACK },
+  ]);
+  // Preserve flash from existing asm before overwrite
+  const flashWhite = extractPistolSprite('pistol_flash_white');
+  const flashRed = extractPistolSprite('pistol_flash_red');
+  let asm = `; Auto-generated from itemgraphics/multicolour/pistol.png - do not edit\n`;
+  asm += `; Eight layers (low VIC # = front): flash, gun hi/mid/dark, hand orange/brown/dark.\n`;
+  asm += `;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black. Flash from prior asm.\n`;
+  asm += `!zone pistol_sprites\n\n`;
+  asm += `pistol_flash_white\n`;
+  asm += flashWhite;
+  asm += `pistol_flash_red\n`;
+  asm += flashRed;
+  for (const layer of layers) {
+    asm += `${layer.label}\n`;
+    asm += fmtBytes(packSprite(layer.mask));
+    asm += `\n`;
+  }
+  writeFileSync(join(root, 'pistol_sprites.asm'), asm);
+  console.log('wrote pistol_sprites.asm (8×64) + 6 crop PNGs');
+  for (const line of info) console.log(' ', line);
 }
 
 // --- Minigun: 48×28 ---
 {
-  const file = 'minigun.png';
-  const { width, height, pixels } = decodePngRgba(readFileSync(join(imgDir, file)));
-  if (width !== 48 || height !== 28) {
-    throw new Error(`${file}: expected 48×28, got ${width}×${height}`);
-  }
-  // PNG layers: opaque black body, mid grey, white highlights (alpha = clear)
-  const crops = [
+  const { layers, info } = processCrops('minigun.png', 48, 28, [
     { label: 'minigun_hi_top', x: 12, y: 0, rgb: [255, 255, 255] },
     { label: 'minigun_hi_bot', x: 12, y: 7, rgb: [255, 255, 255] },
     { label: 'minigun_light_left', x: 0, y: 0, rgb: [137, 137, 137] },
     { label: 'minigun_light_right', x: 24, y: 0, rgb: [137, 137, 137] },
     { label: 'minigun_dark_left', x: 0, y: 7, rgb: [0, 0, 0] },
     { label: 'minigun_dark_right', x: 24, y: 7, rgb: [0, 0, 0] },
-  ];
-  const layers = [];
-  const info = [];
-  for (const c of crops) {
-    const { mask, n } = cropMask(pixels, width, c.x, c.y, c.rgb);
-    if (n === 0) throw new Error(`${c.label}: no pixels matched RGB ${c.rgb}`);
-    // Preview crop: show black body as dark grey so it isn't invisible on black bg
-    const previewRgb = c.rgb[0] || c.rgb[1] || c.rgb[2] ? c.rgb : [0x4a, 0x4a, 0x4a];
-    writeCropPng(join(imgDir, `${c.label}.png`), mask, previewRgb);
-    layers.push({ label: c.label, mask });
-    info.push(`${c.label}.png: opaque=${n}`);
-  }
+  ]);
   emitWeaponAsm(
     'minigun',
     'minigun',
@@ -295,16 +336,10 @@ function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true } = {})
 
 // --- Rocket launcher: 48×44 (pink flash @y=0; body @y=9) ---
 {
-  const file = 'rocketlauncher.png';
-  const { width, height, pixels } = decodePngRgba(readFileSync(join(imgDir, file)));
-  if (width !== 48 || height !== 44) {
-    throw new Error(`${file}: expected 48×44, got ${width}×${height}`);
-  }
   const PINK = [203, 126, 117];	// Pepto light red
   const HI = [173, 173, 173];
   const DARK = [0, 0, 0];
-  // flash side-by-side @y=0; body square shifted +9 (dy=14 within body)
-  const crops = [
+  const { layers, info } = processCrops('rocketlauncher.png', 48, 44, [
     { label: 'rocket_flash_left', x: 0, y: 0, rgb: PINK },
     { label: 'rocket_flash_right', x: 24, y: 0, rgb: PINK },
     { label: 'rocket_hi_top', x: 12, y: 9, rgb: HI },
@@ -313,17 +348,7 @@ function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true } = {})
     { label: 'rocket_dark_tr', x: 24, y: 9, rgb: DARK },
     { label: 'rocket_dark_bl', x: 0, y: 23, rgb: DARK },
     { label: 'rocket_dark_br', x: 24, y: 23, rgb: DARK },
-  ];
-  const layers = [];
-  const info = [];
-  for (const c of crops) {
-    const { mask, n } = cropMask(pixels, width, c.x, c.y, c.rgb);
-    if (n === 0) throw new Error(`${c.label}: no pixels matched RGB ${c.rgb}`);
-    const previewRgb = c.rgb[0] || c.rgb[1] || c.rgb[2] ? c.rgb : [0x4a, 0x4a, 0x4a];
-    writeCropPng(join(imgDir, `${c.label}.png`), mask, previewRgb);
-    layers.push({ label: c.label, mask });
-    info.push(`${c.label}.png: opaque=${n}`);
-  }
+  ]);
   emitWeaponAsm(
     'rocketlauncher',
     'rocket',

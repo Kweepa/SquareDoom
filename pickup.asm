@@ -23,12 +23,13 @@ ITEM_TYPE_SHELLS = 8
 ITEM_TYPE_SHOTGUN = 9
 ITEM_TYPE_CHAINGUN = 10
 ITEM_TYPE_CHAINSAW = 11
-ITEM_TYPE_GREENARMOR = 12
-ITEM_TYPE_BLUEARMOR = 13
-ITEM_TYPE_BACKPACK = 14
-ITEM_TYPE_REDCARD = 15
-ITEM_TYPE_BLUECARD = 16
-ITEM_TYPE_YELLOWCARD = 17
+ITEM_TYPE_ROCKETLAUNCHER = 12
+ITEM_TYPE_GREENARMOR = 13
+ITEM_TYPE_BLUEARMOR = 14
+ITEM_TYPE_BACKPACK = 15
+ITEM_TYPE_REDCARD = 16
+ITEM_TYPE_BLUECARD = 17
+ITEM_TYPE_YELLOWCARD = 18
 
 ; ---------------------------------------------------------------------------
 ; try_pickups — after apply_move; one item per frame if within radius
@@ -106,12 +107,12 @@ pickup_apply
 
 .pa_jmp_lo
 	!byte <.pa_health, <.pa_shells, <.pa_weapon, <.pa_weapon
-	!byte <.pa_weapon, <.pa_garmor, <.pa_barmor, <.pa_pack
-	!byte <.pa_red, <.pa_blue, <.pa_yellow
+	!byte <.pa_weapon, <.pa_weapon, <.pa_garmor, <.pa_barmor
+	!byte <.pa_pack, <.pa_red, <.pa_blue, <.pa_yellow
 .pa_jmp_hi
 	!byte >.pa_health, >.pa_shells, >.pa_weapon, >.pa_weapon
-	!byte >.pa_weapon, >.pa_garmor, >.pa_barmor, >.pa_pack
-	!byte >.pa_red, >.pa_blue, >.pa_yellow
+	!byte >.pa_weapon, >.pa_weapon, >.pa_garmor, >.pa_barmor
+	!byte >.pa_pack, >.pa_red, >.pa_blue, >.pa_yellow
 
 .pa_health
 	lda health
@@ -365,12 +366,12 @@ pickup_prefix
 ; Name table indexed by (typeId - ITEM_TYPE_HEALTH)
 pickup_name_lo
 	!byte <name_health, <name_ammo, <name_shotgun, <name_chaingun
-	!byte <name_chainsaw, <name_garmor, <name_barmor, <name_backpack
-	!byte <name_redcard, <name_bluecard, <name_yellowcard
+	!byte <name_chainsaw, <name_rocket, <name_garmor, <name_barmor
+	!byte <name_backpack, <name_redcard, <name_bluecard, <name_yellowcard
 pickup_name_hi
 	!byte >name_health, >name_ammo, >name_shotgun, >name_chaingun
-	!byte >name_chainsaw, >name_garmor, >name_barmor, >name_backpack
-	!byte >name_redcard, >name_bluecard, >name_yellowcard
+	!byte >name_chainsaw, >name_rocket, >name_garmor, >name_barmor
+	!byte >name_backpack, >name_redcard, >name_bluecard, >name_yellowcard
 
 name_health
 	!scr "health"
@@ -386,6 +387,9 @@ name_chaingun
 	!byte 0
 name_chainsaw
 	!scr "chainsaw"
+	!byte 0
+name_rocket
+	!scr "rocket launcher"
 	!byte 0
 name_garmor
 	!scr "green armor"

@@ -2,22 +2,21 @@
 !zone weapon
 
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
-;   minigun $3080: 8 sprites (flash + 2 hi + 2 light + 2 dark)
-;   rocket  $3280: 8 sprites (pink flash×2 + 2 hi + 4 dark)
-;   shotgun $3480: 8 sprites (own flash + 6 body)
-;   pistol  $3680: 6 sprites (flash + 4 body)
+;   minigun $3000: 8 sprites (flash + 2 hi + 2 light + 2 dark)
+;   rocket  $3200: 8 sprites (pink flash×2 + 2 hi + 4 dark)
+;   shotgun $3400: 8 sprites (own flash + 6 body)
+;   pistol  $3600: 8 sprites (flash + gun×3 + hand×3)
 MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
 PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
-PISTOL_ENABLE_IDLE = $3c		; sprites 2–5
-EIGHT_ENABLE_IDLE = $fc		; sprites 2–7 (shotgun / minigun / rocket)
+EIGHT_ENABLE_IDLE = $fc		; sprites 2–7 (all HUD weapons)
 MUZZLE_MS = 300
 
 ; Screen layout (XY expand): sprite px ×2.
-; Bottom dark row Y=208; adjacent X = 112 / 160; centred hi X = 136.
-; Minigun light/hi top = dark − 14 (7 sprite px); rocket top row = dark − 28;
-; rocket pink flash = body top − 18 (9 sprite px above body).
+; Bottom dark/hand row Y=208; adjacent X = 112 / 160; centred hi X = 136.
+; Pistol gun = hand − 22 (11 sprite px); minigun light/hi top = dark − 14;
+; rocket top row = dark − 28; rocket pink flash = body top − 18.
 
 ; $00 until first blit, then $ff — AND with spr_en before writing $d015
 wpn_visible	!byte 0
@@ -46,16 +45,16 @@ wpn_damage
 ; Per-sprite colour / X / Y (screen coords; expand already factored into offsets).
 pistol_spr_col
 	!byte 1, 2			; flash white, red
-	!byte 0, 11			; weapon black, dark grey
-	!byte 9, 8			; hand brown, orange
+	!byte 15, 11, 0		; gun hilight / dark grey / black
+	!byte 8, 9, 0		; hand orange / brown / black
 pistol_spr_x
-	!byte 166, 166			; flash (+6 from hand)
-	!byte 160, 160			; weapon
-	!byte 160, 160			; hand
+	!byte 166, 166			; flash (+6 from body)
+	!byte 160, 160, 160		; gun
+	!byte 160, 160, 160		; hand
 pistol_spr_y
-	!byte 162, 162			; flash (weapon Y − 24)
-	!byte 186, 186			; weapon (hand Y − 22)
-	!byte 208, 208			; hand (bottom centre)
+	!byte 162, 162			; flash (gun Y − 24)
+	!byte 186, 186, 186		; gun (hand Y − 22)
+	!byte 208, 208, 208		; hand (bottom centre)
 
 shotgun_spr_col
 	!byte 1, 2			; flash white, red
@@ -76,7 +75,7 @@ shotgun_spr_y
 minigun_spr_col
 	!byte 1, 2			; flash white, red
 	!byte 15, 15			; highlights (brightness-updated)
-	!byte 12, 12			; light grey body
+	!byte 11, 11			; light grey body
 	!byte 0, 0   			; dark grey body
 minigun_spr_x
 	!byte 160, 160			; flash
@@ -127,6 +126,7 @@ switch_weapon
 	sta fire_rpt_l
 	sta fire_rpt_h
 	jsr wpn_setup
+	jmp .wpn_hi_bright		; match sector brightness this frame
 .sw_done
 	rts
 
@@ -152,26 +152,29 @@ show_weapon
 	sta wpn_visible
 	lda spr_en
 	sta $d015
+	; fall through
+; SEC_BRIGHT → highlight colour on the active weapon's hi sprite(s).
+.wpn_hi_bright
 	ldx player_sector
 	lda SEC_BRIGHT,x
 	cmp #17
-	bcc .sw_hi
+	bcc .wh_ok
 	lda #16
-.sw_hi
+.wh_ok
 	tax
 	lda bright_to_wpn_hi,x
 	ldx cur_weapon
-	beq .sw_pistol
+	beq .wh_pistol
 	cpx #1
-	beq .sw_sg
+	beq .wh_sg
 	; minigun / rocket: sprites 2–3 are highlights
 	sta $d029
 	sta $d02a
 	rts
-.sw_pistol
-	sta $d02a			; pistol sprite 3 (weapon light)
+.wh_pistol
+	sta $d029			; pistol sprite 2 (gun highlight)
 	rts
-.sw_sg
+.wh_sg
 	sta $d029			; shotgun sprite 2 (highlight)
 	rts
 
@@ -193,9 +196,9 @@ bright_to_wpn_hi
 ; Shared 8-sprite setup: A = ptr0, col/x/y tables via (ptr)
 ; ------------------------------------------------------------------
 setup_pistol
-	lda #PISTOL_ENABLE_IDLE
+	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
-	lda #$3f			; XY expand sprites 0–5
+	lda #$ff			; XY expand all eight
 	sta $d01d
 	sta $d017
 	lda #0
@@ -217,7 +220,7 @@ setup_pistol
 	iny
 	iny
 	inx
-	cpx #6
+	cpx #8
 	bcc .sp_set
 	rts
 

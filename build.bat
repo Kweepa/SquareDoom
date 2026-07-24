@@ -15,11 +15,9 @@ node tools\genblit.js
 if errorlevel 1 exit /b 1
 node tools\gendither.js
 if errorlevel 1 exit /b 1
-node tools\genpistol.js
+node tools\genweaponhud.js
 if errorlevel 1 exit /b 1
 node tools\genshotgun.js
-if errorlevel 1 exit /b 1
-node tools\genweaponhud.js
 if errorlevel 1 exit /b 1
 node tools\genitems.js
 if errorlevel 1 exit /b 1

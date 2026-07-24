@@ -12295,6 +12295,16 @@
             "normal": true,
             "hard": true
           }
+        },
+        {
+          "type": "rocketlauncher",
+          "x": 218,
+          "y": 175,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
         }
       ]
     },
