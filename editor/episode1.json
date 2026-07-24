@@ -8813,16 +8813,16 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "3": {
           "floorHeight": 13,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "switch",
+          "singleShot": true,
+          "action": "raise_floor",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "exit_bridge",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 15
@@ -8837,7 +8837,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "5": {
           "floorHeight": 12,
@@ -8849,7 +8849,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "6": {
           "floorHeight": 12,
@@ -8861,7 +8861,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "7": {
           "floorHeight": 12,
@@ -8873,7 +8873,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "8": {
           "floorHeight": 13,
@@ -8897,7 +8897,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "10": {
           "floorHeight": 13,
@@ -8921,19 +8921,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "12": {
           "floorHeight": 18,
-          "ceilingHeight": 18,
-          "trigger": "use",
+          "ceilingHeight": 23,
+          "trigger": "none",
           "singleShot": false,
-          "action": "open_door",
+          "action": "none",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "13": {
           "floorHeight": 13,
@@ -8945,7 +8945,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "14": {
           "floorHeight": 14,
@@ -8957,7 +8957,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "15": {
           "floorHeight": 12,
@@ -8969,7 +8969,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "16": {
           "floorHeight": 12,
@@ -8981,7 +8981,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "17": {
           "floorHeight": 12,
@@ -8993,7 +8993,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "18": {
           "floorHeight": 12,
@@ -9005,7 +9005,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "19": {
           "floorHeight": 12,
@@ -9017,7 +9017,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "20": {
           "floorHeight": 11,
@@ -9041,7 +9041,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "22": {
           "floorHeight": 11,
@@ -9053,7 +9053,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "23": {
           "floorHeight": 12,
@@ -9065,7 +9065,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "24": {
           "floorHeight": 14,
@@ -9073,11 +9073,11 @@
           "trigger": "none",
           "singleShot": false,
           "action": "open_door",
-          "tag": "",
+          "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "25": {
           "floorHeight": 12,
@@ -9089,7 +9089,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "26": {
           "floorHeight": 12,
@@ -9101,7 +9101,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "27": {
           "floorHeight": 12,
@@ -9113,7 +9113,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "28": {
           "floorHeight": 12,
@@ -9125,7 +9125,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "29": {
           "floorHeight": 14,
@@ -9137,7 +9137,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "30": {
           "floorHeight": 14,
@@ -9145,11 +9145,11 @@
           "trigger": "none",
           "singleShot": false,
           "action": "open_door",
-          "tag": "",
+          "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "31": {
           "floorHeight": 12,
@@ -9161,11 +9161,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "32": {
-          "floorHeight": 13,
-          "ceilingHeight": 20,
+          "floorHeight": 14,
+          "ceilingHeight": 25,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9173,19 +9173,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "33": {
-          "floorHeight": 11,
-          "ceilingHeight": 18,
+          "floorHeight": 14,
+          "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "34": {
           "floorHeight": 12,
@@ -9197,7 +9197,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "35": {
           "floorHeight": 12,
@@ -9209,7 +9209,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "36": {
           "floorHeight": 14,
@@ -9217,10 +9217,10 @@
           "trigger": "none",
           "singleShot": false,
           "action": "none",
-          "tag": "",
+          "tag": "exit_bridge",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 2,
           "brightness": 15
         },
         "37": {
@@ -9233,7 +9233,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "38": {
           "floorHeight": 14,
@@ -9245,7 +9245,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "39": {
           "floorHeight": 9,
@@ -9257,7 +9257,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "40": {
           "floorHeight": 12,
@@ -9269,7 +9269,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "41": {
           "floorHeight": 12,
@@ -9281,7 +9281,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "42": {
           "floorHeight": 9,
@@ -9293,7 +9293,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "43": {
           "floorHeight": 12,
@@ -9305,19 +9305,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "44": {
           "floorHeight": 14,
           "ceilingHeight": 20,
-          "trigger": "none",
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "ceilingColor": 7,
+          "brightness": 10
         },
         "45": {
           "floorHeight": 4,
@@ -9365,7 +9365,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "49": {
           "floorHeight": 12,
@@ -9377,7 +9377,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "50": {
           "floorHeight": 13,
@@ -9389,7 +9389,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "51": {
           "floorHeight": 12,
@@ -9401,7 +9401,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "52": {
           "floorHeight": 8,
@@ -9413,7 +9413,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "53": {
           "floorHeight": 14,
@@ -9425,7 +9425,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "54": {
           "floorHeight": 12,
@@ -9437,7 +9437,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "55": {
           "floorHeight": 15,
@@ -9449,7 +9449,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "56": {
           "floorHeight": 13,
@@ -9461,7 +9461,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "57": {
           "floorHeight": 15,
@@ -9473,11 +9473,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "58": {
-          "floorHeight": 12,
-          "ceilingHeight": 17,
+          "floorHeight": 11,
+          "ceilingHeight": 18,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9485,19 +9485,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "59": {
           "floorHeight": 14,
-          "ceilingHeight": 20,
-          "trigger": "none",
+          "ceilingHeight": 14,
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "60": {
           "floorHeight": 13,
@@ -9509,11 +9509,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "61": {
           "floorHeight": 13,
-          "ceilingHeight": 18,
+          "ceilingHeight": 22,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9521,7 +9521,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "62": {
           "floorHeight": 13,
@@ -9533,7 +9533,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "63": {
           "floorHeight": 13,
@@ -9545,11 +9545,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "64": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9557,11 +9557,11 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "65": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9569,11 +9569,11 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "66": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9581,7 +9581,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "67": {
           "floorHeight": 14,
@@ -9593,11 +9593,11 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "68": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9605,11 +9605,11 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "69": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9617,11 +9617,11 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "70": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9629,11 +9629,11 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "71": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9641,23 +9641,23 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "72": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "ceilingHeight": 26,
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "lower_floor_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "columns",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "73": {
           "floorHeight": 14,
-          "ceilingHeight": 24,
+          "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9665,7 +9665,7 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "74": {
           "floorHeight": 13,
@@ -9677,7 +9677,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "75": {
           "floorHeight": 13,
@@ -9689,7 +9689,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "76": {
           "floorHeight": 13,
@@ -9701,7 +9701,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "77": {
           "floorHeight": 14,
@@ -9709,11 +9709,11 @@
           "trigger": "none",
           "singleShot": false,
           "action": "open_door",
-          "tag": "",
+          "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "78": {
           "floorHeight": 13,
@@ -9725,7 +9725,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "79": {
           "floorHeight": 14,
@@ -9733,11 +9733,11 @@
           "trigger": "none",
           "singleShot": false,
           "action": "open_door",
-          "tag": "",
+          "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "80": {
           "floorHeight": 13,
@@ -9749,7 +9749,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "81": {
           "floorHeight": 13,
@@ -9760,8 +9760,8 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "ceilingColor": 6,
+          "brightness": 8
         },
         "82": {
           "floorHeight": 13,
@@ -9773,7 +9773,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "83": {
           "floorHeight": 13,
@@ -9785,11 +9785,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "84": {
           "floorHeight": 13,
-          "ceilingHeight": 23,
+          "ceilingHeight": 18,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9797,7 +9797,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "85": {
           "floorHeight": 13,
@@ -9809,7 +9809,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "86": {
           "floorHeight": 13,
@@ -9821,7 +9821,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "87": {
           "floorHeight": 13,
@@ -9833,7 +9833,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "88": {
           "floorHeight": 9,
@@ -9845,7 +9845,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "89": {
           "floorHeight": 9,
@@ -9857,7 +9857,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "90": {
           "floorHeight": 8,
@@ -9869,7 +9869,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "91": {
           "floorHeight": 12,
@@ -9881,11 +9881,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "92": {
-          "floorHeight": 13,
-          "ceilingHeight": 18,
+          "floorHeight": 15,
+          "ceilingHeight": 17,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -9893,7 +9893,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "93": {
           "floorHeight": 8,
@@ -9905,7 +9905,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "94": {
           "floorHeight": 8,
@@ -9917,7 +9917,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "95": {
           "floorHeight": 13,
@@ -9929,7 +9929,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "96": {
           "floorHeight": 12,
@@ -9941,7 +9941,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "97": {
           "floorHeight": 13,
@@ -9953,7 +9953,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "98": {
           "floorHeight": 8,
@@ -9965,7 +9965,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "99": {
           "floorHeight": 12,
@@ -9977,7 +9977,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "100": {
           "floorHeight": 12,
@@ -9989,9 +9989,21 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "101": {
+          "floorHeight": 15,
+          "ceilingHeight": 17,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 10
+        },
+        "102": {
           "floorHeight": 13,
           "ceilingHeight": 18,
           "trigger": "none",
@@ -10001,19 +10013,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
-        },
-        "102": {
-          "floorHeight": 8,
-          "ceilingHeight": 13,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "103": {
           "floorHeight": 12,
@@ -10025,19 +10025,19 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "104": {
           "floorHeight": 13,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "open_door_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "central_doors",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "105": {
           "floorHeight": 8,
@@ -10049,7 +10049,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "106": {
           "floorHeight": 13,
@@ -10073,7 +10073,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "108": {
           "floorHeight": 8,
@@ -10085,7 +10085,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "109": {
           "floorHeight": 7,
@@ -10097,7 +10097,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "110": {
           "floorHeight": 7,
@@ -10109,7 +10109,7 @@
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "111": {
           "floorHeight": 13,
@@ -10121,7 +10121,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "112": {
           "floorHeight": 13,
@@ -10133,7 +10133,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "113": {
           "floorHeight": 13,
@@ -10145,7 +10145,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "114": {
           "floorHeight": 8,
@@ -10157,7 +10157,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "115": {
           "floorHeight": 8,
@@ -10169,7 +10169,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "116": {
           "floorHeight": 8,
@@ -10181,7 +10181,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "117": {
           "floorHeight": 8,
@@ -10193,7 +10193,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 12,
-          "brightness": 15
+          "brightness": 13
         },
         "118": {
           "floorHeight": 8,
@@ -10204,12 +10204,12 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 8,
-          "brightness": 15
+          "ceilingColor": 9,
+          "brightness": 10
         },
         "119": {
           "floorHeight": 13,
-          "ceilingHeight": 18,
+          "ceilingHeight": 13,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -10217,7 +10217,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "120": {
           "floorHeight": 8,
@@ -10229,11 +10229,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "121": {
-          "floorHeight": 8,
-          "ceilingHeight": 20,
+          "floorHeight": 14,
+          "ceilingHeight": 19,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -10241,7 +10241,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "122": {
           "floorHeight": 13,
@@ -10265,7 +10265,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "124": {
           "floorHeight": 8,
@@ -10277,7 +10277,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "125": {
           "floorHeight": 8,
@@ -10289,7 +10289,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "126": {
           "floorHeight": 8,
@@ -10301,7 +10301,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 13
         },
         "127": {
           "floorHeight": 13,
@@ -10313,7 +10313,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "128": {
           "floorHeight": 8,
@@ -10325,7 +10325,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 3,
-          "brightness": 16
+          "brightness": 15
         },
         "129": {
           "floorHeight": 5,
@@ -10337,7 +10337,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "130": {
           "floorHeight": 8,
@@ -10349,7 +10349,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "131": {
           "floorHeight": 5,
@@ -10361,19 +10361,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "132": {
           "floorHeight": 13,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "open_door_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "central_doors",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "133": {
           "floorHeight": 13,
@@ -10385,7 +10385,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "134": {
           "floorHeight": 10,
@@ -10397,31 +10397,31 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "135": {
           "floorHeight": 13,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "open_door_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "central_doors",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "136": {
           "floorHeight": 13,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "open_door_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "central_doors",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "137": {
           "floorHeight": 11,
@@ -10433,7 +10433,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "138": {
           "floorHeight": 8,
@@ -10445,7 +10445,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "139": {
           "floorHeight": 8,
@@ -10457,7 +10457,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "140": {
           "floorHeight": 13,
@@ -10469,7 +10469,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "141": {
           "floorHeight": 13,
@@ -10481,7 +10481,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "142": {
           "floorHeight": 14,
@@ -10493,7 +10493,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "143": {
           "floorHeight": 16,
@@ -10505,7 +10505,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "144": {
           "floorHeight": 17,
@@ -10517,7 +10517,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "145": {
           "floorHeight": 14,
@@ -10529,7 +10529,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "146": {
           "floorHeight": 13,
@@ -10541,7 +10541,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "147": {
           "floorHeight": 13,
@@ -10553,11 +10553,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 12
         },
         "148": {
-          "floorHeight": 13,
-          "ceilingHeight": 23,
+          "floorHeight": 8,
+          "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -10565,19 +10565,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "149": {
-          "floorHeight": 13,
-          "ceilingHeight": 23,
-          "trigger": "none",
+          "floorHeight": 14,
+          "ceilingHeight": 20,
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "lower_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "150": {
           "floorHeight": 4,
@@ -10613,7 +10613,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "153": {
           "floorHeight": 10,
@@ -10625,7 +10625,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "154": {
           "floorHeight": 5,
@@ -10637,7 +10637,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "155": {
           "floorHeight": 12,
@@ -10649,7 +10649,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "156": {
           "floorHeight": 13,
@@ -10661,7 +10661,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "157": {
           "floorHeight": 13,
@@ -10673,7 +10673,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "158": {
           "floorHeight": 18,
@@ -10685,7 +10685,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "159": {
           "floorHeight": 9,
@@ -10697,7 +10697,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "160": {
           "floorHeight": 11,
@@ -10709,7 +10709,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 10
         },
         "161": {
           "floorHeight": 17,
@@ -10721,7 +10721,151 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
+        },
+        "162": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "163": {
+          "floorHeight": 12,
+          "ceilingHeight": 17,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "164": {
+          "floorHeight": 11,
+          "ceilingHeight": 18,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "165": {
+          "floorHeight": 26,
+          "ceilingHeight": 29,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "columns",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "166": {
+          "floorHeight": 14,
+          "ceilingHeight": 26,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 12
+        },
+        "167": {
+          "floorHeight": 26,
+          "ceilingHeight": 29,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "columns",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "168": {
+          "floorHeight": 26,
+          "ceilingHeight": 29,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "columns",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "169": {
+          "floorHeight": 26,
+          "ceilingHeight": 29,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "columns",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "170": {
+          "floorHeight": 26,
+          "ceilingHeight": 29,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "columns",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "171": {
+          "floorHeight": 14,
+          "ceilingHeight": 26,
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "lower_floor_forever",
+          "tag": "",
+          "targetTag": "columns",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 12
+        },
+        "172": {
+          "floorHeight": 13,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "173": {
+          "floorHeight": 14,
+          "ceilingHeight": 25,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
         }
       },
       "map": [
@@ -10767,11 +10911,11 @@
         14,
         14,
         0,
-        70,
-        71,
-        71,
-        71,
-        71,
+        64,
+        64,
+        64,
+        64,
+        64,
         0,
         0,
         0,
@@ -10793,17 +10937,17 @@
         2,
         0,
         158,
-        36,
+        32,
         0,
         0,
         0,
         38,
         0,
-        70,
-        0,
-        64,
-        0,
-        73,
+        65,
+        168,
+        66,
+        169,
+        68,
         0,
         0,
         0,
@@ -10831,11 +10975,11 @@
         55,
         38,
         59,
+        69,
+        69,
+        167,
         70,
-        65,
-        0,
-        66,
-        73,
+        70,
         0,
         0,
         0,
@@ -10857,17 +11001,17 @@
         2,
         0,
         158,
-        36,
+        53,
         0,
         0,
         0,
         38,
         0,
-        70,
-        0,
-        68,
-        0,
-        73,
+        171,
+        165,
+        71,
+        170,
+        72,
         0,
         89,
         89,
@@ -10889,16 +11033,16 @@
         0,
         0,
         158,
-        53,
-        53,
-        53,
-        53,
-        53,
+        173,
+        173,
+        173,
+        173,
+        173,
         0,
-        69,
-        69,
-        68,
-        72,
+        73,
+        73,
+        73,
+        73,
         73,
         0,
         134,
@@ -10929,9 +11073,9 @@
         0,
         0,
         0,
-        68,
-        72,
-        73,
+        166,
+        166,
+        166,
         0,
         137,
         137,
@@ -10950,9 +11094,9 @@
         10,
         0,
         0,
-        3,
-        3,
-        3,
+        13,
+        13,
+        13,
         3,
         3,
         110,
@@ -10962,7 +11106,7 @@
         63,
         0,
         0,
-        72,
+        33,
         0,
         0,
         91,
@@ -10982,11 +11126,11 @@
         0,
         0,
         0,
-        13,
+        172,
         0,
         0,
-        32,
-        32,
+        3,
+        3,
         110,
         110,
         63,
@@ -10994,7 +11138,7 @@
         63,
         75,
         0,
-        72,
+        33,
         0,
         95,
         95,
@@ -11007,9 +11151,9 @@
         0,
         94,
         94,
-        121,
         123,
-        130,
+        123,
+        123,
         0,
         0,
         0,
@@ -11039,7 +11183,7 @@
         0,
         0,
         0,
-        121,
+        124,
         128,
         130,
         117,
@@ -11071,7 +11215,7 @@
         113,
         113,
         113,
-        121,
+        124,
         128,
         130,
         0,
@@ -11103,7 +11247,7 @@
         0,
         0,
         0,
-        121,
+        124,
         128,
         130,
         0,
@@ -11135,22 +11279,22 @@
         115,
         115,
         108,
-        121,
+        124,
         128,
         130,
         0,
         0,
         0,
         0,
-        33,
-        33,
-        33,
-        33,
-        33,
-        33,
+        22,
+        22,
+        58,
+        58,
+        58,
+        164,
         0,
         61,
-        74,
+        61,
         0,
         83,
         83,
@@ -11167,7 +11311,7 @@
         138,
         138,
         108,
-        121,
+        124,
         128,
         130,
         0,
@@ -11182,7 +11326,7 @@
         18,
         0,
         61,
-        74,
+        61,
         0,
         83,
         83,
@@ -11199,7 +11343,7 @@
         139,
         42,
         108,
-        121,
+        124,
         128,
         130,
         0,
@@ -11209,12 +11353,12 @@
         4,
         4,
         0,
-        19,
-        19,
+        5,
+        5,
         18,
         0,
         61,
-        74,
+        61,
         76,
         83,
         83,
@@ -11231,7 +11375,7 @@
         0,
         0,
         0,
-        121,
+        124,
         128,
         130,
         0,
@@ -11239,14 +11383,14 @@
         0,
         0,
         0,
-        25,
-        25,
-        25,
+        6,
+        6,
+        54,
         0,
         18,
         0,
         61,
-        74,
+        61,
         76,
         83,
         83,
@@ -11263,22 +11407,22 @@
         111,
         111,
         111,
-        121,
+        124,
         128,
         130,
         0,
         0,
         0,
         0,
-        5,
-        5,
+        163,
+        163,
         0,
         54,
         0,
         0,
         0,
         61,
-        74,
+        61,
         0,
         83,
         83,
@@ -11295,7 +11439,7 @@
         0,
         0,
         0,
-        121,
+        124,
         128,
         130,
         0,
@@ -11307,10 +11451,10 @@
         0,
         54,
         0,
-        49,
+        48,
         0,
         61,
-        74,
+        61,
         0,
         83,
         83,
@@ -11327,116 +11471,116 @@
         0,
         116,
         116,
-        121,
-        124,
-        130,
-        0,
-        0,
-        0,
-        0,
-        6,
-        6,
-        0,
-        54,
-        0,
-        49,
-        0,
-        0,
-        74,
-        0,
-        0,
-        86,
-        86,
-        86,
-        86,
-        86,
-        86,
-        86,
-        86,
-        86,
-        133,
-        133,
-        0,
-        120,
-        0,
-        121,
-        0,
-        0,
-        0,
+        148,
+        148,
+        148,
         0,
         0,
         0,
         0,
         7,
+        7,
         0,
         54,
         0,
-        49,
+        48,
         0,
         0,
-        62,
-        62,
+        102,
         0,
         0,
-        87,
-        87,
-        87,
-        87,
-        87,
-        87,
-        0,
-        0,
-        0,
-        0,
+        86,
+        86,
+        86,
+        86,
+        86,
+        86,
+        86,
+        86,
+        86,
+        133,
+        133,
         0,
         120,
         0,
-        129,
-        129,
-        129,
+        121,
+        0,
+        0,
+        0,
         0,
         0,
         0,
         0,
         9,
-        7,
+        0,
+        54,
+        0,
+        48,
+        0,
+        0,
+        62,
+        62,
+        0,
+        0,
+        87,
+        87,
+        87,
+        87,
+        87,
+        87,
+        0,
+        0,
+        0,
+        0,
+        0,
+        120,
+        0,
+        149,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        11,
+        9,
+        49,
+        49,
+        0,
+        48,
         51,
-        51,
+        0,
+        80,
+        80,
+        80,
+        0,
+        0,
+        0,
+        140,
+        140,
+        0,
+        0,
+        0,
+        0,
+        105,
+        105,
+        105,
+        105,
+        0,
+        129,
+        129,
+        129,
+        0,
+        0,
+        0,
+        0,
+        0,
         0,
         49,
-        58,
-        0,
-        80,
-        80,
-        80,
-        0,
-        0,
-        0,
-        140,
-        140,
-        0,
-        0,
-        0,
-        0,
-        105,
-        105,
-        105,
-        105,
-        0,
-        129,
-        129,
-        129,
-        0,
-        0,
-        0,
-        0,
+        49,
         0,
         0,
         51,
-        51,
-        0,
-        0,
-        58,
         0,
         141,
         141,
@@ -11447,8 +11591,8 @@
         152,
         155,
         0,
-        93,
-        93,
+        98,
+        98,
         0,
         105,
         105,
@@ -11462,13 +11606,13 @@
         0,
         0,
         0,
-        31,
-        35,
-        35,
-        35,
-        15,
+        27,
+        34,
+        34,
+        34,
+        16,
         0,
-        58,
+        51,
         0,
         141,
         141,
@@ -11478,10 +11622,10 @@
         0,
         153,
         88,
+        93,
         98,
         98,
-        98,
-        98,
+        162,
         105,
         105,
         105,
@@ -11494,13 +11638,13 @@
         0,
         0,
         0,
-        31,
+        27,
         0,
         0,
         0,
+        16,
         15,
-        11,
-        58,
+        51,
         0,
         146,
         144,
@@ -11511,9 +11655,9 @@
         156,
         156,
         0,
-        102,
-        102,
-        102,
+        98,
+        98,
+        162,
         105,
         105,
         105,
@@ -11526,12 +11670,12 @@
         0,
         0,
         0,
-        27,
-        27,
-        27,
+        25,
+        25,
+        25,
         0,
         0,
-        11,
+        15,
         0,
         0,
         56,
@@ -11559,61 +11703,77 @@
         0,
         0,
         0,
-        34,
+        31,
         0,
         0,
         0,
         50,
         50,
         81,
-        148,
+        56,
         142,
         57,
         145,
+        60,
+        0,
+        154,
+        154,
+        150,
+        150,
+        150,
+        150,
+        151,
+        151,
+        151,
+        151,
+        47,
+        47,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        35,
+        31,
+        0,
+        40,
+        40,
+        40,
+        0,
+        0,
+        0,
+        84,
+        84,
+        84,
         84,
         0,
         154,
         154,
-        150,
-        150,
-        150,
-        150,
-        151,
-        151,
-        151,
-        151,
-        47,
-        47,
+        0,
+        0,
+        0,
+        0,
+        52,
+        52,
+        52,
+        52,
         0,
         0,
         0,
         0,
         0,
         0,
-        40,
-        34,
+        0,
+        0,
+        35,
+        0,
         0,
         41,
-        41,
-        41,
         0,
-        0,
-        0,
-        149,
-        149,
-        149,
-        149,
-        0,
-        154,
-        154,
-        0,
-        0,
-        0,
-        0,
-        52,
-        52,
-        52,
-        52,
+        19,
+        19,
+        17,
         0,
         0,
         0,
@@ -11622,46 +11782,30 @@
         0,
         0,
         0,
-        40,
         0,
         0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        35,
         43,
+        43,
+        41,
+        0,
+        0,
         0,
         17,
-        17,
-        16,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        40,
-        48,
-        48,
-        43,
-        0,
-        0,
-        0,
-        16,
         0,
         0,
         0,
@@ -11758,9 +11902,9 @@
       "items": [
         {
           "type": "camera",
-          "x": 69.22170936542724,
-          "y": 75.2521405116266,
-          "angle": 5.040252285324435
+          "x": 105.93598431654466,
+          "y": 58.00925926855074,
+          "angle": 6.1559598795675186
         },
         {
           "type": "switch",
@@ -11771,6 +11915,381 @@
           "type": "yellowcard",
           "x": 25,
           "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "switch",
+          "x": 37,
+          "y": 59
+        },
+        {
+          "type": "bluearmor",
+          "x": 200,
+          "y": 27,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "bluecard",
+          "x": 134,
+          "y": 122,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 132,
+          "y": 134,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 127,
+          "y": 130,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 125,
+          "y": 121,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 122,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "pinky",
+          "x": 52,
+          "y": 163,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 52,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 189,
+          "y": 193,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 180,
+          "y": 189,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 190,
+          "y": 220,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "backpack",
+          "x": 242,
+          "y": 91,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 245,
+          "y": 93,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 199,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 206,
+          "y": 82,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 206,
+          "y": 133,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 200,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 204,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 224,
+          "y": 180,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 243,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 236,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 209,
+          "y": 37,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 187,
+          "y": 27,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 140,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 133,
+          "y": 50,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 84,
+          "y": 196,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 95,
+          "y": 196,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 101,
+          "y": 197,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 43,
+          "y": 65,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 180,
+          "y": 199,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 175,
+          "y": 179,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 21,
+          "y": 189,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 29,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 85,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 108,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 74,
+          "y": 109,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 100,
+          "y": 220,
           "skills": {
             "easy": true,
             "normal": true,
