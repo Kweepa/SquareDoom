@@ -8,7 +8,8 @@ FRAMEBUFFER = $c800
 LIGHTFRAME = $cc00
 CHARSET = $3800
 FIST_RIGHT_SPRITES = $2a00	; 8×64 open right hand (7 used)
-FIST_PUNCH_SPRITES = $2c00	; 8×64 punch pose (7 used)
+FIST_PUNCH_SPRITES = $2c00	; 8×64 punch pose (7 used; pad overwritten by saw hi2)
+CHAINSAW_BLADE_HI2_SPRITES = FIST_PUNCH_SPRITES + 7 * 64	; $2dc0
 CHAINSAW_SPRITES = $2e00	; 8×64-byte chainsaw (no flash; VIC bank 0)
 MINIGUN_SPRITES = $3000	; 8×64-byte minigun+flash (VIC bank 0)
 ROCKET_SPRITES = $3200		; 8×64-byte rocket+flash (VIC bank 0)
@@ -55,7 +56,8 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "fist_righthand.asm"
 *=FIST_PUNCH_SPRITES
 !source "fist_punch.asm"
-*=CHAINSAW_SPRITES
+; chainsaw_weapon.asm: hi2 (64) then 8 layers — starts in punch pad
+*=CHAINSAW_BLADE_HI2_SPRITES
 !source "chainsaw_weapon.asm"
 *=MINIGUN_SPRITES
 !source "minigun_weapon.asm"

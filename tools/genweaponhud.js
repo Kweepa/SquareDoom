@@ -370,27 +370,54 @@ function processCrops(file, expectW, expectH, crops) {
   const GREY = [98, 98, 98];
   const BROWN = [109, 84, 18];
   const ORANGE = [161, 104, 60];
+  // Blade crop left enough for all black/white (was x=48, clipped at 45–47).
+  // Detail one row higher (was y=20, grey exists at y=19).
+  const BLADE_X = 31;
+  const DETAIL_Y = 19;
   // VIC front→back: blade hi, detail, hands, blade dark, body×3
   const { layers, info } = processCrops('chainsaw.png', 72, 41, [
-    { label: 'chainsaw_blade_hi', x: 48, y: 0, rgb: WHITE },
-    { label: 'chainsaw_detail', x: 35, y: 20, rgb: GREY },
+    { label: 'chainsaw_blade_hi', x: BLADE_X, y: 0, rgb: WHITE },
+    { label: 'chainsaw_detail', x: 35, y: DETAIL_Y, rgb: GREY },
     { label: 'chainsaw_hand_orange', x: 0, y: 20, rgb: ORANGE },
     { label: 'chainsaw_hand_brown', x: 0, y: 20, rgb: BROWN },
-    { label: 'chainsaw_blade_dark', x: 48, y: 0, rgb: BLACK },
+    { label: 'chainsaw_blade_dark', x: BLADE_X, y: 0, rgb: BLACK },
     { label: 'chainsaw_body_left', x: 0, y: 20, rgb: BLACK },
     { label: 'chainsaw_body_mid', x: 24, y: 20, rgb: BLACK },
     { label: 'chainsaw_body_right', x: 48, y: 20, rgb: BLACK },
   ]);
+  // Alternate blade highlight — pack user PNG as-is (do not rewrite it)
+  {
+    const hi2Path = join(imgDir, 'chainsaw_blade_hi2.png');
+    const { width: w2, height: h2, pixels: p2 } = decodePngRgba(readFileSync(hi2Path));
+    if (w2 !== WIDTH || h2 !== HEIGHT) {
+      throw new Error(`chainsaw_blade_hi2.png: expected ${WIDTH}×${HEIGHT}, got ${w2}×${h2}`);
+    }
+    const mask = new Array(WIDTH * HEIGHT).fill(false);
+    let n = 0;
+    for (let y = 0; y < HEIGHT; y++) {
+      for (let x = 0; x < WIDTH; x++) {
+        const [r, g, b, a] = p2[y * WIDTH + x];
+        if (a < 128) continue;
+        if (r === 0 && g === 0 && b === 0) continue; // clear / tRNS black
+        mask[y * WIDTH + x] = true;
+        n++;
+      }
+    }
+    if (n === 0) throw new Error('chainsaw_blade_hi2: no opaque pixels');
+    // hi2 first so *= CHAINSAW_SPRITES-64 places it in the punch pad slot
+    layers.unshift({ label: 'chainsaw_blade_hi2', mask });
+    info.push(`chainsaw_blade_hi2.png: opaque=${n}`);
+  }
   emitWeaponAsm(
     'chainsaw',
     'chainsaw',
     layers,
-    `; Eight layers (low VIC # = front), no flash:\n` +
-      `;   blade hi, grey detail, hand orange/brown, blade dark, body L/M/R.\n` +
-      `;   PNG 72×41: hands+body @y=20; blade @y=0 x=48.\n`,
+    `; Nine blobs: blade_hi2 then 8 VIC layers (low # = front), no flash:\n` +
+      `;   Place at CHAINSAW_SPRITES-64 so hi2 sits in fist-punch pad.\n` +
+      `;   blade hi/dark @x=${BLADE_X}; detail @y=${DETAIL_Y}; body @y=20.\n`,
     { pistolFlash: false, outFile: 'chainsaw_weapon.asm' }
   );
-  console.log('wrote chainsaw_weapon.asm (8×64) + 8 crop PNGs');
+  console.log('wrote chainsaw_weapon.asm (hi2 + 8×64) + crop PNGs');
   for (const line of info) console.log(' ', line);
 }
 

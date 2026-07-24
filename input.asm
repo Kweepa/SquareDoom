@@ -239,6 +239,8 @@ input_irq
 	sta in_map
 .irq_nof1
 
+	jsr update_saw_blade
+
 .irq_rti
 	pla
 	tay

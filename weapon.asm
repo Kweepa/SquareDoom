@@ -3,13 +3,14 @@
 
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
 ;   fist right $2a00 / punch $2c00: 7 layers + pad each
-;   chainsaw $2e00: 8 sprites (no flash)
+;   chainsaw hi2 $2dc0 (punch pad); body $2e00: 8 sprites (no flash)
 ;   minigun  $3000: 8 sprites (body×6 + flash×2 behind)
 ;   rocket   $3200: 8 sprites (body×6 + pink flash×2 behind)
 ;   shotgun  $3400: 8 sprites (body×6 + flash×2 behind)
 ;   pistol   $3600: 8 sprites (gun×3 + hand×3 + flash×2 behind)
 FIST_RIGHT_SPR_PTR0 = FIST_RIGHT_SPRITES / 64
 FIST_PUNCH_SPR_PTR0 = FIST_PUNCH_SPRITES / 64
+CHAINSAW_BLADE_HI2_PTR = CHAINSAW_BLADE_HI2_SPRITES / 64
 CHAINSAW_SPR_PTR0 = CHAINSAW_SPRITES / 64
 MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
@@ -33,6 +34,9 @@ wpn_visible	!byte 0
 ; Gun highlight while muzzle flash is up (picked per shot)
 muzzle_hi_col	!byte 1
 muzzle_hi_cycle !byte 0
+saw_blade_frame	!byte 0			; 0=hi, 1=hi2
+saw_blade_div	!byte 0			; IRQ tick; toggle every 4th (100 ms)
+saw_running	!byte 0			; 1 = fire held: Y+4 + blade anim
 muzzle_hi_cols
 	!byte 1, 7, 1, 10		; some bright colours
 
@@ -124,18 +128,19 @@ rocket_spr_y
 	!byte 162, 162			; flash (+9 sprite px above body top)
 
 ; Chainsaw: blade hi, detail, hands, blade dark, body L/M/R — no flash
+; Blade crop x=31 (was 48): screen X −34. Detail crop y=19 (was 20): Y −2.
 chainsaw_spr_col
 	!byte 1, 11			; blade hi white / grey detail
 	!byte 8, 9			; hand orange / brown
 	!byte 0				; blade dark
 	!byte 0, 0, 0			; body L/M/R
 chainsaw_spr_x
-	!byte 208, 182			; blade hi / detail
+	!byte 174, 182			; blade hi / detail
 	!byte 112, 112			; hands
-	!byte 208			; blade dark
+	!byte 174			; blade dark
 	!byte 112, 160, 208		; body L/M/R
 chainsaw_spr_y
-	!byte 168, 208			; blade hi / detail
+	!byte 168, 206			; blade hi / detail
 	!byte 208, 208			; hands
 	!byte 168			; blade dark
 	!byte 208, 208, 208		; body
@@ -335,6 +340,10 @@ setup_fist_punch
 	rts
 
 setup_chainsaw
+	lda #0
+	sta saw_running
+	sta saw_blade_frame
+	sta saw_blade_div
 	lda #EIGHT_ENABLE_ALL
 	jsr .wpn_en
 	lda #$ff
@@ -659,4 +668,85 @@ update_muzzle_flash
 	lda #0
 	sta fire_rpt_l
 	sta fire_rpt_h
+	rts
+
+; Called from input_irq (Timer A, every SAMPLE_MS). Chainsaw + SPACE:
+; drop sprites +4 and flip blade hi/hi2 every 4th tick (~100 ms).
+SAW_RUN_DY = 8
+
+update_saw_blade
+	lda cur_weapon
+	cmp #1
+	bne .usb_idle
+	lda #$7f
+	sta $dc00
+	lda $dc01
+	and #$10				; SPACE
+	bne .usb_idle			; not held
+	lda saw_running
+	bne .usb_anim
+	lda #1
+	sta saw_running
+	jsr .saw_set_y_run
+.usb_anim
+	inc saw_blade_div
+	lda saw_blade_div
+	and #3
+	bne .usb_rts
+	lda saw_blade_frame
+	eor #1
+	sta saw_blade_frame
+	beq .usb_hi
+	lda #CHAINSAW_BLADE_HI2_PTR
+	sta $07f8
+	rts
+.usb_hi
+	lda #CHAINSAW_SPR_PTR0
+	sta $07f8
+.usb_rts
+	rts
+.usb_idle
+	lda #0
+	sta saw_blade_frame
+	sta saw_blade_div
+	lda saw_running
+	beq .usb_idle_ptr
+	lda #0
+	sta saw_running
+	jsr .saw_set_y_idle
+.usb_idle_ptr
+	lda cur_weapon
+	cmp #1
+	bne .usb_rts
+	lda #CHAINSAW_SPR_PTR0
+	sta $07f8
+	rts
+
+; Y = chainsaw_spr_y[i] (+ SAW_RUN_DY if run)
+.saw_set_y_run
+	ldx #0
+	ldy #0
+.ssyr
+	lda chainsaw_spr_y,x
+	clc
+	adc #SAW_RUN_DY
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .ssyr
+	rts
+
+.saw_set_y_idle
+	ldx #0
+	ldy #0
+.ssyi
+	lda chainsaw_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .ssyi
 	rts

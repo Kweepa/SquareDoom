@@ -70,6 +70,7 @@ function decodePngRgb(buf) {
   let bitDepth = 0;
   let colorType = 0;
   let palette = null;
+  let trns = null;
   const idats = [];
   while (off + 8 <= buf.length) {
     const len = buf.readUInt32BE(off);
@@ -83,12 +84,15 @@ function decodePngRgb(buf) {
       colorType = data[9];
     } else if (type === 'PLTE') {
       palette = data;
+    } else if (type === 'tRNS') {
+      trns = data;
     } else if (type === 'IDAT') {
       idats.push(data);
     } else if (type === 'IEND') {
       break;
     }
   }
+  const hasAlpha = colorType === 4 || colorType === 6 || trns != null;
   const inflated = inflateSync(Buffer.concat(idats));
   const samples =
     colorType === 0 ? 1 :
@@ -139,31 +143,34 @@ function decodePngRgb(buf) {
   for (let y = 0; y < height; y++) {
     const row = raw.subarray(y * stride, (y + 1) * stride);
     for (let x = 0; x < width; x++) {
-      let r, g, b;
+      let r, g, b, a = 255;
       if (colorType === 3 && bitDepth === 8) {
         const idx = row[x];
         r = palette[idx * 3];
         g = palette[idx * 3 + 1];
         b = palette[idx * 3 + 2];
+        if (trns && idx < trns.length) a = trns[idx];
       } else if (colorType === 2 && bitDepth === 8) {
         const o = x * 3;
         r = row[o]; g = row[o + 1]; b = row[o + 2];
       } else if (colorType === 6 && bitDepth === 8) {
         const o = x * 4;
-        r = row[o]; g = row[o + 1]; b = row[o + 2];
+        r = row[o]; g = row[o + 1]; b = row[o + 2]; a = row[o + 3];
       } else if (colorType === 0 && bitDepth === 8) {
         r = g = b = row[x];
       } else {
         throw new Error(`unsupported bitDepth ${bitDepth} colorType ${colorType}`);
       }
-      pixels[y * width + x] = [r, g, b];
+      pixels[y * width + x] = [r, g, b, a];
     }
   }
-  return { width, height, pixels };
+  return { width, height, pixels, hasAlpha };
 }
 
-function isTransparent(rgb) {
-  return rgb[0] === 0 && rgb[1] === 0 && rgb[2] === 0;
+/** Clear: alpha/tRNS when present; otherwise legacy black RGB. */
+function isTransparent(rgba, hasAlpha) {
+  if (hasAlpha) return rgba[3] < 128;
+  return rgba[0] === 0 && rgba[1] === 0 && rgba[2] === 0;
 }
 
 /** sRGB 0–255 → CIE Lab (D65). RGB Euclidean mis-maps warm reds to orange. */
@@ -185,11 +192,13 @@ function rgb2lab(r, g, b) {
 
 const C64_LAB = C64_RGB.map(([r, g, b]) => rgb2lab(r, g, b));
 
-function nearestC64(rgb) {
+// allowBlack only for PNGs with alpha/tRNS (opaque black ≠ clear).
+function nearestC64(rgb, allowBlack) {
   const lab = rgb2lab(rgb[0], rgb[1], rgb[2]);
-  let best = 1;
+  const start = allowBlack ? 0 : 1;
+  let best = start;
   let bestD = Infinity;
-  for (let i = 1; i < 16; i++) {
+  for (let i = start; i < 16; i++) {
     const c = C64_LAB[i];
     const d =
       (lab[0] - c[0]) ** 2 + (lab[1] - c[1]) ** 2 + (lab[2] - c[2]) ** 2;
@@ -210,12 +219,17 @@ function fmtBytes(bytes) {
   return lines.join('\n');
 }
 
-function extractMip(pixels, atlasW, mip) {
+// $ff = clear (so C64 black $00 can be opaque when PNG has alpha); see .id_skip
+const ITEM_CLEAR = 0xff;
+
+function extractMip(pixels, atlasW, mip, hasAlpha) {
   const col = [];
   for (let x = 0; x < mip.w; x++) {
     for (let y = 0; y < mip.h; y++) {
-      const rgb = pixels[(mip.y0 + y) * atlasW + (mip.x0 + x)];
-      col.push(isTransparent(rgb) ? 0 : nearestC64(rgb));
+      const rgba = pixels[(mip.y0 + y) * atlasW + (mip.x0 + x)];
+      col.push(
+        isTransparent(rgba, hasAlpha) ? ITEM_CLEAR : nearestC64(rgba, hasAlpha),
+      );
     }
   }
   return col;
@@ -252,7 +266,7 @@ for (const type of ITEM_TYPES) {
     missingMips.push(`${type}: missing file ${type}.png (itemgraphics/ or multicolour/)`);
     continue;
   }
-  const { width, height, pixels } = decodePngRgb(readFileSync(path));
+  const { width, height, pixels, hasAlpha } = decodePngRgb(readFileSync(path));
   if (width !== ATLAS_W || height !== ATLAS_H) {
     missingMips.push(
       `${type}: need 12×8 mip atlas (${path} is ${width}×${height})`,
@@ -262,7 +276,7 @@ for (const type of ITEM_TYPES) {
   const labels = [];
   for (const mip of MIPS) {
     const label = `item_spr_${type}_${mip.name}`;
-    const bytes = extractMip(pixels, ATLAS_W, mip);
+    const bytes = extractMip(pixels, ATLAS_W, mip, hasAlpha);
     labels.push({ label, bytes });
     allLabels.push(label);
     totalBytes += bytes.length;
@@ -279,7 +293,8 @@ if (missingMips.length) {
 }
 
 let asm = `; Auto-generated from itemgraphics/*.png — do not edit\n`;
-asm += `; 12×8 atlases: mip0 8×8 left; mips 1–3 on right. Column-major, 0 = transparent\n`;
+asm += `; 12×8 atlases: mip0 8×8 left; mips 1–3 on right. Column-major, $ff = clear\n`;
+asm += `; Clear = PNG alpha/tRNS if present, else black RGB. Opaque black only with alpha.\n`;
 asm += `; spawn/enemies skip atlases (nodraw stub / enemy_sprites).\n`;
 asm += `!zone item_bitmaps\n\n`;
 asm += `ITEM_TYPE_COUNT = ${ITEM_TYPES.length}\n`;
@@ -304,7 +319,7 @@ asm += `\t!byte ${allLabels.map((l) => `>${l}`).join(',')}\n\n`;
 if (needNodrawStub) {
   asm += `; Transparent stub for spawn / enemy typeIds (never drawn as items)\n`;
   asm += `item_spr_nodraw\n`;
-  asm += `\t!byte $00\n\n`;
+  asm += `\t!byte $ff\n\n`;
 }
 
 asm += `; Per-type mip blobs\n`;
