@@ -2,24 +2,31 @@
 !zone weapon
 
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
-;   minigun $3000: 8 sprites (flash + 2 hi + 2 light + 2 dark)
-;   rocket  $3200: 8 sprites (pink flash×2 + 2 hi + 4 dark)
-;   shotgun $3400: 8 sprites (own flash + 6 body)
-;   pistol  $3600: 8 sprites (flash + gun×3 + hand×3)
+;   minigun $3000: 8 sprites (body×6 + flash×2 behind)
+;   rocket  $3200: 8 sprites (body×6 + pink flash×2 behind)
+;   shotgun $3400: 8 sprites (body×6 + flash×2 behind)
+;   pistol  $3600: 8 sprites (gun×3 + hand×3 + flash×2 behind)
 MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
 PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
-EIGHT_ENABLE_IDLE = $fc		; sprites 2–7 (all HUD weapons)
+EIGHT_ENABLE_IDLE = $3f		; sprites 0–5 (body; flash 6–7 off)
+FLASH_ENABLE = $c0			; sprites 6–7
 MUZZLE_MS = 300
 
 ; Screen layout (XY expand): sprite px ×2.
 ; Bottom dark/hand row Y=208; adjacent X = 112 / 160; centred hi X = 136.
 ; Pistol gun = hand − 22 (11 sprite px); minigun light/hi top = dark − 14;
 ; rocket top row = dark − 28; rocket pink flash = body top − 18.
+; VIC: low sprite # = front — body first, muzzle flash last (under gun/hand).
 
 ; $00 until first blit, then $ff — AND with spr_en before writing $d015
 wpn_visible	!byte 0
+; Gun highlight while muzzle flash is up (picked per shot)
+muzzle_hi_col	!byte 1
+muzzle_hi_cycle !byte 0
+muzzle_hi_cols
+	!byte 1, 7, 1, 10		; some bright colours
 
 ; Per-weapon fire interval (ms while held)
 wpn_fire_ms_lo
@@ -43,65 +50,66 @@ wpn_damage
 	jmp damage_pistol
 
 ; Per-sprite colour / X / Y (screen coords; expand already factored into offsets).
+; Order = VIC sprites 0–7: body first (front), flash last (behind).
 pistol_spr_col
-	!byte 1, 2			; flash white, red
 	!byte 15, 11, 0		; gun hilight / dark grey / black
 	!byte 8, 9, 0		; hand orange / brown / black
+	!byte 1, 2			; flash white, red
 pistol_spr_x
-	!byte 166, 166			; flash (+6 from body)
 	!byte 160, 160, 160		; gun
 	!byte 160, 160, 160		; hand
+	!byte 166, 166			; flash (+6 from body)
 pistol_spr_y
-	!byte 162, 162			; flash (gun Y − 24)
 	!byte 186, 186, 186		; gun (hand Y − 22)
 	!byte 208, 208, 208		; hand (bottom centre)
+	!byte 162, 162			; flash (gun Y − 24)
 
 shotgun_spr_col
-	!byte 1, 2			; flash white, red
 	!byte 11			; highlight (over metal)
 	!byte 0, 0, 0		; barrel / bodyleft / bodyright
 	!byte 9, 8			; hand brown, orange
+	!byte 1, 2			; flash white, red
 shotgun_spr_x
-	!byte 160, 160			; flash
 	!byte 160	    		; highlight
 	!byte 160, 140, 188		; body
 	!byte 140, 140			; hand
+	!byte 160, 160			; flash
 shotgun_spr_y
-	!byte 162, 162			; flash
 	!byte 208		    	; highlight
 	!byte 186, 208, 208		; body
 	!byte 208, 208			; hand
+	!byte 162, 162			; flash
 
 minigun_spr_col
-	!byte 1, 2			; flash white, red
 	!byte 15, 15			; highlights (brightness-updated)
 	!byte 11, 11			; light grey body
 	!byte 0, 0   			; dark grey body
+	!byte 1, 2			; flash white, red
 minigun_spr_x
-	!byte 160, 160			; flash
 	!byte 160, 160			; hi top / bot (centred)
 	!byte 136, 184			; light L / R
 	!byte 136, 184			; dark L / R
+	!byte 160, 160			; flash
 minigun_spr_y
-	!byte 162, 162			; flash
 	!byte 194, 208			; hi top / bot
 	!byte 194, 194			; light (+7 sprite px above dark)
 	!byte 208, 208			; dark
+	!byte 166, 166			; flash
 
 rocket_spr_col
-	!byte 10, 10			; pink flash (Pepto light red)
 	!byte 15, 15			; highlights (brightness-updated)
 	!byte 0, 0, 0, 0		; dark 2×2
+	!byte 10, 10			; pink flash (Pepto light red)
 rocket_spr_x
-	!byte 136, 184			; flash L / R (side by side)
 	!byte 160, 160			; hi top / bot (centred)
 	!byte 136, 184			; dark TL / TR
 	!byte 136, 184			; dark BL / BR
+	!byte 136, 184			; flash L / R (side by side)
 rocket_spr_y
-	!byte 162, 162			; flash (+9 sprite px above body top)
 	!byte 180, 208			; hi top / bot
 	!byte 180, 180			; dark TL / TR (dy=14 sprite px)
 	!byte 208, 208			; dark BL / BR
+	!byte 162, 162			; flash (+9 sprite px above body top)
 
 ; X = weapon id (0=pistol, 1=shotgun, 2=minigun, 3=rocket). No-op if already active.
 switch_weapon
@@ -153,8 +161,14 @@ show_weapon
 	lda spr_en
 	sta $d015
 	; fall through
-; SEC_BRIGHT → highlight colour on the active weapon's hi sprite(s).
+; Highlight colour: random muzzle tint while flash is up, else SEC_BRIGHT mapping.
 .wpn_hi_bright
+	lda muzzle_ms_l
+	ora muzzle_ms_h
+	beq .wh_sector
+	lda muzzle_hi_col
+	bne .wh_apply
+.wh_sector
 	ldx player_sector
 	lda SEC_BRIGHT,x
 	cmp #17
@@ -163,19 +177,20 @@ show_weapon
 .wh_ok
 	tax
 	lda bright_to_wpn_hi,x
+.wh_apply
 	ldx cur_weapon
 	beq .wh_pistol
 	cpx #1
 	beq .wh_sg
-	; minigun / rocket: sprites 2–3 are highlights
-	sta $d029
-	sta $d02a
+	; minigun / rocket: sprites 0–1 are highlights
+	sta $d027
+	sta $d028
 	rts
 .wh_pistol
-	sta $d029			; pistol sprite 2 (gun highlight)
+	sta $d027			; pistol sprite 0 (gun highlight)
 	rts
 .wh_sg
-	sta $d029			; shotgun sprite 2 (highlight)
+	sta $d027			; shotgun sprite 0 (highlight)
 	rts
 
 ; SEC_BRIGHT 0..16 → weapon highlight C64 colour
@@ -355,8 +370,15 @@ damage_rocket
 	lda #>MUZZLE_MS
 	sta muzzle_ms_h
 	lda spr_en
-	ora #$03
+	ora #FLASH_ENABLE
 	jsr .wpn_en
+	inc muzzle_hi_cycle
+	lda muzzle_hi_cycle
+	and #3
+	tax
+	lda muzzle_hi_cols,x
+	sta muzzle_hi_col
+	jsr .wpn_hi_bright		; change gun highlight while flash up
 	ldx cur_weapon
 	lda wpn_sound,x
 	jsr play_sound
@@ -382,7 +404,7 @@ update_muzzle_flash
 	ora muzzle_ms_h
 	beq .mf_keys
 	lda spr_en
-	ora #$03
+	ora #FLASH_ENABLE
 	jsr .wpn_en
 	sec
 	lda muzzle_ms_l
@@ -399,8 +421,9 @@ update_muzzle_flash
 	sta muzzle_ms_l
 	sta muzzle_ms_h
 	lda spr_en
-	and #$fc
+	and #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
+	jsr .wpn_hi_bright		; restore sector brightness highlight
 
 .mf_keys
 	lda key_fire

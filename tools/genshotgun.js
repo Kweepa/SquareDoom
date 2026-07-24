@@ -359,15 +359,10 @@ const flashRed = extractPistolSprite('pistol_flash_red');
 info.push('flash: duplicated from pistol_flash_white/red');
 
 let asm = `; Auto-generated from itemgraphics/multicolour/shotgun_*.png - do not edit\n`;
-asm += `; Eight contiguous layers (low VIC # = front): flash, highlight, metal, hand:\n`;
+asm += `; Eight contiguous layers (low VIC # = front): highlight, metal, hand, flash:\n`;
 asm += `;   highlight = light grey(15) over barrel/bodyleft/bodyright dark grey(11),\n`;
-asm += `;   hand = brown(9)+orange(8) Floyd-Steinberg. Alpha/cyan = transparent.\n`;
+asm += `;   hand = brown(9)+orange(8) Floyd-Steinberg. Flash behind body.\n`;
 asm += `!zone shotgun_weapon\n\n`;
-
-asm += `shotgun_flash_white\n`;
-asm += flashWhite;
-asm += `shotgun_flash_red\n`;
-asm += flashRed;
 
 for (let i = 0; i < BODY_LAYERS.length; i++) {
   const packed = packSprite(masks[i]);
@@ -377,6 +372,11 @@ for (let i = 0; i < BODY_LAYERS.length; i++) {
   asm += `\n`;
 }
 
+asm += `shotgun_flash_white\n`;
+asm += flashWhite;
+asm += `shotgun_flash_red\n`;
+asm += flashRed;
+
 writeFileSync(join(root, 'shotgun_weapon.asm'), asm);
-console.log('wrote shotgun_weapon.asm (8×64 bytes; flash duplicated from pistol)');
+console.log('wrote shotgun_weapon.asm (8×64 bytes; flash behind body)');
 for (const line of info) console.log(' ', line);

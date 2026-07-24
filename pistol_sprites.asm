@@ -1,26 +1,8 @@
 ; Auto-generated from itemgraphics/multicolour/pistol.png - do not edit
-; Eight layers (low VIC # = front): flash, gun hi/mid/dark, hand orange/brown/dark.
-;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black. Flash from prior asm.
+; Eight layers (low VIC # = front): gun hi/mid/dark, hand orange/brown/dark, flash.
+;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black. Flash behind body.
 !zone pistol_sprites
 
-pistol_flash_white
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-	!byte $00,$00,$20,$00,$00,$20,$00,$00
-	!byte $38,$00,$00,$78,$00,$00,$7c,$00
-	!byte $01,$fa,$00,$00,$fe,$00,$03,$ee
-	!byte $80,$01,$df,$00,$05,$ef,$80,$07
-	!byte $85,$c0,$15,$03,$20,$03,$00,$80
-	!byte $04,$00,$00,$00,$00,$00,$00,$00
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-pistol_flash_red
-	!byte $00,$00,$00,$00,$00,$00,$00,$30
-	!byte $00,$00,$54,$00,$01,$5c,$00,$00
-	!byte $c4,$00,$01,$86,$00,$07,$82,$00
-	!byte $06,$05,$00,$07,$01,$c0,$0c,$11
-	!byte $60,$0e,$20,$e0,$0a,$00,$78,$38
-	!byte $02,$30,$2a,$00,$d0,$3c,$01,$78
-	!byte $1a,$00,$f8,$1c,$00,$c0,$00,$00
-	!byte $60,$00,$00,$00,$00,$00,$00,$00
 pistol_hi
 	!byte $00,$00,$00,$00,$08,$00,$00,$00
 	!byte $00,$00,$00,$00,$00,$08,$00,$00
@@ -75,3 +57,21 @@ pistol_hand_dark
 	!byte $00,$04,$30,$00,$04,$20,$00,$1c
 	!byte $30,$00,$1c,$20,$00,$fc,$20,$00
 	!byte $7c,$40,$00,$bc,$e0,$00,$78,$00
+pistol_flash_white
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$20,$00,$00,$20,$00,$00
+	!byte $38,$00,$00,$78,$00,$00,$7c,$00
+	!byte $01,$fa,$00,$00,$fe,$00,$03,$ee
+	!byte $80,$01,$df,$00,$05,$ef,$80,$07
+	!byte $85,$c0,$15,$03,$20,$03,$00,$80
+	!byte $04,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+pistol_flash_red
+	!byte $00,$00,$00,$00,$00,$00,$00,$30
+	!byte $00,$00,$54,$00,$01,$5c,$00,$00
+	!byte $c4,$00,$01,$86,$00,$07,$82,$00
+	!byte $06,$05,$00,$07,$01,$c0,$0c,$11
+	!byte $60,$0e,$20,$e0,$0a,$00,$78,$38
+	!byte $02,$30,$2a,$00,$d0,$3c,$01,$78
+	!byte $1a,$00,$f8,$1c,$00,$c0,$00,$00
+	!byte $60,$00,$00,$00,$00,$00,$00,$00

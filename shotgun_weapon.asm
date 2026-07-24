@@ -1,27 +1,9 @@
 ; Auto-generated from itemgraphics/multicolour/shotgun_*.png - do not edit
-; Eight contiguous layers (low VIC # = front): flash, highlight, metal, hand:
+; Eight contiguous layers (low VIC # = front): highlight, metal, hand, flash:
 ;   highlight = light grey(15) over barrel/bodyleft/bodyright dark grey(11),
-;   hand = brown(9)+orange(8) Floyd-Steinberg. Alpha/cyan = transparent.
+;   hand = brown(9)+orange(8) Floyd-Steinberg. Flash behind body.
 !zone shotgun_weapon
 
-shotgun_flash_white
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-	!byte $00,$00,$20,$00,$00,$20,$00,$00
-	!byte $38,$00,$00,$78,$00,$00,$7c,$00
-	!byte $01,$fa,$00,$00,$fe,$00,$03,$ee
-	!byte $80,$01,$df,$00,$05,$ef,$80,$07
-	!byte $85,$c0,$15,$03,$20,$03,$00,$80
-	!byte $04,$00,$00,$00,$00,$00,$00,$00
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-shotgun_flash_red
-	!byte $00,$00,$00,$00,$00,$00,$00,$30
-	!byte $00,$00,$54,$00,$01,$5c,$00,$00
-	!byte $c4,$00,$01,$86,$00,$07,$82,$00
-	!byte $06,$05,$00,$07,$01,$c0,$0c,$11
-	!byte $60,$0e,$20,$e0,$0a,$00,$78,$38
-	!byte $02,$30,$2a,$00,$d0,$3c,$01,$78
-	!byte $1a,$00,$f8,$1c,$00,$c0,$00,$00
-	!byte $60,$00,$00,$00,$00,$00,$00,$00
 shotgun_highlight
 	!byte $00,$00,$00,$00,$10,$00,$00,$00
 	!byte $00,$00,$00,$00,$06,$00,$70,$06
@@ -76,3 +58,21 @@ shotgun_orange
 	!byte $00,$00,$2c,$00,$00,$22,$00,$00
 	!byte $34,$00,$00,$40,$00,$00,$ac,$00
 	!byte $00,$1e,$00,$00,$7c,$00,$00,$00
+shotgun_flash_white
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$20,$00,$00,$20,$00,$00
+	!byte $38,$00,$00,$78,$00,$00,$7c,$00
+	!byte $01,$fa,$00,$00,$fe,$00,$03,$ee
+	!byte $80,$01,$df,$00,$05,$ef,$80,$07
+	!byte $85,$c0,$15,$03,$20,$03,$00,$80
+	!byte $04,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+shotgun_flash_red
+	!byte $00,$00,$00,$00,$00,$00,$00,$30
+	!byte $00,$00,$54,$00,$01,$5c,$00,$00
+	!byte $c4,$00,$01,$86,$00,$07,$82,$00
+	!byte $06,$05,$00,$07,$01,$c0,$0c,$11
+	!byte $60,$0e,$20,$e0,$0a,$00,$78,$38
+	!byte $02,$30,$2a,$00,$d0,$3c,$01,$78
+	!byte $1a,$00,$f8,$1c,$00,$c0,$00,$00
+	!byte $60,$00,$00,$00,$00,$00,$00,$00

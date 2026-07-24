@@ -1,9 +1,9 @@
 /**
  * Cut itemgraphics/multicolour/{pistol,minigun,rocketlauncher}.png into
  * 24×21 hi-res VIC layers, write crop PNGs, and emit:
- *   pistol_sprites.asm  — 8 sprites (flash + gun×3 + hand×3)
- *   minigun_weapon.asm  — 8 sprites (flash + 2 hi + 2 light + 2 dark)
- *   rocket_weapon.asm   — 8 sprites (pink flash×2 + 2 hi + 4 dark)
+ *   pistol_sprites.asm  — 8 sprites (gun×3 + hand×3 + flash behind)
+ *   minigun_weapon.asm  — 8 sprites (2 hi + 2 light + 2 dark + flash behind)
+ *   rocket_weapon.asm   — 8 sprites (2 hi + 4 dark + pink flash behind)
  *
  * Layout (sprite pixels; ×2 on screen with XY expand):
  *   Pistol  24×32: gun @y=0 (white/grey/black); hand @y=11 (orange/brown/black)
@@ -240,19 +240,20 @@ function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true, outFil
   let asm = `; Auto-generated from itemgraphics/multicolour/${name}.png - do not edit\n`;
   asm += comment;
   asm += `!zone ${zone}\n\n`;
-  if (pistolFlash) {
-    const prefix = zone === 'pistol_sprites' ? 'pistol' : zone;
-    asm += `${prefix}_flash_white\n`;
-    asm += extractPistolSprite('pistol_flash_white');
-    asm += `${prefix}_flash_red\n`;
-    asm += extractPistolSprite('pistol_flash_red');
-  }
   for (const layer of layers) {
     const packed = packSprite(layer.mask);
     if (packed.length !== 64) throw new Error('sprite must be 64 bytes');
     asm += `${layer.label}\n`;
     asm += fmtBytes(packed);
     asm += `\n`;
+  }
+  // Flash last = VIC sprites 6–7 (behind body; low # = front)
+  if (pistolFlash) {
+    const prefix = zone === 'pistol_sprites' ? 'pistol' : zone;
+    asm += `${prefix}_flash_white\n`;
+    asm += extractPistolSprite('pistol_flash_white');
+    asm += `${prefix}_flash_red\n`;
+    asm += extractPistolSprite('pistol_flash_red');
   }
   const dest = outFile || `${zone}_weapon.asm`;
   writeFileSync(join(root, dest), asm);
@@ -295,18 +296,18 @@ function processCrops(file, expectW, expectH, crops) {
   const flashWhite = extractPistolSprite('pistol_flash_white');
   const flashRed = extractPistolSprite('pistol_flash_red');
   let asm = `; Auto-generated from itemgraphics/multicolour/pistol.png - do not edit\n`;
-  asm += `; Eight layers (low VIC # = front): flash, gun hi/mid/dark, hand orange/brown/dark.\n`;
-  asm += `;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black. Flash from prior asm.\n`;
+  asm += `; Eight layers (low VIC # = front): gun hi/mid/dark, hand orange/brown/dark, flash.\n`;
+  asm += `;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black. Flash behind body.\n`;
   asm += `!zone pistol_sprites\n\n`;
-  asm += `pistol_flash_white\n`;
-  asm += flashWhite;
-  asm += `pistol_flash_red\n`;
-  asm += flashRed;
   for (const layer of layers) {
     asm += `${layer.label}\n`;
     asm += fmtBytes(packSprite(layer.mask));
     asm += `\n`;
   }
+  asm += `pistol_flash_white\n`;
+  asm += flashWhite;
+  asm += `pistol_flash_red\n`;
+  asm += flashRed;
   writeFileSync(join(root, 'pistol_sprites.asm'), asm);
   console.log('wrote pistol_sprites.asm (8×64) + 6 crop PNGs');
   for (const line of info) console.log(' ', line);
@@ -326,9 +327,9 @@ function processCrops(file, expectW, expectH, crops) {
     'minigun',
     'minigun',
     layers,
-    `; Eight contiguous layers (low VIC # = front): flash, hi×2, light×2, dark×2.\n` +
+    `; Eight contiguous layers (low VIC # = front): hi×2, light×2, dark×2, flash.\n` +
       `;   PNG: white hi, grey(137) light, opaque black dark (alpha = clear).\n` +
-      `;   Layout: dark side-by-side; light +7px; hi centered stacked.\n`
+      `;   Layout: dark side-by-side; light +7px; hi centered stacked. Flash behind.\n`
   );
   console.log('wrote minigun_weapon.asm (8×64) + 6 crop PNGs');
   for (const line of info) console.log(' ', line);
@@ -340,22 +341,22 @@ function processCrops(file, expectW, expectH, crops) {
   const HI = [173, 173, 173];
   const DARK = [0, 0, 0];
   const { layers, info } = processCrops('rocketlauncher.png', 48, 44, [
-    { label: 'rocket_flash_left', x: 0, y: 0, rgb: PINK },
-    { label: 'rocket_flash_right', x: 24, y: 0, rgb: PINK },
     { label: 'rocket_hi_top', x: 12, y: 9, rgb: HI },
     { label: 'rocket_hi_bot', x: 12, y: 23, rgb: HI },
     { label: 'rocket_dark_tl', x: 0, y: 9, rgb: DARK },
     { label: 'rocket_dark_tr', x: 24, y: 9, rgb: DARK },
     { label: 'rocket_dark_bl', x: 0, y: 23, rgb: DARK },
     { label: 'rocket_dark_br', x: 24, y: 23, rgb: DARK },
+    { label: 'rocket_flash_left', x: 0, y: 0, rgb: PINK },
+    { label: 'rocket_flash_right', x: 24, y: 0, rgb: PINK },
   ]);
   emitWeaponAsm(
     'rocketlauncher',
     'rocket',
     layers,
-    `; Eight contiguous layers (low VIC # = front): pink flash×2, hi×2, dark 2×2.\n` +
-      `;   PNG: pink(203,126,117) flash side-by-side @y=0 (+9 above body);\n` +
-      `;   grey(173) hi over opaque black dark (alpha = clear).\n`,
+    `; Eight contiguous layers (low VIC # = front): hi×2, dark 2×2, pink flash×2.\n` +
+      `;   PNG: grey(173) hi over opaque black dark; pink flash behind body.\n` +
+      `;   Flash side-by-side @y=0 (+9 above body).\n`,
     { pistolFlash: false }
   );
   console.log('wrote rocket_weapon.asm (8×64) + 8 crop PNGs');

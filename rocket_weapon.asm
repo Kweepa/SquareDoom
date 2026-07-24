@@ -1,27 +1,9 @@
 ; Auto-generated from itemgraphics/multicolour/rocketlauncher.png - do not edit
-; Eight contiguous layers (low VIC # = front): pink flash×2, hi×2, dark 2×2.
-;   PNG: pink(203,126,117) flash side-by-side @y=0 (+9 above body);
-;   grey(173) hi over opaque black dark (alpha = clear).
+; Eight contiguous layers (low VIC # = front): hi×2, dark 2×2, pink flash×2.
+;   PNG: grey(173) hi over opaque black dark; pink flash behind body.
+;   Flash side-by-side @y=0 (+9 above body).
 !zone rocket
 
-rocket_flash_left
-	!byte $00,$00,$03,$00,$00,$07,$00,$00
-	!byte $1f,$00,$00,$3f,$00,$01,$ff,$00
-	!byte $03,$ff,$00,$07,$ff,$00,$1f,$ff
-	!byte $00,$1f,$ff,$00,$3f,$e0,$00,$3f
-	!byte $87,$00,$3f,$00,$00,$7c,$01,$00
-	!byte $78,$01,$00,$70,$01,$00,$60,$00
-	!byte $00,$c0,$00,$00,$80,$00,$00,$80
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-rocket_flash_right
-	!byte $e0,$00,$00,$f0,$00,$00,$fc,$00
-	!byte $00,$fe,$00,$00,$ff,$00,$00,$ff
-	!byte $e0,$00,$ff,$e0,$00,$ff,$fc,$00
-	!byte $ff,$fc,$00,$07,$fc,$00,$e1,$fe
-	!byte $00,$00,$fe,$00,$80,$3f,$00,$80
-	!byte $1f,$00,$80,$0f,$00,$00,$07,$00
-	!byte $00,$03,$00,$00,$01,$00,$00,$01
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
 rocket_hi_top
 	!byte $00,$ff,$00,$00,$81,$00,$01,$ff
 	!byte $80,$0f,$e7,$f0,$3f,$e7,$fc,$7f
@@ -76,3 +58,21 @@ rocket_dark_br
 	!byte $7f,$fe,$00,$7f,$fe,$00,$7f,$fe
 	!byte $00,$7f,$ff,$00,$7f,$ff,$00,$7f
 	!byte $ff,$f0,$3f,$ff,$fc,$3f,$fc,$00
+rocket_flash_left
+	!byte $00,$00,$03,$00,$00,$07,$00,$00
+	!byte $1f,$00,$00,$3f,$00,$01,$ff,$00
+	!byte $03,$ff,$00,$07,$ff,$00,$1f,$ff
+	!byte $00,$1f,$ff,$00,$3f,$e0,$00,$3f
+	!byte $87,$00,$3f,$00,$00,$7c,$01,$00
+	!byte $78,$01,$00,$70,$01,$00,$60,$00
+	!byte $00,$c0,$00,$00,$80,$00,$00,$80
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+rocket_flash_right
+	!byte $e0,$00,$00,$f0,$00,$00,$fc,$00
+	!byte $00,$fe,$00,$00,$ff,$00,$00,$ff
+	!byte $e0,$00,$ff,$e0,$00,$ff,$fc,$00
+	!byte $ff,$fc,$00,$07,$fc,$00,$e1,$fe
+	!byte $00,$00,$fe,$00,$80,$3f,$00,$80
+	!byte $1f,$00,$80,$0f,$00,$00,$07,$00
+	!byte $00,$03,$00,$00,$01,$00,$00,$01
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
