@@ -4,7 +4,7 @@
 ; render_items.asm — billboard items into FRAMEBUFFER after column cast
 ; ============================================================================
 ; Collect items in seen sectors, depth-sort far→near, project, draw clipped
-; against COL_CLIP_* stack. Column-major item mips (byte colour, 0=clear).
+; against COL_CLIP_* stack. Column-major item mips (byte colour, $ff=clear).
 ; Live enemies stamp COL_AIM_SLOT/Z per column (nearer overwrites).
 ; ============================================================================
 
@@ -453,7 +453,7 @@ item_draw_one
 	bcc .id_h2
 	lda #127
 .id_h2
-	sta far_ceil			; screen H
+	sta far_ceil			; screen H (enemies; items overwrite below)
 	ldx item_slot
 	jsr enemy_get_texture
 	bcc .id_w_sq
@@ -468,13 +468,28 @@ item_draw_one
 .id_w_sq
 	lda #0
 	sta far_floor			; 0 = item mip path
+	; Items: pick mip from projected size, then draw 1:1 (never >8×8)
 	lda far_ceil
-	cmp #17				; items max 16×16 on screen
-	bcc .id_item_sz
-	lda #16
-.id_item_sz
-	sta far_ceil
-	sta last_near_ok			; square W = H
+	cmp #8
+	bcc .id_item_band
+	lda #8
+.id_item_band
+	ldx #0
+	cmp #8
+	bcs .id_item_mip			; ≥8 → mip0 (8×8)
+	ldx #1
+	cmp #4
+	bcs .id_item_mip			; ≥4 → mip1 (4×4)
+	ldx #2
+	cmp #2
+	bcs .id_item_mip			; ≥2 → mip2 (2×2)
+	ldx #3				; else mip3 (1×1)
+.id_item_mip
+	stx fracy				; mip index (kept through feet/span)
+	lda item_mip_w,x
+	sta far_ceil			; screen H = mip H
+	sta last_near_ok			; screen W = mip W
+	; fall through
 .id_feet
 	; Feet: missiles use flight Z (hitscan-style height); else sector floor
 	lda wall_col
@@ -575,20 +590,8 @@ item_draw_one
 .id_vok
 	lda far_floor
 	bne .id_emip
-	; Item mip from projected W
-	lda last_near_ok
-	ldx #0
-	cmp #8
-	bcs .id_imip_got			; ≥8 → mip0
-	ldx #1
-	cmp #4
-	bcs .id_imip_got			; ≥4 → mip1
-	ldx #2
-	cmp #2
-	bcs .id_imip_got			; ≥2 → mip2
-	ldx #3				; else mip3 (W==1)
-.id_imip_got
-	stx fracy				; mip index
+	; Item: mip already in fracy; W/H == mip (1:1)
+	ldx fracy
 	lda item_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 	jmp .id_clp_go
@@ -613,8 +616,9 @@ item_draw_one
 	lda enemy_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 .id_clp_go
-	; Cache recip[W]/recip[H] once per sprite (Larsson); U/V use mul not div.
-	; wish_* are move scratch — free during item draw.
+	; Enemies need recip[W]/recip[H] for UV; items are 1:1 (no UV).
+	lda far_floor
+	beq .id_clp_no_recip
 	ldx last_near_ok			; projected W
 	lda recip_lo,x
 	sta wish_x_l
@@ -625,6 +629,7 @@ item_draw_one
 	sta wish_y_l
 	lda recip_hi,x
 	sta wish_y_h
+.id_clp_no_recip
 	; Live enemy: lock aim_item (MOBJ_OBJ is authoritative via mobj_for_slot)
 	ldx item_slot
 	lda wall_col
@@ -814,43 +819,23 @@ item_draw_one
 	iny
 	jmp .id32_rlp
 
-; --- Item column (mip-aware; source W×H from item_mip_* tables) ---
+; --- Item column (1:1 blit; W/H == mip, no UV) ---
 .id_e8
-	; bmp_x = (col - orig_left) * mip_w / W
-	lda fracx
-	bpl .id8_oxp
-	lda #0
-	sec
-	sbc fracx
-	clc
-	adc col
-	jmp .id8_ox
-.id8_oxp
+	; bmp_x = col - orig_left
 	lda col
 	sec
 	sbc fracx
-.id8_ox
-	sta aux_l
-	lda #0
-	sta aux_h
-	ldx fracy
-	lda item_mip_ushift,x
-	beq .id8_ux0
-	tax
-.id8_uxlp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .id8_uxlp
-.id8_ux0
-	jsr udiv_aux_rec_w			; (ox * mip_w) / W
-	cmp last_near_ceil		; >= mip_w → clamp
+	bmi .id8_x0
+	cmp last_near_ceil			; mip_w
 	bcc .id8_xok
 	lda last_near_ceil
 	sec
 	sbc #1
+	bpl .id8_xok
+.id8_x0
+	lda #0
 .id8_xok
-	sta last_near_floor		; bmp_x
+	sta last_near_floor			; bmp_x
 	; ptr = item_mip_base[type*4+mip] + bmp_x * mip_h
 	lda wall_col
 	asl
@@ -883,39 +868,29 @@ item_draw_one
 	lda ptr_h
 	adc aux_h
 	sta ptr_h
-	ldx fracy
-	lda item_mip_h,x
-	jsr item_vdda_setup
-	ldy py_row
+	; src_y = py_row - near_fcol (unclamped top)
+	lda py_row
+	sec
+	sbc near_fcol
+	sta tmp4				; source row
+	ldy py_row				; Y = screen row
 .id_rlp
 	cpy dda_steps
 	bcc .id_row
 	jmp .id_cnx
 .id_row
-	sty tmp4
-	lda acc_h
-	cmp tmp5
-	bcc .id8_yok
-	lda tmp5
-	sec
-	sbc #1
-.id8_yok
-	tay
+	sty tmp0				; screen row
+	ldy tmp4				; source row
 	lda (ptr_l),y
+	cmp #$ff				; $ff = clear (black $00 is opaque)
 	beq .id_skip
-	ldy tmp4
+	ldy tmp0
 	sta (col_base_l),y
 	lda #ITEM_PAT
 	sta (pat_base_l),y
 .id_skip
-	clc
-	lda acc_l
-	adc texstep_l
-	sta acc_l
-	lda acc_h
-	adc texstep_h
-	sta acc_h
-	ldy tmp4
+	inc tmp4
+	ldy tmp0
 	iny
 	jmp .id_rlp
 
@@ -923,6 +898,7 @@ item_draw_one
 ; item_vdda_setup — A = mip_h; wish_y = recip[H]; py_row / near_fcol set
 ; Exit: texstep = mip_h/H in 8.8, acc = v at py_row (8.8), tmp5 = mip_h
 ; Clobbers: tmp0..tmp2, X, Y
+; (Enemy path only — items are 1:1.)
 ; ---------------------------------------------------------------------------
 item_vdda_setup
 	sta tmp5				; mip_h for clamp
