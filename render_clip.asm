@@ -3,14 +3,15 @@
 ; ============================================================================
 ; render_clip.asm — per-column portal clip stack + SEC_SEEN helpers
 ; ============================================================================
-; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_SEC/TOP/BOT. Entry 0 =
-; nearest (player sector); higher n = farther after portals.
+; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_TOP/BOT/Z. Entry 0 =
+; nearest (player, Z=0); higher n = farther after hard portals.
+; Z = fish wallz_h at push (≈ tiles·fish). Billboards pass
+; (tiles·fishtab[centre])>>8 from item_draw_one into clip_col_find.
 ;
-; clip_base_l/h = &COL_CLIP_SEC[col*CLIP_MAX] — computed once per column so
-; push / push_if_new skip clip_mul_col on the hot soft-portal path.
+; clip_base_l/h = &COL_CLIP_TOP[col*CLIP_MAX] — computed once per column.
 ; ============================================================================
 
-CLIP_STRIDE = COL_NUM * CLIP_MAX	; bytes between SEC / TOP / BOT tables
+CLIP_STRIDE = COL_NUM * CLIP_MAX	; bytes between TOP / BOT / Z tables
 
 ; ---------------------------------------------------------------------------
 ; clear_sector_seen — clear SEC_SEEN[1..level_sector_max]
@@ -53,7 +54,7 @@ mark_seen
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_bind — clip_base = COL_CLIP_SEC + col*CLIP_MAX
+; clip_col_bind — clip_base = COL_CLIP_TOP + col*CLIP_MAX
 ; Clobbers: tmp1, ptr_l/h, X, A
 ; ---------------------------------------------------------------------------
 clip_col_bind
@@ -61,10 +62,10 @@ clip_col_bind
 	jsr clip_mul_col
 	clc
 	lda ptr_l
-	adc #<COL_CLIP_SEC
+	adc #<COL_CLIP_TOP
 	sta clip_base_l
 	lda ptr_h
-	adc #>COL_CLIP_SEC
+	adc #>COL_CLIP_TOP
 	sta clip_base_h
 	rts
 
@@ -118,19 +119,17 @@ clip_mul_col
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_push — push {A=sector, ytop, ybot} for current col if n < CLIP_MAX
-; Always uses the live aperture (current ytop/ybot). Soft enters push before
-; any ledge shrink; hard portals push after paint_portal (post-shrink).
-; Requires clip_base already bound for col. Clobbers: tmp0,tmp2, ptr_l/h, X, Y
+; clip_col_push — push {ytop, ybot, wallz_h} for current col if n < CLIP_MAX
+; Always uses the live aperture. Hard portals push after paint_portal.
+; Requires clip_base already bound for col. Clobbers: tmp0, ptr_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_push
-	sta tmp2				; sector id
 	ldy col
 	lda COL_CLIP_N,y
 	cmp #CLIP_MAX
 	bcs .ccp_full
 	sta tmp0				; n
-	; ptr = clip_base + n
+	; ptr = clip_base + n → TOP
 	clc
 	lda clip_base_l
 	adc tmp0
@@ -139,16 +138,6 @@ clip_col_push
 	adc #0
 	sta ptr_h
 	ldy #0
-	lda tmp2
-	sta (ptr_l),y
-	; TOP
-	clc
-	lda ptr_l
-	adc #<CLIP_STRIDE
-	sta ptr_l
-	lda ptr_h
-	adc #>CLIP_STRIDE
-	sta ptr_h
 	lda ytop
 	sta (ptr_l),y
 	; BOT
@@ -161,6 +150,16 @@ clip_col_push
 	sta ptr_h
 	lda ybot
 	sta (ptr_l),y
+	; Z
+	clc
+	lda ptr_l
+	adc #<CLIP_STRIDE
+	sta ptr_l
+	lda ptr_h
+	adc #>CLIP_STRIDE
+	sta ptr_h
+	lda wallz_h
+	sta (ptr_l),y
 	; n++
 	ldy col
 	ldx COL_CLIP_N,y
@@ -171,67 +170,67 @@ clip_col_push
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_push_if_new — A = sector; push with current ytop/ybot only if that
-; id is not already on this column's stack. Soft same-flat uses this so every
-; visited rect keeps its aperture (rewrite would lose earlier ids).
-; Requires clip_base bound. Clobbers: tmp0,tmp2,tmp3, ptr_l/h, X, Y
-; ---------------------------------------------------------------------------
-clip_col_push_if_new
-	sta tmp2
-	ldy col
-	lda COL_CLIP_N,y
-	beq .ccpn_do
-	sta tmp3
-	lda clip_base_l
-	sta ptr_l
-	lda clip_base_h
-	sta ptr_h
-.ccpn_lp
-	ldy #0
-	lda (ptr_l),y
-	cmp tmp2
-	beq .ccpn_rts			; already on stack
-	dec tmp3
-	beq .ccpn_do
-	inc ptr_l
-	bne .ccpn_lp
-	inc ptr_h
-	jmp .ccpn_lp
-.ccpn_do
-	lda tmp2
-	jmp clip_col_push
-.ccpn_rts
-	rts
-
-; ---------------------------------------------------------------------------
-; clip_col_find — find sector A in column's clip stack (search far→near)
+; clip_col_find — A = billboard depth in fish wallz_h units
+; Near→far: farthest entry with COL_CLIP_Z[i] <= A and non-empty TOP/BOT.
 ; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found
-; Exact id only. Soft room steps push every traversed sector with the current
-; aperture so billboards can find their sector. Skips empty windows.
-; Re-binds clip_base. Clobbers: tmp2,tmp3, ptr_l/h, aux_l/h, X, Y
+; Re-binds clip_base. Clobbers: tmp2,tmp3,tmp4, ptr_l/h, aux_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_find
-	sta tmp2				; wanted sector
+	sta tmp2				; wanted depth
 	ldy col
 	lda COL_CLIP_N,y
-	beq .ccf_miss
-	sta tmp3				; n count
-	jsr clip_col_bind
-	lda tmp3
+	bne .ccf_go
+.ccf_miss
 	sec
-	sbc #1				; n-1 (n ≥ 1 here)
+	rts
+.ccf_go
+	sta tmp3				; n
+	jsr clip_col_bind
+	lda #$ff
+	sta tmp4				; best index ($FF = none)
+	ldx #0					; i
+.ccf_lp
+	; Z at clip_base + i + 2*CLIP_STRIDE
 	clc
-	adc clip_base_l
+	lda clip_base_l
+	adc #<CLIP_STRIDE
+	sta aux_l
+	lda clip_base_h
+	adc #>CLIP_STRIDE
+	sta aux_h				; BOT plane base
+	clc
+	lda aux_l
+	adc #<CLIP_STRIDE
+	sta aux_l
+	lda aux_h
+	adc #>CLIP_STRIDE
+	sta aux_h				; Z plane base
+	txa
+	clc
+	adc aux_l
+	sta aux_l
+	lda aux_h
+	adc #0
+	sta aux_h
+	ldy #0
+	lda (aux_l),y
+	cmp tmp2
+	beq .ccf_cand
+	bcc .ccf_cand			; Z <= depth
+	bcs .ccf_nx				; Z > depth
+.ccf_cand
+	; TOP at clip_base+i
+	clc
+	lda clip_base_l
+	stx tmp0				; save i
+	adc tmp0
 	sta ptr_l
 	lda clip_base_h
 	adc #0
 	sta ptr_h
-.ccf_lp
-	ldy #0
 	lda (ptr_l),y
-	cmp tmp2
-	bne .ccf_next
-	; load TOP/BOT
+	sta tmp0				; top
+	; BOT at TOP + CLIP_STRIDE
 	clc
 	lda ptr_l
 	adc #<CLIP_STRIDE
@@ -240,30 +239,38 @@ clip_col_find
 	adc #>CLIP_STRIDE
 	sta aux_h
 	lda (aux_l),y
-	sta tmp0				; top
-	clc
-	lda aux_l
-	adc #<CLIP_STRIDE
-	sta aux_l
-	lda aux_h
-	adc #>CLIP_STRIDE
-	sta aux_h
-	lda (aux_l),y
 	sta tmp1				; bot
 	lda tmp0
 	cmp tmp1
-	bcs .ccf_next			; empty — keep looking
-	clc
-	rts
-.ccf_next
-	dec tmp3
+	bcs .ccf_nx				; empty aperture
+	stx tmp4				; best = i
+.ccf_nx
+	inx
+	cpx tmp3
+	bcc .ccf_lp
+	lda tmp4
+	cmp #$ff
 	beq .ccf_miss
+	; Reload TOP/BOT for best index into tmp0/tmp1
+	tax
+	clc
+	lda clip_base_l
+	adc tmp4
+	sta ptr_l
+	lda clip_base_h
+	adc #0
+	sta ptr_h
+	ldy #0
+	lda (ptr_l),y
+	sta tmp0
+	clc
 	lda ptr_l
-	bne .ccf_dec
-	dec ptr_h
-.ccf_dec
-	dec ptr_l
-	jmp .ccf_lp
-.ccf_miss
-	sec
+	adc #<CLIP_STRIDE
+	sta aux_l
+	lda ptr_h
+	adc #>CLIP_STRIDE
+	sta aux_h
+	lda (aux_l),y
+	sta tmp1
+	clc
 	rts

@@ -133,7 +133,8 @@ cast_column
 	jsr clip_col_reset
 	ldx plr_id
 	jsr mark_seen
-	lda plr_id
+	lda #0
+	sta wallz_h			; near clip at depth 0
 	jsr clip_col_push
 !if PROFILE = 1 {
 	ldy #PROF_SETUP
@@ -175,14 +176,11 @@ cast_column
 	beq .ax_soft			; identical flats — no paint, keep walking
 	jmp .ax_cell
 .ax_soft
-	; Same flats — continuous space. Push sector once (keep aperture);
-	; do not push every cell (that burned CLIP_MAX).
+	; Same flats — continuous space; aperture unchanged (depth clip).
 	lda next_id
 	sta cur_id
 	tax
 	jsr mark_seen
-	lda cur_id
-	jsr clip_col_push_if_new
 	ldy #0				; restore Y=0 after jsr
 .ax_same
 	dec dda_steps
@@ -269,14 +267,11 @@ cast_column
 	beq .ay_soft
 	jmp .ay_cell
 .ay_soft
-	; Same flats — continuous space. Push sector once (keep aperture);
-	; do not push every cell (that burned CLIP_MAX).
+	; Same flats — continuous space; aperture unchanged (depth clip).
 	lda next_id
 	sta cur_id
 	tax
 	jsr mark_seen
-	lda cur_id
-	jsr clip_col_push_if_new
 	ldy #0
 .ay_same
 	dec dda_steps

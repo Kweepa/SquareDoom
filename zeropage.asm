@@ -182,7 +182,7 @@ fracx_inv	= $5d			; fracx ^ $FF (TheKeep +X/+Y distance factor)
 fracy_inv	= $5e
 last_playera	= $5f			; $FF = force rebuild_col_rays
 
-; COL_CLIP_SEC + col*CLIP_MAX — set once per column (clip_col_reset / bind)
+; COL_CLIP_TOP + col*CLIP_MAX — set once per column (clip_col_reset / bind)
 clip_base_l	= $5b
 clip_base_h	= $5c
 
@@ -265,13 +265,14 @@ PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
 PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
-; Per-column portal clip stack for item draw (40 cols × 16 depth)
+; Per-column portal clip stack for item draw (40 cols × CLIP_MAX)
+; Entry = {top, bot, z}; z = fish wallz_h (billboards find with tiles·fish)
 CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step
 COL_CLIP_N	= PROC_END		; 40 bytes: entries used per column
-COL_CLIP_SEC	= COL_CLIP_N + COL_NUM	; 40×CLIP_MAX sector ids
-COL_CLIP_TOP	= COL_CLIP_SEC + COL_NUM * CLIP_MAX
+COL_CLIP_TOP	= COL_CLIP_N + COL_NUM	; 40×CLIP_MAX clip top
 COL_CLIP_BOT	= COL_CLIP_TOP + COL_NUM * CLIP_MAX
-COL_CLIP_END	= COL_CLIP_BOT + COL_NUM * CLIP_MAX
+COL_CLIP_Z	= COL_CLIP_BOT + COL_NUM * CLIP_MAX
+COL_CLIP_END	= COL_CLIP_Z + COL_NUM * CLIP_MAX
 
 ; Per-frame sector visibility ($FF = seen this frame)
 SEC_SEEN	= COL_CLIP_END		; 256 bytes, index = sector id

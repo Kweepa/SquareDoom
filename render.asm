@@ -157,8 +157,7 @@ on_cell
 	sta cur_id
 	tax
 	jsr mark_seen
-	lda cur_id
-	jsr clip_col_push
+	jsr clip_col_push		; wallz_h from calc_wallz
 	clc
 	rts
 .edge
@@ -202,8 +201,7 @@ on_cell
 	sta cur_id			; enter far sector; DDA keeps walking
 	tax
 	jsr mark_seen
-	lda cur_id
-	jsr clip_col_push
+	jsr clip_col_push		; wallz_h from calc_wallz; aperture post-ledge
 	clc
 	rts
 .stop
