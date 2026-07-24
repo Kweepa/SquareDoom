@@ -10,6 +10,8 @@ The huge advantage of the tile grid is ray casting is much faster, and so is wal
 
 I wrote an editor for this first, much like the editor I wrote for vicdoom (with the same sprites), but with height tweaking and a preview panel. Also, written in javascript instead of Adventure Game Studio.
 
+Enemy logic, map, sound effects brought in wholesale from vicdoom and thekeep.
+
 ![Editor window](editor/editor.png)
 
 I had already experimented with squeezing the Doom levels into 32x32 tiles some time ago, so I knew that would work. Having a preview panel is super helpful for quickly matching the heights.
@@ -40,11 +42,9 @@ This converts a world height into a screen row relative to the horizon. Normally
 
 ## Items
 
-While casting I remember which sectors were seen and keep a clip stack per column. Every newly traversed sector is pushed with the current column aperture (`ytop`/`ybot` at push time — post-ledge after hard portals); the render clip is never reopened for items. Soft same-flat steps use push-if-new so each sector id stays findable. Items and enemies in visible sectors get projected, depth-sorted, and clipped against that stack. Mip maps keep distant billboards from looking too noisy.
+While casting I remember which sectors were seen and keep a clip stack per column. Every newly traversed sector is pushed with the current column aperture (`ytop`/`ybot` at push time — post-ledge after hard portals). Soft same-flat steps use push-if-new so each sector id stays findable. Items and enemies in visible sectors get projected, depth-sorted, and clipped against that stack. Mip maps keep distant billboards from looking too noisy.
 
 Billboard projection (centre column, height, and feet row) uses a 65536/z reciprocal table plus fast table multiplies instead of a divide - the same approach as Andreas Larsson's C64 Doom workstage / Andropolis portal engine. Sprite U mapping caches recip[W] once per billboard; V walks an 8.8 DDA (mip_h/H per row) so a tall strip is adds, not per-row divides.
-
-Weapon fire runs after the frame's render so aim uses this frame's per-column buffers (`COL_AIM_SLOT` / `COL_AIM_Z`: nearest live enemy item + depth on each column, filled far→near while drawing).
 
 ## Blit
 
@@ -61,17 +61,6 @@ Also, to add dither patterns per colour, both for the walls and the flats.
 That would give an almost textured look. Of course it would need some decent art.
 The limit here is the content, not the tech.
 
-## Sound effects
-
-Doom PC speaker DP* lumps (full 0..95 pitch) played on SID noise via a freq
-lookup, stepped at ~140 Hz from CIA1 Timer B. Input stays on Timer A @ 25 ms.
-Effects volume is the options menu control. Might need a couple more effects,
-for example for the elevator.
-
-## Mips for pinky, the caco, and the baron
-
-I have 16x32 sprites for pinky and the caco, but not for the baron.
-
 ## Music
 
 Try recruiting @Nordischsound?
@@ -85,11 +74,13 @@ Need the smaller pickups (health, armour, clip) and so on.
 ## Levels
 
 Finish levels :)
+Almost half way there...
 
 ## Editor
 
-- determine the max sector count. currently it's 255 but I expect it will be closer to 140
+- determine the max sector count. currently it's 255 but I expect it will be closer to 160
 
 ## Weapons
 
-Animate the weapons in and out.
+- Animate the weapons in and out.
+- Add rocket launcher (pickup, ammo pickup, weapon sprites, rocket behaviour).
