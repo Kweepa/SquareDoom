@@ -71,6 +71,8 @@ ITEM_TYPE_POSCORPSE = 23
 ITEM_TYPE_IMPCORPSE = 24
 ITEM_TYPE_DEMONCORPSE = 25
 ITEM_TYPE_BARONCORPSE = 26
+ITEM_TYPE_PLASMABALL = 27
+ITEM_TYPE_ROCKET = 28
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -139,8 +141,10 @@ alloc_item_slot		!byte 0		; item slot for alloc_mobj (not tmp*)
 unlink_mobj_idx		!byte 0		; mobj idx for mobj_unlink
 mobj_lookup_slot	!byte 0		; item slot for mobj_for_slot
 damage_amount		!byte 0		; enemy_damage / TryDamageEnemy payload
+pain_boost		!byte 0		; added to damage for pain-chance check (chainsaw)
 tde_best_z		!byte 0		; TryDamageEnemy scan
 tde_best_slot		!byte 0
+tde_max_z		!byte 0		; exclusive max COL_AIM_Z ($ff = any range)
 new_chase_dir_frame	!byte 0
 anim_frame		!byte 0
 missile_momx_l		!byte 0
@@ -151,6 +155,14 @@ missile_momz_l		!byte 0
 missile_momz_h		!byte 0
 missile_z		!byte 0		; world Z (hitscan-style)
 missile_zfrac		!byte 0
+procket_momx_l		!byte 0
+procket_momx_h		!byte 0
+procket_momy_l		!byte 0
+procket_momy_h		!byte 0
+procket_momz_l		!byte 0
+procket_momz_h		!byte 0
+procket_z		!byte 0
+procket_zfrac		!byte 0
 player_sector		!byte 0
 
 ; ---------------------------------------------------------------------------
@@ -205,12 +217,14 @@ enemy_reset
 	inx
 	cpx #48				; MAX_ITEMS (literal — defined later in root)
 	bne .er_i
-	; Reserve missile item slot
+	; Reserve missile item slots
 	lda #ITEM_TYPE_EMPTY_E
 	sta level_item_type + ITEM_MISSILE
+	sta level_item_type + ITEM_PLAYER_ROCKET
 	lda #0
 	sta anim_frame
 	sta new_chase_dir_frame
+	sta pain_boost
 	jsr hitscan_reset
 	rts
 
@@ -294,7 +308,7 @@ alloc_mobj
 	lda MOBJ_ALLOC,x
 	beq .am_got
 	inx
-	cpx #MOBJ_MISSILE		; leave last for missile
+	cpx #MOBJ_PLAYER_ROCKET		; leave last two for missiles
 	bcc .am_find
 	sec
 	rts
@@ -1305,7 +1319,14 @@ a_missile
 	sta missile_momz_h
 	; spawn at enemy pos
 	jsr obj_xy
+	lda enemy_info
+	cmp #MOBJINFO_BARON
+	bne .ami_fb
+	lda #ITEM_TYPE_PLASMABALL
+	bne .ami_type
+.ami_fb
 	lda #ITEM_TYPE_FIREBALL
+.ami_type
 	sta level_item_type + ITEM_MISSILE
 	lda tmp0
 	sta level_item_x + ITEM_MISSILE
@@ -1423,6 +1444,11 @@ a_fall
 	rts
 
 a_fly
+	ldx enemy_actor
+	cpx #MOBJ_PLAYER_ROCKET
+	bne .afy_enemy
+	jmp a_fly_player
+.afy_enemy
 	jsr calc_enemy_dist
 	lda enemy_dist
 	cmp #3
@@ -1504,6 +1530,189 @@ a_fly
 	sta MOBJ_ALLOC,x
 	rts
 
+; Player rocket flight — damages enemies on XY contact; no splash
+a_fly_player
+	jsr procket_try_hit
+	bcs .afp_die
+	lda procket_momx_l
+	sta wish_x_l
+	lda procket_momx_h
+	sta wish_x_h
+	lda procket_momy_l
+	sta wish_y_l
+	lda procket_momy_h
+	sta wish_y_h
+	jsr missile_try_move
+	bcc .afp_die
+	clc
+	lda procket_zfrac
+	adc procket_momz_l
+	sta procket_zfrac
+	lda procket_z
+	adc procket_momz_h
+	sta procket_z
+	jsr obj_sector
+	beq .afp_die
+	tax
+	lda SEC_FLOOR,x
+	cmp procket_z
+	bcs .afp_die
+	lda SEC_CEIL,x
+	cmp procket_z
+	beq .afp_die
+	bcc .afp_die
+	ldx enemy_actor
+	dec MOBJ_MOVECNT,x
+	lda MOBJ_MOVECNT,x
+	bmi .afp_die
+	rts
+.afp_die
+	lda #ITEM_TYPE_EMPTY_E
+	sta level_item_type + ITEM_PLAYER_ROCKET
+	lda #$ff
+	sta MOBJ_FOR_ITEM + ITEM_PLAYER_ROCKET
+	ldx #MOBJ_PLAYER_ROCKET
+	lda #0
+	sta MOBJ_ALLOC,x
+	rts
+
+; C=1 if rocket hit an enemy (damaged). Uses ITEM_PLAYER_ROCKET pos.
+procket_try_hit
+	lda level_item_x + ITEM_PLAYER_ROCKET
+	sta save_xh
+	lda level_item_y + ITEM_PLAYER_ROCKET
+	sta save_yh
+	ldx #0
+.pth_lp
+	lda MOBJ_ALLOC,x
+	beq .pth_nx
+	lda MOBJ_INFO,x
+	cmp #MOBJINFO_IMPSHOT
+	bcs .pth_nx
+	ldy MOBJ_OBJ,x
+	lda level_item_x,y
+	sec
+	sbc save_xh
+	sta tmp0
+	lda level_item_y,y
+	sec
+	sbc save_yh
+	sta tmp1
+	stx tmp5			; mobj idx
+	sty tmp4			; item slot
+	jsr p_approx_distance
+	cmp #3
+	bcs .pth_rest
+	; hit — damage from rocket HEALTH payload + rand
+	ldx #MOBJ_PLAYER_ROCKET
+	lda MOBJ_HEALTH,x
+	sta tmp0
+	jsr GetRandom8
+	and #15
+	clc
+	adc tmp0
+	ldx tmp4
+	jsr enemy_damage
+	sec
+	rts
+.pth_rest
+	ldx tmp5
+.pth_nx
+	inx
+	cpx #MOBJ_PLAYER_ROCKET
+	bcc .pth_lp
+	clc
+	rts
+
+; Spawn player rocket along look direction. C=0 spawned, C=1 busy/fail.
+spawn_player_rocket
+	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
+	beq .spr_ok
+	sec
+	rts
+.spr_ok
+	lda playerx_h
+	sta level_item_x + ITEM_PLAYER_ROCKET
+	lda playery_h
+	sta level_item_y + ITEM_PLAYER_ROCKET
+	lda #ITEM_TYPE_ROCKET
+	sta level_item_type + ITEM_PLAYER_ROCKET
+	lda eyeheight
+	sta procket_z
+	lda #0
+	sta procket_zfrac
+	sta procket_momz_l
+	sta procket_momz_h
+	; mom = sintab / 8 as signed 8.8 high byte (≈ enemy missile speed)
+	ldy playera
+	lda sintab,y
+	jsr procket_scale_mom
+	lda wish_x_l
+	sta procket_momx_l
+	lda wish_x_h
+	sta procket_momx_h
+	lda playera
+	clc
+	adc #64
+	tay
+	lda sintab,y
+	jsr procket_scale_mom
+	lda wish_x_l
+	sta procket_momy_l
+	lda wish_x_h
+	sta procket_momy_h
+	ldx #MOBJ_PLAYER_ROCKET
+	lda #1
+	sta MOBJ_ALLOC,x
+	lda #ITEM_PLAYER_ROCKET
+	sta MOBJ_OBJ,x
+	txa
+	sta MOBJ_FOR_ITEM + ITEM_PLAYER_ROCKET
+	lda #MOBJINFO_IMPSHOT
+	sta MOBJ_INFO,x
+	lda #STATE_IMPSHOTFLY
+	sta MOBJ_STATE,x
+	lda #0
+	sta MOBJ_XFRAC,x
+	sta MOBJ_YFRAC,x
+	sta MOBJ_FLAGS,x
+	lda #48
+	sta MOBJ_MOVECNT,x
+	; damage payload (was hitscan rocket)
+	jsr GetRandom8
+	lsr
+	lsr
+	clc
+	adc #20
+	sta MOBJ_HEALTH,x
+	clc
+	rts
+
+; A = signed sintab (-64..64) → wish_x = A/8 as signed 8.8 (hi=A/8, lo=0)
+procket_scale_mom
+	sta tmp2
+	lda #0
+	sta wish_x_l
+	lda tmp2
+	bpl .psm_pos
+	eor #$ff
+	clc
+	adc #1
+	lsr
+	lsr
+	lsr
+	eor #$ff
+	clc
+	adc #1
+	sta wish_x_h
+	rts
+.psm_pos
+	lsr
+	lsr
+	lsr
+	sta wish_x_h
+	rts
+
 ; ---------------------------------------------------------------------------
 ; enemy_damage — X = item slot, A = damage
 ; ---------------------------------------------------------------------------
@@ -1531,11 +1740,18 @@ enemy_damage
 	ora #MF_JUSTATTACKED
 	sta MOBJ_FLAGS,y
 	lda damage_amount
+	clc
+	adc pain_boost			; chainsaw: bias toward flinch
+	bcs .ed_pain			; overflow → always pain (non-baron)
 	ldy enemy_info
 	cmp mobj_pain_chance,y
 	bcc .ed_rts
 	beq .ed_rts
+.ed_pain
 	ldy enemy_info
+	lda mobj_pain_chance,y
+	cmp #$ff			; baron: never flinch
+	beq .ed_rts
 	lda mobj_pain_state,y
 	ldx enemy_actor
 	sta MOBJ_STATE,x
@@ -1593,9 +1809,19 @@ enemy_get_texture
 ; ---------------------------------------------------------------------------
 ; TryDamageEnemy — A = damage; nearest live enemy on MUZZLE±AIM_COL_SLACK
 ; via COL_AIM_* (per-column stamp; pick lowest COL_AIM_Z in the cone).
+; TryDamageMelee — same, but only if COL_AIM_Z < MELEERANGE.
 ; ---------------------------------------------------------------------------
+TryDamageMelee
+	sta damage_amount
+	lda #MELEERANGE
+	sta tde_max_z
+	jmp .tde_go
+
 TryDamageEnemy
 	sta damage_amount
+	lda #$ff			; any depth
+	sta tde_max_z
+.tde_go
 	lda #$ff
 	sta tde_best_z
 	sta tde_best_slot
@@ -1616,16 +1842,21 @@ TryDamageEnemy
 	bcc .tde_scan
 	lda tde_best_slot
 	cmp #$ff
-	bne .tde_slot
-	rts
+	beq .tde_rts
+	lda tde_max_z
+	cmp #$ff
+	beq .tde_slot
+	lda tde_best_z
+	cmp tde_max_z
+	bcs .tde_rts			; too far for melee
 .tde_slot
-	tax
+	ldx tde_best_slot
 	jsr mobj_for_slot
 	bcs .tde_rts
 	lda MOBJ_HEALTH,y
 	beq .tde_rts
 	lda MOBJ_INFO,y
-	cmp #4
+	cmp #MOBJINFO_IMPSHOT
 	bcs .tde_rts
 	ldx tde_best_slot
 	lda damage_amount

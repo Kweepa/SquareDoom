@@ -1,5 +1,6 @@
-; Auto-converted from VicDoom doomfont.s — first 64 glyphs (0-63)
+; Auto-converted from VicDoom doomfont.s â€” first 64 glyphs (0-63)
 ; Health=/ (47), armor=30, key=; (59), digits=48-57, pistol=38
+; shotgun=31, chaingun=34, rocketlauncher=60 (HUD ammo icons)
 !zone doomfont
 doomfont_udgs
 	!byte $3e,$7f,$7f,$49,$49,$3e,$2a,$00	; char 0
@@ -62,7 +63,7 @@ doomfont_udgs
 	!byte $3e,$7f,$63,$3f,$03,$3f,$3e,$00	; char 57
 	!byte $00,$18,$18,$00,$18,$18,$00,$00	; char 58
 	!byte $1c,$3c,$6c,$53,$41,$65,$55,$7f	; char 59
-	!byte $00,$00,$00,$00,$00,$00,$00,$00	; char 60
+	!byte $00,$00,$02,$ff,$df,$62,$40,$00	; char 60 rocketlauncher HUD
 	!byte $00,$40,$a0,$fe,$e1,$e1,$fe,$00	; char 61
 	!byte $1c,$fe,$fe,$ff,$37,$39,$1e,$00	; char 62
 	!byte $7e,$7f,$03,$1f,$00,$18,$18,$00	; char 63

@@ -1265,7 +1265,7 @@ txt_help
 	!scr "fire              space",0
 	!scr "toggle map        f1",0
     !scr " ",0
-	!scr "switch weapon     2345",0
+	!scr "switch weapon    12345",0
 	!scr "menu              runstop",0
     !scr " ",0
 	!scr "press a key",0

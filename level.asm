@@ -21,7 +21,12 @@ start_level
 ; Default status values
 init_hud_state
 	lda #50
-	sta ammo
+	sta ammo_bullets
+	lda #0
+	sta ammo_shells
+	sta ammo_rockets
+	lda #$02			; pistol owned (bit1)
+	sta owned_weapons
 	lda #100
 	sta health
 	lda #0

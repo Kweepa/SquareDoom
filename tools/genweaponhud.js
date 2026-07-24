@@ -362,3 +362,74 @@ function processCrops(file, expectW, expectH, crops) {
   console.log('wrote rocket_weapon.asm (8×64) + 8 crop PNGs');
   for (const line of info) console.log(' ', line);
 }
+
+// --- Chainsaw: 72×41 (3×24), no flash ---
+{
+  const WHITE = [255, 255, 255];
+  const BLACK = [0, 0, 0];
+  const GREY = [98, 98, 98];
+  const BROWN = [109, 84, 18];
+  const ORANGE = [161, 104, 60];
+  // VIC front→back: blade hi, detail, hands, blade dark, body×3
+  const { layers, info } = processCrops('chainsaw.png', 72, 41, [
+    { label: 'chainsaw_blade_hi', x: 48, y: 0, rgb: WHITE },
+    { label: 'chainsaw_detail', x: 35, y: 20, rgb: GREY },
+    { label: 'chainsaw_hand_orange', x: 0, y: 20, rgb: ORANGE },
+    { label: 'chainsaw_hand_brown', x: 0, y: 20, rgb: BROWN },
+    { label: 'chainsaw_blade_dark', x: 48, y: 0, rgb: BLACK },
+    { label: 'chainsaw_body_left', x: 0, y: 20, rgb: BLACK },
+    { label: 'chainsaw_body_mid', x: 24, y: 20, rgb: BLACK },
+    { label: 'chainsaw_body_right', x: 48, y: 20, rgb: BLACK },
+  ]);
+  emitWeaponAsm(
+    'chainsaw',
+    'chainsaw',
+    layers,
+    `; Eight layers (low VIC # = front), no flash:\n` +
+      `;   blade hi, grey detail, hand orange/brown, blade dark, body L/M/R.\n` +
+      `;   PNG 72×41: hands+body @y=20; blade @y=0 x=48.\n`,
+    { pistolFlash: false, outFile: 'chainsaw_weapon.asm' }
+  );
+  console.log('wrote chainsaw_weapon.asm (8×64) + 8 crop PNGs');
+  for (const line of info) console.log(' ', line);
+}
+
+// --- Fist right hand / punch: 57×21, 7 layers (3 black + 3 pink + 1 grey) + empty ---
+{
+  const BLACK = [0, 0, 0];
+  const PINK = [203, 126, 117];	// Pepto light red
+  const GREY = [173, 173, 173];
+  const XS = [0, 16, 33];		// overlapping 24-wide tiles across 57
+
+  function fistCrops(prefix) {
+    return [
+      { label: `${prefix}_hi`, x: 33, y: 0, rgb: GREY },
+      { label: `${prefix}_pink_l`, x: XS[0], y: 0, rgb: PINK },
+      { label: `${prefix}_pink_m`, x: XS[1], y: 0, rgb: PINK },
+      { label: `${prefix}_pink_r`, x: XS[2], y: 0, rgb: PINK },
+      { label: `${prefix}_dark_l`, x: XS[0], y: 0, rgb: BLACK },
+      { label: `${prefix}_dark_m`, x: XS[1], y: 0, rgb: BLACK },
+      { label: `${prefix}_dark_r`, x: XS[2], y: 0, rgb: BLACK },
+    ];
+  }
+
+  function emitFist(file, prefix, outFile) {
+    const { layers, info } = processCrops(file, 57, 21, fistCrops(prefix));
+    // pad to 8 sprites (unused slot 7)
+    const empty = new Array(WIDTH * HEIGHT).fill(false);
+    layers.push({ label: `${prefix}_pad`, mask: empty });
+    emitWeaponAsm(
+      file.replace(/\.png$/, ''),
+      prefix,
+      layers,
+      `; Seven layers + pad (low VIC # = front), no flash:\n` +
+        `;   grey hi, pink L/M/R, black L/M/R. PNG 57×21 crops @x=0,16,33.\n`,
+      { pistolFlash: false, outFile }
+    );
+    console.log(`wrote ${outFile} (8×64) + 7 crop PNGs`);
+    for (const line of info) console.log(' ', line);
+  }
+
+  emitFist('righthand.png', 'fist_right', 'fist_righthand.asm');
+  emitFist('punch.png', 'fist_punch', 'fist_punch.asm');
+}

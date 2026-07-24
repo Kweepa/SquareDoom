@@ -92,7 +92,7 @@ old_floor	= $7a			; SEC_FLOOR at move start (step-up / portal gate)
 old_ceil	= $ae			; SEC_CEIL at move start (portal clearance)
 
 ; Status bar (drawn into FB row 24 when hud_dirty; blit copies it)
-ammo		= $7b			; 0–255, shown as 3 digits
+; $7b free (was ammo; ammo_* are BSS in pickup.asm)
 health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
@@ -122,7 +122,7 @@ in_fwd		= $8f			; W
 ; $90-$95 — KERNAL serial/IEC during LOAD (ST, C3PO, BSOUR, …). Do not place
 ; game ZP here; stray $90 (ST) bit6/7 aborts KERNAL LOAD early (see JSW zp.asm).
 ; $96-$98 also wiped by LoadLevel (through LDTND) — keep weapon interval out.
-cur_weapon	= $96			; 0=pistol, 1=shotgun, 2=minigun, 3=rocket (re-set after LOAD)
+cur_weapon	= $96			; 0=fist 1=chainsaw 2=pistol 3=shotgun 4=minigun 5=rocket
 in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b
@@ -282,9 +282,11 @@ ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth
 ITEM_SORT_SLOT	= ITEM_SORT_DEPTH + 48
 ITEM_SORT_END	= ITEM_SORT_SLOT + 48
 
-; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last = missile)
+; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last two = missiles)
 MAX_MOBJ		= 32
+MOBJ_PLAYER_ROCKET = MAX_MOBJ - 2
 MOBJ_MISSILE	= MAX_MOBJ - 1
+ITEM_PLAYER_ROCKET = 46		; reserved (= MAX_ITEMS-2)
 ITEM_MISSILE	= 47			; reserved last item slot (= MAX_ITEMS-1)
 
 MOBJ_ALLOC	= ITEM_SORT_END		; 21

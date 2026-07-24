@@ -3,7 +3,7 @@
 ; spawn/enemies skip atlases (nodraw stub / enemy_sprites).
 !zone item_bitmaps
 
-ITEM_TYPE_COUNT = 27
+ITEM_TYPE_COUNT = 29
 ITEM_MIP_COUNT = 4
 
 ; mip source width / height / log2 (index = mip 0..3)
@@ -18,9 +18,9 @@ item_mip_vshift
 
 ; Base address lo/hi: index = typeId * ITEM_MIP_COUNT + mip
 item_mip_base_lo
-	!byte <item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_barrel_m0,<item_spr_barrel_m1,<item_spr_barrel_m2,<item_spr_barrel_m3,<item_spr_health_m0,<item_spr_health_m1,<item_spr_health_m2,<item_spr_health_m3,<item_spr_shells_m0,<item_spr_shells_m1,<item_spr_shells_m2,<item_spr_shells_m3,<item_spr_shotgun_m0,<item_spr_shotgun_m1,<item_spr_shotgun_m2,<item_spr_shotgun_m3,<item_spr_chaingun_m0,<item_spr_chaingun_m1,<item_spr_chaingun_m2,<item_spr_chaingun_m3,<item_spr_chainsaw_m0,<item_spr_chainsaw_m1,<item_spr_chainsaw_m2,<item_spr_chainsaw_m3,<item_spr_rocketlauncher_m0,<item_spr_rocketlauncher_m1,<item_spr_rocketlauncher_m2,<item_spr_rocketlauncher_m3,<item_spr_greenarmor_m0,<item_spr_greenarmor_m1,<item_spr_greenarmor_m2,<item_spr_greenarmor_m3,<item_spr_bluearmor_m0,<item_spr_bluearmor_m1,<item_spr_bluearmor_m2,<item_spr_bluearmor_m3,<item_spr_backpack_m0,<item_spr_backpack_m1,<item_spr_backpack_m2,<item_spr_backpack_m3,<item_spr_redcard_m0,<item_spr_redcard_m1,<item_spr_redcard_m2,<item_spr_redcard_m3,<item_spr_bluecard_m0,<item_spr_bluecard_m1,<item_spr_bluecard_m2,<item_spr_bluecard_m3,<item_spr_yellowcard_m0,<item_spr_yellowcard_m1,<item_spr_yellowcard_m2,<item_spr_yellowcard_m3,<item_spr_skullpile_m0,<item_spr_skullpile_m1,<item_spr_skullpile_m2,<item_spr_skullpile_m3,<item_spr_techcolumn_m0,<item_spr_techcolumn_m1,<item_spr_techcolumn_m2,<item_spr_techcolumn_m3,<item_spr_switch_m0,<item_spr_switch_m1,<item_spr_switch_m2,<item_spr_switch_m3,<item_spr_fireball_m0,<item_spr_fireball_m1,<item_spr_fireball_m2,<item_spr_fireball_m3,<item_spr_poscorpse_m0,<item_spr_poscorpse_m1,<item_spr_poscorpse_m2,<item_spr_poscorpse_m3,<item_spr_impcorpse_m0,<item_spr_impcorpse_m1,<item_spr_impcorpse_m2,<item_spr_impcorpse_m3,<item_spr_demoncorpse_m0,<item_spr_demoncorpse_m1,<item_spr_demoncorpse_m2,<item_spr_demoncorpse_m3,<item_spr_baroncorpse_m0,<item_spr_baroncorpse_m1,<item_spr_baroncorpse_m2,<item_spr_baroncorpse_m3
+	!byte <item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_barrel_m0,<item_spr_barrel_m1,<item_spr_barrel_m2,<item_spr_barrel_m3,<item_spr_health_m0,<item_spr_health_m1,<item_spr_health_m2,<item_spr_health_m3,<item_spr_shells_m0,<item_spr_shells_m1,<item_spr_shells_m2,<item_spr_shells_m3,<item_spr_shotgun_m0,<item_spr_shotgun_m1,<item_spr_shotgun_m2,<item_spr_shotgun_m3,<item_spr_chaingun_m0,<item_spr_chaingun_m1,<item_spr_chaingun_m2,<item_spr_chaingun_m3,<item_spr_chainsaw_m0,<item_spr_chainsaw_m1,<item_spr_chainsaw_m2,<item_spr_chainsaw_m3,<item_spr_rocketlauncher_m0,<item_spr_rocketlauncher_m1,<item_spr_rocketlauncher_m2,<item_spr_rocketlauncher_m3,<item_spr_greenarmor_m0,<item_spr_greenarmor_m1,<item_spr_greenarmor_m2,<item_spr_greenarmor_m3,<item_spr_bluearmor_m0,<item_spr_bluearmor_m1,<item_spr_bluearmor_m2,<item_spr_bluearmor_m3,<item_spr_backpack_m0,<item_spr_backpack_m1,<item_spr_backpack_m2,<item_spr_backpack_m3,<item_spr_redcard_m0,<item_spr_redcard_m1,<item_spr_redcard_m2,<item_spr_redcard_m3,<item_spr_bluecard_m0,<item_spr_bluecard_m1,<item_spr_bluecard_m2,<item_spr_bluecard_m3,<item_spr_yellowcard_m0,<item_spr_yellowcard_m1,<item_spr_yellowcard_m2,<item_spr_yellowcard_m3,<item_spr_skullpile_m0,<item_spr_skullpile_m1,<item_spr_skullpile_m2,<item_spr_skullpile_m3,<item_spr_techcolumn_m0,<item_spr_techcolumn_m1,<item_spr_techcolumn_m2,<item_spr_techcolumn_m3,<item_spr_switch_m0,<item_spr_switch_m1,<item_spr_switch_m2,<item_spr_switch_m3,<item_spr_fireball_m0,<item_spr_fireball_m1,<item_spr_fireball_m2,<item_spr_fireball_m3,<item_spr_poscorpse_m0,<item_spr_poscorpse_m1,<item_spr_poscorpse_m2,<item_spr_poscorpse_m3,<item_spr_impcorpse_m0,<item_spr_impcorpse_m1,<item_spr_impcorpse_m2,<item_spr_impcorpse_m3,<item_spr_demoncorpse_m0,<item_spr_demoncorpse_m1,<item_spr_demoncorpse_m2,<item_spr_demoncorpse_m3,<item_spr_baroncorpse_m0,<item_spr_baroncorpse_m1,<item_spr_baroncorpse_m2,<item_spr_baroncorpse_m3,<item_spr_plasmaball_m0,<item_spr_plasmaball_m1,<item_spr_plasmaball_m2,<item_spr_plasmaball_m3,<item_spr_rocket_m0,<item_spr_rocket_m1,<item_spr_rocket_m2,<item_spr_rocket_m3
 item_mip_base_hi
-	!byte >item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_barrel_m0,>item_spr_barrel_m1,>item_spr_barrel_m2,>item_spr_barrel_m3,>item_spr_health_m0,>item_spr_health_m1,>item_spr_health_m2,>item_spr_health_m3,>item_spr_shells_m0,>item_spr_shells_m1,>item_spr_shells_m2,>item_spr_shells_m3,>item_spr_shotgun_m0,>item_spr_shotgun_m1,>item_spr_shotgun_m2,>item_spr_shotgun_m3,>item_spr_chaingun_m0,>item_spr_chaingun_m1,>item_spr_chaingun_m2,>item_spr_chaingun_m3,>item_spr_chainsaw_m0,>item_spr_chainsaw_m1,>item_spr_chainsaw_m2,>item_spr_chainsaw_m3,>item_spr_rocketlauncher_m0,>item_spr_rocketlauncher_m1,>item_spr_rocketlauncher_m2,>item_spr_rocketlauncher_m3,>item_spr_greenarmor_m0,>item_spr_greenarmor_m1,>item_spr_greenarmor_m2,>item_spr_greenarmor_m3,>item_spr_bluearmor_m0,>item_spr_bluearmor_m1,>item_spr_bluearmor_m2,>item_spr_bluearmor_m3,>item_spr_backpack_m0,>item_spr_backpack_m1,>item_spr_backpack_m2,>item_spr_backpack_m3,>item_spr_redcard_m0,>item_spr_redcard_m1,>item_spr_redcard_m2,>item_spr_redcard_m3,>item_spr_bluecard_m0,>item_spr_bluecard_m1,>item_spr_bluecard_m2,>item_spr_bluecard_m3,>item_spr_yellowcard_m0,>item_spr_yellowcard_m1,>item_spr_yellowcard_m2,>item_spr_yellowcard_m3,>item_spr_skullpile_m0,>item_spr_skullpile_m1,>item_spr_skullpile_m2,>item_spr_skullpile_m3,>item_spr_techcolumn_m0,>item_spr_techcolumn_m1,>item_spr_techcolumn_m2,>item_spr_techcolumn_m3,>item_spr_switch_m0,>item_spr_switch_m1,>item_spr_switch_m2,>item_spr_switch_m3,>item_spr_fireball_m0,>item_spr_fireball_m1,>item_spr_fireball_m2,>item_spr_fireball_m3,>item_spr_poscorpse_m0,>item_spr_poscorpse_m1,>item_spr_poscorpse_m2,>item_spr_poscorpse_m3,>item_spr_impcorpse_m0,>item_spr_impcorpse_m1,>item_spr_impcorpse_m2,>item_spr_impcorpse_m3,>item_spr_demoncorpse_m0,>item_spr_demoncorpse_m1,>item_spr_demoncorpse_m2,>item_spr_demoncorpse_m3,>item_spr_baroncorpse_m0,>item_spr_baroncorpse_m1,>item_spr_baroncorpse_m2,>item_spr_baroncorpse_m3
+	!byte >item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_barrel_m0,>item_spr_barrel_m1,>item_spr_barrel_m2,>item_spr_barrel_m3,>item_spr_health_m0,>item_spr_health_m1,>item_spr_health_m2,>item_spr_health_m3,>item_spr_shells_m0,>item_spr_shells_m1,>item_spr_shells_m2,>item_spr_shells_m3,>item_spr_shotgun_m0,>item_spr_shotgun_m1,>item_spr_shotgun_m2,>item_spr_shotgun_m3,>item_spr_chaingun_m0,>item_spr_chaingun_m1,>item_spr_chaingun_m2,>item_spr_chaingun_m3,>item_spr_chainsaw_m0,>item_spr_chainsaw_m1,>item_spr_chainsaw_m2,>item_spr_chainsaw_m3,>item_spr_rocketlauncher_m0,>item_spr_rocketlauncher_m1,>item_spr_rocketlauncher_m2,>item_spr_rocketlauncher_m3,>item_spr_greenarmor_m0,>item_spr_greenarmor_m1,>item_spr_greenarmor_m2,>item_spr_greenarmor_m3,>item_spr_bluearmor_m0,>item_spr_bluearmor_m1,>item_spr_bluearmor_m2,>item_spr_bluearmor_m3,>item_spr_backpack_m0,>item_spr_backpack_m1,>item_spr_backpack_m2,>item_spr_backpack_m3,>item_spr_redcard_m0,>item_spr_redcard_m1,>item_spr_redcard_m2,>item_spr_redcard_m3,>item_spr_bluecard_m0,>item_spr_bluecard_m1,>item_spr_bluecard_m2,>item_spr_bluecard_m3,>item_spr_yellowcard_m0,>item_spr_yellowcard_m1,>item_spr_yellowcard_m2,>item_spr_yellowcard_m3,>item_spr_skullpile_m0,>item_spr_skullpile_m1,>item_spr_skullpile_m2,>item_spr_skullpile_m3,>item_spr_techcolumn_m0,>item_spr_techcolumn_m1,>item_spr_techcolumn_m2,>item_spr_techcolumn_m3,>item_spr_switch_m0,>item_spr_switch_m1,>item_spr_switch_m2,>item_spr_switch_m3,>item_spr_fireball_m0,>item_spr_fireball_m1,>item_spr_fireball_m2,>item_spr_fireball_m3,>item_spr_poscorpse_m0,>item_spr_poscorpse_m1,>item_spr_poscorpse_m2,>item_spr_poscorpse_m3,>item_spr_impcorpse_m0,>item_spr_impcorpse_m1,>item_spr_impcorpse_m2,>item_spr_impcorpse_m3,>item_spr_demoncorpse_m0,>item_spr_demoncorpse_m1,>item_spr_demoncorpse_m2,>item_spr_demoncorpse_m3,>item_spr_baroncorpse_m0,>item_spr_baroncorpse_m1,>item_spr_baroncorpse_m2,>item_spr_baroncorpse_m3,>item_spr_plasmaball_m0,>item_spr_plasmaball_m1,>item_spr_plasmaball_m2,>item_spr_plasmaball_m3,>item_spr_rocket_m0,>item_spr_rocket_m1,>item_spr_rocket_m2,>item_spr_rocket_m3
 
 ; Transparent stub for spawn / enemy typeIds (never drawn as items)
 item_spr_nodraw
@@ -83,14 +83,14 @@ item_spr_chaingun_m2
 item_spr_chaingun_m3
 	!byte $0c
 item_spr_chainsaw_m0
-	!byte $03,$03,$03,$00,$00,$07,$07,$07,$03,$03,$00,$03,$00,$02,$07,$07
-	!byte $03,$03,$03,$00,$00,$07,$07,$01,$03,$03,$03,$03,$01,$0c,$0c,$0c
-	!byte $03,$03,$03,$03,$0c,$0c,$0c,$01,$03,$03,$03,$03,$01,$0c,$0c,$0c
-	!byte $03,$03,$03,$03,$0c,$0c,$0c,$01,$03,$03,$03,$03,$03,$01,$0c,$03
+	!byte $00,$00,$00,$00,$00,$07,$07,$07,$00,$00,$00,$00,$00,$02,$07,$07
+	!byte $00,$00,$00,$00,$00,$07,$07,$01,$00,$00,$00,$00,$01,$0c,$0c,$0c
+	!byte $00,$00,$00,$00,$0c,$0c,$0c,$01,$00,$00,$00,$00,$01,$0c,$0c,$0c
+	!byte $00,$00,$00,$00,$0c,$0c,$0c,$01,$00,$00,$00,$00,$00,$01,$0c,$00
 item_spr_chainsaw_m1
-	!byte $00,$03,$07,$07,$03,$00,$02,$07,$03,$03,$01,$0c,$03,$03,$0c,$01
+	!byte $00,$00,$07,$07,$00,$00,$02,$07,$00,$00,$01,$0c,$00,$00,$0c,$01
 item_spr_chainsaw_m2
-	!byte $00,$07,$03,$0c
+	!byte $00,$07,$00,$0c
 item_spr_chainsaw_m3
 	!byte $0c
 item_spr_rocketlauncher_m0
@@ -258,3 +258,25 @@ item_spr_baroncorpse_m2
 	!byte $00,$02,$00,$0a
 item_spr_baroncorpse_m3
 	!byte $02
+item_spr_plasmaball_m0
+	!byte $00,$00,$05,$00,$05,$00,$05,$00,$05,$00,$05,$05,$07,$05,$00,$00
+	!byte $00,$05,$07,$0d,$0d,$07,$05,$05,$05,$07,$0d,$0d,$0d,$0d,$05,$00
+	!byte $00,$05,$0d,$0d,$0d,$0d,$07,$05,$05,$05,$07,$0d,$0d,$07,$05,$00
+	!byte $00,$00,$05,$07,$05,$05,$00,$05,$00,$05,$00,$05,$00,$05,$00,$00
+item_spr_plasmaball_m1
+	!byte $00,$05,$05,$00,$05,$0d,$0d,$05,$05,$0d,$0d,$05,$00,$05,$05,$00
+item_spr_plasmaball_m2
+	!byte $0d,$0d,$0d,$0d
+item_spr_plasmaball_m3
+	!byte $0d
+item_spr_rocket_m0
+	!byte $00,$00,$02,$00,$02,$00,$02,$00,$02,$00,$02,$02,$08,$02,$00,$00
+	!byte $00,$02,$08,$07,$07,$08,$02,$02,$02,$08,$07,$07,$07,$07,$02,$00
+	!byte $00,$02,$07,$07,$07,$07,$08,$02,$02,$02,$08,$07,$07,$08,$02,$00
+	!byte $00,$00,$02,$08,$02,$02,$00,$02,$00,$02,$00,$02,$00,$02,$00,$00
+item_spr_rocket_m1
+	!byte $00,$02,$02,$00,$02,$07,$07,$02,$02,$07,$07,$02,$00,$02,$02,$00
+item_spr_rocket_m2
+	!byte $02,$07,$07,$02
+item_spr_rocket_m3
+	!byte $07

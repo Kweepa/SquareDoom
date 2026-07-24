@@ -1,5 +1,5 @@
 import {
-  C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_ITEMS,
+  C64_HEX, C64_NAMES, LEVEL_NAME_LEN, MAX_PLACEABLE_ITEMS,
   TRIGGERS, ACTIONS, normalizeTrigger, normalizeAction, sectorsEqual,
 } from './model.js';
 
@@ -116,7 +116,7 @@ export class TileEditor {
 
     const countLine = document.createElement('p');
     countLine.className = 'muted';
-    countLine.textContent = `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}/${MAX_ITEMS}`;
+    countLine.textContent = `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}/${MAX_PLACEABLE_ITEMS}`;
     this.root.appendChild(countLine);
 
     if (!tiles.length) {

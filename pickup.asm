@@ -5,8 +5,12 @@ PICKUP_RADIUS = 4
 INFO_MS_L = <4000
 INFO_MS_H = >4000
 AMMO_ADD = 10
-AMMO_MAX = 200
-AMMO_MAX_PACK = 255
+AMMO_BULLETS_MAX = 200
+AMMO_BULLETS_PACK = 250
+AMMO_SHELLS_MAX = 50
+AMMO_SHELLS_PACK = 100
+AMMO_ROCKETS_MAX = 50
+AMMO_ROCKETS_PACK = 100
 HEALTH_ADD = 25
 HEALTH_MAX = 100
 ARMOR_GREEN = 100
@@ -17,6 +21,28 @@ INFO_COLOR = 7				; yellow
 
 ; 0 = "picked up the "+name+"."; 1 = full string at info_name
 info_kind		!byte 0
+
+; Ammo reserves (BSS — fire/HUD/pickup only; not ZP)
+ammo_bullets		!byte 0
+ammo_shells		!byte 0
+ammo_rockets		!byte 0
+
+; bit0=chainsaw bit1=pistol bit2=shotgun bit3=minigun bit4=rocket
+owned_weapons		!byte 0
+
+; Weapon id → ammo reserve index (0=bullets, 1=shells, 2=rockets)
+; fist/chainsaw unused by fire path; pistol=2 … rocket=5
+wpn_ammo_idx
+	!byte 0, 0, 0, 1, 0, 2
+
+ammo_max_base
+	!byte AMMO_BULLETS_MAX, AMMO_SHELLS_MAX, AMMO_ROCKETS_MAX
+ammo_max_pack
+	!byte AMMO_BULLETS_PACK, AMMO_SHELLS_PACK, AMMO_ROCKETS_PACK
+
+; cur_weapon 1..5 → ownership bit (id 0 fist = always)
+wpn_own_bit
+	!byte 0, $01, $02, $04, $08, $10
 
 ITEM_TYPE_HEALTH = 7
 ITEM_TYPE_SHELLS = 8
@@ -30,6 +56,35 @@ ITEM_TYPE_BACKPACK = 15
 ITEM_TYPE_REDCARD = 16
 ITEM_TYPE_BLUECARD = 17
 ITEM_TYPE_YELLOWCARD = 18
+ITEM_TYPE_POSCORPSE = 23
+ITEM_TYPE_EMPTY = $ff
+
+; ---------------------------------------------------------------------------
+; add_ammo — Y = pool 0/1/2, A = amount; clamp to current max; sets hud_dirty
+; ---------------------------------------------------------------------------
+add_ammo
+	sta tmp2
+	lda has_backpack
+	bne .aa_pack
+	lda ammo_max_base,y
+	bne .aa_max
+.aa_pack
+	lda ammo_max_pack,y
+.aa_max
+	sta tmp1
+	lda ammo_bullets,y
+	clc
+	adc tmp2
+	bcs .aa_clamp
+	cmp tmp1
+	bcc .aa_store
+.aa_clamp
+	lda tmp1
+.aa_store
+	sta ammo_bullets,y
+	lda #1
+	sta hud_dirty
+	rts
 
 ; ---------------------------------------------------------------------------
 ; try_pickups — after apply_move; one item per frame if within radius
@@ -41,7 +96,10 @@ try_pickups
 	cmp #ITEM_TYPE_HEALTH
 	bcc .tp_next
 	cmp #ITEM_TYPE_YELLOWCARD + 1
-	bcs .tp_next
+	bcc .tp_cand
+	cmp #ITEM_TYPE_POSCORPSE
+	bne .tp_next
+.tp_cand
 	sta tmp4			; typeId
 	lda level_item_x,x
 	sta tmp0			; item x
@@ -73,7 +131,13 @@ try_pickups
 
 	stx tmp5			; slot
 	lda tmp4
+	cmp #ITEM_TYPE_POSCORPSE
+	bne .tp_apply
+	jsr .pa_poscorpse
+	jmp .tp_after
+.tp_apply
 	jsr pickup_apply
+.tp_after
 	bcc .tp_done			; not taken
 	; consume item
 	ldx tmp5
@@ -117,7 +181,9 @@ pickup_apply
 .pa_health
 	lda health
 	cmp #HEALTH_MAX
-	bcs .pa_no
+	bcc .pa_health_go
+	jmp .pa_no
+.pa_health_go
 	clc
 	adc #HEALTH_ADD
 	cmp #HEALTH_MAX
@@ -129,31 +195,30 @@ pickup_apply
 	jmp pickup_message
 
 .pa_shells
+	ldy #1				; shells pool
 	lda has_backpack
 	bne .pa_smax
-	lda #AMMO_MAX
+	lda ammo_max_base,y
 	bne .pa_scap
 .pa_smax
-	lda #AMMO_MAX_PACK
+	lda ammo_max_pack,y
 .pa_scap
-	sta tmp0
-	lda ammo
-	cmp tmp0
-	bcs .pa_no
-	clc
-	adc #AMMO_ADD
-	cmp tmp0
-	bcc .pa_sok
-	lda tmp0
-.pa_sok
-	sta ammo
+	cmp ammo_shells
+	beq .pa_shells_full
+	bcc .pa_shells_full
+	lda #AMMO_ADD
+	jsr add_ammo
 	lda #ITEM_TYPE_SHELLS
 	jmp pickup_message
+.pa_shells_full
+	jmp .pa_no
 
 .pa_garmor
 	lda armor
 	cmp #ARMOR_GREEN
-	bcs .pa_no
+	bcc .pa_garmor_go
+	jmp .pa_no
+.pa_garmor_go
 	lda #ARMOR_GREEN
 	sta armor
 	lda #ITEM_TYPE_GREENARMOR
@@ -162,15 +227,29 @@ pickup_apply
 .pa_barmor
 	lda armor
 	cmp #ARMOR_BLUE
-	bcs .pa_no
+	bcc .pa_barmor_go
+	jmp .pa_no
+.pa_barmor_go
 	lda #ARMOR_BLUE
 	sta armor
 	lda #ITEM_TYPE_BLUEARMOR
 	jmp pickup_message
 
 .pa_pack
+	lda has_backpack
+	bne .pa_pack_ammo
 	lda #1
 	sta has_backpack
+.pa_pack_ammo
+	ldy #0
+	lda #10
+	jsr add_ammo
+	ldy #1
+	lda #4
+	jsr add_ammo
+	ldy #2
+	lda #1
+	jsr add_ammo
 	lda #ITEM_TYPE_BACKPACK
 	jmp pickup_message
 
@@ -196,10 +275,90 @@ pickup_apply
 	jmp pickup_message
 
 .pa_weapon
-	; A still holds typeId from caller… but jmp table clobbered it.
-	; Recover from tmp4 (set by try_pickups).
 	lda tmp4
+	cmp #ITEM_TYPE_SHOTGUN
+	beq .pa_w_sg
+	cmp #ITEM_TYPE_CHAINGUN
+	beq .pa_w_cg
+	cmp #ITEM_TYPE_ROCKETLAUNCHER
+	beq .pa_w_rl
+	; chainsaw — own bit0, switch to 1
+	lda owned_weapons
+	ora #$01
+	sta owned_weapons
+	ldx #1
+	jsr switch_weapon
+	lda #ITEM_TYPE_CHAINSAW
 	jmp pickup_message
+.pa_w_sg
+	lda owned_weapons
+	ora #$04
+	sta owned_weapons
+	ldy #1
+	lda #8
+	jsr add_ammo
+	ldx #3
+	jsr switch_weapon
+	lda #ITEM_TYPE_SHOTGUN
+	jmp pickup_message
+.pa_w_cg
+	lda owned_weapons
+	ora #$08
+	sta owned_weapons
+	ldy #0
+	lda #20
+	jsr add_ammo
+	ldx #4
+	jsr switch_weapon
+	lda #ITEM_TYPE_CHAINGUN
+	jmp pickup_message
+.pa_w_rl
+	lda owned_weapons
+	ora #$10
+	sta owned_weapons
+	ldy #2
+	lda #2
+	jsr add_ammo
+	ldx #5
+	jsr switch_weapon
+	lda #ITEM_TYPE_ROCKETLAUNCHER
+	jmp pickup_message
+
+; Pos corpse — +4 shells +10 bullets (always take)
+.pa_poscorpse
+	ldy #1
+	lda #4
+	jsr add_ammo
+	ldy #0
+	lda #10
+	jsr add_ammo
+	lda #SOUND_ITEMUP
+	jsr play_sound
+	lda #0
+	sta info_kind
+	lda #1
+	sta hud_dirty
+	lda #<name_clips
+	sta info_name_l
+	lda #>name_clips
+	sta info_name_h
+	ldy #0
+.pc_len
+	lda (info_name_l),y
+	beq .pc_got
+	iny
+	bne .pc_len
+.pc_got
+	tya
+	clc
+	adc #15				; prefix + '.'
+	sta info_len
+	lda #INFO_MS_L
+	sta info_ms_l
+	lda #INFO_MS_H
+	sta info_ms_h
+	sec
+	rts
 
 .pa_no
 	clc
@@ -377,7 +536,10 @@ name_health
 	!scr "health"
 	!byte 0
 name_ammo
-	!scr "ammo"
+	!scr "shells"
+	!byte 0
+name_clips
+	!scr "clips"
 	!byte 0
 name_shotgun
 	!scr "shotgun"

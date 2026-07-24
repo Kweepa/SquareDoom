@@ -103,7 +103,7 @@ LoadLevel
 	; LoadLevel wiped $90-$98 (KERNAL); restore weapon fire interval
 	lda #$ff
 	sta cur_weapon
-	ldx #0
+	ldx #2				; pistol
 	jsr switch_weapon
 	plp
 	rts

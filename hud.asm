@@ -10,7 +10,9 @@ HUD_COL_HEALTH = 4
 HUD_COL_ARMOR = 32
 HUD_COL_KEYS = 37
 
-HUD_AMMO_ICON = 38			; pistol glyph (VicDoom weaponSymbol)
+; Per-weapon ammo icons (cyan): fist/saw blank; pistol, shotgun, chaingun, rocket
+hud_ammo_icons
+	!byte 32, 32, 38, 31, 34, 60
 HUD_HEALTH_ICON = 47			; '/' medkit
 HUD_ARMOR_ICON = 30
 HUD_KEY_ICON = 59			; ';' keycard
@@ -34,14 +36,18 @@ draw_hud
 	lda #0
 	sta hud_dirty
 
-	; --- left: ammo ---
-	ldx #HUD_COL_AMMO
-	lda #HUD_AMMO_ICON
+	; --- left: ammo (icon + count for current weapon) ---
+	ldx cur_weapon
+	lda hud_ammo_icons,x
 	sta tmp0
+	ldx #HUD_COL_AMMO
 	lda #HUD_COL_CYAN
 	jsr hud_put
 
-	lda ammo
+	ldx cur_weapon
+	lda wpn_ammo_idx,x
+	tax
+	lda ammo_bullets,x
 	ldx #HUD_COL_AMMO + 1
 	ldy #HUD_COL_RED
 	jsr hud_print3

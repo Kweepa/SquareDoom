@@ -5,6 +5,7 @@ import {
   SWITCH_TYPE,
   MAP_SIZE,
   MAX_ITEMS,
+  MAX_PLACEABLE_ITEMS,
   MAX_ENEMIES,
   ENEMY_TYPES,
   LEVEL_NAMES,
@@ -569,8 +570,8 @@ refreshAfterPack = refreshAll;
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
-  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_ITEMS) {
-    setStatus(`Max ${MAX_ITEMS} items`, true);
+  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_PLACEABLE_ITEMS) {
+    setStatus(`Max ${MAX_PLACEABLE_ITEMS} items`, true);
     return;
   }
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) {

@@ -36,6 +36,7 @@ import {
   LEVEL_NAMES,
   MAP_CELLS,
   MAX_ITEMS,
+  MAX_PLACEABLE_ITEMS,
   MAX_ENEMIES,
   MAX_SECTORS,
   ENEMY_TYPES,
@@ -169,7 +170,7 @@ export function levelFromJSON(data) {
       }
       const asSwitch = coerceSwitchItem(it);
       if (asSwitch) {
-        if (gameItemCount(level) >= MAX_ITEMS) break;
+        if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
         level.items.push(asSwitch);
         if (it.switchAction || it.targetTag) {
           legacySwitches.push({
@@ -182,7 +183,7 @@ export function levelFromJSON(data) {
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
-      if (gameItemCount(level) >= MAX_ITEMS) break;
+      if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
       level.items.push({
         type: it.type,
         x: clamp(it.x ?? 0, 0, 255),

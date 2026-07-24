@@ -2,17 +2,25 @@
 !zone weapon
 
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
-;   minigun $3000: 8 sprites (body×6 + flash×2 behind)
-;   rocket  $3200: 8 sprites (body×6 + pink flash×2 behind)
-;   shotgun $3400: 8 sprites (body×6 + flash×2 behind)
-;   pistol  $3600: 8 sprites (gun×3 + hand×3 + flash×2 behind)
+;   fist right $2a00 / punch $2c00: 7 layers + pad each
+;   chainsaw $2e00: 8 sprites (no flash)
+;   minigun  $3000: 8 sprites (body×6 + flash×2 behind)
+;   rocket   $3200: 8 sprites (body×6 + pink flash×2 behind)
+;   shotgun  $3400: 8 sprites (body×6 + flash×2 behind)
+;   pistol   $3600: 8 sprites (gun×3 + hand×3 + flash×2 behind)
+FIST_RIGHT_SPR_PTR0 = FIST_RIGHT_SPRITES / 64
+FIST_PUNCH_SPR_PTR0 = FIST_PUNCH_SPRITES / 64
+CHAINSAW_SPR_PTR0 = CHAINSAW_SPRITES / 64
 MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
 PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
 EIGHT_ENABLE_IDLE = $3f		; sprites 0–5 (body; flash 6–7 off)
+EIGHT_ENABLE_ALL = $ff		; all eight (chainsaw)
+FIST_ENABLE = $7f			; sprites 0–6 (hand layers)
 FLASH_ENABLE = $c0			; sprites 6–7
 MUZZLE_MS = 300
+PUNCH_MS = 350				; fist punch pose duration
 
 ; Screen layout (XY expand): sprite px ×2.
 ; Bottom dark/hand row Y=208; adjacent X = 112 / 160; centred hi X = 136.
@@ -28,20 +36,24 @@ muzzle_hi_cycle !byte 0
 muzzle_hi_cols
 	!byte 1, 7, 1, 10		; some bright colours
 
-; Per-weapon fire interval (ms while held)
+; Per-weapon fire interval (ms while held) — fist, saw, pistol, sg, mg, rocket
 wpn_fire_ms_lo
-	!byte <600, <900, <100, <1200
+	!byte <800, <100, <600, <900, <100, <1200
 wpn_fire_ms_hi
-	!byte >600, >900, >100, >1200
+	!byte >800, >100, >600, >900, >100, >1200
 
 wpn_setup_lo
-	!byte <setup_pistol, <setup_shotgun, <setup_minigun, <setup_rocket
+	!byte <setup_fist, <setup_chainsaw, <setup_pistol, <setup_shotgun
+	!byte <setup_minigun, <setup_rocket
 wpn_setup_hi
-	!byte >setup_pistol, >setup_shotgun, >setup_minigun, >setup_rocket
+	!byte >setup_fist, >setup_chainsaw, >setup_pistol, >setup_shotgun
+	!byte >setup_minigun, >setup_rocket
 wpn_damage_lo
-	!byte <damage_pistol, <damage_shotgun, <damage_minigun, <damage_rocket
+	!byte <damage_fist, <damage_chainsaw, <damage_pistol, <damage_shotgun
+	!byte <damage_minigun, <damage_rocket
 wpn_damage_hi
-	!byte >damage_pistol, >damage_shotgun, >damage_minigun, >damage_rocket
+	!byte >damage_fist, >damage_chainsaw, >damage_pistol, >damage_shotgun
+	!byte >damage_minigun, >damage_rocket
 
 ; SMC stubs — +1/+2 patched by switch_weapon
 wpn_setup
@@ -111,8 +123,56 @@ rocket_spr_y
 	!byte 208, 208			; dark BL / BR
 	!byte 162, 162			; flash (+9 sprite px above body top)
 
-; X = weapon id (0=pistol, 1=shotgun, 2=minigun, 3=rocket). No-op if already active.
+; Chainsaw: blade hi, detail, hands, blade dark, body L/M/R — no flash
+chainsaw_spr_col
+	!byte 1, 11			; blade hi white / grey detail
+	!byte 8, 9			; hand orange / brown
+	!byte 0				; blade dark
+	!byte 0, 0, 0			; body L/M/R
+chainsaw_spr_x
+	!byte 208, 182			; blade hi / detail
+	!byte 112, 112			; hands
+	!byte 208			; blade dark
+	!byte 112, 160, 208		; body L/M/R
+chainsaw_spr_y
+	!byte 168, 208			; blade hi / detail
+	!byte 208, 208			; hands
+	!byte 168			; blade dark
+	!byte 208, 208, 208		; body
+
+; Fist open right hand / punch — grey hi, light×3, dark×3 (+ pad unused)
+; Idle: right side. Punch: right tile center at mid-screen (~184).
+; Tile X step matches PNG crops 0/16/33 (*2 expand = +32/+34)
+fist_spr_col
+	!byte 15			; grey highlight
+	!byte 8, 8, 8		; light
+	!byte 9, 9, 9			; dark
+	!byte 0				; pad
+fist_spr_x
+	!byte 226			; hi (right tile)
+	!byte 160, 192, 226		; pink L/M/R
+	!byte 160, 192, 226		; dark L/M/R
+	!byte 0				; pad
+; Punch: R=160 so mid of right sprite (160+24) ≈ screen center
+fist_punch_spr_x
+	!byte 160			; hi (right tile)
+	!byte 94, 126, 160		; pink L/M/R
+	!byte 94, 126, 160		; dark L/M/R
+	!byte 0				; pad
+fist_spr_y
+	!byte 208
+	!byte 208, 208, 208
+	!byte 208, 208, 208
+	!byte 208
+
+; X = weapon id (0=fist … 5=rocket). Gated by owned_weapons (fist always ok).
 switch_weapon
+	cpx #0
+	beq .sw_ok			; fist always
+	lda wpn_own_bit,x
+	bit owned_weapons
+	beq .sw_done			; not owned
+.sw_ok
 	cpx cur_weapon
 	beq .sw_done
 	stx cur_weapon
@@ -133,17 +193,21 @@ switch_weapon
 	sta muzzle_ms_h
 	sta fire_rpt_l
 	sta fire_rpt_h
+	lda #1
+	sta hud_dirty
 	jsr wpn_setup
-	jmp .wpn_hi_bright		; match sector brightness this frame
+	jmp .wpn_hi_bright
 .sw_done
 	rts
 
 init_weapon
 	lda #0
 	sta wpn_visible			; hide until first render blit
+	lda #$02
+	sta owned_weapons		; pistol until init_hud_state (level start)
 	lda #$ff
 	sta cur_weapon			; force setup
-	ldx #0
+	ldx #2				; pistol
 	jmp switch_weapon
 
 ; Hide HUD weapon sprites (menus / intermission)
@@ -179,12 +243,25 @@ show_weapon
 	lda bright_to_wpn_hi,x
 .wh_apply
 	ldx cur_weapon
-	beq .wh_pistol
+	beq .wh_fist
 	cpx #1
+	beq .wh_saw
+	cpx #2
+	beq .wh_pistol
+	cpx #3
 	beq .wh_sg
+	cpx #4
+	bcc .wh_rts
 	; minigun / rocket: sprites 0–1 are highlights
 	sta $d027
 	sta $d028
+.wh_rts
+	rts
+.wh_fist
+	sta $d027			; fist grey highlight
+	rts
+.wh_saw
+	sta $d027			; chainsaw blade highlight
 	rts
 .wh_pistol
 	sta $d027			; pistol sprite 0 (gun highlight)
@@ -210,6 +287,82 @@ bright_to_wpn_hi
 ; ------------------------------------------------------------------
 ; Shared 8-sprite setup: A = ptr0, col/x/y tables via (ptr)
 ; ------------------------------------------------------------------
+setup_fist
+	lda #FIST_RIGHT_SPR_PTR0
+	ldx #0				; idle X table
+	jmp .fist_apply
+
+; Punch pose — replaces open right hand for PUNCH_MS
+setup_fist_punch
+	lda #FIST_PUNCH_SPR_PTR0
+	ldx #1				; punch X table (further left)
+	; fall through
+.fist_apply
+	sta tmp0			; sprite pointer base
+	stx tmp1			; 0=idle X, 1=punch X
+	lda #FIST_ENABLE
+	jsr .wpn_en
+	lda #$ff
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+.sf_set
+	lda fist_spr_col,x
+	sta $d027,x
+	txa
+	clc
+	adc tmp0
+	sta $07f8,x
+	lda tmp1
+	bne .sf_punch_x
+	lda fist_spr_x,x
+	jmp .sf_got_x
+.sf_punch_x
+	lda fist_punch_spr_x,x
+.sf_got_x
+	sta $d000,y
+	lda fist_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .sf_set
+	rts
+
+setup_chainsaw
+	lda #EIGHT_ENABLE_ALL
+	jsr .wpn_en
+	lda #$ff
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+.sc_set
+	lda chainsaw_spr_col,x
+	sta $d027,x
+	txa
+	clc
+	adc #CHAINSAW_SPR_PTR0
+	sta $07f8,x
+	lda chainsaw_spr_x,x
+	sta $d000,y
+	lda chainsaw_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .sc_set
+	rts
+
 setup_pistol
 	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
@@ -326,6 +479,28 @@ setup_rocket
 	bcc .sr_set
 	rts
 
+; Fist / chainsaw: pistol-scale damage, but only in MELEERANGE (COL_AIM_Z).
+; Chainsaw adds pain_boost so hits flinch more often (same dmg, faster fire).
+damage_fist
+	lda #0
+	sta pain_boost
+	jmp .dmg_melee
+damage_chainsaw
+	lda #10				; bias past typical mobj_pain_chance
+	sta pain_boost
+.dmg_melee
+	jsr GetRandom8
+	lsr
+	lsr
+	lsr
+	lsr
+	clc
+	adc #1				; 1..16, same as pistol
+	jsr TryDamageMelee
+	lda #0
+	sta pain_boost
+	rts
+
 damage_pistol
 	jsr GetRandom8
 	lsr
@@ -349,20 +524,27 @@ damage_minigun
 	jmp damage_pistol
 
 damage_rocket
-	jsr GetRandom8
-	lsr
-	lsr
-	clc
-	adc #20
-	jmp TryDamageEnemy
+	jmp spawn_player_rocket
 
-; Spend 1 ammo, show muzzle flash, damage via SMC. C=0 ok, C=1 no ammo.
+; Spend 1 ammo from the active weapon's reserve, show muzzle flash, damage via SMC.
+; C=0 ok, C=1 no ammo (or rocket slot busy). Melee (0/1) skips ammo/flash.
 .fire_shot
-	lda ammo
+	ldx cur_weapon
+	cpx #2
+	bcc .fs_melee
+	cpx #5				; rocket — need free projectile slot
+	bne .fs_ammo
+	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
+	bne .fs_empty
+.fs_ammo
+	ldx cur_weapon
+	lda wpn_ammo_idx,x
+	tay
+	lda ammo_bullets,y
 	beq .fs_empty
 	sec
 	sbc #1
-	sta ammo
+	sta ammo_bullets,y
 	lda #1
 	sta hud_dirty
 	lda #<MUZZLE_MS
@@ -378,7 +560,24 @@ damage_rocket
 	tax
 	lda muzzle_hi_cols,x
 	sta muzzle_hi_col
-	jsr .wpn_hi_bright		; change gun highlight while flash up
+	jsr .wpn_hi_bright
+	ldx cur_weapon
+	lda wpn_sound,x
+	jsr play_sound
+	jsr wpn_damage
+	clc
+	rts
+.fs_melee
+	ldx cur_weapon
+	bne .fs_melee_saw
+	; fist — show punch pose for PUNCH_MS (replaces open right hand)
+	lda #<PUNCH_MS
+	sta muzzle_ms_l
+	lda #>PUNCH_MS
+	sta muzzle_ms_h
+	jsr setup_fist_punch
+	jsr .wpn_hi_bright
+.fs_melee_saw
 	ldx cur_weapon
 	lda wpn_sound,x
 	jsr play_sound
@@ -391,21 +590,24 @@ damage_rocket
 	sec
 	rts
 
-; Fire SFX per weapon id
+; Fire SFX per weapon id (fist, saw, pistol, sg, mg, rocket)
 wpn_sound
-	!byte SOUND_PISTOL, SOUND_SHOTGN, SOUND_PISTOL, SOUND_SHOTGN
+	!byte SOUND_PUNCH, SOUND_SAWFUL, SOUND_PISTOL, SOUND_SHOTGN, SOUND_PISTOL, SOUND_SHOTGN
 
 ; Call once per frame after render (COL_AIM_* set in render_items).
 ; While SPACE held: fire when fire_rpt is 0, then wait wpn_fire_ms.
 ; Note: $d015 is write-only — use spr_en mirror; gated by wpn_visible.
 update_muzzle_flash
-	; --- muzzle flash sprite timeout ---
+	; --- muzzle flash / fist-punch timeout ---
 	lda muzzle_ms_l
 	ora muzzle_ms_h
 	beq .mf_keys
+	ldx cur_weapon
+	beq .mf_tick			; fist punch: no flash OR
 	lda spr_en
 	ora #FLASH_ENABLE
 	jsr .wpn_en
+.mf_tick
 	sec
 	lda muzzle_ms_l
 	sbc dt_ms
@@ -420,10 +622,9 @@ update_muzzle_flash
 	lda #0
 	sta muzzle_ms_l
 	sta muzzle_ms_h
-	lda spr_en
-	and #EIGHT_ENABLE_IDLE
-	jsr .wpn_en
-	jsr .wpn_hi_bright		; restore sector brightness highlight
+	; restore idle weapon pose (fist → open hand; guns → flash off)
+	jsr wpn_setup
+	jsr .wpn_hi_bright
 
 .mf_keys
 	lda key_fire

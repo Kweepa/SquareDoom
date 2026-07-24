@@ -637,9 +637,11 @@ const MAP_SIZE = 32;
 const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 const MAX_SECTORS = 255;
 const MAX_ITEMS = 48;
-/** Live enemy mobjs; last mobj slot is reserved for missile (matches game MAX_MOBJ). */
+/** Last two item slots reserved for enemy missile + player rocket. */
+const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
+/** Live enemy mobjs; last two mobj slots reserved for missiles (matches game MAX_MOBJ). */
 const MAX_MOBJ = 32;
-const MAX_ENEMIES = MAX_MOBJ - 1;
+const MAX_ENEMIES = MAX_MOBJ - 2;
 
 /** Fixed cooked level-name length (ASCII, null-padded). */
 const LEVEL_NAME_LEN = 20;
@@ -814,6 +816,7 @@ const ITEM_TYPES = [
   'switch',
   'fireball',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
+  'plasmaball', 'rocket',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -822,7 +825,10 @@ const CAMERA_TYPE = 'camera';
 const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 const FIREBALL_TYPE = 'fireball';
-const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse']);
+const RUNTIME_ONLY_TYPES = new Set([
+  'fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
+  'plasmaball', 'rocket',
+]);
 
 /** Legacy cook type ids that map to SWITCH_TYPE. */
 const LEGACY_SWITCH_COOK_TYPES = new Set([
@@ -2192,7 +2198,7 @@ function addItem(level, type, x, y, skills = defaultSkills()) {
     return item;
   }
   if (type === SWITCH_TYPE || isSwitchCookType(type)) {
-    if (gameItemCount(level) >= MAX_ITEMS) return null;
+    if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
     const item = {
       type: SWITCH_TYPE,
       x: clampWorld(x),
@@ -2201,7 +2207,7 @@ function addItem(level, type, x, y, skills = defaultSkills()) {
     level.items.push(item);
     return item;
   }
-  if (gameItemCount(level) >= MAX_ITEMS) return null;
+  if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) return null;
   const item = {
     type,
@@ -2367,7 +2373,7 @@ function levelFromJSON(data) {
       }
       const asSwitch = coerceSwitchItem(it);
       if (asSwitch) {
-        if (gameItemCount(level) >= MAX_ITEMS) break;
+        if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
         level.items.push(asSwitch);
         if (it.switchAction || it.targetTag) {
           legacySwitches.push({
@@ -2380,7 +2386,7 @@ function levelFromJSON(data) {
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
-      if (gameItemCount(level) >= MAX_ITEMS) break;
+      if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
       level.items.push({
         type: it.type,
         x: clamp(it.x ?? 0, 0, 255),
@@ -3655,7 +3661,7 @@ class TileEditor {
 
     const countLine = document.createElement('p');
     countLine.className = 'muted';
-    countLine.textContent = `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}/${MAX_ITEMS}`;
+    countLine.textContent = `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}/${MAX_PLACEABLE_ITEMS}`;
     this.root.appendChild(countLine);
 
     if (!tiles.length) {
@@ -4698,8 +4704,8 @@ refreshAfterPack = refreshAll;
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
-  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_ITEMS) {
-    setStatus(`Max ${MAX_ITEMS} items`, true);
+  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_PLACEABLE_ITEMS) {
+    setStatus(`Max ${MAX_PLACEABLE_ITEMS} items`, true);
     return;
   }
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) {

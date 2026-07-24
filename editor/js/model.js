@@ -4,9 +4,11 @@ export const MAP_SIZE = 32;
 export const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 export const MAX_SECTORS = 255;
 export const MAX_ITEMS = 48;
-/** Live enemy mobjs; last mobj slot is reserved for missile (matches game MAX_MOBJ). */
+/** Last two item slots reserved for enemy missile + player rocket. */
+export const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
+/** Live enemy mobjs; last two mobj slots reserved for missiles (matches game MAX_MOBJ). */
 export const MAX_MOBJ = 32;
-export const MAX_ENEMIES = MAX_MOBJ - 1;
+export const MAX_ENEMIES = MAX_MOBJ - 2;
 
 /** Fixed cooked level-name length (ASCII, null-padded). */
 export const LEVEL_NAME_LEN = 20;
@@ -181,6 +183,7 @@ export const ITEM_TYPES = [
   'switch',
   'fireball',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
+  'plasmaball', 'rocket',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -189,7 +192,10 @@ export const CAMERA_TYPE = 'camera';
 export const SWITCH_TYPE = 'switch';
 /** Runtime-only (missile / death corpses); not placeable in the editor. */
 export const FIREBALL_TYPE = 'fireball';
-export const RUNTIME_ONLY_TYPES = new Set(['fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse']);
+export const RUNTIME_ONLY_TYPES = new Set([
+  'fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
+  'plasmaball', 'rocket',
+]);
 
 /** Legacy cook type ids that map to SWITCH_TYPE. */
 const LEGACY_SWITCH_COOK_TYPES = new Set([
@@ -1559,7 +1565,7 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
     return item;
   }
   if (type === SWITCH_TYPE || isSwitchCookType(type)) {
-    if (gameItemCount(level) >= MAX_ITEMS) return null;
+    if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
     const item = {
       type: SWITCH_TYPE,
       x: clampWorld(x),
@@ -1568,7 +1574,7 @@ export function addItem(level, type, x, y, skills = defaultSkills()) {
     level.items.push(item);
     return item;
   }
-  if (gameItemCount(level) >= MAX_ITEMS) return null;
+  if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) return null;
   const item = {
     type,

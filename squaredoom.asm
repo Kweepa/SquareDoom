@@ -7,6 +7,9 @@ FRAMEBUFFER = $c800
 ; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
 LIGHTFRAME = $cc00
 CHARSET = $3800
+FIST_RIGHT_SPRITES = $2a00	; 8×64 open right hand (7 used)
+FIST_PUNCH_SPRITES = $2c00	; 8×64 punch pose (7 used)
+CHAINSAW_SPRITES = $2e00	; 8×64-byte chainsaw (no flash; VIC bank 0)
 MINIGUN_SPRITES = $3000	; 8×64-byte minigun+flash (VIC bank 0)
 ROCKET_SPRITES = $3200		; 8×64-byte rocket+flash (VIC bank 0)
 SHOTGUN_SPRITES = $3400	; 8×64-byte shotgun+flash (VIC bank 0)
@@ -38,15 +41,22 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "profil.asm"
 !source "render.asm"
 !source "blit.asm"
+!source "weapon.asm"
 
 end_low = *
-free_low = MINIGUN_SPRITES - end_low
+free_low = FIST_RIGHT_SPRITES - end_low
 !if free_low < 0 {
-	!error "Low code overlaps minigun sprites at $3000; overshoot=", end_low - MINIGUN_SPRITES
+	!error "Low code overlaps fist sprites at $2a00; overshoot=", end_low - FIST_RIGHT_SPRITES
 }
-!warn "mem: low  end=$", end_low, " free to minigun $3000 =", free_low
+!warn "mem: low  end=$", end_low, " free to fist $2a00 =", free_low
 
 ; Weapon sprite banks in VIC bank 0, before charset
+*=FIST_RIGHT_SPRITES
+!source "fist_righthand.asm"
+*=FIST_PUNCH_SPRITES
+!source "fist_punch.asm"
+*=CHAINSAW_SPRITES
+!source "chainsaw_weapon.asm"
 *=MINIGUN_SPRITES
 !source "minigun_weapon.asm"
 *=ROCKET_SPRITES
@@ -70,7 +80,6 @@ free_low = MINIGUN_SPRITES - end_low
 !source "doomfont.asm"
 !source "hud.asm"
 !source "pickup.asm"
-!source "weapon.asm"
 !source "titlemenus.asm"
 !source "loader.asm"
 ; P + clip moved out of low (which is nearly full); py_tab needs page alignment

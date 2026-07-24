@@ -43,8 +43,10 @@ irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
 in_map		!byte 0			; OR-latch: F1 held any IRQ sample this frame
 key_map		!byte 0			; snapshot from read_input
 key_map_was	!byte 0			; previous-frame key_map for rising-edge map toggle
+in_wpn_fist	!byte 0			; OR-latch: 1 held (fist/chainsaw toggle)
 in_wpn_minigun	!byte 0			; OR-latch: 4 held
 in_wpn_rocket	!byte 0			; OR-latch: 5 held
+key_wpn_fist	!byte 0
 key_wpn_minigun	!byte 0
 key_wpn_rocket	!byte 0
 
@@ -62,6 +64,7 @@ input_irq_init
 	sta in_use
 	sta in_fire
 	sta in_map
+	sta in_wpn_fist
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
 	sta in_wpn_minigun
@@ -203,7 +206,7 @@ input_irq
 	sta in_wpn_rocket
 .irq_no5
 
-	; 2 / SPACE (PA7 = $7F)
+	; 2 / SPACE / 1 (PA7 = $7F)
 	lda #$7f
 	sta $dc00
 	lda $dc01
@@ -213,6 +216,12 @@ input_irq
 	lda #1
 	sta in_wpn_pistol
 .irq_no2
+	txa
+	and #$01				; 1 = fist/chainsaw
+	bne .irq_no1
+	lda #1
+	sta in_wpn_fist
+.irq_no1
 	txa
 	and #$10				; SPACE = fire
 	bne .irq_nospc
@@ -265,6 +274,8 @@ read_input
 	sta key_fire
 	lda in_map
 	sta key_map
+	lda in_wpn_fist
+	sta key_wpn_fist
 	lda in_wpn_pistol
 	sta key_wpn_pistol
 	lda in_wpn_shotgun
@@ -295,31 +306,63 @@ read_input
 	sta in_use
 	sta in_fire
 	sta in_map
+	sta in_wpn_fist
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
 	sta in_wpn_minigun
 	sta in_wpn_rocket
 	cli
 
-	; --- weapon select: 2=pistol 3=shotgun 4=minigun 5=rocket ---
+	; --- weapon select: 1=fist/saw toggle 2=pistol 3=shotgun 4=minigun 5=rocket ---
+	lda key_wpn_fist
+	beq .no_wpn1
+	lda cur_weapon
+	cmp #0
+	bne .w1_not_fist
+	; on fist → chainsaw if owned
+	lda owned_weapons
+	and #$01
+	beq .no_wpn1
+	ldx #1
+	jsr switch_weapon
+	jmp .no_wpn1
+.w1_not_fist
+	cmp #1
+	bne .w1_other
+	; on chainsaw → fist
+	ldx #0
+	jsr switch_weapon
+	jmp .no_wpn1
+.w1_other
+	; other gun → chainsaw if owned else fist
+	lda owned_weapons
+	and #$01
+	beq .w1_fist
+	ldx #1
+	jsr switch_weapon
+	jmp .no_wpn1
+.w1_fist
+	ldx #0
+	jsr switch_weapon
+.no_wpn1
 	lda key_wpn_pistol
 	beq .no_wpn2
-	ldx #0
+	ldx #2
 	jsr switch_weapon
 .no_wpn2
 	lda key_wpn_shotgun
 	beq .no_wpn3
-	ldx #1
+	ldx #3
 	jsr switch_weapon
 .no_wpn3
 	lda key_wpn_minigun
 	beq .no_wpn4
-	ldx #2
+	ldx #4
 	jsr switch_weapon
 .no_wpn4
 	lda key_wpn_rocket
 	beq .no_wpn5
-	ldx #3
+	ldx #5
 	jsr switch_weapon
 .no_wpn5
 
