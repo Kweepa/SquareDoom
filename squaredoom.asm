@@ -7,6 +7,8 @@ FRAMEBUFFER = $c800
 ; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
 LIGHTFRAME = $cc00
 CHARSET = $3800
+MINIGUN_SPRITES = $3080	; 8×64-byte minigun+flash (VIC bank 0)
+ROCKET_SPRITES = $3280		; 8×64-byte rocket+flash (VIC bank 0)
 SHOTGUN_SPRITES = $3480	; 8×64-byte shotgun+flash (VIC bank 0)
 PISTOL_SPRITES = $3680		; 6×64-byte pistol+flash overlays (VIC bank 0)
 FLOOR_PAT_BASE = 219		; floor dither glyphs 219–234 (after skull @ 218)
@@ -38,13 +40,17 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "blit.asm"
 
 end_low = *
-free_low = SHOTGUN_SPRITES - end_low
+free_low = MINIGUN_SPRITES - end_low
 !if free_low < 0 {
-	!error "Low code overlaps shotgun sprites at $3480; overshoot=", end_low - SHOTGUN_SPRITES
+	!error "Low code overlaps minigun sprites at $3080; overshoot=", end_low - MINIGUN_SPRITES
 }
-!warn "mem: low  end=$", end_low, " free to shotgun $3480 =", free_low
+!warn "mem: low  end=$", end_low, " free to minigun $3080 =", free_low
 
-; Shotgun then pistol sprite banks in VIC bank 0, before charset
+; Weapon sprite banks in VIC bank 0, before charset
+*=MINIGUN_SPRITES
+!source "minigun_weapon.asm"
+*=ROCKET_SPRITES
+!source "rocket_weapon.asm"
 *=SHOTGUN_SPRITES
 !source "shotgun_weapon.asm"
 *=PISTOL_SPRITES

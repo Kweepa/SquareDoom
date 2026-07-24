@@ -122,7 +122,7 @@ in_fwd		= $8f			; W
 ; $90-$95 — KERNAL serial/IEC during LOAD (ST, C3PO, BSOUR, …). Do not place
 ; game ZP here; stray $90 (ST) bit6/7 aborts KERNAL LOAD early (see JSW zp.asm).
 ; $96-$98 also wiped by LoadLevel (through LDTND) — keep weapon interval out.
-cur_weapon	= $96			; 0=pistol, 1=shotgun (re-set after LOAD)
+cur_weapon	= $96			; 0=pistol, 1=shotgun, 2=minigun, 3=rocket (re-set after LOAD)
 in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b

@@ -2,31 +2,40 @@
 !zone weapon
 
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
+;   minigun $3080: 8 sprites (flash + 2 hi + 2 light + 2 dark)
+;   rocket  $3280: 8 sprites (pink flash×2 + 2 hi + 4 dark)
 ;   shotgun $3480: 8 sprites (own flash + 6 body)
 ;   pistol  $3680: 6 sprites (flash + 4 body)
-PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
+MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
+ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
+PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
 PISTOL_ENABLE_IDLE = $3c		; sprites 2–5
-SHOTGUN_ENABLE_IDLE = $fc		; sprites 2–7
+EIGHT_ENABLE_IDLE = $fc		; sprites 2–7 (shotgun / minigun / rocket)
 MUZZLE_MS = 300
+
+; Screen layout (XY expand): sprite px ×2.
+; Bottom dark row Y=208; adjacent X = 112 / 160; centred hi X = 136.
+; Minigun light/hi top = dark − 14 (7 sprite px); rocket top row = dark − 28;
+; rocket pink flash = body top − 18 (9 sprite px above body).
 
 ; $00 until first blit, then $ff — AND with spr_en before writing $d015
 wpn_visible	!byte 0
 
 ; Per-weapon fire interval (ms while held)
 wpn_fire_ms_lo
-	!byte <600, <900
+	!byte <600, <900, <100, <1200
 wpn_fire_ms_hi
-	!byte >600, >900
+	!byte >600, >900, >100, >1200
 
 wpn_setup_lo
-	!byte <setup_pistol, <setup_shotgun
+	!byte <setup_pistol, <setup_shotgun, <setup_minigun, <setup_rocket
 wpn_setup_hi
-	!byte >setup_pistol, >setup_shotgun
+	!byte >setup_pistol, >setup_shotgun, >setup_minigun, >setup_rocket
 wpn_damage_lo
-	!byte <damage_pistol, <damage_shotgun
+	!byte <damage_pistol, <damage_shotgun, <damage_minigun, <damage_rocket
 wpn_damage_hi
-	!byte >damage_pistol, >damage_shotgun
+	!byte >damage_pistol, >damage_shotgun, >damage_minigun, >damage_rocket
 
 ; SMC stubs — +1/+2 patched by switch_weapon
 wpn_setup
@@ -64,7 +73,38 @@ shotgun_spr_y
 	!byte 186, 208, 208		; body
 	!byte 208, 208			; hand
 
-; X = weapon id (0=pistol, 1=shotgun). No-op if already active.
+minigun_spr_col
+	!byte 1, 2			; flash white, red
+	!byte 15, 15			; highlights (brightness-updated)
+	!byte 12, 12			; light grey body
+	!byte 0, 0   			; dark grey body
+minigun_spr_x
+	!byte 160, 160			; flash
+	!byte 160, 160			; hi top / bot (centred)
+	!byte 136, 184			; light L / R
+	!byte 136, 184			; dark L / R
+minigun_spr_y
+	!byte 162, 162			; flash
+	!byte 194, 208			; hi top / bot
+	!byte 194, 194			; light (+7 sprite px above dark)
+	!byte 208, 208			; dark
+
+rocket_spr_col
+	!byte 10, 10			; pink flash (Pepto light red)
+	!byte 15, 15			; highlights (brightness-updated)
+	!byte 0, 0, 0, 0		; dark 2×2
+rocket_spr_x
+	!byte 136, 184			; flash L / R (side by side)
+	!byte 160, 160			; hi top / bot (centred)
+	!byte 136, 184			; dark TL / TR
+	!byte 136, 184			; dark BL / BR
+rocket_spr_y
+	!byte 162, 162			; flash (+9 sprite px above body top)
+	!byte 180, 208			; hi top / bot
+	!byte 180, 180			; dark TL / TR (dy=14 sprite px)
+	!byte 208, 208			; dark BL / BR
+
+; X = weapon id (0=pistol, 1=shotgun, 2=minigun, 3=rocket). No-op if already active.
 switch_weapon
 	cpx cur_weapon
 	beq .sw_done
@@ -121,7 +161,14 @@ show_weapon
 	tax
 	lda bright_to_wpn_hi,x
 	ldx cur_weapon
-	bne .sw_sg
+	beq .sw_pistol
+	cpx #1
+	beq .sw_sg
+	; minigun / rocket: sprites 2–3 are highlights
+	sta $d029
+	sta $d02a
+	rts
+.sw_pistol
 	sta $d02a			; pistol sprite 3 (weapon light)
 	rts
 .sw_sg
@@ -142,6 +189,9 @@ bright_to_wpn_hi
 	sta $d015
 	rts
 
+; ------------------------------------------------------------------
+; Shared 8-sprite setup: A = ptr0, col/x/y tables via (ptr)
+; ------------------------------------------------------------------
 setup_pistol
 	lda #PISTOL_ENABLE_IDLE
 	jsr .wpn_en
@@ -172,7 +222,7 @@ setup_pistol
 	rts
 
 setup_shotgun
-	lda #SHOTGUN_ENABLE_IDLE
+	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
 	lda #$ff			; XY expand all eight
 	sta $d01d
@@ -200,6 +250,64 @@ setup_shotgun
 	bcc .ss_set
 	rts
 
+setup_minigun
+	lda #EIGHT_ENABLE_IDLE
+	jsr .wpn_en
+	lda #$ff
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+.sm_set
+	lda minigun_spr_col,x
+	sta $d027,x
+	txa
+	clc
+	adc #MINIGUN_SPR_PTR0
+	sta $07f8,x
+	lda minigun_spr_x,x
+	sta $d000,y
+	lda minigun_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .sm_set
+	rts
+
+setup_rocket
+	lda #EIGHT_ENABLE_IDLE
+	jsr .wpn_en
+	lda #$ff
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+.sr_set
+	lda rocket_spr_col,x
+	sta $d027,x
+	txa
+	clc
+	adc #ROCKET_SPR_PTR0
+	sta $07f8,x
+	lda rocket_spr_x,x
+	sta $d000,y
+	lda rocket_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .sr_set
+	rts
+
 damage_pistol
 	jsr GetRandom8
 	lsr
@@ -219,6 +327,17 @@ damage_shotgun
 	adc #3
 	jmp TryDamageEnemy
 
+damage_minigun
+	jmp damage_pistol
+
+damage_rocket
+	jsr GetRandom8
+	lsr
+	lsr
+	clc
+	adc #20
+	jmp TryDamageEnemy
+
 ; Spend 1 ammo, show muzzle flash, damage via SMC. C=0 ok, C=1 no ammo.
 .fire_shot
 	lda ammo
@@ -235,13 +354,8 @@ damage_shotgun
 	lda spr_en
 	ora #$03
 	jsr .wpn_en
-	lda cur_weapon
-	bne .fs_sg
-	lda #SOUND_PISTOL
-	bne .fs_snd
-.fs_sg
-	lda #SOUND_SHOTGN
-.fs_snd
+	ldx cur_weapon
+	lda wpn_sound,x
 	jsr play_sound
 	jsr wpn_damage
 	clc
@@ -251,6 +365,10 @@ damage_shotgun
 	jsr play_sound
 	sec
 	rts
+
+; Fire SFX per weapon id
+wpn_sound
+	!byte SOUND_PISTOL, SOUND_SHOTGN, SOUND_PISTOL, SOUND_SHOTGN
 
 ; Call once per frame after render (COL_AIM_* set in render_items).
 ; While SPACE held: fire when fire_rpt is 0, then wait wpn_fire_ms.

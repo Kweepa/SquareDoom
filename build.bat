@@ -19,6 +19,8 @@ node tools\genpistol.js
 if errorlevel 1 exit /b 1
 node tools\genshotgun.js
 if errorlevel 1 exit /b 1
+node tools\genweaponhud.js
+if errorlevel 1 exit /b 1
 node tools\genitems.js
 if errorlevel 1 exit /b 1
 node tools\genenemysprites.js

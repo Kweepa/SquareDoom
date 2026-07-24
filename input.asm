@@ -5,7 +5,7 @@
 ;   K = use (PA4/PB5) — open door
 ;   SPACE = fire (PA7/PB4); F1 = map (PA0/PB4)
 ;   W/A/S = PA1 column; D = PA2 column; 3 = shotgun (PA1/PB0)
-;   2 = pistol (PA7/PB3)
+;   2 = pistol (PA7/PB3); 4 = minigun (PA1/PB3); 5 = rocket (PA2/PB0)
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
 ;
@@ -43,6 +43,10 @@ irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
 in_map		!byte 0			; OR-latch: F1 held any IRQ sample this frame
 key_map		!byte 0			; snapshot from read_input
 key_map_was	!byte 0			; previous-frame key_map for rising-edge map toggle
+in_wpn_minigun	!byte 0			; OR-latch: 4 held
+in_wpn_rocket	!byte 0			; OR-latch: 5 held
+key_wpn_minigun	!byte 0
+key_wpn_rocket	!byte 0
 
 ; ------------------------------------------------------------------
 ; input_irq_init — CIA1 TA @ SAMPLE_MS (keys), TB @ ~140 Hz (SFX)
@@ -60,6 +64,8 @@ input_irq_init
 	sta in_map
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
+	sta in_wpn_minigun
+	sta in_wpn_rocket
 	sta input_paused
 	sta key_map_was
 	sta $d01a				; no VIC IRQs
@@ -141,7 +147,7 @@ input_irq
 	sta in_turn_r
 .irq_nol
 
-	; W / A / S / 3 (PA1 = $FD)
+	; W / A / S / 3 / 4 (PA1 = $FD)
 	lda #$fd
 	sta $dc00
 	lda $dc01
@@ -172,17 +178,30 @@ input_irq
 	lda #1
 	sta in_wpn_shotgun
 .irq_no3
+	txa
+	and #$08				; 4 = minigun
+	bne .irq_no4
+	lda #1
+	sta in_wpn_minigun
+.irq_no4
 
-	; D (PA2 = $FB)
+	; D / 5 (PA2 = $FB)
 	lda #$fb
 	sta $dc00
 	lda $dc01
+	tax
 	and #$04
 	bne .irq_nod
 	lda in_strafer
 	jsr .irq_add_ms
 	sta in_strafer
 .irq_nod
+	txa
+	and #$01				; 5 = rocket
+	bne .irq_no5
+	lda #1
+	sta in_wpn_rocket
+.irq_no5
 
 	; 2 / SPACE (PA7 = $7F)
 	lda #$7f
@@ -250,6 +269,10 @@ read_input
 	sta key_wpn_pistol
 	lda in_wpn_shotgun
 	sta key_wpn_shotgun
+	lda in_wpn_minigun
+	sta key_wpn_minigun
+	lda in_wpn_rocket
+	sta key_wpn_rocket
 	lda in_turn_l
 	sta tmp3
 	lda in_turn_r
@@ -274,9 +297,11 @@ read_input
 	sta in_map
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
+	sta in_wpn_minigun
+	sta in_wpn_rocket
 	cli
 
-	; --- weapon select: 2 = pistol, 3 = shotgun ---
+	; --- weapon select: 2=pistol 3=shotgun 4=minigun 5=rocket ---
 	lda key_wpn_pistol
 	beq .no_wpn2
 	ldx #0
@@ -287,6 +312,16 @@ read_input
 	ldx #1
 	jsr switch_weapon
 .no_wpn3
+	lda key_wpn_minigun
+	beq .no_wpn4
+	ldx #2
+	jsr switch_weapon
+.no_wpn4
+	lda key_wpn_rocket
+	beq .no_wpn5
+	ldx #3
+	jsr switch_weapon
+.no_wpn5
 
 	; --- turn: net hold ms (right − left) ---
 	lda tmp4
