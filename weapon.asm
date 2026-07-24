@@ -391,7 +391,10 @@ update_muzzle_flash
 	lda muzzle_ms_h
 	sbc #0
 	sta muzzle_ms_h
-	bcs .mf_keys
+	bcc .mf_expired		; underflow
+	ora muzzle_ms_l		; A = hi
+	bne .mf_keys		; still > 0
+.mf_expired
 	lda #0
 	sta muzzle_ms_l
 	sta muzzle_ms_h
