@@ -71,8 +71,7 @@ free_low = SHOTGUN_SPRITES - end_low
 !source "render_project_y.asm"
 !source "render_clip.asm"
 !source "pytab.asm"
-!source "dpsounds.asm"
-; Enemy mips in mid (always-RAM); high was full after pinky frames
+; Enemy mips in mid (always-RAM); dpsounds moved to high for headroom
 !source "enemy_sprites.asm"
 
 end_mid = *
@@ -150,6 +149,7 @@ level_sector_max = level_item_meta + MAX_ITEMS
 !source "recip.asm"
 !source "item_bitmaps.asm"
 !source "mapscreen.asm"
+!source "dpsounds.asm"
 
 !zone 0
 
