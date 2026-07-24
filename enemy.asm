@@ -1643,7 +1643,7 @@ spawn_player_rocket
 	sta procket_zfrac
 	sta procket_momz_l
 	sta procket_momz_h
-	; mom = sintab / 8 as signed 8.8 high byte (≈ enemy missile speed)
+	; mom = (sin, −cos)/8 as signed 8.8 — matches walk forward
 	ldy playera
 	lda sintab,y
 	jsr procket_scale_mom
@@ -1656,6 +1656,7 @@ spawn_player_rocket
 	adc #64
 	tay
 	lda sintab,y
+	jsr neg_a
 	jsr procket_scale_mom
 	lda wish_x_l
 	sta procket_momy_l
