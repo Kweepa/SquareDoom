@@ -173,13 +173,13 @@ item_spr_yellowcard_m3
 	!byte $07
 item_spr_soulsphere_m0
 	!byte $ff,$ff,$06,$06,$06,$06,$ff,$ff,$ff,$06,$0e,$06,$0e,$06,$06,$ff
-	!byte $06,$0e,$ff,$01,$0e,$06,$06,$06,$06,$0e,$0e,$ff,$06,$ff,$ff,$0e
-	!byte $06,$0e,$0e,$ff,$06,$ff,$ff,$06,$06,$0e,$ff,$01,$0e,$06,$06,$06
+	!byte $06,$0e,$00,$01,$0e,$06,$06,$06,$06,$0e,$0e,$00,$06,$00,$00,$0e
+	!byte $06,$0e,$0e,$00,$06,$00,$00,$06,$06,$0e,$00,$01,$0e,$06,$06,$06
 	!byte $ff,$06,$0e,$06,$0e,$06,$06,$ff,$ff,$ff,$06,$06,$06,$06,$ff,$ff
 item_spr_soulsphere_m1
-	!byte $ff,$06,$06,$ff,$06,$0e,$ff,$06,$06,$0e,$ff,$06,$ff,$06,$06,$ff
+	!byte $ff,$06,$06,$ff,$0e,$01,$06,$06,$0e,$06,$00,$06,$ff,$01,$06,$ff
 item_spr_soulsphere_m2
-	!byte $0e,$06,$0e,$06
+	!byte $0e,$06,$01,$00
 item_spr_soulsphere_m3
 	!byte $0e
 item_spr_poscorpse_m0

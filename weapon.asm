@@ -113,16 +113,16 @@ minigun_spr_y
 	!byte 166, 166			; flash
 
 rocket_spr_col
-	!byte 15, 15			; highlights (brightness-updated)
+	!byte 15, 11			; hi (brightness-updated) / detail dark grey
 	!byte 0, 0, 0, 0		; dark 2×2
 	!byte 10, 10			; pink flash (Pepto light red)
 rocket_spr_x
-	!byte 160, 160			; hi top / bot (centred)
+	!byte 160, 160			; hi / detail (centred)
 	!byte 136, 184			; dark TL / TR
 	!byte 136, 184			; dark BL / BR
 	!byte 136, 184			; flash L / R (side by side)
 rocket_spr_y
-	!byte 180, 208			; hi top / bot
+	!byte 180, 208			; hi / detail
 	!byte 180, 180			; dark TL / TR (dy=14 sprite px)
 	!byte 208, 208			; dark BL / BR
 	!byte 162, 162			; flash (+9 sprite px above body top)
@@ -256,10 +256,9 @@ show_weapon
 	cpx #3
 	beq .wh_sg
 	cpx #4
-	bcc .wh_rts
-	; minigun / rocket: sprites 0–1 are highlights
-	sta $d027
-	sta $d028
+	beq .wh_minigun
+	cpx #5
+	beq .wh_rocket
 .wh_rts
 	rts
 .wh_fist
@@ -273,6 +272,13 @@ show_weapon
 	rts
 .wh_sg
 	sta $d027			; shotgun sprite 0 (highlight)
+	rts
+.wh_minigun
+	sta $d027			; sprites 0–1 are highlights
+	sta $d028
+	rts
+.wh_rocket
+	sta $d027			; sprite 0 hi only (1 = fixed detail grey)
 	rts
 
 ; SEC_BRIGHT 0..16 → weapon highlight C64 colour

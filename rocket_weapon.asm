@@ -1,22 +1,22 @@
 ; Auto-generated from itemgraphics/multicolour/rocketlauncher.png - do not edit
-; Eight contiguous layers (low VIC # = front): hi×2, dark 2×2, pink flash×2.
-;   PNG: grey(173) hi over opaque black dark; pink flash behind body.
+; Eight contiguous layers (low VIC # = front): hi, detail, dark 2×2, pink flash×2.
+;   PNG: white hi @y=9, grey(173) detail @y=23, opaque black dark; pink flash behind.
 ;   Flash side-by-side @y=0 (+9 above body).
 !zone rocket
 
-rocket_hi_top
+rocket_hi
 	!byte $00,$ff,$00,$00,$81,$00,$01,$ff
 	!byte $80,$0f,$e7,$f0,$3f,$e7,$fc,$7f
 	!byte $c3,$fe,$7f,$ff,$fe,$30,$ff,$0c
 	!byte $27,$ff,$e4,$1f,$ff,$f8,$18,$3c
 	!byte $18,$01,$ff,$80,$07,$ff,$e0,$0c
 	!byte $ff,$30,$4f,$ff,$f2,$0c,$7e,$30
-	!byte $27,$ff,$e4,$87,$ff,$e1,$0c,$ff
-	!byte $30,$2f,$ff,$e4,$1f,$ff,$f8,$00
-rocket_hi_bot
-	!byte $4f,$ff,$f2,$0c,$7e,$30,$27,$ff
-	!byte $e4,$87,$ff,$e1,$0c,$ff,$30,$2f
-	!byte $ff,$e4,$1f,$ff,$f8,$0f,$ff,$f0
+	!byte $27,$ff,$e4,$86,$00,$61,$0c,$00
+	!byte $30,$08,$00,$20,$00,$00,$00,$00
+rocket_detail
+	!byte $00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$01,$ff,$80,$00,$ff,$00,$27
+	!byte $ff,$c4,$1f,$ff,$f8,$0f,$ff,$f0
 	!byte $0f,$00,$f0,$0e,$00,$70,$0f,$ff
 	!byte $f0,$0f,$ff,$f0,$0f,$ff,$f0,$1f
 	!byte $ff,$f8,$1f,$ff,$f8,$1f,$ff,$f8

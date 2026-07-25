@@ -3,12 +3,12 @@
  * 24×21 hi-res VIC layers, write crop PNGs, and emit:
  *   pistol_sprites.asm  — 8 sprites (gun×3 + hand×3 + flash behind)
  *   minigun_weapon.asm  — 8 sprites (2 hi + 2 light + 2 dark + flash behind)
- *   rocket_weapon.asm   — 8 sprites (2 hi + 4 dark + pink flash behind)
+ *   rocket_weapon.asm   — 8 sprites (hi + detail + 4 dark + pink flash behind)
  *
  * Layout (sprite pixels; ×2 on screen with XY expand):
  *   Pistol  24×32: gun @y=0 (white/grey/black); hand @y=11 (orange/brown/black)
  *   Minigun 48×28: dark@y=7 side-by-side, light@y=0 (+7), hi centered @y=0/7
- *   Rocket  48×44: pink flash L/R @y=0; body square + hi @y=9 (dy=14)
+ *   Rocket  48×44: pink flash L/R @y=0; dark 2×2 @y=9; white hi + grey detail
  *
  * Pistol muzzle flash kept from prior pistol_sprites.asm (not in composite PNG).
  * Opaque black is a real layer; only alpha clears.
@@ -338,11 +338,12 @@ function processCrops(file, expectW, expectH, crops) {
 // --- Rocket launcher: 48×44 (pink flash @y=0; body @y=9) ---
 {
   const PINK = [203, 126, 117];	// Pepto light red
-  const HI = [173, 173, 173];
+  const HI = [255, 255, 255];
+  const DETAIL = [173, 173, 173];
   const DARK = [0, 0, 0];
   const { layers, info } = processCrops('rocketlauncher.png', 48, 44, [
-    { label: 'rocket_hi_top', x: 12, y: 9, rgb: HI },
-    { label: 'rocket_hi_bot', x: 12, y: 23, rgb: HI },
+    { label: 'rocket_hi', x: 12, y: 9, rgb: HI },
+    { label: 'rocket_detail', x: 12, y: 23, rgb: DETAIL },
     { label: 'rocket_dark_tl', x: 0, y: 9, rgb: DARK },
     { label: 'rocket_dark_tr', x: 24, y: 9, rgb: DARK },
     { label: 'rocket_dark_bl', x: 0, y: 23, rgb: DARK },
@@ -354,8 +355,8 @@ function processCrops(file, expectW, expectH, crops) {
     'rocketlauncher',
     'rocket',
     layers,
-    `; Eight contiguous layers (low VIC # = front): hi×2, dark 2×2, pink flash×2.\n` +
-      `;   PNG: grey(173) hi over opaque black dark; pink flash behind body.\n` +
+    `; Eight contiguous layers (low VIC # = front): hi, detail, dark 2×2, pink flash×2.\n` +
+      `;   PNG: white hi @y=9, grey(173) detail @y=23, opaque black dark; pink flash behind.\n` +
       `;   Flash side-by-side @y=0 (+9 above body).\n`,
     { pistolFlash: false }
   );
