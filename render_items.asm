@@ -137,21 +137,50 @@ item_calc_depth
 	lda playerx_h
 	jsr item_uabs8		; |ix-px|
 	cmp #ITEM_AXIS_MAX+1
-	bcs .icd_bad
+	bcc .icd_dx_ok
+	jmp .icd_bad
+.icd_dx_ok
+	lda wall_col
+	cmp #ITEM_TYPE_ROCKET
+	beq .icd_rok_dx
 	lda tmp0
 	sec
 	sbc playerx_h
 	sta fracy			; dx (signed; |dx|≤120)
+	jmp .icd_dy
+.icd_rok_dx
+	; dx = hi((item_x:MOBJ_XFRAC) - (playerx_h:playerx))
+	lda MOBJ_XFRAC + MOBJ_PLAYER_ROCKET
+	sec
+	sbc playerx
+	lda tmp0
+	sbc playerx_h
+	sta fracy
+.icd_dy
 	lda tmp1			; iy
 	sta tmp2
 	lda playery_h
 	jsr item_uabs8		; |iy-py|
 	cmp #ITEM_AXIS_MAX+1
-	bcs .icd_bad
+	bcc .icd_dy_ok
+	jmp .icd_bad
+.icd_dy_ok
+	lda wall_col
+	cmp #ITEM_TYPE_ROCKET
+	beq .icd_rok_dy
 	lda tmp1
 	sec
 	sbc playery_h
 	sta fracx			; dy
+	jmp .icd_ang
+.icd_rok_dy
+	lda MOBJ_YFRAC + MOBJ_PLAYER_ROCKET
+	sec
+	sbc playery
+	lda tmp1
+	sbc playery_h
+	sta fracx
+.icd_ang
 	ldy playera
 	lda sintab,y
 	sta last_near_floor		; sin

@@ -1785,6 +1785,8 @@ spawn_player_rocket
 	lda #ITEM_TYPE_ROCKET
 	sta level_item_type + ITEM_PLAYER_ROCKET
 	lda eyeheight
+	sec
+	sbc #1
 	sta procket_z
 	lda #0
 	sta procket_zfrac
@@ -1820,9 +1822,11 @@ spawn_player_rocket
 	sta MOBJ_INFO,x
 	lda #STATE_IMPSHOTFLY
 	sta MOBJ_STATE,x
-	lda #0
+	lda playerx
 	sta MOBJ_XFRAC,x
+	lda playery
 	sta MOBJ_YFRAC,x
+	lda #0
 	sta MOBJ_FLAGS,x
 	lda #48
 	sta MOBJ_MOVECNT,x
