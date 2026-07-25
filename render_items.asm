@@ -143,14 +143,25 @@ item_calc_depth
 	lda wall_col
 	cmp #ITEM_TYPE_ROCKET
 	beq .icd_rok_dx
-	lda tmp0
+	cmp #ITEM_TYPE_FIREBALL
+	beq .icd_msl_dx
+	cmp #ITEM_TYPE_PLASMABALL
+	beq .icd_msl_dx
+	; Items/enemies: center at n+0.5 (constant frac $80)
+	lda #$80
 	sec
+	sbc playerx
+	lda tmp0
 	sbc playerx_h
 	sta fracy			; dx (signed; |dx|≤120)
 	jmp .icd_dy
+.icd_msl_dx
+	lda MOBJ_XFRAC + MOBJ_MISSILE
+	jmp .icd_dx8
 .icd_rok_dx
 	; dx = hi((item_x:MOBJ_XFRAC) - (playerx_h:playerx))
 	lda MOBJ_XFRAC + MOBJ_PLAYER_ROCKET
+.icd_dx8
 	sec
 	sbc playerx
 	lda tmp0
@@ -168,13 +179,23 @@ item_calc_depth
 	lda wall_col
 	cmp #ITEM_TYPE_ROCKET
 	beq .icd_rok_dy
-	lda tmp1
+	cmp #ITEM_TYPE_FIREBALL
+	beq .icd_msl_dy
+	cmp #ITEM_TYPE_PLASMABALL
+	beq .icd_msl_dy
+	lda #$80
 	sec
+	sbc playery
+	lda tmp1
 	sbc playery_h
 	sta fracx			; dy
 	jmp .icd_ang
+.icd_msl_dy
+	lda MOBJ_YFRAC + MOBJ_MISSILE
+	jmp .icd_dy8
 .icd_rok_dy
 	lda MOBJ_YFRAC + MOBJ_PLAYER_ROCKET
+.icd_dy8
 	sec
 	sbc playery
 	lda tmp1
