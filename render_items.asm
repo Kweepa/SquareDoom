@@ -4,7 +4,7 @@
 ; render_items.asm — billboard items into FRAMEBUFFER after column cast
 ; ============================================================================
 ; Collect items in seen sectors, depth-sort far→near, project, draw clipped
-; against COL_CLIP_* stack (Z = fish wallz_h ≈ tiles·fish).
+; against COL_CLIP_* stack (Z = fish wallz_h; find uses item_depth>>3).
 ; Column-major item mips (byte colour, $ff=clear).
 ; Live enemies stamp COL_AIM_SLOT/Z per column (nearer overwrites).
 ; ============================================================================
@@ -15,15 +15,15 @@ ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
-ITEM_TYPE_FIREBALL = 22
-ITEM_TYPE_PLASMABALL = 27
-ITEM_TYPE_ROCKET = 28
+ITEM_TYPE_FIREBALL = 27
+ITEM_TYPE_PLASMABALL = 28
+ITEM_TYPE_ROCKET = 29
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
 ;   item_slot = current billboard item index (not ZP — once per item)
 ;   wall_col = typeId
-;   wallz_h = item depth; wallz_l = (tiles·fishtab[cx])>>8 for clip_col_find
+;   wallz_h = item depth; wallz_l = item_depth>>3 for clip_col_find
 ;   near_floor / near_ceil = floor height / sector
 ;   far_ceil = sprite H; last_near_ok = sprite W
 ;   near_fcol = unclamped sprite top (V map; fill_y0 may be clamped)
@@ -648,27 +648,11 @@ item_draw_one
 	lda item_slot
 	sta aim_item
 .id_clp_start
-	; Clip Z ≈ tiles·fish (wallz_h). Item depth ≈ 8×tiles → tiles>>3.
-	; Fish-correct once at billboard centre so find matches that column’s stack.
+	; Clip Z is already fish-baked (wallz_h). Item depth ≈ 8×tiles → >>3.
 	lda wallz_h
 	lsr
 	lsr
 	lsr
-	sta aux_l			; tiles
-	lda #0
-	sta aux_h
-	lda last_near_fcol
-	cmp #40
-	bcc .id_cx_fish
-	bmi .id_cx_lo			; signed off left → col 0
-	lda #39				; off right → col 39
-	bne .id_cx_fish
-.id_cx_lo
-	lda #0
-.id_cx_fish
-	tay
-	lda fishtab,y
-	jsr mul_16x8			; A = (tiles·fish)>>8 ≡ wallz_h band
 	sta wallz_l			; find-depth (proj/sort keep wallz_h)
 	lda span_a
 	sta col

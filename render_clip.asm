@@ -4,9 +4,9 @@
 ; render_clip.asm — per-column portal clip stack + SEC_SEEN helpers
 ; ============================================================================
 ; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_TOP/BOT/Z. Entry 0 =
-; nearest (player, Z=0); higher n = farther after hard portals.
-; Z = fish wallz_h at push (≈ tiles·fish). Billboards pass
-; (tiles·fishtab[centre])>>8 from item_draw_one into clip_col_find.
+; nearest (player, Z=0); higher n = farther after hard portals / solid close.
+; Z = fish wallz_h at push. Billboards pass item_depth>>3 into clip_col_find.
+; Closed (top>=bot) entries mark occlusion; find treats empty best as miss.
 ;
 ; clip_base_l/h = &COL_CLIP_TOP[col*CLIP_MAX] — computed once per column.
 ; ============================================================================
@@ -171,8 +171,9 @@ clip_col_push
 
 ; ---------------------------------------------------------------------------
 ; clip_col_find — A = billboard depth in fish wallz_h units
-; Near→far: farthest entry with COL_CLIP_Z[i] <= A and non-empty TOP/BOT.
-; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found
+; Near→far: farthest entry with COL_CLIP_Z[i] <= A (empty counts — solid /
+; closed portal occlusion). Empty best → miss.
+; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found / occluded
 ; Re-binds clip_base. Clobbers: tmp2,tmp3,tmp4, ptr_l/h, aux_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_find
@@ -219,31 +220,7 @@ clip_col_find
 	bcc .ccf_cand			; Z <= depth
 	bcs .ccf_nx				; Z > depth
 .ccf_cand
-	; TOP at clip_base+i
-	clc
-	lda clip_base_l
-	stx tmp0				; save i
-	adc tmp0
-	sta ptr_l
-	lda clip_base_h
-	adc #0
-	sta ptr_h
-	lda (ptr_l),y
-	sta tmp0				; top
-	; BOT at TOP + CLIP_STRIDE
-	clc
-	lda ptr_l
-	adc #<CLIP_STRIDE
-	sta aux_l
-	lda ptr_h
-	adc #>CLIP_STRIDE
-	sta aux_h
-	lda (aux_l),y
-	sta tmp1				; bot
-	lda tmp0
-	cmp tmp1
-	bcs .ccf_nx				; empty aperture
-	stx tmp4				; best = i
+	stx tmp4				; best = i (open or empty)
 .ccf_nx
 	inx
 	cpx tmp3
@@ -272,5 +249,8 @@ clip_col_find
 	sta aux_h
 	lda (aux_l),y
 	sta tmp1
+	lda tmp0
+	cmp tmp1
+	bcs .ccf_miss			; empty best → occluded
 	clc
 	rts

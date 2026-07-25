@@ -266,7 +266,7 @@ PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
 ; Per-column portal clip stack for item draw (40 cols × CLIP_MAX)
-; Entry = {top, bot, z}; z = fish wallz_h (billboards find with tiles·fish)
+; Entry = {top, bot, z}; z = fish wallz_h (billboards find with item_depth>>3)
 CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step
 COL_CLIP_N	= PROC_END		; 40 bytes: entries used per column
 COL_CLIP_TOP	= COL_CLIP_N + COL_NUM	; 40×CLIP_MAX clip top

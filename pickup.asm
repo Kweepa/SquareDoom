@@ -13,6 +13,8 @@ AMMO_ROCKETS_MAX = 50
 AMMO_ROCKETS_PACK = 100
 HEALTH_ADD = 25
 HEALTH_MAX = 100
+HEALTH_SOUL = 100
+HEALTH_MEGA_MAX = 200
 ARMOR_GREEN = 100
 ARMOR_BLUE = 200
 
@@ -56,7 +58,8 @@ ITEM_TYPE_BACKPACK = 15
 ITEM_TYPE_REDCARD = 16
 ITEM_TYPE_BLUECARD = 17
 ITEM_TYPE_YELLOWCARD = 18
-ITEM_TYPE_POSCORPSE = 23
+ITEM_TYPE_SOULSPHERE = 19
+ITEM_TYPE_POSCORPSE = 20
 ITEM_TYPE_EMPTY = $ff
 
 ; ---------------------------------------------------------------------------
@@ -95,10 +98,8 @@ try_pickups
 	lda level_item_type,x
 	cmp #ITEM_TYPE_HEALTH
 	bcc .tp_next
-	cmp #ITEM_TYPE_YELLOWCARD + 1
-	bcc .tp_cand
-	cmp #ITEM_TYPE_POSCORPSE
-	bne .tp_next
+	cmp #ITEM_TYPE_POSCORPSE + 1
+	bcs .tp_next
 .tp_cand
 	sta tmp4			; typeId
 	lda level_item_x,x
@@ -131,13 +132,7 @@ try_pickups
 
 	stx tmp5			; slot
 	lda tmp4
-	cmp #ITEM_TYPE_POSCORPSE
-	bne .tp_apply
-	jsr .pa_poscorpse
-	jmp .tp_after
-.tp_apply
 	jsr pickup_apply
-.tp_after
 	bcc .tp_done			; not taken
 	; consume item
 	ldx tmp5
@@ -157,7 +152,7 @@ try_pickups
 pickup_apply
 	sec
 	sbc #ITEM_TYPE_HEALTH
-	cmp #ITEM_TYPE_YELLOWCARD - ITEM_TYPE_HEALTH + 1
+	cmp #ITEM_TYPE_POSCORPSE - ITEM_TYPE_HEALTH + 1
 	bcc .pa_ok
 	clc
 	rts
@@ -173,10 +168,12 @@ pickup_apply
 	!byte <.pa_health, <.pa_shells, <.pa_weapon, <.pa_weapon
 	!byte <.pa_weapon, <.pa_weapon, <.pa_garmor, <.pa_barmor
 	!byte <.pa_pack, <.pa_red, <.pa_blue, <.pa_yellow
+	!byte <.pa_soulsphere, <.pa_poscorpse
 .pa_jmp_hi
 	!byte >.pa_health, >.pa_shells, >.pa_weapon, >.pa_weapon
 	!byte >.pa_weapon, >.pa_weapon, >.pa_garmor, >.pa_barmor
 	!byte >.pa_pack, >.pa_red, >.pa_blue, >.pa_yellow
+	!byte >.pa_soulsphere, >.pa_poscorpse
 
 .pa_health
 	lda health
@@ -272,6 +269,24 @@ pickup_apply
 	ora #$02
 	sta keys
 	lda #ITEM_TYPE_YELLOWCARD
+	jmp pickup_message
+
+.pa_soulsphere
+	lda health
+	cmp #HEALTH_MEGA_MAX
+	bcc .pa_soul_go
+	jmp .pa_no
+.pa_soul_go
+	clc
+	adc #HEALTH_SOUL
+	bcs .pa_soul_clamp
+	cmp #HEALTH_MEGA_MAX
+	bcc .pa_soul_ok
+.pa_soul_clamp
+	lda #HEALTH_MEGA_MAX
+.pa_soul_ok
+	sta health
+	lda #ITEM_TYPE_SOULSPHERE
 	jmp pickup_message
 
 .pa_weapon
@@ -527,10 +542,12 @@ pickup_name_lo
 	!byte <name_health, <name_ammo, <name_shotgun, <name_chaingun
 	!byte <name_chainsaw, <name_rocket, <name_garmor, <name_barmor
 	!byte <name_backpack, <name_redcard, <name_bluecard, <name_yellowcard
+	!byte <name_soulsphere, <name_clips
 pickup_name_hi
 	!byte >name_health, >name_ammo, >name_shotgun, >name_chaingun
 	!byte >name_chainsaw, >name_rocket, >name_garmor, >name_barmor
 	!byte >name_backpack, >name_redcard, >name_bluecard, >name_yellowcard
+	!byte >name_soulsphere, >name_clips
 
 name_health
 	!scr "health"
@@ -570,6 +587,9 @@ name_bluecard
 	!byte 0
 name_yellowcard
 	!scr "yellow keycard"
+	!byte 0
+name_soulsphere
+	!scr "soulsphere"
 	!byte 0
 
 door_msg_lo

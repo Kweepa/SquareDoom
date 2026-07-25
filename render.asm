@@ -149,6 +149,7 @@ on_cell
 !if DBG_PORTAL = 1 {
 	jsr dbg_portal_log
 }
+	jsr clip_col_push		; closed aperture @ wallz — occludes sprites
 	sec				; clip closed — end column
 	rts
 .void_enter
@@ -171,6 +172,7 @@ on_cell
 	jsr fill_col_span
 	lda ybot
 	sta ytop			; prevent fill_open_remainder wipe
+	jsr clip_col_push		; closed aperture @ wallz — occludes sprites
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
@@ -194,6 +196,7 @@ on_cell
 	lda ytop
 	cmp ybot
 	bcc .cont
+	jsr clip_col_push		; closed aperture @ wallz — occludes sprites
 	sec				; portal closed the clip
 	rts
 .cont

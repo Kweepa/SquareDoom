@@ -179,10 +179,11 @@ export const ITEM_TYPES = [
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
+  'soulsphere',
+  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'skullpile', 'techcolumn',
   'switch',
   'fireball',
-  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'plasmaball', 'rocket',
 ];
 

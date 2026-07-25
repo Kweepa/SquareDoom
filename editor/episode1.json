@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M4",
+  "activeLevel": "E1M3",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -8500,8 +8500,8 @@
         0
       ],
       "spawn": {
-        "x": 124.0821399901984,
-        "y": 244.48020060260893,
+        "x": 124,
+        "y": 244,
         "angle": 0.009788087690919767
       },
       "items": [
@@ -8787,16 +8787,6 @@
           }
         },
         {
-          "type": "health",
-          "x": 68,
-          "y": 236,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "rocketlauncher",
           "x": 28,
           "y": 148,
@@ -8820,6 +8810,16 @@
           "type": "imp",
           "x": 37,
           "y": 144,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soulsphere",
+          "x": 68,
+          "y": 236,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12340,6 +12340,16 @@
           "type": "rocketlauncher",
           "x": 218,
           "y": 175,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soulsphere",
+          "x": 212,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
