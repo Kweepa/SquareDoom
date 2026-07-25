@@ -146,6 +146,11 @@ Portal clip / rising floors
   (editor ceilEnd > yTop). Old `cmp ybot / bcs skip` left a false opening;
   solid into void painted that band WALL_NS orange. Fix: allow ceil fill when
   clamp(ceil) == ybot.
+- Symmetric floor false opening (E1M5 low alcoves over nukage): after an upper
+  ledge raises ytop, a farther same-height floor can clamp to ytop. Old
+  `cmp ytop / beq skip` left [ytop,ybot) open; solid wall stretched brown over
+  green. Fix: fill [floorStart,ybot) and set ybot even when floorStart == ytop
+  (editor already used floorStart < yBot).
 - DBG_PORTAL line: id ytop ybot span_a span_b near_floor above_eye
   farFloorY texstep_h. farFloorY=$FF if not projected; span_b=$FF if floor
   skip. above_eye = 1 if near_floor > eyeheight. Do not read ytop as floor.

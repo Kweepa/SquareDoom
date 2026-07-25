@@ -31,7 +31,9 @@
 ;
 ; Ceil: if clamp(ceilY) > ytop, fill [ytop, ceilEnd) even when ceilEnd == ybot
 ; (must close false openings for solid walls). Floor: only when floorY >=
-; HORIZON; fill [floorStart, ybot) and set ybot. span_b=$FF if floor skipped.
+; HORIZON; fill [floorStart, ybot) even when floorStart == ytop (same false-
+; opening close — else solid walls stretch over the floor). span_b=$FF if
+; floor skipped.
 ; ---------------------------------------------------------------------------
 paint_near
 	lda ytop
@@ -98,10 +100,8 @@ paint_near
 	sta tmp1
 	cmp ybot
 	bcs .pnd
-	cmp ytop
-	bcc .pnd
-	beq .pnd
-	; Fill [floorStart, ybot) and pull ybot up
+	; Fill [floorStart, ybot) even when floorStart==ytop (close false openings)
+	; and pull ybot up. After clamp, floorStart >= ytop always.
 !if PROFILE = 1 {
 	inc span_lo
 	bne .pn_ff_go
