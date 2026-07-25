@@ -677,8 +677,11 @@ p_try_move
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_push_walls — inset 1 world unit from impassable neighbors (like
-; push_walls). Uses enemy_tile_blocked so drops ≥3 count as faces.
+; enemy_push_walls — inset 2 world units (1/4 tile) from impassable
+; neighbors. Wider than the player's push_walls: the enemy billboard is
+; 2 units wide and renders from whole world units, so a 1-unit inset
+; leaves the sprite flush with a ledge lip.
+; Uses enemy_tile_blocked so drops ≥3 count as faces.
 ; Expects enemy_obj / enemy_actor; clobbers tmp0–5, mapx/y, old_floor/ceil.
 ; ---------------------------------------------------------------------------
 enemy_push_walls
@@ -721,12 +724,13 @@ enemy_push_walls
 	bcc .epw_east
 	lda tmp0
 	and #7
-	bne .epw_east			; local_x >= 1.0
+	cmp #2
+	bcs .epw_east			; local_x >= 2.0
 	lda tmp4
 	asl
 	asl
 	asl
-	ora #1
+	ora #2
 	sta tmp0
 	ldx enemy_actor
 	lda #0
@@ -744,17 +748,20 @@ enemy_push_walls
 	bcc .epw_north
 	lda tmp0
 	and #7
-	cmp #7
-	bne .epw_north
+	cmp #6
+	bcc .epw_north			; local_x <= 5.x
+	bne .epw_e_push			; local_x == 7 → push
 	ldx enemy_actor
 	lda MOBJ_XFRAC,x
-	beq .epw_north			; local_x == 7.0 exactly
+	beq .epw_north			; local_x == 6.0 exactly
+.epw_e_push
 	lda tmp4
 	asl
 	asl
 	asl
-	ora #7
+	ora #6
 	sta tmp0
+	ldx enemy_actor
 	lda #0
 	sta MOBJ_XFRAC,x
 
@@ -771,12 +778,13 @@ enemy_push_walls
 	bcc .epw_south
 	lda tmp1
 	and #7
-	bne .epw_south
+	cmp #2
+	bcs .epw_south			; local_y >= 2.0
 	lda tmp5
 	asl
 	asl
 	asl
-	ora #1
+	ora #2
 	sta tmp1
 	ldx enemy_actor
 	lda #0
@@ -794,17 +802,20 @@ enemy_push_walls
 	bcc .epw_done
 	lda tmp1
 	and #7
-	cmp #7
-	bne .epw_done
+	cmp #6
+	bcc .epw_done			; local_y <= 5.x
+	bne .epw_s_push			; local_y == 7 → push
 	ldx enemy_actor
 	lda MOBJ_YFRAC,x
-	beq .epw_done
+	beq .epw_done			; local_y == 6.0 exactly
+.epw_s_push
 	lda tmp5
 	asl
 	asl
 	asl
-	ora #7
+	ora #6
 	sta tmp1
+	ldx enemy_actor
 	lda #0
 	sta MOBJ_YFRAC,x
 .epw_done

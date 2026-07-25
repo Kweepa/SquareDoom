@@ -3,15 +3,17 @@
 ; ============================================================================
 ; render_clip.asm — per-column portal clip stack + SEC_SEEN helpers
 ; ============================================================================
-; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_TOP/BOT/Z. Entry 0 =
-; nearest (player, Z=0); higher n = farther after hard portals / solid close.
-; Z = fish wallz_h at push. Billboards pass item_depth>>3 into clip_col_find.
-; Closed (top>=bot) entries mark occlusion; find treats empty best as miss.
+; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_TOP/BOT/ZL/ZH.
+; Entry 0 = nearest (player, Z=0); higher n = farther after hard portals /
+; solid close. Z = full 16-bit fish wallz from calc_wallz.
+; Billboards: want16 = depth16·255/512 in wz_x — both Z and item depth16
+; are perpendicular distances (255/tile vs 512/tile), one constant scale.
+; Closed (top>=bot): occlude if Z < want; Z == want ties fall back nearer.
 ;
 ; clip_base_l/h = &COL_CLIP_TOP[col*CLIP_MAX] — computed once per column.
 ; ============================================================================
 
-CLIP_STRIDE = COL_NUM * CLIP_MAX	; bytes between TOP / BOT / Z tables
+CLIP_STRIDE = COL_NUM * CLIP_MAX	; bytes between TOP / BOT / ZL / ZH tables
 
 ; ---------------------------------------------------------------------------
 ; clear_sector_seen — clear SEC_SEEN[1..level_sector_max]
@@ -119,9 +121,8 @@ clip_mul_col
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_push — push {ytop, ybot, wallz_h} for current col if n < CLIP_MAX
-; Always uses the live aperture. Hard portals push after paint_portal.
-; Requires clip_base already bound for col. Clobbers: tmp0, ptr_l/h, X, Y
+; clip_col_push — push {ytop, ybot, wallz_l, wallz_h} if n < CLIP_MAX
+; Requires clip_base bound. Clobbers: tmp0, ptr_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_push
 	ldy col
@@ -129,7 +130,6 @@ clip_col_push
 	cmp #CLIP_MAX
 	bcs .ccp_full
 	sta tmp0				; n
-	; ptr = clip_base + n → TOP
 	clc
 	lda clip_base_l
 	adc tmp0
@@ -140,7 +140,6 @@ clip_col_push
 	ldy #0
 	lda ytop
 	sta (ptr_l),y
-	; BOT
 	clc
 	lda ptr_l
 	adc #<CLIP_STRIDE
@@ -150,7 +149,15 @@ clip_col_push
 	sta ptr_h
 	lda ybot
 	sta (ptr_l),y
-	; Z
+	clc
+	lda ptr_l
+	adc #<CLIP_STRIDE
+	sta ptr_l
+	lda ptr_h
+	adc #>CLIP_STRIDE
+	sta ptr_h
+	lda wallz_l
+	sta (ptr_l),y
 	clc
 	lda ptr_l
 	adc #<CLIP_STRIDE
@@ -160,7 +167,6 @@ clip_col_push
 	sta ptr_h
 	lda wallz_h
 	sta (ptr_l),y
-	; n++
 	ldy col
 	ldx COL_CLIP_N,y
 	inx
@@ -170,14 +176,16 @@ clip_col_push
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_find — A = billboard depth in fish wallz_h units
-; Near→far: farthest entry with COL_CLIP_Z[i] <= A (empty counts — solid /
-; closed portal occlusion). Empty best → miss.
-; Exit: C=0 found, tmp0=clip_top, tmp1=clip_bot; C=1 not found / occluded
-; Re-binds clip_base. Clobbers: tmp2,tmp3,tmp4, ptr_l/h, aux_l/h, X, Y
+; clip_col_find — want16 in wz_x_l/h (same scale as stack Z: ≈255·perp tiles)
+; Entries are pushed near→far with increasing Z; an empty (top>=bot) entry is
+; always last (DDA stops after closing). Pick the last entry with Z <= want:
+;   open  → that aperture
+;   empty → Z < want: occluded (miss); Z == want: quantization tie — the
+;           sprite sits on that surface, use the previous (open) entry
+; Exit: C=0 found, tmp0=top, tmp1=bot; C=1 miss/occluded
+; Clobbers: tmp3,tmp4,tmp5, ptr_l/h, aux_l/h, X, Y
 ; ---------------------------------------------------------------------------
 clip_col_find
-	sta tmp2				; wanted depth
 	ldy col
 	lda COL_CLIP_N,y
 	bne .ccf_go
@@ -187,49 +195,52 @@ clip_col_find
 .ccf_go
 	sta tmp3				; n
 	jsr clip_col_bind
-	lda #$ff
-	sta tmp4				; best index ($FF = none)
-	ldx #0					; i
-.ccf_lp
-	; Z at clip_base + i + 2*CLIP_STRIDE
+	; aux = &ZL[0], ptr = &ZH[0] (plane bases; index with Y)
 	clc
 	lda clip_base_l
-	adc #<CLIP_STRIDE
+	adc #<(CLIP_STRIDE*2)
 	sta aux_l
 	lda clip_base_h
-	adc #>CLIP_STRIDE
-	sta aux_h				; BOT plane base
-	clc
-	lda aux_l
-	adc #<CLIP_STRIDE
-	sta aux_l
-	lda aux_h
-	adc #>CLIP_STRIDE
-	sta aux_h				; Z plane base
-	txa
-	clc
-	adc aux_l
-	sta aux_l
-	lda aux_h
-	adc #0
+	adc #>(CLIP_STRIDE*2)
 	sta aux_h
+	clc
+	lda clip_base_l
+	adc #<(CLIP_STRIDE*3)
+	sta ptr_l
+	lda clip_base_h
+	adc #>(CLIP_STRIDE*3)
+	sta ptr_h
+	lda #$ff
+	sta tmp4				; best index ($FF = none)
 	ldy #0
-	lda (aux_l),y
-	cmp tmp2
-	beq .ccf_cand
-	bcc .ccf_cand			; Z <= depth
-	bcs .ccf_nx				; Z > depth
-.ccf_cand
-	stx tmp4				; best = i (open or empty)
+.ccf_lp
+	lda (ptr_l),y			; zh
+	cmp wz_x_h
+	bcc .ccf_lt				; zh < want_h → Z < want
+	bne .ccf_done			; zh > want_h → Z > want; stop (monotonic)
+	lda (aux_l),y			; zl
+	cmp wz_x_l
+	beq .ccf_eq
+	bcs .ccf_done			; Z > want; stop
+.ccf_lt
+	sty tmp4
+	lda #0
+	sta tmp5				; Z < want
+	beq .ccf_nx
+.ccf_eq
+	sty tmp4
+	lda #1
+	sta tmp5				; Z == want (tie)
 .ccf_nx
-	inx
-	cpx tmp3
+	iny
+	cpy tmp3
 	bcc .ccf_lp
+.ccf_done
 	lda tmp4
 	cmp #$ff
 	beq .ccf_miss
-	; Reload TOP/BOT for best index into tmp0/tmp1
-	tax
+.ccf_load
+	; TOP/BOT for entry tmp4
 	clc
 	lda clip_base_l
 	adc tmp4
@@ -239,7 +250,7 @@ clip_col_find
 	sta ptr_h
 	ldy #0
 	lda (ptr_l),y
-	sta tmp0
+	sta tmp0				; top
 	clc
 	lda ptr_l
 	adc #<CLIP_STRIDE
@@ -248,9 +259,23 @@ clip_col_find
 	adc #>CLIP_STRIDE
 	sta aux_h
 	lda (aux_l),y
-	sta tmp1
+	sta tmp1				; bot
 	lda tmp0
 	cmp tmp1
-	bcs .ccf_miss			; empty best → occluded
+	bcc .ccf_ok				; open aperture
+	; empty (closed): terminal occluder
+	lda tmp5
+	beq .ccf_miss2			; Z < want → hidden behind it
+	; Z == want tie → fall back to previous (open) entry
+	lda tmp4
+	beq .ccf_miss2			; entry 0 empty — nothing nearer
+	dec tmp4
+	lda #0
+	sta tmp5				; previous entries have Z < want
+	beq .ccf_load
+.ccf_miss2
+	sec
+	rts
+.ccf_ok
 	clc
 	rts

@@ -266,13 +266,14 @@ PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
 ; Per-column portal clip stack for item draw (40 cols × CLIP_MAX)
-; Entry = {top, bot, z}; z = fish wallz_h (billboards find with item_depth>>3)
+; Entry = {top, bot, zl, zh}; z = full fish wallz (16-bit)
 CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step
 COL_CLIP_N	= PROC_END		; 40 bytes: entries used per column
 COL_CLIP_TOP	= COL_CLIP_N + COL_NUM	; 40×CLIP_MAX clip top
 COL_CLIP_BOT	= COL_CLIP_TOP + COL_NUM * CLIP_MAX
-COL_CLIP_Z	= COL_CLIP_BOT + COL_NUM * CLIP_MAX
-COL_CLIP_END	= COL_CLIP_Z + COL_NUM * CLIP_MAX
+COL_CLIP_ZL	= COL_CLIP_BOT + COL_NUM * CLIP_MAX
+COL_CLIP_ZH	= COL_CLIP_ZL + COL_NUM * CLIP_MAX
+COL_CLIP_END	= COL_CLIP_ZH + COL_NUM * CLIP_MAX
 
 ; Per-frame sector visibility ($FF = seen this frame)
 SEC_SEEN	= COL_CLIP_END		; 256 bytes, index = sector id

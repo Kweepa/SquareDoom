@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M3",
+  "activeLevel": "E1M4",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -10272,7 +10272,7 @@
           "brightness": 9
         },
         "121": {
-          "floorHeight": 14,
+          "floorHeight": 10,
           "ceilingHeight": 19,
           "trigger": "none",
           "singleShot": false,

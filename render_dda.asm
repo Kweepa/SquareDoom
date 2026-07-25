@@ -134,6 +134,7 @@ cast_column
 	ldx plr_id
 	jsr mark_seen
 	lda #0
+	sta wallz_l
 	sta wallz_h			; near clip at depth 0
 	jsr clip_col_push
 !if PROFILE = 1 {

@@ -4,7 +4,7 @@
 ; render_items.asm — billboard items into FRAMEBUFFER after column cast
 ; ============================================================================
 ; Collect items in seen sectors, depth-sort far→near, project, draw clipped
-; against COL_CLIP_* stack (Z = fish wallz_h; find uses item_depth>>3).
+; against COL_CLIP_* stack (open=depth·$ff; occ=(depth·$ff)>>3).
 ; Column-major item mips (byte colour, $ff=clear).
 ; Live enemies stamp COL_AIM_SLOT/Z per column (nearer overwrites).
 ; ============================================================================
@@ -23,7 +23,7 @@ TEX_ANIMATE = 64
 ; Scratch after column loop (column temps free):
 ;   item_slot = current billboard item index (not ZP — once per item)
 ;   wall_col = typeId
-;   wallz_h = item depth; wallz_l = item_depth>>3 for clip_col_find
+;   wallz_h = item depth (8-bit); wz_y = depth16 → clip want16 in wz_x
 ;   near_floor / near_ceil = floor height / sector
 ;   far_ceil = sprite H; last_near_ok = sprite W
 ;   near_fcol = unclamped sprite top (V map; fill_y0 may be clamped)
@@ -171,6 +171,13 @@ item_calc_depth
 	lda fracx
 	ldy last_near_ceil
 	jsr smul_wz_sub
+	; Stash full-precision depth16 (512/tile) for the clip want — the >>6
+	; below quantizes to 1/8 tile, too coarse against 16-bit wall Z.
+	; wz_y is wall-cast scratch, free during item drawing.
+	lda wallz_l
+	sta wz_y_l
+	lda wallz_h
+	sta wz_y_h
 	ldx #6
 .icd_shr
 	lda wallz_h
@@ -648,14 +655,28 @@ item_draw_one
 	lda item_slot
 	sta aim_item
 .id_clp_start
-	; Clip Z is already fish-baked (wallz_h). Item depth ≈ 8×tiles → >>3.
-	lda wallz_h
-	lsr
-	lsr
-	lsr
-	sta wallz_l			; find-depth (proj/sort keep wallz_h)
+	; want16 = depth16 · 255/512 into wz_x — stack Z ≈ 255·perp tiles,
+	; depth16 (wz_y, stashed by item_calc_depth) = 512·perp tiles.
+	; 255/512 = 1/2 − 1/512 → (d>>1) − (d>>9). Full precision: the 8-bit
+	; depth (1/8 tile steps) made sprites near walls flicker through them.
 	lda span_a
 	sta col
+	lda wz_y_h
+	lsr
+	sta wz_x_h
+	lda wz_y_l
+	ror
+	sta wz_x_l
+	lda wz_y_h
+	lsr
+	sta tmp0			; depth16 >> 9
+	sec
+	lda wz_x_l
+	sbc tmp0
+	sta wz_x_l
+	lda wz_x_h
+	sbc #0
+	sta wz_x_h
 .id_clp
 	lda col
 	cmp span_b
@@ -664,7 +685,6 @@ item_draw_one
 .id_cin
 	cmp #40
 	bcs .id_cnx
-	lda wallz_l
 	jsr clip_col_find
 	bcc .id_found
 	jmp .id_cnx
