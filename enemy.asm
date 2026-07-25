@@ -328,6 +328,7 @@ alloc_mobj
 	sta MOBJ_MOVEDIR,x
 	sta MOBJ_FLAGS,x
 	sta MOBJ_MOVECNT,x
+	lda #$80			; half-unit centers (n+0.5)
 	sta MOBJ_XFRAC,x
 	sta MOBJ_YFRAC,x
 	lda #2
@@ -677,11 +678,9 @@ p_try_move
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_push_walls — inset 2 world units (1/4 tile) from impassable
-; neighbors. Wider than the player's push_walls: the enemy billboard is
-; 2 units wide and renders from whole world units, so a 1-unit inset
-; leaves the sprite flush with a ledge lip.
-; Uses enemy_tile_blocked so drops ≥3 count as faces.
+; enemy_push_walls — keep local in 2..5 (with frac $80) from impassable
+; neighbors. Positions are unit-cell centers (n+0.5), so local 2/5 sit
+; 2.5 units from tile seams. Uses enemy_tile_blocked so drops ≥3 count.
 ; Expects enemy_obj / enemy_actor; clobbers tmp0–5, mapx/y, old_floor/ceil.
 ; ---------------------------------------------------------------------------
 enemy_push_walls
@@ -725,7 +724,7 @@ enemy_push_walls
 	lda tmp0
 	and #7
 	cmp #2
-	bcs .epw_east			; local_x >= 2.0
+	bcs .epw_east			; local_x >= 2 — leave frac alone
 	lda tmp4
 	asl
 	asl
@@ -733,7 +732,7 @@ enemy_push_walls
 	ora #2
 	sta tmp0
 	ldx enemy_actor
-	lda #0
+	lda #$80
 	sta MOBJ_XFRAC,x
 
 .epw_east
@@ -749,20 +748,22 @@ enemy_push_walls
 	lda tmp0
 	and #7
 	cmp #6
-	bcc .epw_north			; local_x <= 5.x
-	bne .epw_e_push			; local_x == 7 → push
+	bcs .epw_e_push			; local_x >= 6 → snap to 5.5
+	cmp #5
+	bcc .epw_north			; local_x <= 4 — ok
 	ldx enemy_actor
 	lda MOBJ_XFRAC,x
-	beq .epw_north			; local_x == 6.0 exactly
+	cmp #$81
+	bcc .epw_north			; local 5.0..5.5 — ok
 .epw_e_push
 	lda tmp4
 	asl
 	asl
 	asl
-	ora #6
+	ora #5
 	sta tmp0
 	ldx enemy_actor
-	lda #0
+	lda #$80
 	sta MOBJ_XFRAC,x
 
 .epw_north
@@ -779,7 +780,7 @@ enemy_push_walls
 	lda tmp1
 	and #7
 	cmp #2
-	bcs .epw_south			; local_y >= 2.0
+	bcs .epw_south			; local_y >= 2 — leave frac alone
 	lda tmp5
 	asl
 	asl
@@ -787,7 +788,7 @@ enemy_push_walls
 	ora #2
 	sta tmp1
 	ldx enemy_actor
-	lda #0
+	lda #$80
 	sta MOBJ_YFRAC,x
 
 .epw_south
@@ -803,20 +804,22 @@ enemy_push_walls
 	lda tmp1
 	and #7
 	cmp #6
-	bcc .epw_done			; local_y <= 5.x
-	bne .epw_s_push			; local_y == 7 → push
+	bcs .epw_s_push			; local_y >= 6 → snap to 5.5
+	cmp #5
+	bcc .epw_done			; local_y <= 4 — ok
 	ldx enemy_actor
 	lda MOBJ_YFRAC,x
-	beq .epw_done			; local_y == 6.0 exactly
+	cmp #$81
+	bcc .epw_done			; local 5.0..5.5 — ok
 .epw_s_push
 	lda tmp5
 	asl
 	asl
 	asl
-	ora #6
+	ora #5
 	sta tmp1
 	ldx enemy_actor
-	lda #0
+	lda #$80
 	sta MOBJ_YFRAC,x
 .epw_done
 	jmp obj_set_xy
