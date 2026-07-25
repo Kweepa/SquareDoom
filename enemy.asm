@@ -668,11 +668,147 @@ p_try_move
 	lda save_yh
 	sta tmp1
 	jsr obj_set_xy
+	jsr enemy_push_walls
 	clc
 	rts
 .ptm_ok
+	jsr enemy_push_walls
 	sec
 	rts
+
+; ---------------------------------------------------------------------------
+; enemy_push_walls — inset 1 world unit from impassable neighbors (like
+; push_walls). Uses enemy_tile_blocked so drops ≥3 count as faces.
+; Expects enemy_obj / enemy_actor; clobbers tmp0–5, mapx/y, old_floor/ceil.
+; ---------------------------------------------------------------------------
+enemy_push_walls
+	jsr obj_xy
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+	sta tmp4
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	sta tmp5
+	jsr map_sector_id
+	beq .epw_voidfl
+	tax
+	lda SEC_FLOOR,x
+	sta old_floor
+	lda SEC_CEIL,x
+	sta old_ceil
+	jmp .epw_west
+.epw_voidfl
+	lda #0
+	sta old_floor
+	sta old_ceil
+
+	; West: neighbor (mapx-1, mapy)
+.epw_west
+	lda tmp4
+	sec
+	sbc #1
+	sta mapx
+	lda tmp5
+	sta mapy
+	jsr sector_at_map
+	jsr enemy_tile_blocked
+	bcc .epw_east
+	lda tmp0
+	and #7
+	bne .epw_east			; local_x >= 1.0
+	lda tmp4
+	asl
+	asl
+	asl
+	ora #1
+	sta tmp0
+	ldx enemy_actor
+	lda #0
+	sta MOBJ_XFRAC,x
+
+.epw_east
+	lda tmp4
+	clc
+	adc #1
+	sta mapx
+	lda tmp5
+	sta mapy
+	jsr sector_at_map
+	jsr enemy_tile_blocked
+	bcc .epw_north
+	lda tmp0
+	and #7
+	cmp #7
+	bne .epw_north
+	ldx enemy_actor
+	lda MOBJ_XFRAC,x
+	beq .epw_north			; local_x == 7.0 exactly
+	lda tmp4
+	asl
+	asl
+	asl
+	ora #7
+	sta tmp0
+	lda #0
+	sta MOBJ_XFRAC,x
+
+.epw_north
+	; map Y−1 (smaller y)
+	lda tmp4
+	sta mapx
+	lda tmp5
+	sec
+	sbc #1
+	sta mapy
+	jsr sector_at_map
+	jsr enemy_tile_blocked
+	bcc .epw_south
+	lda tmp1
+	and #7
+	bne .epw_south
+	lda tmp5
+	asl
+	asl
+	asl
+	ora #1
+	sta tmp1
+	ldx enemy_actor
+	lda #0
+	sta MOBJ_YFRAC,x
+
+.epw_south
+	lda tmp4
+	sta mapx
+	lda tmp5
+	clc
+	adc #1
+	sta mapy
+	jsr sector_at_map
+	jsr enemy_tile_blocked
+	bcc .epw_done
+	lda tmp1
+	and #7
+	cmp #7
+	bne .epw_done
+	ldx enemy_actor
+	lda MOBJ_YFRAC,x
+	beq .epw_done
+	lda tmp5
+	asl
+	asl
+	asl
+	ora #7
+	sta tmp1
+	lda #0
+	sta MOBJ_YFRAC,x
+.epw_done
+	jmp obj_set_xy
 
 ; ---------------------------------------------------------------------------
 ; Missile_TryMove — same as P_TryMove + ortho corners, no floor step snap
