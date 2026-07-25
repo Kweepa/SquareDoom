@@ -1,7 +1,8 @@
 ; Auto-generated from itemgraphics/multicolour/minigun.png - do not edit
-; Eight contiguous layers (low VIC # = front): hi×2, light×2, dark×2, flash.
+; Six body layers (low VIC # = front): hi×2, light×2, dark×2.
 ;   PNG: white hi, grey(137) light, opaque black dark (alpha = clear).
-;   Layout: dark side-by-side; light +7px; hi centered stacked. Flash behind.
+;   Layout: dark side-by-side; light +7px; hi centered stacked.
+;   Shared muzzle flash: muzzle_flash.asm (sprites 6–7).
 !zone minigun
 
 minigun_hi_top
@@ -58,21 +59,3 @@ minigun_dark_right
 	!byte $e4,$1c,$7f,$ff,$ff,$ff,$ff,$ff
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$07,$ff
 	!byte $ff,$00,$7f,$ff,$3f,$cf,$ff,$00
-minigun_flash_white
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-	!byte $00,$00,$20,$00,$00,$20,$00,$00
-	!byte $38,$00,$00,$78,$00,$00,$7c,$00
-	!byte $01,$fa,$00,$00,$fe,$00,$03,$ee
-	!byte $80,$01,$df,$00,$05,$ef,$80,$07
-	!byte $85,$c0,$15,$03,$20,$03,$00,$80
-	!byte $04,$00,$00,$00,$00,$00,$00,$00
-	!byte $00,$00,$00,$00,$00,$00,$00,$00
-minigun_flash_red
-	!byte $00,$00,$00,$00,$00,$00,$00,$30
-	!byte $00,$00,$54,$00,$01,$5c,$00,$00
-	!byte $c4,$00,$01,$86,$00,$07,$82,$00
-	!byte $06,$05,$00,$07,$01,$c0,$0c,$11
-	!byte $60,$0e,$20,$e0,$0a,$00,$78,$38
-	!byte $02,$30,$2a,$00,$d0,$3c,$01,$78
-	!byte $1a,$00,$f8,$1c,$00,$c0,$00,$00
-	!byte $60,$00,$00,$00,$00,$00,$00,$00

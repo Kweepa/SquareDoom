@@ -4,10 +4,8 @@
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
 ;   fist right $2a00 / punch $2c00: 7 layers + pad each
 ;   chainsaw hi2 $2dc0 (punch pad); body $2e00: 8 sprites (no flash)
-;   minigun  $3000: 8 sprites (body×6 + flash×2 behind)
-;   rocket   $3200: 8 sprites (body×6 + pink flash×2 behind)
-;   shotgun  $3400: 8 sprites (body×6 + flash×2 behind)
-;   pistol   $3600: 8 sprites (gun×3 + hand×3 + flash×2 behind)
+;   minigun  $3000: 6 body; rocket $3180: 8 (pink flash); shotgun $3380: 6
+;   pistol   $3500: 6 body; shared muzzle $3680: flash A/B white+red (sprites 6–7)
 FIST_RIGHT_SPR_PTR0 = FIST_RIGHT_SPRITES / 64
 FIST_PUNCH_SPR_PTR0 = FIST_PUNCH_SPRITES / 64
 CHAINSAW_BLADE_HI2_PTR = CHAINSAW_BLADE_HI2_SPRITES / 64
@@ -16,6 +14,7 @@ MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
 PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
+MUZZLE_FLASH_PTR0 = MUZZLE_FLASH_SPRITES / 64
 EIGHT_ENABLE_IDLE = $3f		; sprites 0–5 (body; flash 6–7 off)
 EIGHT_ENABLE_ALL = $ff		; all eight (chainsaw)
 FIST_ENABLE = $7f			; sprites 0–6 (hand layers)
@@ -34,6 +33,7 @@ wpn_visible	!byte 0
 ; Gun highlight while muzzle flash is up (picked per shot)
 muzzle_hi_col	!byte 1
 muzzle_hi_cycle !byte 0
+muzzle_flash_var !byte 0		; bit0: 0=flash A, 1=flash B (shared pistol/sg/mg)
 saw_blade_frame	!byte 0			; 0=hi, 1=hi2
 saw_blade_div	!byte 0			; IRQ tick; toggle every 4th (100 ms)
 saw_running	!byte 0			; 1 = fire held: Y+4 + blade anim
@@ -392,10 +392,13 @@ setup_pistol
 .sp_set
 	lda pistol_spr_col,x
 	sta $d027,x
+	cpx #6
+	bcs .sp_xy			; flash ptrs via .set_muzzle_ptrs
 	txa
 	clc
 	adc #PISTOL_SPR_PTR0
 	sta $07f8,x
+.sp_xy
 	lda pistol_spr_x,x
 	sta $d000,y
 	lda pistol_spr_y,x
@@ -405,7 +408,7 @@ setup_pistol
 	inx
 	cpx #8
 	bcc .sp_set
-	rts
+	jmp .set_muzzle_ptrs
 
 setup_shotgun
 	lda #EIGHT_ENABLE_IDLE
@@ -421,10 +424,13 @@ setup_shotgun
 .ss_set
 	lda shotgun_spr_col,x
 	sta $d027,x
+	cpx #6
+	bcs .ss_xy
 	txa
 	clc
 	adc #SHOTGUN_SPR_PTR0
 	sta $07f8,x
+.ss_xy
 	lda shotgun_spr_x,x
 	sta $d000,y
 	lda shotgun_spr_y,x
@@ -434,7 +440,7 @@ setup_shotgun
 	inx
 	cpx #8
 	bcc .ss_set
-	rts
+	jmp .set_muzzle_ptrs
 
 setup_minigun
 	lda #EIGHT_ENABLE_IDLE
@@ -450,10 +456,13 @@ setup_minigun
 .sm_set
 	lda minigun_spr_col,x
 	sta $d027,x
+	cpx #6
+	bcs .sm_xy
 	txa
 	clc
 	adc #MINIGUN_SPR_PTR0
 	sta $07f8,x
+.sm_xy
 	lda minigun_spr_x,x
 	sta $d000,y
 	lda minigun_spr_y,x
@@ -463,6 +472,20 @@ setup_minigun
 	inx
 	cpx #8
 	bcc .sm_set
+	jmp .set_muzzle_ptrs
+
+; Shared muzzle A/B → VIC sprites 6–7 (pistol / shotgun / minigun).
+; muzzle_flash_var bit0: 0 → A (ptr0+0/+1), 1 → B (ptr0+2/+3).
+.set_muzzle_ptrs
+	lda muzzle_flash_var
+	and #1
+	asl				; ×2 → 0 or 2
+	clc
+	adc #MUZZLE_FLASH_PTR0
+	sta $07fe			; sprite 6 white
+	clc
+	adc #1
+	sta $07ff			; sprite 7 red
 	rts
 
 setup_rocket
@@ -566,6 +589,12 @@ damage_rocket
 	sta muzzle_ms_l
 	lda #>MUZZLE_MS
 	sta muzzle_ms_h
+	ldx cur_weapon
+	cpx #5				; rocket: own flash, no A/B toggle
+	beq .fs_flash_en
+	jsr .set_muzzle_ptrs		; current A/B (start at A)
+	inc muzzle_flash_var		; next shot flips
+.fs_flash_en
 	lda spr_en
 	ora #FLASH_ENABLE
 	jsr .wpn_en

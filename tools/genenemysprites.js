@@ -195,10 +195,30 @@ function rgb2lab(r, g, b) {
 
 const C64_LAB = C64_RGB.map(([r, g, b]) => rgb2lab(r, g, b));
 
+/** Near-achromatic: Lab is nearly equidistant between dark/medium grey for
+ *  source tones like #626262 and picks medium; RGB Euclidean picks dark. */
+function isNearGrey(rgb) {
+  return Math.max(rgb[0], rgb[1], rgb[2]) - Math.min(rgb[0], rgb[1], rgb[2]) <= 16;
+}
+
+// Chromatic: CIE Lab (RGB Euclidean mis-maps warm reds to orange).
+// Near-grey: RGB Euclidean (Lab mis-maps dark↔medium).
 function nearestC64(rgb) {
-  const lab = rgb2lab(rgb[0], rgb[1], rgb[2]);
   let best = 1;
   let bestD = Infinity;
+  if (isNearGrey(rgb)) {
+    for (let i = 1; i < 16; i++) {
+      const c = C64_RGB[i];
+      const d =
+        (rgb[0] - c[0]) ** 2 + (rgb[1] - c[1]) ** 2 + (rgb[2] - c[2]) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  }
+  const lab = rgb2lab(rgb[0], rgb[1], rgb[2]);
   for (let i = 1; i < 16; i++) {
     const c = C64_LAB[i];
     const d =

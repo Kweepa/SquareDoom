@@ -30,11 +30,11 @@ item_spr_nodraw
 ; Per-type mip blobs
 item_spr_barrel_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0d,$ff,$0d,$ff,$ff,$ff,$ff,$0d
-	!byte $0d,$0c,$0d,$0c,$0d,$0d,$05,$0d,$05,$0c,$05,$0c,$05,$05,$05,$05
-	!byte $05,$0c,$05,$0c,$05,$05,$05,$05,$05,$0c,$05,$0c,$0c,$05,$05,$05
-	!byte $05,$0c,$05,$0c,$05,$05,$05,$05,$05,$ff,$05,$ff,$ff,$ff,$ff,$05
+	!byte $0d,$0b,$0d,$0b,$0d,$0d,$05,$0d,$05,$0b,$05,$0b,$05,$05,$05,$05
+	!byte $05,$0b,$05,$0b,$05,$05,$05,$05,$05,$0b,$05,$0c,$0b,$05,$05,$05
+	!byte $05,$0b,$05,$0b,$05,$05,$05,$05,$05,$ff,$05,$ff,$ff,$ff,$ff,$05
 item_spr_barrel_m1
-	!byte $0d,$0c,$0d,$05,$05,$0c,$05,$05,$05,$0c,$05,$05,$05,$0c,$05,$05
+	!byte $0d,$0b,$0d,$05,$05,$0b,$05,$05,$05,$0b,$05,$05,$05,$0b,$05,$05
 item_spr_barrel_m2
 	!byte $0d,$05,$05,$05
 item_spr_barrel_m3
@@ -62,16 +62,16 @@ item_spr_shells_m2
 item_spr_shells_m3
 	!byte $07
 item_spr_shotgun_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff,$ff,$ff,$0c,$ff,$02,$02
-	!byte $ff,$ff,$ff,$ff,$ff,$0c,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0c,$02,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$0c,$02,$ff,$ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff,$ff,$ff,$00,$ff,$02,$02
+	!byte $ff,$ff,$ff,$ff,$ff,$00,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$00,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$02,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$00,$02,$ff,$ff,$ff,$ff,$ff,$ff,$00,$ff,$ff
 item_spr_shotgun_m1
-	!byte $ff,$0c,$ff,$02,$ff,$ff,$0c,$02,$ff,$ff,$0c,$ff,$ff,$ff,$0c,$02
+	!byte $ff,$00,$ff,$02,$ff,$ff,$00,$02,$ff,$ff,$00,$ff,$ff,$ff,$00,$02
 item_spr_shotgun_m2
-	!byte $ff,$0c,$ff,$0c
+	!byte $ff,$00,$ff,$00
 item_spr_shotgun_m3
-	!byte $0c
+	!byte $00
 item_spr_chaingun_m0
 	!byte $ff,$ff,$ff,$0c,$0c,$ff,$02,$02,$ff,$ff,$01,$0c,$0c,$02,$02,$02
 	!byte $ff,$ff,$01,$0c,$01,$02,$02,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff
@@ -85,9 +85,9 @@ item_spr_chaingun_m3
 	!byte $0c
 item_spr_chainsaw_m0
 	!byte $ff,$ff,$ff,$00,$00,$07,$07,$07,$ff,$ff,$00,$ff,$00,$02,$07,$07
-	!byte $ff,$ff,$ff,$00,$00,$07,$07,$01,$ff,$ff,$ff,$ff,$01,$0c,$0c,$0c
-	!byte $ff,$ff,$ff,$ff,$0c,$0c,$0c,$01,$ff,$ff,$ff,$ff,$01,$0c,$0c,$0c
-	!byte $ff,$ff,$ff,$ff,$0c,$0c,$0c,$01,$ff,$ff,$ff,$ff,$ff,$01,$0c,$ff
+	!byte $ff,$ff,$ff,$00,$00,$07,$07,$01,$ff,$ff,$ff,$ff,$01,$0b,$0b,$0c
+	!byte $ff,$ff,$ff,$ff,$0c,$0b,$0b,$01,$ff,$ff,$ff,$ff,$01,$0b,$0b,$0c
+	!byte $ff,$ff,$ff,$ff,$0c,$0b,$0b,$01,$ff,$ff,$ff,$ff,$ff,$01,$0c,$ff
 item_spr_chainsaw_m1
 	!byte $00,$ff,$07,$07,$ff,$00,$02,$07,$ff,$ff,$01,$0c,$ff,$ff,$0c,$01
 item_spr_chainsaw_m2
@@ -95,12 +95,12 @@ item_spr_chainsaw_m2
 item_spr_chainsaw_m3
 	!byte $0c
 item_spr_rocketlauncher_m0
-	!byte $ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$02,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$02,$0f,$0c,$ff
-	!byte $ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff
-	!byte $ff,$ff,$ff,$0f,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$02,$0b,$0b,$0b,$ff,$ff,$ff,$ff,$02,$0f,$0b,$ff
+	!byte $ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff
+	!byte $ff,$ff,$ff,$0f,$0b,$0b,$0b,$ff,$ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff
 item_spr_rocketlauncher_m1
-	!byte $ff,$ff,$0f,$ff,$ff,$ff,$02,$0c,$ff,$ff,$0f,$ff,$ff,$0c,$0f,$ff
+	!byte $ff,$ff,$0f,$ff,$ff,$ff,$02,$0b,$ff,$ff,$0f,$ff,$ff,$0b,$0f,$ff
 item_spr_rocketlauncher_m2
 	!byte $ff,$0f,$ff,$0f
 item_spr_rocketlauncher_m3
@@ -216,45 +216,45 @@ item_spr_demoncorpse_m2
 item_spr_demoncorpse_m3
 	!byte $0a
 item_spr_baroncorpse_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0c,$0c
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0b,$0b
 	!byte $ff,$ff,$ff,$ff,$02,$09,$08,$09,$ff,$ff,$ff,$02,$0a,$08,$09,$ff
-	!byte $ff,$ff,$ff,$02,$02,$09,$09,$ff,$ff,$ff,$ff,$02,$0a,$08,$0c,$0c
-	!byte $ff,$ff,$ff,$0a,$02,$09,$0c,$09,$ff,$ff,$ff,$02,$0a,$02,$09,$ff
+	!byte $ff,$ff,$ff,$02,$02,$09,$09,$ff,$ff,$ff,$ff,$02,$0a,$08,$0b,$0b
+	!byte $ff,$ff,$ff,$0a,$02,$09,$0b,$09,$ff,$ff,$ff,$02,$0a,$02,$09,$ff
 item_spr_baroncorpse_m1
-	!byte $ff,$ff,$02,$0c,$ff,$02,$0a,$02,$ff,$0a,$02,$0c,$ff,$02,$0a,$02
+	!byte $ff,$ff,$02,$0b,$ff,$02,$0a,$02,$ff,$0a,$02,$0b,$ff,$02,$0a,$02
 item_spr_baroncorpse_m2
 	!byte $ff,$02,$ff,$0a
 item_spr_baroncorpse_m3
 	!byte $02
 item_spr_skullpile_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$07,$ff,$ff,$ff,$ff,$0c
-	!byte $ff,$01,$07,$02,$02,$ff,$0c,$0c,$07,$07,$ff,$ff,$ff,$0c,$0c,$0c
-	!byte $01,$07,$ff,$ff,$02,$02,$02,$0c,$ff,$ff,$07,$07,$ff,$ff,$0c,$0c
-	!byte $ff,$ff,$01,$07,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$01,$07,$02,$02,$ff,$0c,$0b,$07,$07,$ff,$ff,$ff,$0c,$0b,$0b
+	!byte $01,$07,$ff,$ff,$02,$02,$02,$0b,$ff,$ff,$07,$07,$ff,$ff,$0b,$0b
+	!byte $ff,$ff,$01,$07,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_skullpile_m1
-	!byte $ff,$07,$ff,$0c,$07,$02,$02,$0c,$ff,$ff,$07,$0c,$ff,$ff,$ff,$ff
+	!byte $ff,$07,$ff,$0c,$07,$02,$02,$0b,$ff,$ff,$07,$0b,$ff,$ff,$ff,$ff
 item_spr_skullpile_m2
-	!byte $07,$0c,$07,$0c
+	!byte $07,$0c,$07,$0b
 item_spr_skullpile_m3
 	!byte $07
 item_spr_techcolumn_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$ff,$ff,$ff,$ff,$0f,$ff
-	!byte $0c,$0f,$0c,$0f,$0c,$0f,$0f,$0c,$0c,$0f,$0c,$0f,$0f,$0c,$0f,$0c
-	!byte $0c,$0c,$0f,$0c,$0f,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0f,$0c,$0c
-	!byte $ff,$0c,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $0b,$0f,$0b,$0f,$0b,$0f,$0f,$0b,$0b,$0f,$0b,$0f,$0f,$0b,$0f,$0b
+	!byte $0b,$0b,$0f,$0b,$0f,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0f,$0b,$0b
+	!byte $ff,$0b,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_techcolumn_m1
-	!byte $ff,$0f,$ff,$0f,$0c,$0c,$0f,$0c,$0c,$0f,$0c,$0c,$ff,$0c,$ff,$0c
+	!byte $ff,$0f,$ff,$0f,$0b,$0b,$0f,$0b,$0b,$0f,$0b,$0b,$ff,$0b,$ff,$0b
 item_spr_techcolumn_m2
-	!byte $0f,$0f,$0c,$0c
+	!byte $0f,$0f,$0b,$0b
 item_spr_techcolumn_m3
 	!byte $0c
 item_spr_switch_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$0c,$0c,$ff,$ff,$ff,$0c,$ff,$0c,$0c,$0c,$ff,$ff,$0c,$0c
-	!byte $0c,$07,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$07,$0c,$0c,$ff,$ff,$0c,$0c
-	!byte $0c,$0c,$0c,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$0c,$0b,$ff,$ff,$ff,$0c,$ff,$0c,$0c,$0b,$ff,$ff,$0c,$0c
+	!byte $0c,$07,$0c,$0b,$0b,$0c,$0b,$0c,$0c,$07,$0c,$0b,$ff,$ff,$0b,$0b
+	!byte $0c,$0c,$0b,$ff,$ff,$ff,$ff,$0b,$0c,$0b,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_switch_m1
-	!byte $ff,$ff,$ff,$ff,$ff,$0c,$ff,$0c,$0c,$07,$0c,$0c,$0c,$ff,$ff,$0c
+	!byte $ff,$ff,$ff,$ff,$ff,$0c,$ff,$0c,$0c,$07,$0b,$0c,$0c,$ff,$ff,$0b
 item_spr_switch_m2
 	!byte $ff,$ff,$07,$0c
 item_spr_switch_m3

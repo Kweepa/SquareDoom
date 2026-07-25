@@ -1,8 +1,8 @@
 /**
  * Cut itemgraphics/multicolour/{pistol,minigun,rocketlauncher}.png into
  * 24×21 hi-res VIC layers, write crop PNGs, and emit:
- *   pistol_sprites.asm  — 8 sprites (gun×3 + hand×3 + flash behind)
- *   minigun_weapon.asm  — 8 sprites (2 hi + 2 light + 2 dark + flash behind)
+ *   pistol_sprites.asm  — 6 sprites (gun×3 + hand×3; flash shared)
+ *   minigun_weapon.asm  — 6 sprites (2 hi + 2 light + 2 dark; flash shared)
  *   rocket_weapon.asm   — 8 sprites (hi + detail + 4 dark + pink flash behind)
  *
  * Layout (sprite pixels; ×2 on screen with XY expand):
@@ -10,7 +10,7 @@
  *   Minigun 48×28: dark@y=7 side-by-side, light@y=0 (+7), hi centered @y=0/7
  *   Rocket  48×44: pink flash L/R @y=0; dark 2×2 @y=9; white hi + grey detail
  *
- * Pistol muzzle flash kept from prior pistol_sprites.asm (not in composite PNG).
+ * Shared muzzle flash A/B is emitted by tools/genmuzzle.js (muzzle_flash.asm).
  * Opaque black is a real layer; only alpha clears.
  */
 import { readFileSync, writeFileSync } from 'fs';
@@ -39,15 +39,7 @@ function crc32(buf) {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-function extractPistolSprite(label) {
-  const asm = readFileSync(join(root, 'pistol_sprites.asm'), 'utf8');
-  const re = new RegExp(
-    `${label}\\r?\\n((?:\\t!byte[^\\n]+\\r?\\n){8})`
-  );
-  const m = asm.match(re);
-  if (!m) throw new Error(`pistol_sprites.asm missing ${label}`);
-  return m[1].replace(/\r\n/g, '\n');
-}
+
 
 function decodePngRgba(buf) {
   if (buf[0] !== 0x89 || buf.toString('ascii', 1, 4) !== 'PNG') {
@@ -236,7 +228,7 @@ function fmtBytes(bytes) {
   return lines.join('\n');
 }
 
-function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true, outFile = null } = {}) {
+function emitWeaponAsm(name, zone, layers, comment, { outFile = null } = {}) {
   let asm = `; Auto-generated from itemgraphics/multicolour/${name}.png - do not edit\n`;
   asm += comment;
   asm += `!zone ${zone}\n\n`;
@@ -246,14 +238,6 @@ function emitWeaponAsm(name, zone, layers, comment, { pistolFlash = true, outFil
     asm += `${layer.label}\n`;
     asm += fmtBytes(packed);
     asm += `\n`;
-  }
-  // Flash last = VIC sprites 6–7 (behind body; low # = front)
-  if (pistolFlash) {
-    const prefix = zone === 'pistol_sprites' ? 'pistol' : zone;
-    asm += `${prefix}_flash_white\n`;
-    asm += extractPistolSprite('pistol_flash_white');
-    asm += `${prefix}_flash_red\n`;
-    asm += extractPistolSprite('pistol_flash_red');
   }
   const dest = outFile || `${zone}_weapon.asm`;
   writeFileSync(join(root, dest), asm);
@@ -277,7 +261,7 @@ function processCrops(file, expectW, expectH, crops) {
   return { layers, info };
 }
 
-// --- Pistol: 24×32 (gun @y=0; hand @y=11) — run first so flash source stays valid ---
+// --- Pistol: 24×32 (gun @y=0; hand @y=11) — body only; flash in muzzle_flash.asm ---
 {
   const WHITE = [255, 255, 255];
   const GREY = [98, 98, 98];
@@ -292,24 +276,18 @@ function processCrops(file, expectW, expectH, crops) {
     { label: 'pistol_brown', x: 0, y: 11, rgb: BROWN },
     { label: 'pistol_hand_dark', x: 0, y: 11, rgb: BLACK },
   ]);
-  // Preserve flash from existing asm before overwrite
-  const flashWhite = extractPistolSprite('pistol_flash_white');
-  const flashRed = extractPistolSprite('pistol_flash_red');
   let asm = `; Auto-generated from itemgraphics/multicolour/pistol.png - do not edit\n`;
-  asm += `; Eight layers (low VIC # = front): gun hi/mid/dark, hand orange/brown/dark, flash.\n`;
-  asm += `;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black. Flash behind body.\n`;
+  asm += `; Six body layers (low VIC # = front): gun hi/mid/dark, hand orange/brown/dark.\n`;
+  asm += `;   Gun @y=0 white/grey/black; hand @y=11 orange/brown/black.\n`;
+  asm += `;   Shared muzzle flash: muzzle_flash.asm (sprites 6–7).\n`;
   asm += `!zone pistol_sprites\n\n`;
   for (const layer of layers) {
     asm += `${layer.label}\n`;
     asm += fmtBytes(packSprite(layer.mask));
     asm += `\n`;
   }
-  asm += `pistol_flash_white\n`;
-  asm += flashWhite;
-  asm += `pistol_flash_red\n`;
-  asm += flashRed;
   writeFileSync(join(root, 'pistol_sprites.asm'), asm);
-  console.log('wrote pistol_sprites.asm (8×64) + 6 crop PNGs');
+  console.log('wrote pistol_sprites.asm (6×64) + 6 crop PNGs');
   for (const line of info) console.log(' ', line);
 }
 
@@ -327,11 +305,12 @@ function processCrops(file, expectW, expectH, crops) {
     'minigun',
     'minigun',
     layers,
-    `; Eight contiguous layers (low VIC # = front): hi×2, light×2, dark×2, flash.\n` +
+    `; Six body layers (low VIC # = front): hi×2, light×2, dark×2.\n` +
       `;   PNG: white hi, grey(137) light, opaque black dark (alpha = clear).\n` +
-      `;   Layout: dark side-by-side; light +7px; hi centered stacked. Flash behind.\n`
+      `;   Layout: dark side-by-side; light +7px; hi centered stacked.\n` +
+      `;   Shared muzzle flash: muzzle_flash.asm (sprites 6–7).\n`
   );
-  console.log('wrote minigun_weapon.asm (8×64) + 6 crop PNGs');
+  console.log('wrote minigun_weapon.asm (6×64) + 6 crop PNGs');
   for (const line of info) console.log(' ', line);
 }
 
@@ -357,8 +336,7 @@ function processCrops(file, expectW, expectH, crops) {
     layers,
     `; Eight contiguous layers (low VIC # = front): hi, detail, dark 2×2, pink flash×2.\n` +
       `;   PNG: white hi @y=9, grey(173) detail @y=23, opaque black dark; pink flash behind.\n` +
-      `;   Flash side-by-side @y=0 (+9 above body).\n`,
-    { pistolFlash: false }
+      `;   Flash side-by-side @y=0 (+9 above body).\n`
   );
   console.log('wrote rocket_weapon.asm (8×64) + 8 crop PNGs');
   for (const line of info) console.log(' ', line);
@@ -416,7 +394,7 @@ function processCrops(file, expectW, expectH, crops) {
     `; Nine blobs: blade_hi2 then 8 VIC layers (low # = front), no flash:\n` +
       `;   Place at CHAINSAW_SPRITES-64 so hi2 sits in fist-punch pad.\n` +
       `;   blade hi/dark @x=${BLADE_X}; detail @y=${DETAIL_Y}; body @y=20.\n`,
-    { pistolFlash: false, outFile: 'chainsaw_weapon.asm' }
+    { outFile: 'chainsaw_weapon.asm' }
   );
   console.log('wrote chainsaw_weapon.asm (hi2 + 8×64) + crop PNGs');
   for (const line of info) console.log(' ', line);
@@ -452,7 +430,7 @@ function processCrops(file, expectW, expectH, crops) {
       layers,
       `; Seven layers + pad (low VIC # = front), no flash:\n` +
         `;   grey hi, pink L/M/R, black L/M/R. PNG 57×21 crops @x=0,16,33.\n`,
-      { pistolFlash: false, outFile }
+      { outFile }
     );
     console.log(`wrote ${outFile} (8×64) + 7 crop PNGs`);
     for (const line of info) console.log(' ', line);

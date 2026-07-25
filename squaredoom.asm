@@ -11,10 +11,11 @@ FIST_RIGHT_SPRITES = $2a00	; 8×64 open right hand (7 used)
 FIST_PUNCH_SPRITES = $2c00	; 8×64 punch pose (7 used; pad overwritten by saw hi2)
 CHAINSAW_BLADE_HI2_SPRITES = FIST_PUNCH_SPRITES + 7 * 64	; $2dc0
 CHAINSAW_SPRITES = $2e00	; 8×64-byte chainsaw (no flash; VIC bank 0)
-MINIGUN_SPRITES = $3000	; 8×64-byte minigun+flash (VIC bank 0)
-ROCKET_SPRITES = $3200		; 8×64-byte rocket+flash (VIC bank 0)
-SHOTGUN_SPRITES = $3400	; 8×64-byte shotgun+flash (VIC bank 0)
-PISTOL_SPRITES = $3600		; 8×64-byte pistol+flash overlays (VIC bank 0)
+MINIGUN_SPRITES = $3000	; 6×64-byte minigun body (VIC bank 0)
+ROCKET_SPRITES = $3180		; 8×64-byte rocket+pink flash (VIC bank 0)
+SHOTGUN_SPRITES = $3380	; 6×64-byte shotgun body (VIC bank 0)
+PISTOL_SPRITES = $3500		; 6×64-byte pistol body (VIC bank 0)
+MUZZLE_FLASH_SPRITES = $3680	; 4×64 shared flash A/B white+red (pistol/sg/mg)
 FLOOR_PAT_BASE = 219		; floor dither glyphs 219–234 (after skull @ 218)
 ITEM_PAT = 235			; itemudg.png shading glyph
 
@@ -67,6 +68,8 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "shotgun_weapon.asm"
 *=PISTOL_SPRITES
 !source "pistol_sprites.asm"
+*=MUZZLE_FLASH_SPRITES
+!source "muzzle_flash.asm"
 
 ; Rest after charset window $3800–$3FFF
 *=$4000

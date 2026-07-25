@@ -1,11 +1,11 @@
 /**
  * Read itemgraphics/multicolour/shotgun_*.png → shotgun_weapon.asm
  *
- * Eight contiguous hi-res VIC sprites (low index = VIC front):
- *   flash white/red               → duplicated from pistol_sprites.asm (genpistol first)
+ * Six contiguous hi-res VIC body sprites (low index = VIC front):
  *   highlight                     → light grey (15), single-colour (over metal)
  *   barrel / bodyleft / bodyright → dark grey (11), single-colour
  *   hand                          → brown (9) + orange (8), Floyd–Steinberg
+ * Shared muzzle flash: muzzle_flash.asm (sprites 6–7).
  *
  * Transparency: PNG alpha < 128 (or cyan chroma key).
  */
@@ -30,16 +30,7 @@ const BODY_LAYERS = [
   { label: 'shotgun_orange', color: 8, rgb: [0x8e, 0x50, 0x29] },
 ];
 
-/** Pull a 64-byte sprite block from pistol_sprites.asm (flash duplicate). */
-function extractPistolSprite(label) {
-  const asm = readFileSync(join(root, 'pistol_sprites.asm'), 'utf8');
-  const re = new RegExp(
-    `${label}\\r?\\n((?:\\t!byte[^\\n]+\\r?\\n){8})`
-  );
-  const m = asm.match(re);
-  if (!m) throw new Error(`pistol_sprites.asm missing ${label}`);
-  return m[1].replace(/\r\n/g, '\n');
-}
+
 
 function decodePngRgba(buf) {
   if (buf[0] !== 0x89 || buf.toString('ascii', 1, 4) !== 'PNG') {
@@ -354,14 +345,11 @@ for (const [file, idx] of [
   );
 }
 
-const flashWhite = extractPistolSprite('pistol_flash_white');
-const flashRed = extractPistolSprite('pistol_flash_red');
-info.push('flash: duplicated from pistol_flash_white/red');
-
 let asm = `; Auto-generated from itemgraphics/multicolour/shotgun_*.png - do not edit\n`;
-asm += `; Eight contiguous layers (low VIC # = front): highlight, metal, hand, flash:\n`;
+asm += `; Six body layers (low VIC # = front): highlight, metal, hand.\n`;
 asm += `;   highlight = light grey(15) over barrel/bodyleft/bodyright dark grey(11),\n`;
-asm += `;   hand = brown(9)+orange(8) Floyd-Steinberg. Flash behind body.\n`;
+asm += `;   hand = brown(9)+orange(8) Floyd-Steinberg.\n`;
+asm += `;   Shared muzzle flash: muzzle_flash.asm (sprites 6–7).\n`;
 asm += `!zone shotgun_weapon\n\n`;
 
 for (let i = 0; i < BODY_LAYERS.length; i++) {
@@ -372,11 +360,6 @@ for (let i = 0; i < BODY_LAYERS.length; i++) {
   asm += `\n`;
 }
 
-asm += `shotgun_flash_white\n`;
-asm += flashWhite;
-asm += `shotgun_flash_red\n`;
-asm += flashRed;
-
 writeFileSync(join(root, 'shotgun_weapon.asm'), asm);
-console.log('wrote shotgun_weapon.asm (8×64 bytes; flash behind body)');
+console.log('wrote shotgun_weapon.asm (6×64 body; flash shared)');
 for (const line of info) console.log(' ', line);
