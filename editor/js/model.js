@@ -361,13 +361,20 @@ export function sectorsEqual(a, b) {
 
 /** Find sector id whose tag matches (first / lowest id). 0 if none. */
 export function findSectorIdByTag(level, tag) {
+  const ids = findAllSectorIdsByTag(level, tag);
+  return ids.length ? ids[0] : 0;
+}
+
+/** All sector ids whose tag matches, ascending. Empty if none / blank tag. */
+export function findAllSectorIdsByTag(level, tag) {
   const t = String(tag || '').trim();
-  if (!t) return 0;
+  if (!t) return [];
   const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  const out = [];
   for (const id of ids) {
-    if ((level.sectors.get(id).tag || '').trim() === t) return id;
+    if ((level.sectors.get(id).tag || '').trim() === t) out.push(id);
   }
-  return 0;
+  return out;
 }
 
 export function defaultSkills() {

@@ -5,6 +5,8 @@
  *      floorColor, ceilingColor, brightness
  *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
  *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
+ *      Same-tag sectors are linked into a sibling chain via targetSector (head ← triggers;
+ *      each member points at the next). Runtime walks the chain for remote door/floor actions.
  *      editor tag strings are not stored in the binary
  *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
@@ -48,6 +50,7 @@ import {
   defaultSector,
   defaultSpawn,
   findSectorIdByTag,
+  findAllSectorIdsByTag,
   gameItemCount,
   normalizeColor,
   enforceSectorShapes,
@@ -272,6 +275,43 @@ export function episodeFromJSON(data) {
   return episode;
 }
 
+/**
+ * Link sectors that share a tag into a SEC_TARGET sibling chain (sorted by id).
+ * Members that already have a cooked target (their own targetTag) are left alone.
+ * Triggers keep pointing at the lowest-id head via normal targetTag resolution.
+ */
+function chainSameTagTargets(level, targets, warnings) {
+  const seen = new Set();
+  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  for (const id of ids) {
+    const tag = (level.sectors.get(id).tag || '').trim();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    const members = findAllSectorIdsByTag(level, tag);
+    if (members.length < 2) continue;
+    const chainable = [];
+    for (const mid of members) {
+      if (targets[mid]) {
+        warnings.push(
+          `Sector ${mid}: tag "${tag}" also has targetTag — excluded from tag chain`,
+        );
+        continue;
+      }
+      chainable.push(mid);
+    }
+    if (chainable.length < 2) {
+      warnings.push(
+        `Tag "${tag}": ${members.length} sectors but fewer than 2 chainable`,
+      );
+      continue;
+    }
+    for (let i = 0; i < chainable.length - 1; i++) {
+      targets[chainable[i]] = chainable[i + 1] & 0xff;
+    }
+    warnings.push(`Tag "${tag}": ${chainable.length} sectors chained`);
+  }
+}
+
 export function cookLevel(level) {
   /** @type {string[]} */
   const warnings = [];
@@ -308,6 +348,8 @@ export function cookLevel(level) {
     ccols[id] = colorIndex(s.ceilingColor) & 15;
     brights[id] = Math.min(16, s.brightness & 31);
   }
+
+  chainSameTagTargets(level, targets, warnings);
 
   const mapBytes = new Uint8Array(level.map);
 

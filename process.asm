@@ -28,6 +28,7 @@ elev_home	!byte 0			; elevator return floor (scratch)
 elev_cell_x	!byte 0
 elev_cell_y	!byte 0
 trig_sec	!byte 0			; sector that provided the trigger
+trig_chain	!byte 0			; remote SEC_TARGET walk cursor
 key_use_was	!byte 0			; previous-frame key_use (rising edge)
 
 ELEV_RECLOSE_REMOTE_MS = 15000
@@ -681,8 +682,10 @@ elevator_activate
 ; ------------------------------------------------------------------
 ; trigger_action — trig_sec = trigger sector; run its action
 ; Used by try_switch / try_use / try_walk_into.
-; Resolves SEC_TARGET (0 → self) for floor/door. Caller sets elev_remote
-; for ACT_LOWER_FLOOR. Stairs uses trig_sec as start (not target resolve).
+; Resolves SEC_TARGET (0 → self, single) for floor/door. Remote targets
+; walk the SEC_TARGET sibling chain (same-tag fan-out from cook).
+; Caller sets elev_remote for ACT_LOWER_FLOOR. Stairs uses trig_sec as
+; start (not target resolve).
 ; ------------------------------------------------------------------
 trigger_action
 	ldx trig_sec
@@ -698,11 +701,17 @@ trigger_action
 	cmp #ACT_OPEN_DOOR_30S
 	beq .ta_door30
 	cmp #ACT_LOWER_FLOOR
-	beq .ta_lower
+	bne .ta_nl
+	jmp .ta_lower
+.ta_nl
 	cmp #ACT_LOWER_FLOOR_FOREVER
-	beq .ta_lower_f
+	bne .ta_nlf
+	jmp .ta_lower_f
+.ta_nlf
 	cmp #ACT_RAISE_FLOOR
-	beq .ta_raise
+	bne .ta_nr
+	jmp .ta_raise
+.ta_nr
 	cmp #ACT_RAISE_STAIRS
 	bne .ta_none
 	jmp .ta_stairs
@@ -727,40 +736,70 @@ trigger_action
 	sta elev_mode
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_door_t
+	bne .ta_door_walk
 	lda trig_sec
-.ta_door_t
 	sta tmp1
 	jsr door_open_activate
+	jmp .ta_shot
+.ta_door_walk
+	sta trig_chain
+	sta tmp1
+	jsr door_open_activate
+	ldx trig_chain
+	lda SEC_TARGET,x
+	bne .ta_door_walk
 	jmp .ta_shot
 .ta_lower
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_lower_t
+	bne .ta_lower_walk
 	lda trig_sec
-.ta_lower_t
 	sta tmp1
 	lda #0
 	sta elev_mode
 	jsr elevator_activate
 	jmp .ta_shot
+.ta_lower_walk
+	sta trig_chain
+	sta tmp1
+	lda #0
+	sta elev_mode
+	jsr elevator_activate
+	ldx trig_chain
+	lda SEC_TARGET,x
+	bne .ta_lower_walk
+	jmp .ta_shot
 .ta_lower_f
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_lower_f_t
+	bne .ta_lower_f_walk
 	lda trig_sec
-.ta_lower_f_t
 	sta tmp1
 	jsr lower_floor_forever_activate
+	jmp .ta_shot
+.ta_lower_f_walk
+	sta trig_chain
+	sta tmp1
+	jsr lower_floor_forever_activate
+	ldx trig_chain
+	lda SEC_TARGET,x
+	bne .ta_lower_f_walk
 	jmp .ta_shot
 .ta_raise
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_raise_t
+	bne .ta_raise_walk
 	lda trig_sec
-.ta_raise_t
 	sta tmp1
 	jsr raise_floor_activate
+	jmp .ta_shot
+.ta_raise_walk
+	sta trig_chain
+	sta tmp1
+	jsr raise_floor_activate
+	ldx trig_chain
+	lda SEC_TARGET,x
+	bne .ta_raise_walk
 	jmp .ta_shot
 .ta_stairs
 	lda trig_sec

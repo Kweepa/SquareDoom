@@ -994,13 +994,20 @@ function sectorsEqual(a, b) {
 
 /** Find sector id whose tag matches (first / lowest id). 0 if none. */
 function findSectorIdByTag(level, tag) {
+  const ids = findAllSectorIdsByTag(level, tag);
+  return ids.length ? ids[0] : 0;
+}
+
+/** All sector ids whose tag matches, ascending. Empty if none / blank tag. */
+function findAllSectorIdsByTag(level, tag) {
   const t = String(tag || '').trim();
-  if (!t) return 0;
+  if (!t) return [];
   const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  const out = [];
   for (const id of ids) {
-    if ((level.sectors.get(id).tag || '').trim() === t) return id;
+    if ((level.sectors.get(id).tag || '').trim() === t) out.push(id);
   }
-  return 0;
+  return out;
 }
 
 function defaultSkills() {
@@ -2475,6 +2482,43 @@ function episodeFromJSON(data) {
   return episode;
 }
 
+/**
+ * Link sectors that share a tag into a SEC_TARGET sibling chain (sorted by id).
+ * Members that already have a cooked target (their own targetTag) are left alone.
+ * Triggers keep pointing at the lowest-id head via normal targetTag resolution.
+ */
+function chainSameTagTargets(level, targets, warnings) {
+  const seen = new Set();
+  const ids = [...level.sectors.keys()].sort((a, b) => a - b);
+  for (const id of ids) {
+    const tag = (level.sectors.get(id).tag || '').trim();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    const members = findAllSectorIdsByTag(level, tag);
+    if (members.length < 2) continue;
+    const chainable = [];
+    for (const mid of members) {
+      if (targets[mid]) {
+        warnings.push(
+          `Sector ${mid}: tag "${tag}" also has targetTag — excluded from tag chain`,
+        );
+        continue;
+      }
+      chainable.push(mid);
+    }
+    if (chainable.length < 2) {
+      warnings.push(
+        `Tag "${tag}": ${members.length} sectors but fewer than 2 chainable`,
+      );
+      continue;
+    }
+    for (let i = 0; i < chainable.length - 1; i++) {
+      targets[chainable[i]] = chainable[i + 1] & 0xff;
+    }
+    warnings.push(`Tag "${tag}": ${chainable.length} sectors chained`);
+  }
+}
+
 function cookLevel(level) {
   /** @type {string[]} */
   const warnings = [];
@@ -2511,6 +2555,8 @@ function cookLevel(level) {
     ccols[id] = colorIndex(s.ceilingColor) & 15;
     brights[id] = Math.min(16, s.brightness & 31);
   }
+
+  chainSameTagTargets(level, targets, warnings);
 
   const mapBytes = new Uint8Array(level.map);
 

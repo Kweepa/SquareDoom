@@ -18,8 +18,10 @@ Each sector has the following data:
 - ceiling height (0-31)
 - door flag
 - sector type (Doom/VicDoom specials + Door)
-- target sector (editor: tag string; cooked: sector id of the tagged sector; only when type ≠ 0)
-- sector tag (editor-only; used to resolve targets when cooking — not stored in binary)
+- target sector (editor: targetTag string; cooked: sector id of the tagged sector)
+- sector tag (editor-only; used to resolve targets when cooking — not stored in binary).
+  Multiple sectors may share one tag; cook links them into a SEC_TARGET sibling chain
+  (lowest id = head). Remote door/floor triggers walk that chain so all matches move.
 - floor/ceiling colour (0-15, Commodore 64 palette)
 - brightness (0-16; 16 = full bright, no distance darken on walls)
 
