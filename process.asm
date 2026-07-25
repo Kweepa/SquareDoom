@@ -27,6 +27,8 @@ elev_found	!byte 0
 elev_home	!byte 0			; elevator return floor (scratch)
 elev_cell_x	!byte 0
 elev_cell_y	!byte 0
+elev_chain	!byte 0			; same-tag chain head (find_dest sibling skip)
+elev_dest	!byte 0			; shared floor dest for tag chain
 trig_sec	!byte 0			; sector that provided the trigger
 trig_chain	!byte 0			; remote SEC_TARGET walk cursor
 key_use_was	!byte 0			; previous-frame key_use (rising edge)
@@ -566,25 +568,14 @@ stairs_activate
 	jmp play_sound
 
 ; ------------------------------------------------------------------
-; raise_floor_activate — tmp1 = sector; permanent raise to highest adjacent
-; lower_floor_forever_activate — permanent lower to lowest adjacent
+; floor_forever_activate — tmp1 = sector, tmp2 = dest, elev_mode set
+; Permanent raise (mode=1) or lower (mode=0). Caller finds dest once.
 ; ------------------------------------------------------------------
-raise_floor_activate
-	lda #1
-	sta elev_mode
-	jmp floor_forever_activate
-
-lower_floor_forever_activate
-	lda #0
-	sta elev_mode
-	; fall through
 floor_forever_activate
 	jsr proc_sector_busy
 	bcc .rf_free
 	rts
 .rf_free
-	jsr elevator_find_dest
-	sta tmp2
 	ldx tmp1
 	lda SEC_FLOOR,x
 	cmp tmp2
@@ -610,9 +601,9 @@ floor_forever_activate
 	rts
 
 ; ------------------------------------------------------------------
-; elevator_activate — tmp1 = moved sector, elev_mode = 0 lower / 1 raise
+; elevator_activate — tmp1 = sector, tmp2 = dest, elev_mode = 0/1
 ; elev_remote = 0 → ELEV_RECLOSE_LOCAL_MS, 1 → ELEV_RECLOSE_REMOTE_MS
-; Only used for ACT_LOWER_FLOOR (raise-with-return unused; raise is permanent).
+; Only used for ACT_LOWER_FLOOR. Caller finds dest once for the tag chain.
 ; ------------------------------------------------------------------
 elevator_activate
 	jsr proc_sector_busy
@@ -624,8 +615,6 @@ elevator_activate
 	bcs .ea_slots
 	rts
 .ea_slots
-	jsr elevator_find_dest		; A = dest floor
-	sta tmp2
 	ldx tmp1
 	lda SEC_FLOOR,x
 	cmp tmp2
@@ -684,6 +673,8 @@ elevator_activate
 ; Used by try_switch / try_use / try_walk_into.
 ; Resolves SEC_TARGET (0 → self, single) for floor/door. Remote targets
 ; walk the SEC_TARGET sibling chain (same-tag fan-out from cook).
+; Floor raise/lower: dest = max/min external neighbour across the whole
+; chain (once), then every member moves to that shared height.
 ; Caller sets elev_remote for ACT_LOWER_FLOOR. Stairs uses trig_sec as
 ; start (not target resolve).
 ; ------------------------------------------------------------------
@@ -752,54 +743,68 @@ trigger_action
 .ta_lower
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_lower_walk
+	bne .ta_lower_have
 	lda trig_sec
+.ta_lower_have
 	sta tmp1
 	lda #0
 	sta elev_mode
-	jsr elevator_activate
-	jmp .ta_shot
+	jsr elevator_find_dest
+	sta elev_dest
 .ta_lower_walk
-	sta trig_chain
-	sta tmp1
-	lda #0
-	sta elev_mode
+	lda elev_dest
+	sta tmp2
 	jsr elevator_activate
-	ldx trig_chain
+	ldx tmp1
 	lda SEC_TARGET,x
-	bne .ta_lower_walk
+	beq .ta_lower_done
+	sta tmp1
+	jmp .ta_lower_walk
+.ta_lower_done
 	jmp .ta_shot
 .ta_lower_f
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_lower_f_walk
+	bne .ta_lower_f_have
 	lda trig_sec
+.ta_lower_f_have
 	sta tmp1
-	jsr lower_floor_forever_activate
-	jmp .ta_shot
+	lda #0
+	sta elev_mode
+	jsr elevator_find_dest
+	sta elev_dest
 .ta_lower_f_walk
-	sta trig_chain
-	sta tmp1
-	jsr lower_floor_forever_activate
-	ldx trig_chain
+	lda elev_dest
+	sta tmp2
+	jsr floor_forever_activate
+	ldx tmp1
 	lda SEC_TARGET,x
-	bne .ta_lower_f_walk
+	beq .ta_lower_f_done
+	sta tmp1
+	jmp .ta_lower_f_walk
+.ta_lower_f_done
 	jmp .ta_shot
 .ta_raise
 	ldx trig_sec
 	lda SEC_TARGET,x
-	bne .ta_raise_walk
+	bne .ta_raise_have
 	lda trig_sec
+.ta_raise_have
 	sta tmp1
-	jsr raise_floor_activate
-	jmp .ta_shot
+	lda #1
+	sta elev_mode
+	jsr elevator_find_dest
+	sta elev_dest
 .ta_raise_walk
-	sta trig_chain
-	sta tmp1
-	jsr raise_floor_activate
-	ldx trig_chain
+	lda elev_dest
+	sta tmp2
+	jsr floor_forever_activate
+	ldx tmp1
 	lda SEC_TARGET,x
-	bne .ta_raise_walk
+	beq .ta_raise_done
+	sta tmp1
+	jmp .ta_raise_walk
+.ta_raise_done
 	jmp .ta_shot
 .ta_stairs
 	lda trig_sec
@@ -810,11 +815,15 @@ trigger_action
 	jmp sec_oneshot_if
 
 ; ------------------------------------------------------------------
-; elevator_find_dest — min/max neighbouring open floor for sector tmp1
-; elev_mode 0 = lowest, 1 = highest. → A = dest (current floor if none)
-; Clobbers mapx/mapy, tmp2–tmp4, elev_* scratch, ptr.
+; elevator_find_dest — min/max neighbouring floor across same-tag chain
+; tmp1 = chain head (or sole sector). elev_mode 0 = lowest, 1 = highest.
+; Walks SEC_TARGET siblings; skips neighbours that are in the same chain.
+; → A = dest (head's current floor if no external neighbour).
+; Clobbers mapx/mapy, tmp1–tmp4, elev_* scratch, ptr.
 ; ------------------------------------------------------------------
 elevator_find_dest
+	lda tmp1
+	sta elev_chain
 	lda #0
 	sta elev_found
 	lda elev_mode
@@ -857,8 +866,8 @@ elevator_find_dest
 	bcs .ef_dn
 	jsr sector_at_map
 	beq .ef_dn
-	cmp tmp1
-	beq .ef_dn
+	jsr elev_in_chain			; C set → same-tag sibling
+	bcs .ef_dn
 	tax
 	lda SEC_FLOOR,x
 	ldx elev_mode
@@ -895,18 +904,47 @@ elevator_find_dest
 	inc mapy
 	lda mapy
 	cmp #MAP_SIZE
-	beq .ef_done_scan
+	beq .ef_next_sec
 	jmp .ef_y
+.ef_next_sec
+	ldx tmp1
+	lda SEC_TARGET,x
+	beq .ef_done_scan
+	sta tmp1
+	jmp .ef_scan
 .ef_done_scan
+	lda elev_chain
+	sta tmp1				; restore head for caller walk
 	lda elev_found
 	bne .ef_ok
-	ldx tmp1
+	ldx elev_chain
 	lda SEC_FLOOR,x
 	rts
 .ef_ok
 	lda tmp2
 	rts
 
+; ------------------------------------------------------------------
+; elev_in_chain — A = sector id; elev_chain = head
+; → C set if A is in the SEC_TARGET chain from elev_chain, else C clear.
+; A restored to sector id. Preserves tmp2/tmp3. Clobbers X, tmp4.
+; ------------------------------------------------------------------
+elev_in_chain
+	sta tmp4
+	lda elev_chain
+.eic_loop
+	cmp tmp4
+	beq .eic_yes
+	tax
+	lda SEC_TARGET,x
+	bne .eic_loop
+	clc
+	lda tmp4
+	rts
+.eic_yes
+	sec
+	lda tmp4
+	rts
 ; ------------------------------------------------------------------
 ; proc_update — tick all slots (SMC jump table by PROC_KIND)
 ; ------------------------------------------------------------------

@@ -22,6 +22,8 @@ Each sector has the following data:
 - sector tag (editor-only; used to resolve targets when cooking — not stored in binary).
   Multiple sectors may share one tag; cook links them into a SEC_TARGET sibling chain
   (lowest id = head). Remote door/floor triggers walk that chain so all matches move.
+  Floor raise/lower dest is the max/min external neighbour across the whole same-tag
+  chain (siblings excluded), computed once and shared by every member.
 - floor/ceiling colour (0-15, Commodore 64 palette)
 - brightness (0-16; 16 = full bright, no distance darken on walls)
 
