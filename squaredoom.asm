@@ -44,6 +44,8 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "render.asm"
 !source "blit.asm"
 !source "weapon.asm"
+; loader was mid; moved here for headroom (mid was ~48 bytes free)
+!source "loader.asm"
 
 end_low = *
 free_low = FIST_RIGHT_SPRITES - end_low
@@ -86,7 +88,6 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "hud.asm"
 !source "pickup.asm"
 !source "titlemenus.asm"
-!source "loader.asm"
 ; P + clip moved out of low (which is nearly full); py_tab needs page alignment
 !source "render_project_y.asm"
 !source "render_clip.asm"
@@ -131,13 +132,14 @@ ACT_WINDOW = 1			; walk-blocked; hitscan/missiles pass
 ACT_OPEN_DOOR = 2		; raise ceil +5, reclose 5s
 ACT_OPEN_DOOR_FOREVER = 3
 ACT_OPEN_DOOR_30S = 4
-ACT_LOWER_FLOOR = 5		; min adjacent + return timer
+ACT_LOWER_FLOOR = 5		; min adjacent + return 5s
 ACT_RAISE_FLOOR = 6		; max adjacent, permanent
 ACT_RAISE_STAIRS = 7
 ACT_CONTINUE_STAIRS = 8
 ACT_END_LEVEL = 9
 ACT_LOWER_FLOOR_FOREVER = 10	; min adjacent, permanent
 ACT_OPEN_DOOR_10S = 11		; raise ceil +5, reclose 10s
+ACT_LOWER_FLOOR_15S = 12	; min adjacent + return 15s
 
 SEC_TABLE_SIZE = 256
 

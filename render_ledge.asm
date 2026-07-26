@@ -20,14 +20,15 @@ ledge_col_flags
 	!byte 1			; 2 open_door 5s
 	!byte 1			; 3 open_door forever
 	!byte 1			; 4 open_door 30s
-	!byte 2			; 5 lower_floor
+	!byte 2			; 5 lower_floor 5s
 	!byte 2			; 6 raise_floor
 	!byte 0			; 7 raise_stairs
 	!byte 0			; 8 continue_stairs
 	!byte 0			; 9 end_level
 	!byte 2			; 10 lower_floor forever
 	!byte 1			; 11 open_door 10s
-	!fill 20, 0
+	!byte 2			; 12 lower_floor 15s
+	!fill 19, 0
 
 ; ---------------------------------------------------------------------------
 ; paint_portal — ledges for next_id vs near_*; may advance ytop/ybot

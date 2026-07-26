@@ -75,6 +75,7 @@ export const ACTIONS = [
   { id: 'open_door_10s', name: 'Open door (10s)', value: 11 },
   { id: 'open_door_30s', name: 'Open door (30s)', value: 4 },
   { id: 'lower_floor', name: 'Lower floor (5 sec)', value: 5 },
+  { id: 'lower_floor_15s', name: 'Lower floor (15 sec)', value: 12 },
   { id: 'lower_floor_forever', name: 'Lower floor forever', value: 10 },
   { id: 'raise_floor', name: 'Raise floor', value: 6 },
   { id: 'raise_stairs', name: 'Raise stairs', value: 7 },
@@ -171,7 +172,8 @@ export function isWindowSector(sector) {
 
 export function isElevatorSector(sector) {
   const a = normalizeAction(sector?.action);
-  return a === 'lower_floor' || a === 'lower_floor_forever' || a === 'raise_floor';
+  return a === 'lower_floor' || a === 'lower_floor_15s'
+    || a === 'lower_floor_forever' || a === 'raise_floor';
 }
 
 export const ITEM_TYPES = [

@@ -4,7 +4,7 @@
 ; Sector specials: packed SEC_TYPE (trigger | single_shot | action).
 ; K-use: NESW neighbour with trigger=use.
 ; Walk: enter sector with trigger=walk_into.
-; Switch: nearby switch item → sector under it with trigger=switch.
+; Switch: switch ahead + nearby → sector under it with trigger=switch.
 ; Absolute JMPs used where relative branches would exceed ±127.
 
 DOOR_OPEN_GAP = 5
@@ -22,7 +22,7 @@ SWITCH_USE_RADIUS = 6
 
 player_prev_sec	!byte 0			; last player sector (walk trigger)
 elev_mode	!byte 0			; floor: 0=lower/1=raise; door: DOOR_MODE_*
-elev_remote	!byte 0			; 0 = K-use (local), 1 = walk target (remote)
+elev_reclose	!byte 0			; 0 = 5s, 1 = 15s (ACT_LOWER_FLOOR*)
 elev_found	!byte 0
 elev_home	!byte 0			; elevator return floor (scratch)
 elev_cell_x	!byte 0
@@ -33,8 +33,8 @@ trig_sec	!byte 0			; sector that provided the trigger
 trig_chain	!byte 0			; remote SEC_TARGET walk cursor
 key_use_was	!byte 0			; previous-frame key_use (rising edge)
 
-ELEV_RECLOSE_REMOTE_MS = 15000
-ELEV_RECLOSE_LOCAL_MS = 5000
+ELEV_RECLOSE_5S_MS = 5000
+ELEV_RECLOSE_15S_MS = 15000
 
 ; Clear all process slots
 proc_init
@@ -162,7 +162,7 @@ proc_count_free
 	clc
 	rts
 
-; NESW facing tables (index = (playera+32)>>6 & 3)
+; NESW facing tables (index = player_face_nesw)
 ;   0=N 1=E 2=S 3=W
 tu_dx
 	!byte 0, 1, 0, $ff			; neighbour Δmapx
@@ -216,17 +216,7 @@ try_use
 	sta key_use_was
 	jsr player_tile
 
-	; Snap playera to NESW: (a+32)>>6 → 0=N 1=E 2=S 3=W
-	lda playera
-	clc
-	adc #32
-	lsr
-	lsr
-	lsr
-	lsr
-	lsr
-	lsr
-	and #3
+	jsr player_face_nesw
 	sta tmp5
 	tax
 
@@ -284,6 +274,8 @@ try_use
 	jsr sec_action
 	cmp #ACT_LOWER_FLOOR
 	beq .tu_chk_local
+	cmp #ACT_LOWER_FLOOR_15S
+	beq .tu_chk_local
 	cmp #ACT_LOWER_FLOOR_FOREVER
 	beq .tu_chk_local
 	cmp #ACT_RAISE_FLOOR
@@ -295,8 +287,6 @@ try_use
 	beq .tu_go
 	jmp .tu_far
 .tu_go
-	lda #0
-	sta elev_remote
 	jmp trigger_action
 
 ; Door open (tmp1 = door sector; elev_mode = DOOR_MODE_*).
@@ -408,6 +398,8 @@ try_walk_into
 	jsr sec_action
 	cmp #ACT_LOWER_FLOOR
 	beq .twi_need_tgt
+	cmp #ACT_LOWER_FLOOR_15S
+	beq .twi_need_tgt
 	cmp #ACT_OPEN_DOOR_10S
 	beq .twi_need_tgt
 	cmp #ACT_OPEN_DOOR_30S
@@ -420,14 +412,13 @@ try_walk_into
 	lda SEC_TARGET,x
 	beq .twi_rts
 .twi_go
-	lda #1
-	sta elev_remote
 	jmp trigger_action
 .twi_rts
 	rts
 
 ; ------------------------------------------------------------------
-; try_switch — K held near switch item → sector under switch (trigger=switch)
+; try_switch — K held, switch ahead + within radius → sector under it
+; (trigger=switch).
 ; ------------------------------------------------------------------
 try_switch
 	lda key_use
@@ -438,7 +429,9 @@ try_switch
 .ts_l
 	lda level_item_type,x
 	cmp #ITEM_TYPE_SWITCH
-	bne .ts_n
+	beq .ts_is
+	jmp .ts_n
+.ts_is
 	lda level_item_x,x
 	sta tmp0
 	lda level_item_y,x
@@ -452,7 +445,9 @@ try_switch
 	adc #1
 .ts_x
 	cmp #SWITCH_USE_RADIUS
-	bcs .ts_n
+	bcc .ts_xin
+	jmp .ts_n
+.ts_xin
 	lda tmp1
 	sec
 	sbc playery_h
@@ -462,7 +457,45 @@ try_switch
 	adc #1
 .ts_y
 	cmp #SWITCH_USE_RADIUS
-	bcs .ts_n
+	bcc .ts_yin
+	jmp .ts_n
+.ts_yin
+	stx tmp5				; save item index
+	jsr player_face_nesw
+	tax
+	lda tu_face,x
+	bne .ts_need_hi
+	; ahead = switch on lo side of player (N/W)
+	lda tu_axis,x
+	bne .ts_lo_y
+	lda playerx_h
+	sec
+	sbc tmp0
+	jmp .ts_lo_d
+.ts_lo_y
+	lda playery_h
+	sec
+	sbc tmp1
+.ts_lo_d
+	beq .ts_n2
+	bcc .ts_n2
+	bcs .ts_ahead
+.ts_need_hi
+	; ahead = switch on hi side of player (E/S)
+	lda tu_axis,x
+	bne .ts_hi_y
+	lda tmp0
+	sec
+	sbc playerx_h
+	jmp .ts_hi_d
+.ts_hi_y
+	lda tmp1
+	sec
+	sbc playery_h
+.ts_hi_d
+	beq .ts_n2
+	bcc .ts_n2
+.ts_ahead
 	; map switch world → tile → sector
 	lda tmp0
 	lsr
@@ -474,7 +507,6 @@ try_switch
 	lsr
 	lsr
 	sta mapy
-	stx tmp5				; save item index
 	jsr map_sector_id
 	beq .ts_n2
 	sta trig_sec
@@ -482,15 +514,15 @@ try_switch
 	jsr sec_trigger
 	cmp #TRIG_SWITCH
 	bne .ts_n2
-	lda #1
-	sta elev_remote
 	jmp trigger_action
 .ts_n2
 	ldx tmp5
 .ts_n
 	inx
 	cpx #MAX_ITEMS
-	bcc .ts_l
+	bcs .ts_done
+	jmp .ts_l
+.ts_done
 	rts
 
 ; ------------------------------------------------------------------
@@ -602,8 +634,8 @@ floor_forever_activate
 
 ; ------------------------------------------------------------------
 ; elevator_activate — tmp1 = sector, tmp2 = dest, elev_mode = 0/1
-; elev_remote = 0 → ELEV_RECLOSE_LOCAL_MS, 1 → ELEV_RECLOSE_REMOTE_MS
-; Only used for ACT_LOWER_FLOOR. Caller finds dest once for the tag chain.
+; elev_reclose = 0 → ELEV_RECLOSE_5S_MS, 1 → ELEV_RECLOSE_15S_MS
+; Only used for timed ACT_LOWER_FLOOR*. Caller finds dest once for the tag chain.
 ; ------------------------------------------------------------------
 elevator_activate
 	jsr proc_sector_busy
@@ -648,17 +680,17 @@ elevator_activate
 	sta tmp0
 	lda elev_found
 	sta tmp2
-	lda elev_remote
-	bne .ea_rem
-	lda #<ELEV_RECLOSE_LOCAL_MS
+	lda elev_reclose
+	bne .ea_15
+	lda #<ELEV_RECLOSE_5S_MS
 	sta tmp3
-	lda #>ELEV_RECLOSE_LOCAL_MS
+	lda #>ELEV_RECLOSE_5S_MS
 	sta tmp4
 	jmp .ea_timer
-.ea_rem
-	lda #<ELEV_RECLOSE_REMOTE_MS
+.ea_15
+	lda #<ELEV_RECLOSE_15S_MS
 	sta tmp3
-	lda #>ELEV_RECLOSE_REMOTE_MS
+	lda #>ELEV_RECLOSE_15S_MS
 	sta tmp4
 .ea_timer
 	jsr proc_alloc
@@ -675,8 +707,8 @@ elevator_activate
 ; walk the SEC_TARGET sibling chain (same-tag fan-out from cook).
 ; Floor raise/lower: dest = max/min external neighbour across the whole
 ; chain (once), then every member moves to that shared height.
-; Caller sets elev_remote for ACT_LOWER_FLOOR. Stairs uses trig_sec as
-; start (not target resolve).
+; Timed lower sets elev_reclose from action (5s vs 15s). Stairs uses
+; trig_sec as start (not target resolve).
 ; ------------------------------------------------------------------
 trigger_action
 	ldx trig_sec
@@ -693,8 +725,16 @@ trigger_action
 	beq .ta_door30
 	cmp #ACT_LOWER_FLOOR
 	bne .ta_nl
+	lda #0
+	sta elev_reclose
 	jmp .ta_lower
 .ta_nl
+	cmp #ACT_LOWER_FLOOR_15S
+	bne .ta_nl15
+	lda #1
+	sta elev_reclose
+	jmp .ta_lower
+.ta_nl15
 	cmp #ACT_LOWER_FLOOR_FOREVER
 	bne .ta_nlf
 	jmp .ta_lower_f

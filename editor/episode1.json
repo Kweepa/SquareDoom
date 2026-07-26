@@ -719,7 +719,7 @@
           "ceilingHeight": 9,
           "trigger": "walk_into",
           "singleShot": false,
-          "action": "lower_floor",
+          "action": "lower_floor_15s",
           "tag": "",
           "targetTag": "ledge_to_lower",
           "floorColor": 11,
@@ -6277,7 +6277,7 @@
           "ceilingHeight": 15,
           "trigger": "walk_into",
           "singleShot": false,
-          "action": "lower_floor",
+          "action": "lower_floor_15s",
           "tag": "",
           "targetTag": "impcloset",
           "floorColor": 11,
@@ -12483,15 +12483,15 @@
         },
         "11": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
-          "trigger": "none",
+          "ceilingHeight": 10,
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "ceilingColor": 4,
+          "brightness": 9
         },
         "12": {
           "floorHeight": 10,
@@ -12503,7 +12503,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "13": {
           "floorHeight": 10,
@@ -12515,7 +12515,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "14": {
           "floorHeight": 7,
@@ -12539,7 +12539,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "16": {
           "floorHeight": 7,
@@ -12587,7 +12587,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "20": {
           "floorHeight": 10,
@@ -12599,7 +12599,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "21": {
           "floorHeight": 7,
@@ -12647,7 +12647,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "25": {
           "floorHeight": 1,
@@ -12671,7 +12671,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "27": {
           "floorHeight": 10,
@@ -12683,7 +12683,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "28": {
           "floorHeight": 9,
@@ -12731,7 +12731,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "32": {
           "floorHeight": 10,
@@ -12743,7 +12743,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 6,
-          "brightness": 15
+          "brightness": 9
         },
         "33": {
           "floorHeight": 10,
@@ -12755,11 +12755,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "34": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 16,
+          "ceilingHeight": 21,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -12767,7 +12767,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "35": {
           "floorHeight": 5,
@@ -12782,8 +12782,8 @@
           "brightness": 8
         },
         "36": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 12,
+          "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -12791,11 +12791,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "37": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 15,
+          "ceilingHeight": 21,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -12803,11 +12803,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "38": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 16,
+          "ceilingHeight": 21,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -12815,7 +12815,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 7
         },
         "39": {
           "floorHeight": 10,
@@ -12827,7 +12827,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "40": {
           "floorHeight": 1,
@@ -12854,8 +12854,8 @@
           "brightness": 9
         },
         "42": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 14,
+          "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -12863,7 +12863,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "43": {
           "floorHeight": 16,
@@ -12899,19 +12899,19 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "46": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
-          "trigger": "none",
+          "ceilingHeight": 10,
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "47": {
           "floorHeight": 10,
@@ -12935,7 +12935,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 9
         },
         "49": {
           "floorHeight": 10,
@@ -13046,7 +13046,7 @@
           "brightness": 9
         },
         "58": {
-          "floorHeight": 5,
+          "floorHeight": 10,
           "ceilingHeight": 15,
           "trigger": "none",
           "singleShot": false,
@@ -13055,7 +13055,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "59": {
           "floorHeight": 14,
@@ -13322,7 +13322,7 @@
           "brightness": 8
         },
         "81": {
-          "floorHeight": 9,
+          "floorHeight": 10,
           "ceilingHeight": 15,
           "trigger": "none",
           "singleShot": false,
@@ -13331,10 +13331,10 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "82": {
-          "floorHeight": 9,
+          "floorHeight": 10,
           "ceilingHeight": 22,
           "trigger": "none",
           "singleShot": false,
@@ -13343,11 +13343,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "83": {
-          "floorHeight": 9,
-          "ceilingHeight": 9,
+          "floorHeight": 10,
+          "ceilingHeight": 10,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -13355,7 +13355,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "84": {
           "floorHeight": 10,
@@ -13379,7 +13379,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "86": {
           "floorHeight": 11,
@@ -13530,7 +13530,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "window",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -13705,18 +13705,6 @@
           "ceilingColor": 11,
           "brightness": 16
         },
-        "113": {
-          "floorHeight": 16,
-          "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "window",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
-        },
         "114": {
           "floorHeight": 10,
           "ceilingHeight": 10,
@@ -13790,7 +13778,7 @@
           "brightness": 8
         },
         "120": {
-          "floorHeight": 5,
+          "floorHeight": 10,
           "ceilingHeight": 15,
           "trigger": "use",
           "singleShot": false,
@@ -13799,7 +13787,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "121": {
           "floorHeight": 2,
@@ -13907,7 +13895,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 6,
-          "brightness": 15
+          "brightness": 8
         },
         "130": {
           "floorHeight": 11,
@@ -13931,7 +13919,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "132": {
           "floorHeight": 10,
@@ -13943,10 +13931,10 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "133": {
-          "floorHeight": 9,
+          "floorHeight": 10,
           "ceilingHeight": 15,
           "trigger": "walk_into",
           "singleShot": false,
@@ -13955,34 +13943,34 @@
           "targetTag": "door_back",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "134": {
-          "floorHeight": 9,
-          "ceilingHeight": 15,
-          "trigger": "none",
+          "floorHeight": 10,
+          "ceilingHeight": 10,
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
         },
         "135": {
-          "floorHeight": 5,
-          "ceilingHeight": 15,
-          "trigger": "none",
+          "floorHeight": 10,
+          "ceilingHeight": 10,
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 15
+          "ceilingColor": 9,
+          "brightness": 9
         },
         "136": {
-          "floorHeight": 5,
+          "floorHeight": 10,
           "ceilingHeight": 15,
           "trigger": "use",
           "singleShot": false,
@@ -13991,7 +13979,91 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 8
+        },
+        "137": {
+          "floorHeight": 10,
+          "ceilingHeight": 10,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "138": {
+          "floorHeight": 10,
+          "ceilingHeight": 15,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "139": {
+          "floorHeight": 16,
+          "ceilingHeight": 16,
+          "trigger": "use",
+          "singleShot": false,
+          "action": "open_door",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "140": {
+          "floorHeight": 11,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "141": {
+          "floorHeight": 13,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "142": {
+          "floorHeight": 14,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "143": {
+          "floorHeight": 14,
+          "ceilingHeight": 24,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
         }
       },
       "map": [
@@ -14099,80 +14171,80 @@
         0,
         0,
         0,
+        82,
+        82,
+        82,
+        0,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         85,
-        85,
-        85,
-        0,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        12,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        131,
         130,
-        132,
+        131,
         129,
         13,
         0,
         15,
         15,
         0,
+        135,
+        0,
+        19,
         19,
         0,
         20,
-        20,
         0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        132,
+        132,
+        132,
+        0,
+        24,
+        24,
         24,
         0,
         0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        82,
-        82,
-        82,
-        0,
         26,
-        26,
-        26,
-        0,
-        0,
-        19,
         0,
         0,
         27,
@@ -14196,7 +14268,7 @@
         0,
         0,
         0,
-        134,
+        58,
         0,
         0,
         31,
@@ -14227,12 +14299,12 @@
         25,
         25,
         0,
-        58,
-        58,
-        58,
+        81,
+        81,
+        81,
         0,
         0,
-        0,
+        48,
         0,
         32,
         0,
@@ -14259,29 +14331,29 @@
         25,
         25,
         0,
-        135,
-        81,
+        134,
+        0,
         133,
         0,
-        0,
-        0,
+        138,
+        138,
         0,
         33,
-        34,
+        140,
         36,
         0,
-        38,
-        39,
-        39,
-        39,
-        39,
-        39,
-        39,
-        39,
-        39,
-        39,
-        39,
-        48,
+        37,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
         0,
         0,
         79,
@@ -14298,22 +14370,22 @@
         0,
         0,
         0,
-        33,
+        137,
         0,
-        36,
+        141,
+        0,
+        37,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         0,
         38,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        48,
         0,
         0,
         79,
@@ -14332,9 +14404,9 @@
         7,
         61,
         0,
-        36,
-        37,
-        38,
+        142,
+        42,
+        42,
         0,
         59,
         59,
@@ -14344,8 +14416,8 @@
         51,
         111,
         112,
-        0,
-        48,
+        139,
+        38,
         0,
         0,
         79,
@@ -14364,9 +14436,9 @@
         55,
         61,
         44,
-        36,
-        37,
-        38,
+        143,
+        143,
+        143,
         0,
         59,
         59,
@@ -14377,7 +14449,7 @@
         111,
         112,
         0,
-        48,
+        0,
         0,
         0,
         79,
@@ -14396,9 +14468,9 @@
         55,
         61,
         44,
-        36,
-        37,
-        38,
+        143,
+        143,
+        143,
         0,
         59,
         59,
@@ -14409,7 +14481,7 @@
         111,
         112,
         0,
-        48,
+        0,
         0,
         0,
         79,
@@ -14428,9 +14500,9 @@
         55,
         61,
         0,
-        36,
-        37,
-        38,
+        143,
+        143,
+        143,
         0,
         59,
         59,
@@ -14438,10 +14510,10 @@
         0,
         0,
         51,
-        111,
+        0,
         112,
         0,
-        48,
+        0,
         0,
         0,
         79,
@@ -14471,9 +14543,9 @@
         0,
         0,
         0,
-        42,
+        46,
         0,
-        48,
+        0,
         0,
         0,
         79,
@@ -14503,9 +14575,9 @@
         62,
         62,
         0,
-        42,
-        45,
-        48,
+        39,
+        0,
+        0,
         0,
         0,
         79,
@@ -14535,9 +14607,9 @@
         0,
         106,
         0,
-        42,
-        0,
-        0,
+        45,
+        45,
+        45,
         0,
         0,
         79,
@@ -14567,9 +14639,9 @@
         14,
         14,
         0,
-        42,
-        0,
-        0,
+        45,
+        45,
+        45,
         0,
         0,
         79,
@@ -14599,9 +14671,9 @@
         22,
         16,
         0,
-        42,
-        46,
-        46,
+        0,
+        0,
+        0,
         0,
         0,
         79,
@@ -14619,7 +14691,7 @@
         54,
         56,
         9,
-        113,
+        98,
         65,
         65,
         65,
@@ -14631,9 +14703,9 @@
         17,
         17,
         0,
-        42,
-        46,
-        46,
+        0,
+        0,
+        0,
         0,
         0,
         79,
@@ -15021,16 +15093,16 @@
         0
       ],
       "spawn": {
-        "x": 112,
-        "y": 244,
-        "angle": 5.979790429433535
+        "x": 68,
+        "y": 140,
+        "angle": 0
       },
       "items": [
         {
           "type": "camera",
-          "x": 122.71128267049352,
-          "y": 161.69537698594442,
-          "angle": 0.4012632104198701
+          "x": 87.89039677108147,
+          "y": 122.52410791618775,
+          "angle": 4.766216294550247
         },
         {
           "type": "yellowcard",
@@ -15176,6 +15248,41 @@
           "type": "imp",
           "x": 67,
           "y": 172,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "switch",
+          "x": 123,
+          "y": 12
+        },
+        {
+          "type": "bluecard",
+          "x": 148,
+          "y": 106,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 243,
+          "y": 140,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "backpack",
+          "x": 245,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,

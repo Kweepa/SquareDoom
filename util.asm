@@ -28,6 +28,20 @@ player_tile
 	sta mapy
 	rts
 
+; playera → A = NESW face: 0=N 1=E 2=S 3=W  ((a+32)>>6 & 3)
+player_face_nesw
+	lda playera
+	clc
+	adc #32
+	lsr
+	lsr
+	lsr
+	lsr
+	lsr
+	lsr
+	and #3
+	rts
+
 ; Fill colour+pattern column: A = colour, ytop..ybot-1
 ; Clobbers X (colour kept in X across the dual-FB store).
 fill_col_span

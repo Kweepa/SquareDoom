@@ -105,6 +105,8 @@ build_sec_flatgrp
 	beq .bf_mut
 	cmp #ACT_LOWER_FLOOR
 	beq .bf_mut
+	cmp #ACT_LOWER_FLOOR_15S
+	beq .bf_mut
 	cmp #ACT_LOWER_FLOOR_FOREVER
 	beq .bf_mut
 	cmp #ACT_RAISE_FLOOR
