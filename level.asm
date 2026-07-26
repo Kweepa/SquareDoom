@@ -118,6 +118,8 @@ build_sec_flatgrp
 	beq .bf_mut
 	cmp #ACT_FLASH_LIGHTS
 	beq .bf_mut
+	cmp #ACT_OPEN_MONSTER_CLOSET
+	beq .bf_mut
 	jmp .bf_mnext
 .bf_mut
 	lda #$ff

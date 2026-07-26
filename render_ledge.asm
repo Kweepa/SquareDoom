@@ -30,7 +30,8 @@ ledge_col_flags
 	!byte 2			; 12 lower_floor 15s
 	!byte 0			; 13 damage_floor
 	!byte 0			; 14 flash_lights
-	!fill 17, 0
+	!byte 2			; 15 open_monster_closet
+	!fill 16, 0
 
 ; ---------------------------------------------------------------------------
 ; paint_portal — ledges for next_id vs near_*; may advance ytop/ybot

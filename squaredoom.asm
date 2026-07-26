@@ -142,6 +142,7 @@ ACT_OPEN_DOOR_10S = 11		; raise ceil +5, reclose 10s
 ACT_LOWER_FLOOR_15S = 12	; min adjacent + return 15s
 ACT_DAMAGE_FLOOR = 13		; 5 HP / second while standing
 ACT_FLASH_LIGHTS = 14		; SEC_BRIGHT ↔ 16, 1 Hz (max 2 sectors)
+ACT_OPEN_MONSTER_CLOSET = 15	; raise floor+ceil +6, permanent
 
 SEC_TABLE_SIZE = 256
 

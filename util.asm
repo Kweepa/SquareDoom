@@ -333,3 +333,49 @@ sector_specials_update
 	bcc .ssu_fa
 .ssu_rts
 	rts
+
+; ------------------------------------------------------------------
+; closet_activate — tmp1 = sector; raise floor+ceil by CLOSET_RAISE
+; Two RAISE procs after one busy check. No reclose / no height clamp.
+; (In low — mid is tight.)
+; ------------------------------------------------------------------
+CLOSET_RAISE = 6
+
+closet_activate
+	jsr proc_sector_busy
+	bcc .ca_free
+	rts
+.ca_free
+	jsr proc_count_free
+	cmp #2
+	bcs .ca_slots
+	rts
+.ca_slots
+	ldx tmp1
+	lda SEC_FLOOR,x
+	clc
+	adc #CLOSET_RAISE
+	sta tmp2
+	lda #PROC_RAISE_FLOOR
+	sta tmp0
+	lda #0
+	sta tmp3
+	sta tmp4
+	jsr proc_alloc
+	bcs .ca_fail
+	ldx tmp1
+	lda SEC_CEIL,x
+	clc
+	adc #CLOSET_RAISE
+	sta tmp2
+	lda #PROC_RAISE_CEIL
+	sta tmp0
+	lda #0
+	sta tmp3
+	sta tmp4
+	jsr proc_alloc
+	bcs .ca_fail
+	lda #SOUND_STNMOV
+	jmp play_sound
+.ca_fail
+	rts

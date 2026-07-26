@@ -756,8 +756,12 @@ trigger_action
 	jmp .ta_raise
 .ta_nr
 	cmp #ACT_RAISE_STAIRS
-	bne .ta_none
+	bne .ta_nc
 	jmp .ta_stairs
+.ta_nc
+	cmp #ACT_OPEN_MONSTER_CLOSET
+	bne .ta_none
+	jmp .ta_closet
 .ta_none
 	rts
 .ta_end
@@ -791,6 +795,22 @@ trigger_action
 	ldx trig_chain
 	lda SEC_TARGET,x
 	bne .ta_door_walk
+	jmp .ta_shot
+.ta_closet
+	ldx trig_sec
+	lda SEC_TARGET,x
+	bne .ta_closet_walk
+	lda trig_sec
+	sta tmp1
+	jsr closet_activate
+	jmp .ta_shot
+.ta_closet_walk
+	sta trig_chain
+	sta tmp1
+	jsr closet_activate
+	ldx trig_chain
+	lda SEC_TARGET,x
+	bne .ta_closet_walk
 	jmp .ta_shot
 .ta_lower
 	ldx trig_sec
