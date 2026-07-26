@@ -5,6 +5,8 @@ import {
   tileKey,
   tilesInSector,
   colorHex,
+  isDoorSector,
+  isWindowSector,
 } from './model.js';
 
 export class MapView {
@@ -179,6 +181,30 @@ export class MapView {
         const id = getCell(level, tx, ty);
         ctx.fillStyle = this.#sectorFill(level, id);
         ctx.fillRect(tx * c, ty * c, c, c);
+      }
+    }
+
+    // Door / window markers mid-tile
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${Math.max(4, Math.floor(c * 0.325))}px sans-serif`;
+    for (let ty = 0; ty < MAP_SIZE; ty++) {
+      for (let tx = 0; tx < MAP_SIZE; tx++) {
+        const id = getCell(level, tx, ty);
+        if (!id) continue;
+        const s = level.sectors.get(id);
+        let mark = null;
+        if (isDoorSector(s)) {
+          const cc = s.ceilingColor & 15;
+          ctx.fillStyle = (cc === 2 || cc === 6 || cc === 7)
+            ? colorHex(cc)
+            : 'rgba(255,255,255,0.9)';
+          mark = 'D';
+        } else if (isWindowSector(s)) {
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          mark = 'W';
+        }
+        if (mark) ctx.fillText(mark, tx * c + c / 2, ty * c + c / 2);
       }
     }
 
