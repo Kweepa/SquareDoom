@@ -3047,7 +3047,7 @@ class MapView {
         if (!id) continue;
         const s = level.sectors.get(id);
         let mark = null;
-        if (isDoorSector(s)) {
+        if (isDoorSector(s) && !String(s.targetTag || '').trim()) {
           const cc = s.ceilingColor & 15;
           ctx.fillStyle = (cc === 2 || cc === 6 || cc === 7)
             ? colorHex(cc)
