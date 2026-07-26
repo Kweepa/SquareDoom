@@ -29,6 +29,8 @@ elev_cell_x	!byte 0
 elev_cell_y	!byte 0
 elev_chain	!byte 0			; same-tag chain head (find_dest sibling skip)
 elev_dest	!byte 0			; shared floor dest for tag chain
+elev_fcol	!byte 0			; SEC_FCOL of winning neighbour (forever floors)
+elev_faction	!byte 0			; ACT_MASK of winning neighbour (forever floors)
 trig_sec	!byte 0			; sector that provided the trigger
 trig_chain	!byte 0			; remote SEC_TARGET walk cursor
 key_use_was	!byte 0			; previous-frame key_use (rising edge)
@@ -599,6 +601,16 @@ stairs_activate
 	lda #SOUND_STNMOV
 	jmp play_sound
 
+; Apply elev_fcol + elev_faction to sector X (keep trigger/shot bits).
+forever_adopt_nb
+	lda elev_fcol
+	sta SEC_FCOL,x
+	lda SEC_TYPE,x
+	and #(TRIG_MASK | SHOT_BIT)
+	ora elev_faction
+	sta SEC_TYPE,x
+	rts
+
 ; ------------------------------------------------------------------
 ; floor_forever_activate — tmp1 = sector, tmp2 = dest, elev_mode set
 ; Permanent raise (mode=1) or lower (mode=0). Caller finds dest once.
@@ -814,6 +826,8 @@ trigger_action
 	jsr elevator_find_dest
 	sta elev_dest
 .ta_lower_f_walk
+	ldx tmp1
+	jsr forever_adopt_nb
 	lda elev_dest
 	sta tmp2
 	jsr floor_forever_activate
@@ -836,6 +850,8 @@ trigger_action
 	jsr elevator_find_dest
 	sta elev_dest
 .ta_raise_walk
+	ldx tmp1
+	jsr forever_adopt_nb
 	lda elev_dest
 	sta tmp2
 	jsr floor_forever_activate
@@ -864,6 +880,12 @@ trigger_action
 elevator_find_dest
 	lda tmp1
 	sta elev_chain
+	tax
+	lda SEC_FCOL,x
+	sta elev_fcol			; default = head if no neighbour
+	lda SEC_TYPE,x
+	and #ACT_MASK
+	sta elev_faction
 	lda #0
 	sta elev_found
 	lda elev_mode
@@ -883,7 +905,9 @@ elevator_find_dest
 .ef_x
 	jsr map_sector_id
 	cmp tmp1
-	bne .ef_xn
+	beq .ef_cell
+	jmp .ef_xn
+.ef_cell
 	lda mapx
 	sta elev_cell_x
 	lda mapy
@@ -908,13 +932,20 @@ elevator_find_dest
 	beq .ef_dn
 	jsr elev_in_chain			; C set → same-tag sibling
 	bcs .ef_dn
-	tax
+	tax					; neighbour id
+	stx tmp4
 	lda SEC_FLOOR,x
+	ldy SEC_FCOL,x
 	ldx elev_mode
 	bne .ef_max
 	cmp tmp2
 	bcs .ef_dn
 	sta tmp2
+	sty elev_fcol
+	ldx tmp4
+	lda SEC_TYPE,x
+	and #ACT_MASK
+	sta elev_faction
 	lda #1
 	sta elev_found
 	jmp .ef_dn
@@ -923,6 +954,11 @@ elevator_find_dest
 	bcc .ef_dn
 	beq .ef_dn
 	sta tmp2
+	sty elev_fcol
+	ldx tmp4
+	lda SEC_TYPE,x
+	and #ACT_MASK
+	sta elev_faction
 	lda #1
 	sta elev_found
 .ef_dn

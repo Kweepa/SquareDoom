@@ -140,6 +140,8 @@ ACT_END_LEVEL = 9
 ACT_LOWER_FLOOR_FOREVER = 10	; min adjacent, permanent
 ACT_OPEN_DOOR_10S = 11		; raise ceil +5, reclose 10s
 ACT_LOWER_FLOOR_15S = 12	; min adjacent + return 15s
+ACT_DAMAGE_FLOOR = 13		; 5 HP / second while standing
+ACT_FLASH_LIGHTS = 14		; SEC_BRIGHT ↔ 16, 1 Hz (max 2 sectors)
 
 SEC_TABLE_SIZE = 256
 

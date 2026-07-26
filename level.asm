@@ -11,6 +11,7 @@ start_level
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr build_sec_flatgrp
+	jsr flash_lights_init
 	jsr clear_sector_visited		; automap fog starts cleared
 	jsr player_tile
 	jsr map_sector_id
@@ -114,6 +115,8 @@ build_sec_flatgrp
 	cmp #ACT_RAISE_STAIRS
 	beq .bf_mut
 	cmp #ACT_CONTINUE_STAIRS
+	beq .bf_mut
+	cmp #ACT_FLASH_LIGHTS
 	beq .bf_mut
 	jmp .bf_mnext
 .bf_mut

@@ -21,6 +21,7 @@ gameloop
 	jsr try_use
 	jsr try_switch
 	jsr proc_update
+	jsr sector_specials_update
 	jsr update_info_msg
 	jsr update_eye
 	jsr render

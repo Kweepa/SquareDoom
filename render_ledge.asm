@@ -28,7 +28,9 @@ ledge_col_flags
 	!byte 2			; 10 lower_floor forever
 	!byte 1			; 11 open_door 10s
 	!byte 2			; 12 lower_floor 15s
-	!fill 19, 0
+	!byte 0			; 13 damage_floor
+	!byte 0			; 14 flash_lights
+	!fill 17, 0
 
 ; ---------------------------------------------------------------------------
 ; paint_portal — ledges for next_id vs near_*; may advance ytop/ybot

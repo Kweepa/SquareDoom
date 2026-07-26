@@ -12390,7 +12390,7 @@
           "ceilingHeight": 15,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "flash_lights",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -12402,7 +12402,7 @@
           "ceilingHeight": 15,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12522,7 +12522,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "walkway",
           "targetTag": "",
           "floorColor": 5,
@@ -12546,7 +12546,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12558,7 +12558,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12570,7 +12570,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12606,7 +12606,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12618,7 +12618,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "walkway",
           "targetTag": "",
           "floorColor": 5,
@@ -12630,7 +12630,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "walkway",
           "targetTag": "",
           "floorColor": 5,
@@ -12714,7 +12714,7 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12978,7 +12978,7 @@
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -12990,7 +12990,7 @@
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13002,7 +13002,7 @@
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13014,7 +13014,7 @@
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13026,7 +13026,7 @@
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13170,7 +13170,7 @@
           "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13182,7 +13182,7 @@
           "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13218,7 +13218,7 @@
           "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13230,7 +13230,7 @@
           "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -13242,7 +13242,7 @@
           "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -15093,8 +15093,8 @@
         0
       ],
       "spawn": {
-        "x": 68,
-        "y": 140,
+        "x": 112,
+        "y": 245,
         "angle": 0
       },
       "items": [
@@ -15186,8 +15186,8 @@
         },
         {
           "type": "soldier",
-          "x": 83,
-          "y": 154,
+          "x": 84,
+          "y": 128,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15196,8 +15196,8 @@
         },
         {
           "type": "soldier",
-          "x": 111,
-          "y": 163,
+          "x": 84,
+          "y": 155,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15283,6 +15283,86 @@
           "type": "backpack",
           "x": 245,
           "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 116,
+          "y": 86,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 91,
+          "y": 162,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 105,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 68,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 156,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 158,
+          "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 150,
+          "y": 97,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 142,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,

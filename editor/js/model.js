@@ -81,6 +81,8 @@ export const ACTIONS = [
   { id: 'raise_stairs', name: 'Raise stairs', value: 7 },
   { id: 'continue_stairs', name: 'Continue stairs', value: 8 },
   { id: 'end_level', name: 'End level', value: 9 },
+  { id: 'damage_floor', name: 'Damage (5%)', value: 13 },
+  { id: 'flash_lights', name: 'Flash lights', value: 14 },
 ];
 
 const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t]));

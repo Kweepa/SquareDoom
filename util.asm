@@ -200,3 +200,136 @@ GetRandom16
 	rts
 
 random	!word $a3b7			; 16-bit LCG state
+
+; ------------------------------------------------------------------
+; Passive sector specials (damage floor / flash lights) — sim tick, low mem
+; FLASH_MAX = 2 registered at level load; SEC_BRIGHT toggled in place.
+; ------------------------------------------------------------------
+FLASH_MAX = 2
+FLASH_PERIOD_MS = 1000
+DAMAGE_PERIOD_MS = 1000
+DAMAGE_PER_TICK = 5
+
+flash_sec	!byte 0, 0		; sector ids (0 = empty)
+flash_base	!byte 0, 0		; authored SEC_BRIGHT
+flash_lit	!byte 0			; 0 = base, 1 = bright 16
+flash_ms	!word 0
+dmg_ms		!word 0
+
+; Scan sectors for ACT_FLASH_LIGHTS → flash_sec/base (max 2). Call at level start.
+flash_lights_init
+	lda #0
+	sta flash_sec
+	sta flash_sec + 1
+	sta flash_base
+	sta flash_base + 1
+	sta flash_lit
+	sta flash_ms
+	sta flash_ms + 1
+	sta dmg_ms
+	sta dmg_ms + 1
+	ldy #0				; slot
+	ldx #1
+.fli_l
+	jsr sec_action
+	cmp #ACT_FLASH_LIGHTS
+	bne .fli_n
+	cpy #FLASH_MAX
+	bcs .fli_n
+	txa
+	sta flash_sec,y
+	lda SEC_BRIGHT,x
+	sta flash_base,y
+	iny
+.fli_n
+	cpx level_sector_max
+	bcs .fli_done
+	inx
+	bne .fli_l
+.fli_done
+	rts
+
+; Per-frame: damage if standing on ACT_DAMAGE_FLOOR; toggle flash lights.
+sector_specials_update
+	; --- damage ---
+	jsr player_tile
+	jsr map_sector_id
+	beq .ssu_dmg_clr
+	tax
+	jsr sec_action
+	cmp #ACT_DAMAGE_FLOOR
+	bne .ssu_dmg_clr
+	lda dmg_ms
+	clc
+	adc dt_ms
+	sta dmg_ms
+	lda dmg_ms + 1
+	adc #0
+	sta dmg_ms + 1
+	cmp #>DAMAGE_PERIOD_MS
+	bcc .ssu_flash
+	bne .ssu_dmg_fire
+	lda dmg_ms
+	cmp #<DAMAGE_PERIOD_MS
+	bcc .ssu_flash
+.ssu_dmg_fire
+	lda dmg_ms
+	sec
+	sbc #<DAMAGE_PERIOD_MS
+	sta dmg_ms
+	lda dmg_ms + 1
+	sbc #>DAMAGE_PERIOD_MS
+	sta dmg_ms + 1
+	lda #DAMAGE_PER_TICK
+	jsr damage_player
+	jmp .ssu_flash
+.ssu_dmg_clr
+	lda #0
+	sta dmg_ms
+	sta dmg_ms + 1
+.ssu_flash
+	lda flash_sec
+	ora flash_sec + 1
+	beq .ssu_rts				; none registered
+	lda flash_ms
+	clc
+	adc dt_ms
+	sta flash_ms
+	lda flash_ms + 1
+	adc #0
+	sta flash_ms + 1
+	cmp #>FLASH_PERIOD_MS
+	bcc .ssu_rts
+	bne .ssu_flash_fire
+	lda flash_ms
+	cmp #<FLASH_PERIOD_MS
+	bcc .ssu_rts
+.ssu_flash_fire
+	lda flash_ms
+	sec
+	sbc #<FLASH_PERIOD_MS
+	sta flash_ms
+	lda flash_ms + 1
+	sbc #>FLASH_PERIOD_MS
+	sta flash_ms + 1
+	lda flash_lit
+	eor #1
+	sta flash_lit
+	ldx #0
+.ssu_fa
+	ldy flash_sec,x
+	beq .ssu_fn
+	lda flash_lit
+	bne .ssu_fhi
+	lda flash_base,x
+	sta SEC_BRIGHT,y
+	jmp .ssu_fn
+.ssu_fhi
+	lda #16
+	sta SEC_BRIGHT,y
+.ssu_fn
+	inx
+	cpx #FLASH_MAX
+	bcc .ssu_fa
+.ssu_rts
+	rts
