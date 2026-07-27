@@ -154,8 +154,9 @@ pat_base_h	= $77
 fill_pat	= $78			; screen code written with colour fills
 wall_pat	= $79			; min(15, wallz_h) for wall strips
 
-dda_steps	= $4c			; countdown remaining this column; also item-draw scratch
-xsgn		= $4d			; $00/$FF sign-extend for ±X tile_h updates
+dda_steps	= $4c			; DDA only: spill while X holds step countdown (soft/cell)
+item_ybot	= $4d			; item draw: exclusive bottom of clipped column span
+						; (was xsgn; free after SMC ±X tile advance)
 
 ; CIA profiler snap
 prof_snap_l	= $4e

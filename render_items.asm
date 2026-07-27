@@ -734,9 +734,9 @@ item_draw_one
 	bcc .id_yb
 	lda tmp1
 .id_yb
-	sta dda_steps
+	sta item_ybot
 	lda py_row
-	cmp dda_steps
+	cmp item_ybot
 	bcc .id_spanok
 .id_cnx
 	inc col
@@ -840,7 +840,7 @@ item_draw_one
 	jsr item_vdda_setup			; texstep=step, acc=v; tmp5=mip_h
 	ldy py_row
 .id32_rlp
-	cpy dda_steps
+	cpy item_ybot
 	bcc .id32_row
 	jmp .id_cnx
 .id32_row
@@ -927,7 +927,7 @@ item_draw_one
 	sta tmp4				; source row
 	ldy py_row				; Y = screen row
 .id_rlp
-	cpy dda_steps
+	cpy item_ybot
 	bcc .id_row
 	jmp .id_cnx
 .id_row

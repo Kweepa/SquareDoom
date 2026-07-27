@@ -10,6 +10,20 @@
 ; Incremental wz: each step does wz += ddw then s += dd (inlined; COL_DDWX/Y
 ; from setup). calc_wallz then only shifts — no fish mul at edges.
 ;
+; Quadrant: xstep/ystep are fixed per column — preamble SMC-patches the
+; tile advances (INC/DEC zp for ±X; CLC+ADC / SEC+SBC for ±Y). dda_steps
+; lives in X on the same-id hot path (dex/beq); spilled around soft/cell.
+;
+; Branch form vs PROFILE (see march comments below):
+;   PROFILE=0 — short relatives where in range: bne/bcs .adv_y from .inner,
+;               bcc .inner from .ax_cell. Release build gets these cycles.
+;   PROFILE=1 — prof_add_bucket in .ax_cell/.ay_cell adds 5 bytes and pushes
+;               .adv_y and .ax_cell→.inner past ±127; use .to_adv_y trampoline
+;               and jmp .inner there. Same control flow; a few extra cycles
+;               per affected step only in the instrumented build.
+;   Always jmp .inner from .adv_y (whole .adv_x sits between — out of range
+;   even with PROFILE=0). Always bcc .inner from .ax_same (in range either way).
+;
 ; PROFILE: S closes after preamble (.cc_init); D covers the inner march.
 ; ============================================================================
 
@@ -47,20 +61,16 @@ cast_column
 	sta ddwy_l
 	lda COL_DDWY_H,y
 	sta ddwy_h
-	; Sign-extend byte for tile_h on ±X steps ($00 / $FF); fold first-hit fac
-	ldx #0
+	; Fold first-hit fac; SMC will patch tile advances from xstep/ystep
 	lda COL_YSTEP,y
 	sta ystep
 	lda COL_XSTEP,y
 	sta xstep
 	bpl .xs_pos
-	dex
-	stx xsgn
 	lda fracx				; −X uses fracx
 	jsr calc_sdx
 	jmp .ym_fac
 .xs_pos
-	stx xsgn
 	lda fracx_inv			; +X uses fracx_inv
 	jsr calc_sdx
 .ym_fac
@@ -92,14 +102,32 @@ cast_column
 	jsr mul_16x8
 	sta wz_y_l
 	stx wz_y_h
+
+	; Patch tile advances for this column's (xstep, ystep) quadrant
+	ldx #$e6				; INC zp
+	lda xstep
+	bpl .patch_x
+	ldx #$c6				; DEC zp
+.patch_x
+	stx .smc_x_lo
+	stx .smc_x_hi
+	ldx #$18				; CLC
+	ldy #$69				; ADC #
+	lda ystep
+	bpl .patch_y
+	ldx #$38				; SEC
+	ldy #$e9				; SBC #
+.patch_y
+	stx .smc_y_clc
+	sty .smc_y_op1
+	sty .smc_y_op2
+
 .cc_init
 	; Open clip [0,25); HUD columns leave row 24 untouched.
 	; Info message leaves row 0 free for cols 0..info_len-1.
 	lda #0
 	sta ytop
 	sta last_near_ok
-	lda #MAX_DDA				; countdown: dec/beq ends march
-	sta dda_steps
 	lda info_len
 	beq .ytop_ok
 	ldx col
@@ -136,34 +164,46 @@ cast_column
 	jsr prof_add_bucket		; preamble counts as S
 }
 	ldy #0				; Y=0 invariant for (tile_l) reads
+	ldx #MAX_DDA			; step countdown in X on hot path
 
 ; Inner: pick nearer of sdx/sdy; advance map/tile; same id → add only.
 ; Clip closure is only reported by on_cell (C=1) — no per-step ytop/ybot check.
+;
+; Axis pick → .adv_y: with PROFILE=0, .adv_y is within ±127 of .inner so we
+; branch directly. PROFILE=1 inserts 5 bytes in .ax_cell, pushing .adv_y
+; out of range — trampoline required (same 3 cy as a taken branch when the
+; jmp is used, but the extra jmp vs a short bne costs when PROFILE=0).
 .inner
-	; Choose axis with smaller remaining s (tie → Y)
 	lda sdx_h
 	cmp sdy_h
 	bcc .adv_x
+!if PROFILE = 1 {
 	bne .to_adv_y
 	lda sdx_l
 	cmp sdy_l
 	bcc .adv_x
 .to_adv_y
 	jmp .adv_y
+} else {
+	bne .adv_y
+	lda sdx_l
+	cmp sdy_l
+	bcs .adv_y
+}
 
 .adv_x
-	; Map is sealed with id-0 border — no mapx OOB check (tile walk is enough)
-	clc
-	lda tile_l
-	adc xstep			; ±1 in map row
-	sta tile_l
-	lda tile_h
-	adc xsgn				; sign-extend from preamble
-	sta tile_h
+	; ±X: SMC INC/DEC tile (page fix on wrap). Map sealed — no OOB check.
+.smc_x_lo
+	inc tile_l
+	bne .smc_x_ok
+.smc_x_hi
+	inc tile_h
+.smc_x_ok
 	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ax_same			; same sector — cheap path
 	sta next_id
+	stx dda_steps			; spill steps — flatgrp/soft/cell use X
 	ldx cur_id
 	lda SEC_FLATGRP,x
 	ldx next_id
@@ -172,11 +212,12 @@ cast_column
 	bne .ax_cell			; Z=0 after untaken beq; always taken
 .ax_soft
 	; Same flats — continuous space; aperture unchanged (depth clip).
-	; X already = next_id from the cmp above; mark_seen preserves Y=0
+	; X already = next_id; mark_seen preserves Y=0
 	stx cur_id
 	jsr mark_seen
+	ldx dda_steps
 .ax_same
-	dec dda_steps
+	dex
 	beq .ax_done
 	; wz_x += ddwx, then sdx += ddx (C = s overflow)
 	clc
@@ -193,8 +234,9 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
-	bcs .ax_done
-	jmp .inner
+	; Same-id → .inner is always in bcc range (PROFILE bytes live in .ax_cell,
+	; after this path). Untaken bcs ⇒ C=0 ⇒ bcc always taken on continue.
+	bcc .inner
 .ax_done
 	jmp .done
 .ax_cell
@@ -206,7 +248,8 @@ cast_column
 	jsr on_cell
 	bcs .ax_done
 	ldy #0
-	dec dda_steps
+	ldx dda_steps
+	dex
 	beq .ax_done
 	clc
 	lda wz_x_l
@@ -222,49 +265,45 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
+	; Cell → .inner: PROFILE=1 inserts 5 bytes here and lands ~4 past ±127;
+	; PROFILE=0 fits bcc .inner. Overflow falls through to .ax_done via bcs.
+!if PROFILE = 1 {
 	bcs .ax_done
 	jmp .inner
+} else {
+	bcc .inner
+	bcs .ax_done
+}
 
 .adv_y
-	; Map is sealed with id-0 border — no mapy OOB check
-	lda ystep
-	bmi .ay_n
-	; +Y: tile pointer += MAP_SIZE (next row in map array)
+	; ±Y: SMC CLC+ADC #32 / SEC+SBC #32. Map sealed — no OOB check.
+.smc_y_clc
 	clc
 	lda tile_l
+.smc_y_op1
 	adc #MAP_SIZE
 	sta tile_l
 	lda tile_h
+.smc_y_op2
 	adc #0
 	sta tile_h
-	jmp .ay_rd
-.ay_n
-	; −Y: tile pointer −= MAP_SIZE
-	sec
-	lda tile_l
-	sbc #MAP_SIZE
-	sta tile_l
-	lda tile_h
-	sbc #0
-	sta tile_h
-.ay_rd
 	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ay_same
 	sta next_id
+	stx dda_steps
 	ldx cur_id
 	lda SEC_FLATGRP,x
 	ldx next_id
 	cmp SEC_FLATGRP,x
 	beq .ay_soft
-	bne .ay_cell			; Z=0 after untaken beq; always taken
+	bne .ay_cell
 .ay_soft
-	; Same flats — continuous space; aperture unchanged (depth clip).
-	; X already = next_id from the cmp above; mark_seen preserves Y=0
 	stx cur_id
 	jsr mark_seen
+	ldx dda_steps
 .ay_same
-	dec dda_steps
+	dex
 	beq .ay_done
 	clc
 	lda wz_y_l
@@ -280,6 +319,8 @@ cast_column
 	lda sdy_h
 	adc ddy_h
 	sta sdy_h
+	; Y→.inner is always past ±127 (whole .adv_x sits in between), so
+	; both PROFILE builds use jmp. Not gated — short branch impossible.
 	bcs .ay_done
 	jmp .inner
 .ay_done
@@ -294,7 +335,8 @@ cast_column
 	jsr on_cell
 	bcs .ay_done
 	ldy #0
-	dec dda_steps
+	ldx dda_steps
+	dex
 	beq .ay_done
 	clc
 	lda wz_y_l
