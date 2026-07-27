@@ -18,7 +18,7 @@
 	cmp ytop
 	bcs @cs1
 	lda ytop
-	jmp @cs2
+	bcc @cs2			; C=0 after untaken bcs; lda preserves C
 @cs1
 	cmp ybot
 	bcc @cs2
@@ -76,8 +76,7 @@ paint_near
 .pn_cf_test
 	cpy tmp1
 	bne .pn_cf_lp
-	lda tmp1
-	sta ytop			; shrink open window from the top
+	sty ytop			; Y == tmp1 at exit; shrink open window from the top
 .nc
 	lda ytop
 	cmp ybot

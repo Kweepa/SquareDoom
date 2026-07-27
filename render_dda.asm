@@ -47,26 +47,21 @@ cast_column
 	sta ddwy_l
 	lda COL_DDWY_H,y
 	sta ddwy_h
-	lda COL_XSTEP,y
-	sta xstep
-	; Sign-extend byte for tile_h on ±X steps ($00 / $FF)
+	; Sign-extend byte for tile_h on ±X steps ($00 / $FF); fold first-hit fac
 	ldx #0
-	cmp #0
-	bpl .xs_pos
-	dex
-.xs_pos
-	stx xsgn
 	lda COL_YSTEP,y
 	sta ystep
-
-	; First-hit distance: +X uses fracx_inv, −X uses fracx → sdx
-	lda xstep
-	bmi .xm_raw
-	lda fracx_inv
+	lda COL_XSTEP,y
+	sta xstep
+	bpl .xs_pos
+	dex
+	stx xsgn
+	lda fracx				; −X uses fracx
 	jsr calc_sdx
 	jmp .ym_fac
-.xm_raw
-	lda fracx
+.xs_pos
+	stx xsgn
+	lda fracx_inv			; +X uses fracx_inv
 	jsr calc_sdx
 .ym_fac
 	lda ystep
@@ -80,13 +75,12 @@ cast_column
 .cc_wz
 	; Initial fish-scaled depth: wz = mid(s × fish) at first gridlines
 	ldy col
-	lda fishtab,y
-	sta tmp0
 	lda sdx_l
 	sta aux_l
 	lda sdx_h
 	sta aux_h
-	lda tmp0
+	lda fishtab,y
+	sta tmp0				; A already = fish for mul
 	jsr mul_16x8
 	sta wz_x_l
 	stx wz_x_h
@@ -175,14 +169,12 @@ cast_column
 	ldx next_id
 	cmp SEC_FLATGRP,x
 	beq .ax_soft			; identical flats — no paint, keep walking
-	jmp .ax_cell
+	bne .ax_cell			; Z=0 after untaken beq; always taken
 .ax_soft
 	; Same flats — continuous space; aperture unchanged (depth clip).
-	lda next_id
-	sta cur_id
-	tax
+	; X already = next_id from the cmp above; mark_seen preserves Y=0
+	stx cur_id
 	jsr mark_seen
-	ldy #0				; restore Y=0 after jsr
 .ax_same
 	dec dda_steps
 	beq .ax_done
@@ -206,8 +198,7 @@ cast_column
 .ax_done
 	jmp .done
 .ax_cell
-	lda #0
-	sta side
+	sty side				; Y=0 invariant through the march
 !if PROFILE = 1 {
 	ldy #PROF_DDA
 	jsr prof_add_bucket
@@ -266,14 +257,12 @@ cast_column
 	ldx next_id
 	cmp SEC_FLATGRP,x
 	beq .ay_soft
-	jmp .ay_cell
+	bne .ay_cell			; Z=0 after untaken beq; always taken
 .ay_soft
 	; Same flats — continuous space; aperture unchanged (depth clip).
-	lda next_id
-	sta cur_id
-	tax
+	; X already = next_id from the cmp above; mark_seen preserves Y=0
+	stx cur_id
 	jsr mark_seen
-	ldy #0
 .ay_same
 	dec dda_steps
 	beq .ay_done
@@ -343,16 +332,15 @@ fill_open_remainder
 .for_go
 	lda cur_id
 	beq .for_done
-	tax
-	lda SEC_BRIGHT,x
+	tay					; Y survives bright_to_floor_pat
+	lda SEC_BRIGHT,y
 	jsr bright_to_floor_pat
 	sta fill_pat
-	ldx cur_id
-	lda SEC_FCOL,x
+	lda SEC_FCOL,y
 	ldy ytop
 	sty fill_y0
 	ldy ybot
 	sty fill_y1
-	jsr fill_flat_span
+	jmp fill_flat_span
 .for_done
 	rts

@@ -32,16 +32,17 @@ TEXSTEP_SHIFT = 2
 ; render — one full frame (setup → 40 columns → blit → HUD)
 ; ---------------------------------------------------------------------------
 render
+!if PROFILE = 1 {
 	lda #0
 	sta span_lo
 	sta span_hi
+	jsr prof_reset_frame
+}
 !if DBG_PORTAL = 1 {
+	lda #0
 	sta dbg_n
 	lda #255
 	sta dbg_far_y
-}
-!if PROFILE = 1 {
-	jsr prof_reset_frame
 }
 	jsr clear_sector_seen
 	jsr setup_player_tile
@@ -67,11 +68,11 @@ render
 	jsr blit_fb
 	jsr show_weapon			; HUD sprites after first (and every) blit
 	jsr prof_frame_sample
-	jsr prof_print
 !if DBG_PORTAL = 1 {
+	jsr prof_print
 	jmp dbg_portal_flush
 }
-	rts
+	jmp prof_print
 
 ; ---------------------------------------------------------------------------
 ; on_cell — sector id change on the current column ray
@@ -84,14 +85,9 @@ render
 ; (still refresh span_a/b if a ledge needs them at this wallz).
 ; ---------------------------------------------------------------------------
 on_cell
-	lda next_id
-	cmp cur_id
-	bne .chg
-	clc				; same sector — DDA caller already advances
-	rts
-.chg
+	; Callers (.ax_cell / .ay_cell) already guarantee next_id ≠ cur_id
 	jsr calc_wallz			; W: side's wz → texstep for project_y
-	jsr set_wall_pat		; wall_pat = min(15, wallz_h)
+	jsr set_wall_pat		; wall_pat = min(15, wallz_h); also → fill_pat
 !if PROFILE = 1 {
 	ldy #PROF_WALLZ
 	jsr prof_add_bucket
@@ -165,9 +161,7 @@ on_cell
 	lda next_id
 	bne .portal
 	; Solid wall (next_id=0): flood remaining clip, then force-close
-	jsr wall_colour_ns_ew
-	lda wall_pat
-	sta fill_pat
+	jsr wall_colour_ns_ew		; fill_pat already from set_wall_pat
 	lda wall_col
 	jsr fill_col_span
 	lda ybot
@@ -183,9 +177,7 @@ on_cell
 	sec
 	rts
 .portal
-	lda wall_pat
-	sta fill_pat
-	jsr paint_portal			; L: upper/lower ledges + ybot shrink
+	jsr paint_portal			; L: upper/lower ledges + ybot shrink (fill_pat from set_wall_pat)
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket

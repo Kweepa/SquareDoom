@@ -31,19 +31,16 @@ calc_wallz
 	lda #1				; never leave wallz = 0
 	sta wallz_l
 .czok0
-	; texstep = wallz >> TEXSTEP_SHIFT (TheKeep uses >>2)
+	; texstep = wallz >> TEXSTEP_SHIFT (TheKeep uses >>2); TEXSTEP_SHIFT=2 unrolled
 	lda wallz_l
 	ldx wallz_h
 	stx texstep_h
-	ldy #TEXSTEP_SHIFT
-.czs
 	lsr texstep_h
 	ror
-	dey
-	bne .czs
+	lsr texstep_h
+	ror
 	sta texstep_l
-	lda texstep_h
-	ora texstep_l
+	ora texstep_h			; A already = texstep_l
 	bne .czok
 	lda #1				; project_y must advance each row
 	sta texstep_l

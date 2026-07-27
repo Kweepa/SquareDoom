@@ -59,7 +59,7 @@ paint_portal
 	cmp near_floor
 	bcc .ppd
 	beq .ppd
-	jmp .pp_lower			; lower ledge only
+	bne .pp_lower			; Z=0 after untaken beq; always taken
 
 .pp_upper
 !if PROFILE = 1 {
@@ -96,7 +96,7 @@ paint_portal
 	jmp .pp_do_l
 
 .pp_do_u
-	jsr .pp_draw_u
+	jmp .pp_draw_u
 .ppd
 	rts
 
@@ -125,8 +125,7 @@ paint_portal
 	sta tmp1			; farFloorY clamped
 	lda span_b
 	jsr clamp_span
-	sta tmp2			; nearFloorY clamped
-	lda tmp2
+	sta tmp2			; nearFloorY clamped (A already holds it)
 	cmp tmp1
 	bcc .ppd
 	beq .ppd
@@ -164,8 +163,7 @@ paint_portal
 	sta tmp1			; nearCeilY
 	lda tmp4
 	jsr clamp_span
-	sta tmp2			; farCeilY
-	lda tmp2
+	sta tmp2			; farCeilY (A already holds it)
 	cmp tmp1
 	bcc .pdu_r
 	beq .pdu_r
@@ -194,10 +192,10 @@ paint_portal
 ; ---------------------------------------------------------------------------
 ; wall_colour_ns_ew — side 0 → WALL_NS, side 1 → WALL_EW → wall_col
 ; Requires WALL_EW = WALL_NS + 1 (side is always 0/1).
+; Callers must enter with C=0 (on_cell .edge via bcc; paint_portal from there).
 ; ---------------------------------------------------------------------------
 wall_colour_ns_ew
 	lda side
-	clc
 	adc #WALL_NS
 	sta wall_col
 	rts
