@@ -161,12 +161,13 @@ SEC_BRIGHT = SEC_CCOL + SEC_TABLE_SIZE
 
 level_map = SEC_BRIGHT + SEC_TABLE_SIZE
 level_spawn = level_map + MAP_CELLS	; x, y, angle (playera)
-; Items SoA (contiguous; bak copies this whole block)
+; Items SoA (contiguous)
 level_item_type = level_spawn + SPAWN_BYTES	; 48: typeId or $FF empty
 level_item_x = level_item_type + MAX_ITEMS
 level_item_y = level_item_x + MAX_ITEMS
 level_item_meta = level_item_y + MAX_ITEMS	; skill bits / switch target
-level_items = level_item_type			; bak base (= SoA start)
+level_items = level_item_type
+
 level_sector_max = level_item_meta + MAX_ITEMS
 !if level_sector_max + 1 - level_data != LEVEL_BYTES {
 	!error "LEVEL_BYTES mismatch vs layout"

@@ -16,8 +16,6 @@ NM_CRED = 256 - 1
 NM_HELP = 256 - 2
 NM_ORDER = 256 - 3
 
-LEVEL_ITEMS_BYTES = MAX_ITEMS * ITEM_BYTES
-
 difficulty	!byte 2
 episode		!byte 0
 level_num	!byte 1
@@ -32,7 +30,6 @@ menu_stack_d	!byte 0
 menu_stk_m	!byte 0, 0, 0
 menu_stk_i	!byte 0, 0, 0
 ui_text_col	!byte TEXT_COL
-items_bak_ok	!byte 0
 pr_row		!byte 0
 pr_col		!byte 0
 pr_len		!byte 0
@@ -42,8 +39,6 @@ melt_col	!byte 0
 ; ==================================================================
 game_start
 	cli
-	lda #0
-	sta items_bak_ok
 	jsr hide_weapon
 	jsr clear_screen
 	lda #0
@@ -60,8 +55,8 @@ next_level
 	jsr LoadLevel
 	bcs .nl_fail
 	lda #0
-	sta items_bak_ok
-	jsr begin_level_play
+	sta end_level
+	jsr start_level
 	jmp gameloop
 .nl_fail
 	jmp game_start
@@ -80,32 +75,6 @@ show_entering
 	jsr get_level_title
 	ldx #10
 	jmp print_centered
-
-begin_level_play
-	lda items_bak_ok
-	bne .blp_rest
-	ldx #0
-.blp_snap
-	lda level_items,x
-	sta level_items_bak,x
-	inx
-	cpx #LEVEL_ITEMS_BYTES
-	bne .blp_snap
-	lda #1
-	sta items_bak_ok
-	jmp .blp_go
-.blp_rest
-	ldx #0
-.blp_copy
-	lda level_items_bak,x
-	sta level_items,x
-	inx
-	cpx #LEVEL_ITEMS_BYTES
-	bne .blp_copy
-.blp_go
-	lda #0
-	sta end_level
-	jmp start_level
 
 after_level_end
 	jsr hide_weapon

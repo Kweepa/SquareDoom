@@ -30,4 +30,6 @@ gameloop
 	jsr hitscan_process
 	jsr enemy_think
 	jsr barrel_update
-	jmp .frame
+	lda health
+	bne .frame
+	jmp next_level			; death → reload map from disk

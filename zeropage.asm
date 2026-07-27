@@ -314,10 +314,6 @@ MOBJ_END	= aim_item + 1
 SEC_FLATGRP	= MOBJ_END		; 256 bytes, index = sector id
 SEC_FLATGRP_END	= SEC_FLATGRP + 256
 
-; Pristine item table snapshot for level restarts (before pickups/kills)
-level_items_bak	= SEC_FLATGRP_END	; MAX_ITEMS * ITEM_BYTES
-LEVEL_ITEMS_BAK_END = level_items_bak + 48 * 4
-
 ; Persistent automap fog: ever marked by mark_seen this level
-SEC_VISITED	= LEVEL_ITEMS_BAK_END	; 256 bytes, index = sector id
+SEC_VISITED	= SEC_FLATGRP_END	; 256 bytes, index = sector id
 SEC_VISITED_END	= SEC_VISITED + 256
