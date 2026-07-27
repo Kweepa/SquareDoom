@@ -57,21 +57,11 @@ setup_player_tile
 	rts
 
 ; ---------------------------------------------------------------------------
-; .fold_sec — A&127 → TheKeep secant table index 0..63 (fold quadrant)
-; ---------------------------------------------------------------------------
-.fold_sec
-	and #127
-	cmp #63
-	bcc .fs_ok
-	eor #127
-.fs_ok
-	rts
-
-; ---------------------------------------------------------------------------
 ; rebuild_col_rays — when playera changes (or forced at boot)
 ;
 ; For each of 40 columns: angtab+look → fixsec → COL_DDX/Y; mid(dd*fish) →
 ; COL_DDWX/Y; sign of angle axes → COL_XSTEP/YSTEP (±1).
+; X = col, Y = secant index (mul_16x8 returns A=lo X=hi — reload col after).
 ; ---------------------------------------------------------------------------
 rebuild_col_rays
 	; base = playera − 64 (north alignment); per-col angle = angtab[col] + base
@@ -83,50 +73,53 @@ rebuild_col_rays
 	sta col
 .rcr_lp
 	; Column world angle: angtab[col] + playera − 64
-	ldy col
-	lda angtab,y
+	ldx col
+	lda angtab,x
 	clc
 	adc rcr_abase
 	sta angle
 
 	; ---- X secant + fish-scaled Δwz per X-step ----
-	jsr .fold_sec
-	sta dxindex
-	tay
+	; fold A&127 → fixsec index 0..63 (inlined)
+	and #127
+	cmp #63
+	bcc .rcr_xok
+	eor #127
+.rcr_xok
+	tay				; Y = secant index
 	lda fixsecl,y
-	ldy col
-	sta COL_DDX_L,y
+	sta COL_DDX_L,x
 	sta aux_l
-	ldy dxindex
 	lda fixsech,y
-	ldy col
-	sta COL_DDX_H,y
+	sta COL_DDX_H,x
 	sta aux_h
-	lda fishtab,y			; fishtab indexed by column
-	jsr mul_16x8			; mid(ddx × fish) → COL_DDWX
+	lda fishtab,x
+	jsr mul_16x8			; A=lo, X=hi
 	ldy col
 	sta COL_DDWX_L,y
 	txa
 	sta COL_DDWX_H,y
+	tya
+	tax				; X = col again
 
 	; ---- Y secant: angle+64, fold, fixsec, mid(ddy×fish) ----
 	lda angle
 	clc
 	adc #64
 	sta tmp0
-	jsr .fold_sec
-	sta dyindex
+	and #127
+	cmp #63
+	bcc .rcr_yok
+	eor #127
+.rcr_yok
 	tay
 	lda fixsecl,y
-	ldy col
-	sta COL_DDY_L,y
+	sta COL_DDY_L,x
 	sta aux_l
-	ldy dyindex
 	lda fixsech,y
-	ldy col
-	sta COL_DDY_H,y
+	sta COL_DDY_H,x
 	sta aux_h
-	lda fishtab,y
+	lda fishtab,x
 	jsr mul_16x8
 	ldy col
 	sta COL_DDWY_L,y
@@ -141,7 +134,6 @@ rebuild_col_rays
 .rcr_xn
 	lda #$ff			; −1
 .rcr_xs
-	ldy col
 	sta COL_XSTEP,y
 
 	; ystep from folded look angle (north/south)
@@ -152,7 +144,6 @@ rebuild_col_rays
 .rcr_yn
 	lda #$ff
 .rcr_ys
-	ldy col
 	sta COL_YSTEP,y
 
 	inc col

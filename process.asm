@@ -1051,6 +1051,7 @@ proc_update
 	ldx #0
 .pu_loop
 	lda PROC_KIND,x
+	beq .pu_next			; PROC_FREE=0 — skip SMC
 	asl					; kind*2
 	tay
 	lda .pu_jmptab,y

@@ -266,7 +266,8 @@ hitscan_process
 .hp_zi
 	lda #0
 	sta hs_zerr
-	sta hs_count
+	lda #HS_MAX_STEPS
+	sta hs_count			; countdown — dec/bmi at each step
 
 	; Axis-aligned: unused axis s = $ffff so the other always wins
 	lda xstep
@@ -410,9 +411,8 @@ hitscan_process
 	bne .hp_step
 	jmp .hp_clear
 .hp_step
-	lda hs_count
-	cmp #HS_MAX_STEPS
-	bcc .hp_ok
+	dec hs_count
+	bpl .hp_ok
 	jmp .hp_block
 .hp_ok
 	; nearer of sdx/sdy (tie → Y)
@@ -433,7 +433,13 @@ hitscan_process
 	bcc .hp_axok
 	jmp .hp_block
 .hp_axok
-	jsr .hs_add_sdx
+	clc
+	lda sdx_l
+	adc ddx_l
+	sta sdx_l
+	lda sdx_h
+	adc ddx_h
+	sta sdx_h
 	jmp .hp_cell
 
 .hp_advy
@@ -445,10 +451,15 @@ hitscan_process
 	bcc .hp_ayok
 	jmp .hp_block
 .hp_ayok
-	jsr .hs_add_sdy
+	clc
+	lda sdy_l
+	adc ddy_l
+	sta sdy_l
+	lda sdy_h
+	adc ddy_h
+	sta sdy_h
 
 .hp_cell
-	inc hs_count
 	; Z toward target
 	lda hs_zerr
 	clc
@@ -532,32 +543,11 @@ hitscan_process
 	sta hs_status
 	rts
 
-; A&127 → fixsec index 0..63 (same as render_setup .fold_sec)
+; A&127 → fixsec index 0..63
 .hs_fold_sec
 	and #127
 	cmp #63
 	bcc .hs_fsok
 	eor #127
 .hs_fsok
-	rts
-
-; s += dd only (no wz)
-.hs_add_sdx
-	clc
-	lda sdx_l
-	adc ddx_l
-	sta sdx_l
-	lda sdx_h
-	adc ddx_h
-	sta sdx_h
-	rts
-
-.hs_add_sdy
-	clc
-	lda sdy_l
-	adc ddy_l
-	sta sdy_l
-	lda sdy_h
-	adc ddy_h
-	sta sdy_h
 	rts

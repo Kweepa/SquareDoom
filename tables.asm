@@ -50,3 +50,8 @@ sintab
 	!byte $c5,$c5,$c6,$c7,$c8,$c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf,$d0,$d1,$d2
 	!byte $d3,$d4,$d5,$d6,$d7,$d9,$da,$db,$dc,$de,$df,$e0,$e2,$e3,$e5,$e6
 	!byte $e8,$e9,$ea,$ec,$ed,$ef,$f0,$f2,$f4,$f5,$f7,$f8,$fa,$fb,$fd,$fe
+	!byte $00,$02,$03,$05,$06,$08,$09,$0b,$0c,$0e,$10,$11,$13,$14,$16,$17
+	!byte $18,$1a,$1b,$1d,$1e,$20,$21,$22,$24,$25,$26,$27,$29,$2a,$2b,$2c
+	!byte $2d,$2e,$2f,$30,$31,$32,$33,$34,$35,$36,$37,$38,$38,$39,$3a,$3b
+	!byte $3b,$3c,$3c,$3d,$3d,$3e,$3e,$3e,$3f,$3f,$3f,$40,$40,$40,$40,$40
+costab = sintab + 64	; cos(a) = sin(a+64); wrap bytes appended above

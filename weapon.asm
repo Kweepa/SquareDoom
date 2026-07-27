@@ -704,15 +704,13 @@ update_saw_blade
 .usb_rts
 	rts
 .usb_idle
-	lda #0
-	sta saw_blade_frame
-	sta saw_blade_div
 	lda saw_running
-	beq .usb_idle_ptr
+	beq .usb_rts			; already idle — nothing to do
 	lda #0
 	sta saw_running
+	sta saw_blade_frame
+	sta saw_blade_div
 	jsr .saw_set_y_idle
-.usb_idle_ptr
 	lda cur_weapon
 	cmp #1
 	bne .usb_rts

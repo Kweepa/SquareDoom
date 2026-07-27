@@ -56,18 +56,14 @@ mark_seen
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_bind — clip_base = COL_CLIP_TOP + col*CLIP_MAX
-; Clobbers: tmp1, ptr_l/h, X, A
+; clip_col_bind — clip_base = COL_CLIP_TOP + col*CLIP_MAX (lookup table)
+; Clobbers: X, A
 ; ---------------------------------------------------------------------------
 clip_col_bind
-	lda col
-	jsr clip_mul_col
-	clc
-	lda ptr_l
-	adc #<COL_CLIP_TOP
+	ldx col
+	lda clip_base_lo,x
 	sta clip_base_l
-	lda ptr_h
-	adc #>COL_CLIP_TOP
+	lda clip_base_hi,x
 	sta clip_base_h
 	rts
 
@@ -80,46 +76,15 @@ clip_col_reset
 	sta COL_CLIP_N,y
 	jmp clip_col_bind
 
-; ---------------------------------------------------------------------------
-; clip_mul_col — A = col → ptr_l/h = col * CLIP_MAX (16-bit)
-; Clobbers: tmp1, X. Does not touch tmp0/tmp2/tmp3 (n / sector / count).
-; ---------------------------------------------------------------------------
-clip_mul_col
-!if CLIP_MAX = 16 {
-	ldx #0
-	stx ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	sta ptr_l
-} else {
-	; CLIP_MAX=24: col*24 = col*16 + col*8
-	ldx #0
-	stx ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h
-	asl
-	rol ptr_h				; A:ptr_h = col*8
-	sta tmp1
-	ldx ptr_h				; X = hi of *8
-	asl
-	rol ptr_h				; A:ptr_h = col*16
-	clc
-	adc tmp1
-	sta ptr_l
-	txa
-	adc ptr_h
-	sta ptr_h
+; COL_CLIP_TOP + col*CLIP_MAX — assemble-time constant (CLIP_MAX=24)
+clip_base_lo
+!for .col, 40 {
+	!byte <(COL_CLIP_TOP + (.col - 1) * CLIP_MAX)
 }
-	rts
-
+clip_base_hi
+!for .col, 40 {
+	!byte >(COL_CLIP_TOP + (.col - 1) * CLIP_MAX)
+}
 ; ---------------------------------------------------------------------------
 ; clip_col_push — push {ytop, ybot, wallz_l, wallz_h} if n < CLIP_MAX
 ; Requires clip_base bound. Clobbers: tmp0, ptr_l/h, X, Y

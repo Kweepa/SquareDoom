@@ -87,8 +87,8 @@ FU_45 = 22
 ; ---------------------------------------------------------------------------
 ; Tables
 ; ---------------------------------------------------------------------------
-mobj_speed
-	!byte 3,4,6,5,4
+; Speeds used to build tryd*: pos/imp/demon/caco/baron = 3,4,6,5,4
+; dirs N,NE,E,SE,S,SW,W,NW × (32,22,0,-22,-32,-22,0,22) and y permute
 mobj_pain_chance
 	!byte 2,3,4,5,$ff		; baron $ff = never flinch
 mobj_spawn_health
@@ -128,10 +128,23 @@ opposite_dir
 diags_dir
 	!byte 3,1,5,7			; NW NE SW SE
 
-xspeed
-	!byte MIN_SPEED, FU_45, 0, $ea, $e0, $ea, 0, FU_45	; $ea=-22 $e0=-32
-yspeed
-	!byte 0, FU_45, MIN_SPEED, FU_45, 0, $ea, $e0, $ea
+; speed[info] * dir component as signed 16-bit — indexed by info*8+dir
+trydx_lo
+	!byte $60,$42,$00,$be,$a0,$be,$00,$42,$80,$58,$00,$a8,$80,$a8,$00,$58
+	!byte $c0,$84,$00,$7c,$40,$7c,$00,$84,$a0,$6e,$00,$92,$60,$92,$00,$6e
+	!byte $80,$58,$00,$a8,$80,$a8,$00,$58
+trydx_hi
+	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00
+	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00
+	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00
+trydy_lo
+	!byte $00,$42,$60,$42,$00,$be,$a0,$be,$00,$58,$80,$58,$00,$a8,$80,$a8
+	!byte $00,$84,$c0,$84,$00,$7c,$40,$7c,$00,$6e,$a0,$6e,$00,$92,$60,$92
+	!byte $00,$58,$80,$58,$00,$a8,$80,$a8
+trydy_hi
+	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff
+	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff
+	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff
 
 ; ---------------------------------------------------------------------------
 ; Vars
@@ -167,6 +180,7 @@ procket_momz_h		!byte 0
 procket_z		!byte 0
 procket_zfrac		!byte 0
 player_sector		!byte 0
+enemy_sector		!byte 0			; sector of current enemy_actor this think
 
 ; ---------------------------------------------------------------------------
 ; P_ApproxDistance — |dx|+|dy|/2 on signed 8-bit world deltas in tmp0/tmp1 → A
@@ -227,6 +241,7 @@ enemy_reset
 	sta anim_frame
 	sta new_chase_dir_frame
 	sta pain_boost
+	sta barrel_events
 	jsr hitscan_reset
 	rts
 
@@ -274,10 +289,21 @@ mobj_unlink
 
 ; ---------------------------------------------------------------------------
 ; mobj_for_slot — X = item slot → C=0 Y=A=mobj / C=1 none
-; MOBJ_OBJ is authoritative; repairs FOR_ITEM when a live owner is found.
+; Fast path via MOBJ_FOR_ITEM; falls back to scan + repair if stale.
 ; ---------------------------------------------------------------------------
 mobj_for_slot
 	stx mobj_lookup_slot
+	ldy MOBJ_FOR_ITEM,x
+	bmi .mfs_scan			; $ff = no cached owner
+	lda MOBJ_ALLOC,y
+	beq .mfs_scan
+	lda MOBJ_OBJ,y
+	cmp mobj_lookup_slot
+	bne .mfs_scan
+	tya
+	clc
+	rts
+.mfs_scan
 	ldx #0
 .mfs_lp
 	lda MOBJ_ALLOC,x
@@ -431,9 +457,9 @@ enemy_think
 	jsr cache_player_sector
 	ldx #0
 .et_lp
-	stx enemy_actor			; loop index (actions may clobber X)
 	lda MOBJ_ALLOC,x
-	beq .et_nx
+	beq .et_skip
+	stx enemy_actor			; loop index (actions may clobber X)
 	lda MOBJ_OBJ,x
 	sta enemy_obj
 	lda MOBJ_INFO,x
@@ -447,6 +473,7 @@ enemy_think
 	cmp #ACTION_FALL
 	beq .et_run
 	jsr obj_sector
+	sta enemy_sector
 	beq .et_nx
 	tay
 	lda SEC_SEEN,y
@@ -455,6 +482,7 @@ enemy_think
 	jsr enemy_single_think
 .et_nx
 	ldx enemy_actor
+.et_skip
 	inx
 	cpx #MAX_MOBJ
 	bcc .et_lp
@@ -491,10 +519,10 @@ enemy_single_think
 	jmp a_fly
 
 ; ---------------------------------------------------------------------------
-; P_CheckSight — C=1 can see
+; P_CheckSight — C=1 can see (uses enemy_sector from this think)
 ; ---------------------------------------------------------------------------
 p_check_sight
-	jsr obj_sector
+	lda enemy_sector
 	cmp player_sector
 	beq .pcs_yes
 	tay
@@ -962,67 +990,9 @@ enemy_tile_blocked
 	sec
 	rts
 
-; A = signed speed component, Y = speed (1..n)
-; → wish_x = A * Y (signed 16-bit)
-mul_speed_comp
-	sta tmp2
-	sty tmp3
-	lda #0
-	sta wish_x_l
-	sta wish_x_h
-	lda tmp3
-	beq .msc_done			; speed 0 → 0
-	lda tmp2
-	bne .msc_nz
-.msc_done
-	rts
-.msc_nz
-	bpl .msc_pos
-	; negative: product = -(speed * |comp|)
-	eor #$ff
-	clc
-	adc #1
-	sta tmp2
-	ldx tmp3
-	lda #0
-	sta tmp4
-	sta tmp5
-.msc_nl
-	clc
-	lda tmp4
-	adc tmp2
-	sta tmp4
-	lda tmp5
-	adc #0
-	sta tmp5
-	dex
-	bne .msc_nl
-	lda tmp4
-	eor #$ff
-	clc
-	adc #1
-	sta wish_x_l
-	lda tmp5
-	eor #$ff
-	adc #0
-	sta wish_x_h
-	rts
-.msc_pos
-	ldx tmp3
-.msc_pl
-	clc
-	lda wish_x_l
-	adc tmp2
-	sta wish_x_l
-	lda wish_x_h
-	adc #0
-	sta wish_x_h
-	dex
-	bne .msc_pl
-	rts
-
 ; ---------------------------------------------------------------------------
 ; P_Move — C=1 ok
+; enemy_dist must already be set (a_chase / callers).
 ; ---------------------------------------------------------------------------
 p_move
 	ldx enemy_actor
@@ -1032,46 +1002,24 @@ p_move
 	clc
 	rts
 .pm_dir
-	jsr calc_enemy_dist
 	lda enemy_dist
 	cmp #MELEERANGE
 	bcc .pm_ok_close
-	; trydx = speed * xspeed[dir]
-	ldx enemy_actor
-	lda MOBJ_MOVEDIR,x
-	tay
-	lda xspeed,y
-	sta tmp4				; component
+	; wish = table[info*8+dir]
 	lda MOBJ_INFO,x
+	asl
+	asl
+	asl
+	ora MOBJ_MOVEDIR,x
 	tay
-	lda mobj_speed,y
-	tay					; Y = speed
-	lda tmp4
-	jsr mul_speed_comp		; → wish_x
-	lda wish_x_l
-	sta tmp0
-	lda wish_x_h
-	sta tmp1
-	; trydy
-	ldx enemy_actor
-	lda MOBJ_MOVEDIR,x
-	tay
-	lda yspeed,y
-	sta tmp4
-	lda MOBJ_INFO,x
-	tay
-	lda mobj_speed,y
-	tay
-	lda tmp4
-	jsr mul_speed_comp
-	lda wish_x_l
-	sta wish_y_l
-	lda wish_x_h
-	sta wish_y_h
-	lda tmp0
+	lda trydx_lo,y
 	sta wish_x_l
-	lda tmp1
+	lda trydx_hi,y
 	sta wish_x_h
+	lda trydy_lo,y
+	sta wish_y_l
+	lda trydy_hi,y
+	sta wish_y_h
 	jmp p_try_move
 .pm_ok_close
 	sec
@@ -1788,11 +1736,8 @@ spawn_player_rocket
 	sta procket_momx_l
 	lda wish_x_h
 	sta procket_momx_h
-	lda playera
-	clc
-	adc #64
-	tay
-	lda sintab,y
+	ldy playera
+	lda costab,y
 	jsr neg_a
 	jsr procket_scale_mom
 	lda wish_x_l

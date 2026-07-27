@@ -397,11 +397,8 @@ read_input
 	pla					; strafer
 	beq .no_d
 	sta vel_ms
-	lda playera
-	clc
-	adc #64
-	tay
-	lda sintab,y
+	ldy playera
+	lda costab,y
 	jsr wish_add_x
 	ldy playera
 	lda sintab,y
@@ -410,11 +407,8 @@ read_input
 	pla					; strafel
 	beq .no_a
 	sta vel_ms
-	lda playera
-	clc
-	adc #64
-	tay
-	lda sintab,y
+	ldy playera
+	lda costab,y
 	jsr neg_a
 	jsr wish_add_x
 	ldy playera
@@ -429,11 +423,8 @@ read_input
 	lda sintab,y
 	jsr neg_a
 	jsr wish_add_x
-	lda playera
-	clc
-	adc #64
-	tay
-	lda sintab,y
+	ldy playera
+	lda costab,y
 	jsr wish_add_y
 .no_s
 	pla					; fwd
@@ -442,11 +433,8 @@ read_input
 	ldy playera
 	lda sintab,y
 	jsr wish_add_x
-	lda playera
-	clc
-	adc #64
-	tay
-	lda sintab,y
+	ldy playera
+	lda costab,y
 	jsr neg_a
 	jsr wish_add_y
 .no_w
@@ -454,22 +442,20 @@ read_input
 
 ; turn_acc += vel_ms<<6; A = turn_acc>>10; turn_acc &= $03FF
 turn_deliver
-	lda #0
-	sta tmp1
 	lda vel_ms
-	sta tmp0
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1				; tmp = vel_ms * 64
+	tax
+	lsr
+	lsr
+	sta tmp1				; hi = vel>>2
+	txa
+	and #3
+	asl
+	asl
+	asl
+	asl
+	asl
+	asl
+	sta tmp0				; lo = (vel&3)<<6 = vel*64 lo
 	clc
 	lda turn_acc_l
 	adc tmp0
@@ -477,14 +463,12 @@ turn_deliver
 	lda turn_acc_h
 	adc tmp1
 	sta turn_acc_h
-	; delivered = hi >> 2  (acc >> 10 for this magnitude)
-	lsr
-	lsr
-	pha
-	lda turn_acc_h
+	tay					; delivered hi before mask
 	and #3
 	sta turn_acc_h
-	pla
+	tya
+	lsr
+	lsr					; A = delivered = acc>>10
 	rts
 
 ; A = signed sintab → scale (A * vel_ms) >> 5 → add into wish_x
@@ -524,14 +508,22 @@ scale_vel
 	jsr mul_8x8				; X=lo A=hi
 	sta tmp1
 	stx tmp0
-	ldx #5
-.sv_asr
+	; unsigned >>5 via <<3 take high 16 of 24-bit
+	lda #0
+	sta tmp3
+	asl tmp0
+	rol tmp1
+	rol tmp3
+	asl tmp0
+	rol tmp1
+	rol tmp3
+	asl tmp0
+	rol tmp1
+	rol tmp3
 	lda tmp1
-	cmp #$80
-	ror tmp1
-	ror tmp0
-	dex
-	bne .sv_asr
+	sta tmp0
+	lda tmp3
+	sta tmp1
 	lda tmp2
 	bpl .sv_done
 	sec
@@ -696,11 +688,9 @@ tile_blocked
 ; mapx/mapy → A = sector id; OOB → 0
 sector_at_map
 	lda mapx
-	cmp #MAP_SIZE
-	bcs .sam_oob
-	lda mapy
-	cmp #MAP_SIZE
-	bcs .sam_oob
+	ora mapy
+	and #$e0				; MAP_SIZE=32: either ≥32 → OOB
+	bne .sam_oob
 	jmp map_sector_id
 .sam_oob
 	lda #0

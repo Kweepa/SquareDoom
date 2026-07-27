@@ -2,7 +2,8 @@
 
 ; mapx/mapy → A = sector id
 ; Uses maprowlo/hi = level_map + y*32
-; this requires that level_map is on a 32 byte boundary
+; Leaves ptr_l/h at the cell (setup_player_tile caches it as plr_tile).
+; level_map must be 32-byte aligned so mapx add never carries into ptr_h.
 map_sector_id
 	ldy mapy
 	lda maprowlo,y
@@ -45,11 +46,18 @@ player_face_nesw
 ; Fill colour+pattern column: A = colour, ytop..ybot-1
 ; Clobbers X (colour kept in X across the dual-FB store).
 fill_col_span
-	ldy ytop
-	sty fill_y0
 	ldy ybot
 	sty fill_y1
-	; fall through
+	ldy ytop
+	sty fill_y0			; Y already = fill_y0 for the loop
+!if PROFILE = 1 {
+	inc span_lo
+	bne .fcs_go
+	inc span_hi
+.fcs_go
+}
+	tax
+	jmp .fs_loop_test
 ; A = colour, fill_pat = screen code; fill_y0..fill_y1-1 into both FBs
 ; Clobbers X. Empty span (fill_y0 == fill_y1) is a no-op.
 fill_span
@@ -121,20 +129,21 @@ set_wall_pat
 
 ; A = SEC_BRIGHT → A = floor screen code FLOOR_PAT_BASE..+15 (16 → base). Clobbers X.
 bright_to_floor_pat
-	cmp #16
-	bcc .btfp_dim
-	lda #FLOOR_PAT_BASE
-	rts
-.btfp_dim
 	tax
-	lda bright_to_darken,x
-	clc
-	adc #FLOOR_PAT_BASE
+	lda bright_to_fpat,x
 	rts
 
 ; SEC_BRIGHT 0..15 → extra dither stops (15 = distance only, 0 = +15 stops)
 bright_to_darken
 	!byte 15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
+
+; SEC_BRIGHT 0..16 → floor pattern (FLOOR_PAT_BASE + darken; 16 → base)
+bright_to_fpat
+	!byte FLOOR_PAT_BASE+15, FLOOR_PAT_BASE+14, FLOOR_PAT_BASE+13, FLOOR_PAT_BASE+12
+	!byte FLOOR_PAT_BASE+11, FLOOR_PAT_BASE+10, FLOOR_PAT_BASE+9, FLOOR_PAT_BASE+8
+	!byte FLOOR_PAT_BASE+7, FLOOR_PAT_BASE+6, FLOOR_PAT_BASE+5, FLOOR_PAT_BASE+4
+	!byte FLOOR_PAT_BASE+3, FLOOR_PAT_BASE+2, FLOOR_PAT_BASE+1, FLOOR_PAT_BASE
+	!byte FLOOR_PAT_BASE
 
 ; pat_clamp[i] = min(15, i) for i = 0..30 (max depth15 + darken15)
 pat_clamp

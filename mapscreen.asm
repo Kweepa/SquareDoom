@@ -196,23 +196,25 @@ map_build_colours
 	adc #>FRAMEBUFFER
 	sta aux_h
 
+	; row map pointer once (mapy fixed for the row)
+	ldy mapy
+	lda maprowlo,y
+	sta tmp0
+	lda maprowhi,y
+	sta tmp1
+
+	ldy #0
 .mbc_col
-	jsr map_get_id
+	lda (tmp0),y
 	beq .mbc_skip			; void → black
 	tax
 	lda SEC_VISITED,x
 	beq .mbc_skip			; fog → black
 	lda SEC_FCOL,x
-	ldy #0
 	sta (aux_l),y
 .mbc_skip
-	inc aux_l
-	bne .mbc_a1
-	inc aux_h
-.mbc_a1
-	inc mapx
-	lda mapx
-	cmp #MAP_SIZE
+	iny
+	cpy #MAP_SIZE
 	bne .mbc_col
 	inc map_row
 	lda map_row

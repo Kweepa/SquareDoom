@@ -11,6 +11,7 @@ MAX_PLACEABLE_ITEMS = 46		; slots 0..45 (46/47 reserved)
 
 boss_floors_done	!byte 0
 boss_scan_sec	!byte 0
+barrel_events	!byte 0			; active BAREXPL + fused barrels
 
 ; e1m8_baron_kill_hook — after any kill; if last baron on E1M8, lower floors
 e1m8_baron_kill_hook
@@ -111,6 +112,7 @@ barrel_explode
 	sta level_item_type,x
 	lda #2
 	sta level_item_meta,x
+	inc barrel_events
 	stx tmp4
 	lda level_item_x,x
 	sta save_xh
@@ -156,6 +158,7 @@ barrel_explode
 	bcs .bex_in
 	lda #BARREL_FUSE
 	sta level_item_meta,x
+	inc barrel_events
 .bex_in
 	inx
 	cpx #MAX_PLACEABLE_ITEMS
@@ -166,6 +169,10 @@ barrel_explode
 ; barrel_update — barexpl countdown + fused barrel detonation (after fire)
 ; ---------------------------------------------------------------------------
 barrel_update
+	lda barrel_events
+	bne .bu_go
+	rts
+.bu_go
 	ldx #0
 .bu_lp
 	lda level_item_type,x
@@ -179,6 +186,7 @@ barrel_update
 	lda level_item_meta,x
 	cmp #$80
 	bne .bu_nx
+	dec barrel_events			; fuse consumed
 	stx tmp2
 	jsr barrel_explode
 	ldx tmp2
@@ -191,6 +199,7 @@ barrel_update
 .bu_clr
 	lda #ITEM_TYPE_EMPTY_E
 	sta level_item_type,x
+	dec barrel_events
 .bu_nx
 	inx
 	cpx #MAX_PLACEABLE_ITEMS

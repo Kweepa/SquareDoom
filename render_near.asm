@@ -48,9 +48,9 @@ paint_near
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
-	sta span_a			; nearCeilY for paint_portal
+}
+	sta span_a			; nearCeilY for paint_portal (A = py_row)
 
 	+clamp_span_inline
 	sta tmp1			; ceilEnd in [ytop,ybot]
@@ -90,8 +90,8 @@ paint_near
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
+}
 	sta span_b			; nearFloorY kept even if we skip fill
 	cmp #HORIZON
 	bcc .pnd			; raised floor: span_b only, leave ybot
@@ -135,15 +135,15 @@ refresh_near_spans
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
+}
 	sta span_a
 	lda near_floor
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
+}
 	sta span_b
 	rts
 

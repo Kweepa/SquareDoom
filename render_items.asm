@@ -201,11 +201,7 @@ item_calc_depth
 	ldy playera
 	lda sintab,y
 	sta last_near_floor		; sin
-	tya
-	clc
-	adc #64
-	tay
-	lda sintab,y
+	lda costab,y
 	sta last_near_ceil		; cos
 	lda #0
 	sta wallz_l
@@ -224,19 +220,17 @@ item_calc_depth
 	sta wz_y_l
 	lda wallz_h
 	sta wz_y_h
-	ldx #6
-.icd_shr
-	lda wallz_h
-	cmp #$80
-	ror wallz_h
-	ror wallz_l
-	dex
-	bne .icd_shr
+	; depth16 >> 6 via <<2 take high byte (negatives rejected; ≥$4000 → 255)
 	lda wallz_h
 	bmi .icd_bad
-	bne .icd_clamp
-	lda wallz_l
+	cmp #$40
+	bcs .icd_clamp
+	asl wallz_l
+	rol
+	asl wallz_l
+	rol					; A = depth16 >> 6
 	beq .icd_bad
+	sta wallz_l
 	bne .icd_ok
 .icd_clamp
 	lda #255
@@ -281,17 +275,14 @@ item_calc_screen
 	lda fracx
 	ldy last_near_floor		; sin
 	jsr smul_aux_add
-	ldx #6
-.ics_shr
+	; signed >>6: two asr steps via cmp #$80 / ror would be 6×;
+	; equivalent low byte = bits 6..13 after <<2 (works for two's-complement)
 	lda aux_h
-	cmp #$80
-	ror aux_h
-	ror aux_l
-	dex
-	bne .ics_shr
+	asl aux_l
+	rol
+	asl aux_l
+	rol					; A = lateral >> 6 (signed low byte)
 	; centre col = 19 + lateral*32/z  (Larsson recip: mul_recip_z)
-	; |lateral| fits signed 8-bit after >>6 (axis≤120, |sin|≤64)
-	lda aux_l
 	ldx wallz_h
 	jsr mul_recip_z
 	clc

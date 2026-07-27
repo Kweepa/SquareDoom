@@ -11,11 +11,11 @@
 ; bit-for-bit. texstep_h≠0 keeps the hi / one-step walk (rare, short).
 ;
 ; Entry: A = world height (0..31). Uses texstep_l/h from calc_wallz.
-; Exit:  py_row = screen row 0..25. Must not clobber tmp4/tmp5 (portal).
+; Exit:  A = py_row = screen row 0..25. Must not clobber tmp4/tmp5 (portal).
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
-; project_y — A = world y → py_row
+; project_y — A = world y → py_row (also returned in A)
 ;
 ; Fast path uses A/Y + SMC operand only. Hi paths: tmp3 = Δh (up),
 ; tmp1 = |Δh| (down); acc_l/h walk as before.
@@ -73,8 +73,7 @@ project_y
 	; ----- texstep_h ≠ 0, Δh < 0: |Δh| into tmp1, one-step or walk -----
 .py_dn_hi
 	eor #$ff
-	clc
-	adc #1
+	adc #1				; C=0 from borrow on sec/sbc eyeheight
 	sta tmp1			; |Δh| for one-step / hi compare
 	tya				; texstep_h
 	cmp tmp1
@@ -136,5 +135,6 @@ project_y
 	bcs .py_store_row
 
 .py_store_row
-	stx py_row
+	txa
+	sta py_row				; also leave row in A (callers may use it)
 	rts

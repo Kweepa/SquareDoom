@@ -99,7 +99,8 @@ asm += emitBytes('colbaselo', cblo);
 asm += emitBytes('colbasehi', cbhi);
 asm += emitBytes('maprowlo', mrlo);
 asm += emitBytes('maprowhi', mrhi);
-asm += emitBytes('sintab', sins);
+asm += emitBytes('sintab', sins.concat(sins.slice(0, 64)));
+asm += 'costab = sintab + 64\t; cos(a) = sin(a+64); wrap bytes appended above\n';
 
 writeFileSync(new URL('../tables.asm', import.meta.url), asm);
-console.log('wrote TheKeep tables + sintab + colbase + maprow');
+console.log('wrote TheKeep tables + sintab/costab + colbase + maprow');

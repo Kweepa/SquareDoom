@@ -102,6 +102,17 @@ play_sound
 
 	; start the new sound playing
 	stx sound_index
+	; volume once at start (sawidl at 1/4)
+	ldx effects_vol
+	lda sound_index
+	cmp #14				; sawidl
+	bne .ps_vol
+	txa
+	lsr
+	lsr
+	tax
+.ps_vol
+	stx $d418
 .ps_skip
 	ldx ps_save_x
 	ldy ps_save_y
@@ -116,17 +127,6 @@ update_sfx
 	; check we're playing a sound
 	lda sound_index
 	bmi .sfx_idle
-
-	ldx effects_vol
-	lda sound_index
-	cmp #14				; sawidl
-	bne .sfx_vol
-	txa
-	lsr
-	lsr
-	tax
-.sfx_vol
-	stx $d418
 
 	; play next sample (held until next ~7 ms tick — PC speaker timing)
 	inc sound_count

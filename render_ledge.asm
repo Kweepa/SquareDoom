@@ -70,8 +70,8 @@ paint_portal
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
+}
 	sta tmp4			; farCeilY
 	lda far_floor
 	cmp near_floor
@@ -86,8 +86,8 @@ paint_portal
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
+}
 	sta tmp5			; farFloorY
 !if DBG_PORTAL = 1 {
 	sta dbg_far_y
@@ -109,8 +109,8 @@ paint_portal
 	jsr project_y
 !if PROFILE = 1 {
 	jsr prof_add_py
-}
 	lda py_row
+}
 	sta tmp5
 !if DBG_PORTAL = 1 {
 	sta dbg_far_y
