@@ -29,4 +29,5 @@ gameloop
 	jsr update_muzzle_flash
 	jsr hitscan_process
 	jsr enemy_think
+	jsr barrel_update
 	jmp .frame

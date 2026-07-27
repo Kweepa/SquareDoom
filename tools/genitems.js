@@ -25,6 +25,7 @@ const ITEM_TYPES = [
   'switch',
   'fireball',
   'plasmaball', 'rocket',
+  'barexpl',
 ];
 
 /** No item atlas: spawn is never drawn; enemies use enemy_sprites mips. */

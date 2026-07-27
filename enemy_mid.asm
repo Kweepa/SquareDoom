@@ -67,6 +67,7 @@ ITEM_TYPE_ENEMY_FIRST = 1
 ITEM_TYPE_ENEMY_LAST = 5
 ITEM_TYPE_SOLDIER = 1
 ITEM_TYPE_IMP = 2
+ITEM_TYPE_BARREL = 6
 ITEM_TYPE_FIREBALL = 28
 ITEM_TYPE_POSCORPSE = 21
 ITEM_TYPE_IMPCORPSE = 22
@@ -74,6 +75,7 @@ ITEM_TYPE_DEMONCORPSE = 23
 ITEM_TYPE_BARONCORPSE = 24
 ITEM_TYPE_PLASMABALL = 29
 ITEM_TYPE_ROCKET = 30
+ITEM_TYPE_BAREXPL = 31
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -2016,7 +2018,7 @@ TryDamageEnemy
 .tde_slot
 	ldx tde_best_slot
 	jsr mobj_for_slot
-	bcs .tde_rts
+	bcs .tde_barrel
 	lda MOBJ_HEALTH,y
 	beq .tde_rts
 	lda MOBJ_INFO,y
@@ -2025,5 +2027,11 @@ TryDamageEnemy
 	ldx tde_best_slot
 	lda damage_amount
 	jmp enemy_damage
+.tde_barrel
+	ldx tde_best_slot
+	lda level_item_type,x
+	cmp #ITEM_TYPE_BARREL
+	bne .tde_rts
+	jmp barrel_explode
 .tde_rts
 	rts

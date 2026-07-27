@@ -15,9 +15,11 @@ ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
+ITEM_TYPE_BARREL = 6
 ITEM_TYPE_FIREBALL = 28
 ITEM_TYPE_PLASMABALL = 29
 ITEM_TYPE_ROCKET = 30
+ITEM_TYPE_BAREXPL = 31
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -498,8 +500,14 @@ item_draw_one
 	lda tmp0				; enemies: worldH 4 × proj 32
 	jmp .id_h0
 .id_half
+	lda wall_col
+	cmp #ITEM_TYPE_BAREXPL
+	beq .id_barexpl_h			; full height → one mip larger
 	lda tmp0
 	lsr					; pickups: half-height
+	jmp .id_h0
+.id_barexpl_h
+	lda tmp0
 .id_h0
 	cmp #1
 	bcs .id_h1
@@ -688,9 +696,14 @@ item_draw_one
 	lda recip_hi,x
 	sta wish_y_h
 .id_clp_no_recip
-	; Live enemy: lock aim_item (MOBJ_OBJ is authoritative via mobj_for_slot)
+	; Live enemy or barrel: lock aim_item for COL_AIM stamps
 	ldx item_slot
 	lda wall_col
+	cmp #ITEM_TYPE_BARREL
+	bne .id_aim_en
+	stx aim_item
+	jmp .id_clp_start
+.id_aim_en
 	cmp #ITEM_TYPE_ENEMY_LO
 	bcc .id_clp_start
 	cmp #ITEM_TYPE_ENEMY_HI+1

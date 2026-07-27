@@ -191,6 +191,7 @@ export const ITEM_TYPES = [
   'switch',
   'fireball',
   'plasmaball', 'rocket',
+  'barexpl',
 ];
 
 /** Spawn stays in ITEM_TYPES for typeId/gfx index 0; not placed in the item table. */
@@ -201,7 +202,7 @@ export const SWITCH_TYPE = 'switch';
 export const FIREBALL_TYPE = 'fireball';
 export const RUNTIME_ONLY_TYPES = new Set([
   'fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
-  'plasmaball', 'rocket',
+  'plasmaball', 'rocket', 'barexpl',
 ]);
 
 /** Legacy cook type ids that map to SWITCH_TYPE. */
