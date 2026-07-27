@@ -32,6 +32,8 @@ TEX_ANIMATE = 64
 ;   last_near_fcol = screen centre col
 ;   last_near_ccol = sort index / draw scratch
 ;   span_a = visible count during collect/sort
+;   item_sin/cos = playera trig (once/frame); ITEM_SORT_* cache per visible
+;   item_u / wish_x(ustep) / item_mip_base / item_mirror — enemy column DDA
 
 ; Current item index during collect/draw (keep off ZP; turn $32 is player yaw)
 item_slot	!byte 0
@@ -43,6 +45,12 @@ render_items
 !if PROFILE = 1 {
 	jsr prof_snap
 }
+	; playera fixed for the whole pass — hoist sin/cos once
+	ldy playera
+	lda sintab,y
+	sta item_sin
+	lda costab,y
+	sta item_cos
 	; Clear per-column aim ($FF = no live enemy this frame)
 	ldx #COL_NUM-1
 	lda #$ff
@@ -78,11 +86,22 @@ render_items
 	ldx item_slot
 	jsr item_calc_depth
 	bcs .ri_nx2
-	; A = depth
+	; A = depth; cache by item slot (sort only swaps DEPTH/SLOT)
 	ldy span_a
 	sta ITEM_SORT_DEPTH,y
 	lda item_slot
 	sta ITEM_SORT_SLOT,y
+	tax
+	lda near_ceil
+	sta ITEM_SORT_SEC,x
+	lda fracy
+	sta ITEM_SORT_DX,x
+	lda fracx
+	sta ITEM_SORT_DY,x
+	lda wz_y_l
+	sta ITEM_SORT_WZ_L,x
+	lda wz_y_h
+	sta ITEM_SORT_WZ_H,x
 	iny
 	sty span_a
 	cpy #MAX_ITEMS
@@ -198,10 +217,10 @@ item_calc_depth
 	sbc playery_h
 	sta fracx
 .icd_ang
-	ldy playera
-	lda sintab,y
-	sta last_near_floor		; sin
-	lda costab,y
+	; sin/cos already in item_sin/cos (hoisted in render_items)
+	lda item_sin
+	sta last_near_floor		; sin (item_calc_screen / smul)
+	lda item_cos
 	sta last_near_ceil		; cos
 	lda #0
 	sta wallz_l
@@ -432,6 +451,7 @@ item_sort_depth
 
 ; ---------------------------------------------------------------------------
 ; item_draw_one — item_slot set, wallz_h=depth (from sort)
+; Uses ITEM_SORT_* cache at last_near_ccol (collect already validated).
 ; ---------------------------------------------------------------------------
 item_draw_one
 	lda #$ff
@@ -439,34 +459,26 @@ item_draw_one
 	ldx item_slot
 	lda level_item_type,x
 	sta wall_col
-	lda level_item_x,x
-	lsr
-	lsr
-	lsr
-	sta mapx
-	lda level_item_y,x
-	lsr
-	lsr
-	lsr
-	sta mapy
-	jsr map_sector_id
-	bne .id_gotsec
-	rts
-.id_gotsec
+	; Restore collect-pass results by item_slot (skip map + depth recompute)
+	ldx item_slot
+	lda ITEM_SORT_SEC,x
 	sta near_ceil
 	tay
-	lda SEC_SEEN,y
-	bne .id_seen
-	rts
-.id_seen
 	lda SEC_FLOOR,y
 	sta near_floor
-	ldx item_slot
-	jsr item_calc_depth
-	bcc .id_dpthok
-	rts
-.id_dpthok
-	sta wallz_h
+	lda ITEM_SORT_DX,x
+	sta fracy
+	lda ITEM_SORT_DY,x
+	sta fracx
+	lda ITEM_SORT_WZ_L,x
+	sta wz_y_l
+	lda ITEM_SORT_WZ_H,x
+	sta wz_y_h
+	; sin/cos for item_calc_screen (same as collect; last_near_* reused)
+	lda item_sin
+	sta last_near_floor
+	lda item_cos
+	sta last_near_ceil
 	jsr item_calc_screen
 	; screen H = (64 or 128)/z via recip_hi (≈256/z) shifts
 	ldx wallz_h
@@ -659,7 +671,9 @@ item_draw_one
 .id_clp_go
 	; Enemies need recip[W]/recip[H] for UV; items are 1:1 (no UV).
 	lda far_floor
-	beq .id_clp_no_recip
+	bne .id_enemy_setup
+	jmp .id_clp_no_recip
+.id_enemy_setup
 	ldx last_near_ok			; projected W
 	lda recip_lo,x
 	sta wish_x_l
@@ -670,6 +684,77 @@ item_draw_one
 	sta wish_y_l
 	lda recip_hi,x
 	sta wish_y_h
+	; --- once/sprite enemy hoists ---
+	; ustep = mip_w * recip[W] >> 8 → wish_x (replaces recip; no more udiv)
+	ldy last_near_ceil			; mip_w
+	lda wish_x_l
+	jsr mul_8x8
+	sta tmp0				; hi(mip*rl)
+	ldy last_near_ceil
+	lda wish_x_h
+	jsr mul_8x8
+	sta tmp1				; hi(mip*rh)
+	clc
+	txa
+	adc tmp0
+	sta wish_x_l			; ustep_l
+	lda tmp1
+	adc #0
+	sta wish_x_h			; ustep_h
+	; seed item_u = (span_a - fracx) * ustep  (ox ≥ 0 after left clamp)
+	lda span_a
+	sec
+	sbc fracx
+	sta tmp2
+	beq .id_u_z
+	tay
+	lda wish_x_l
+	jsr mul_8x8
+	stx item_u_l
+	sta tmp0
+	ldy tmp2
+	lda wish_x_h
+	jsr mul_8x8
+	clc
+	txa
+	adc tmp0
+	sta item_u_h
+	jmp .id_u_ok
+.id_u_z
+	sta item_u_l
+	sta item_u_h
+.id_u_ok
+	; mirror flag (anim_frame abs — once/sprite, not per column)
+	lda #0
+	sta item_mirror
+	lda far_floor
+	and #TEX_ANIMATE
+	beq .id_mir_done
+	lda anim_frame
+	and #2
+	beq .id_mir_done
+	inc item_mirror
+.id_mir_done
+	; mip base pointer (frame*5+mip); per column only adds bmp_x*mip_h
+	lda far_floor
+	and #$bf
+	sta tmp0
+	asl
+	asl
+	clc
+	adc tmp0
+	clc
+	adc fracy
+	tax
+	lda enemy_mip_base_lo,x
+	sta item_mip_base_l
+	lda enemy_mip_base_hi,x
+	sta item_mip_base_h
+	; V texstep once; mip_h kept in wallz_l (tmp5 dies across clip_col_find)
+	ldx fracy
+	lda enemy_mip_h,x
+	sta wallz_l
+	jsr item_vdda_texstep
 .id_clp_no_recip
 	; Live enemy or barrel: lock aim_item for COL_AIM stamps
 	ldx item_slot
@@ -694,9 +779,7 @@ item_draw_one
 	sta aim_item
 .id_clp_start
 	; want16 = depth16 · 255/512 into wz_x — stack Z ≈ 255·perp tiles,
-	; depth16 (wz_y, stashed by item_calc_depth) = 512·perp tiles.
-	; 255/512 = 1/2 − 1/512 → (d>>1) − (d>>9). Full precision: the 8-bit
-	; depth (1/8 tile steps) made sprites near walls flicker through them.
+	; depth16 (wz_y) = 512·perp tiles. 255/512 = 1/2 − 1/512.
 	lda span_a
 	sta col
 	lda wz_y_h
@@ -715,6 +798,8 @@ item_draw_one
 	lda wz_x_h
 	sbc #0
 	sta wz_x_h
+	; Bind clip once; advance clip_base by CLIP_COL_BYTES each column
+	jsr clip_col_bind
 .id_clp
 	lda col
 	cmp span_b
@@ -739,6 +824,25 @@ item_draw_one
 	cmp item_ybot
 	bcc .id_spanok
 .id_cnx
+	; Advance U-DDA for enemies (also on clip-miss columns)
+	lda far_floor
+	beq .id_cnx_nou
+	clc
+	lda item_u_l
+	adc wish_x_l			; ustep
+	sta item_u_l
+	lda item_u_h
+	adc wish_x_h
+	sta item_u_h
+.id_cnx_nou
+	; Next column's clip stack (96-byte interleaved stride)
+	clc
+	lda clip_base_l
+	adc #CLIP_COL_BYTES
+	sta clip_base_l
+	lda clip_base_h
+	adc #0
+	sta clip_base_h
 	inc col
 	jmp .id_clp
 .id_spanok
@@ -756,64 +860,31 @@ item_draw_one
 	bne .id_e32
 	jmp .id_e8
 
-; --- Enemy column (mip-aware; source W×H from tables) ---
+; --- Enemy column (U-DDA + hoisted invariants) ---
 .id_e32
-	; bmp_x = (col - orig_left) * mip_w / W
-	lda col
-	sec
-	sbc fracx
-.id32_ox
-	sta aux_l
-	lda #0
-	sta aux_h
-	ldx fracy
-	lda enemy_mip_ushift,x
-	beq .id32_ux0
-	tax
-.id32_uxlp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .id32_uxlp
-.id32_ux0
-	jsr udiv_aux_rec_w			; (ox * mip_w) / W
-	cmp last_near_ceil		; >= mip_w → clamp
+	lda item_u_h			; bmp_x
+	cmp last_near_ceil
 	bcc .id32_xok
 	lda last_near_ceil
 	sec
 	sbc #1
 .id32_xok
-	sta last_near_floor		; bmp_x
-	; mirror walk if TEX_ANIMATE and (anim_frame & 2)
-	lda far_floor
-	and #TEX_ANIMATE
+	ldx item_mirror
 	beq .id32_nomir
-	lda anim_frame
-	and #2
-	beq .id32_nomir
+	sta tmp0
 	lda last_near_ceil
 	sec
-	sbc #1				; mip_w - 1
+	sbc #1
 	sec
-	sbc last_near_floor
-	sta last_near_floor
+	sbc tmp0
 .id32_nomir
-	; ptr = enemy_mip_base[frame*5+mip] + bmp_x * mip_h
-	lda far_floor
-	and #$bf				; clear TEX_ANIMATE → frame
-	sta tmp0
-	asl
-	asl					; *4
-	clc
-	adc tmp0				; *5
-	clc
-	adc fracy				; + mip
-	tax
-	lda enemy_mip_base_lo,x
+	sta last_near_floor		; bmp_x
+	; ptr = hoisted mip base + bmp_x * mip_h
+	lda item_mip_base_l
 	sta ptr_l
-	lda enemy_mip_base_hi,x
+	lda item_mip_base_h
 	sta ptr_h
-	lda last_near_floor		; bmp_x * mip_h
+	lda last_near_floor
 	sta aux_l
 	lda #0
 	sta aux_h
@@ -834,10 +905,10 @@ item_draw_one
 	lda ptr_h
 	adc aux_h
 	sta ptr_h
-	; V DDA: step = mip_h/H in 8.8; acc seeded at py_row
-	ldx fracy
-	lda enemy_mip_h,x
-	jsr item_vdda_setup			; texstep=step, acc=v; tmp5=mip_h
+	; Seed V acc only (texstep already set); wallz_l = mip_h
+	lda wallz_l
+	sta tmp5
+	jsr item_vdda_seed
 	ldy py_row
 .id32_rlp
 	cpy item_ybot
@@ -871,9 +942,8 @@ item_draw_one
 	iny
 	jmp .id32_rlp
 
-; --- Item column (1:1 blit; W/H == mip, no UV) ---
+; --- Item column (1:1; ptr -= near_fcol so Y indexes both tex and screen) ---
 .id_e8
-	; bmp_x = col - orig_left
 	lda col
 	sec
 	sbc fracx
@@ -888,12 +958,11 @@ item_draw_one
 	lda #0
 .id8_xok
 	sta last_near_floor			; bmp_x
-	; ptr = item_mip_base[type*4+mip] + bmp_x * mip_h
 	lda wall_col
 	asl
-	asl					; *4
+	asl
 	clc
-	adc fracy				; + mip
+	adc fracy
 	tax
 	lda item_mip_base_lo,x
 	sta ptr_l
@@ -920,66 +989,83 @@ item_draw_one
 	lda ptr_h
 	adc aux_h
 	sta ptr_h
-	; src_y = py_row - near_fcol (unclamped top)
-	lda py_row
+	; Fold near_fcol into ptr so screen Y indexes texture too
+	lda near_fcol
+	bpl .id8_psub
+	; near_fcol negative (sprite top above screen): ptr += |near_fcol|
+	eor #$ff
+	clc
+	adc #1
+	clc
+	adc ptr_l
+	sta ptr_l
+	lda ptr_h
+	adc #0
+	sta ptr_h
+	jmp .id8_loop
+.id8_psub
 	sec
+	lda ptr_l
 	sbc near_fcol
-	sta tmp4				; source row
-	ldy py_row				; Y = screen row
+	sta ptr_l
+	lda ptr_h
+	sbc #0
+	sta ptr_h
+.id8_loop
+	ldy py_row
 .id_rlp
 	cpy item_ybot
-	bcc .id_row
-	jmp .id_cnx
-.id_row
-	sty tmp0				; screen row
-	ldy tmp4				; source row
+	bcs .id_cnx_jmp
 	lda (ptr_l),y
 	cmp #$ff				; $ff = clear (black $00 is opaque)
 	beq .id_skip
-	ldy tmp0
 	sta (col_base_l),y
 	lda #ITEM_PAT
 	sta (pat_base_l),y
 .id_skip
-	inc tmp4
-	ldy tmp0
 	iny
 	jmp .id_rlp
+.id_cnx_jmp
+	jmp .id_cnx
 
 ; ---------------------------------------------------------------------------
-; item_vdda_setup — A = mip_h; wish_y = recip[H]; py_row / near_fcol set
-; Exit: texstep = mip_h/H in 8.8, acc = v at py_row (8.8), tmp5 = mip_h
-; Clobbers: tmp0..tmp2, X, Y
-; (Enemy path only — items are 1:1.)
+; item_vdda_texstep — A = mip_h; wish_y = recip[H]
+; Exit: texstep = mip_h/H in 8.8. Clobbers tmp0/tmp1, X, Y.
 ; ---------------------------------------------------------------------------
-item_vdda_setup
-	sta tmp5				; mip_h for clamp
+item_vdda_texstep
 	tay
 	lda wish_y_l
-	jsr mul_8x8				; mip_h * recip_lo
-	sta tmp0				; hi
-	ldy tmp5
+	jsr mul_8x8
+	sta tmp0
+	; Y still mip_h? mul_8x8 doesn't preserve Y — reload
+	ldy wallz_l			; mip_h (caller stored)
 	lda wish_y_h
-	jsr mul_8x8				; mip_h * recip_hi
-	sta tmp1				; hi(mip*rh)
+	jsr mul_8x8
+	sta tmp1
 	clc
-	txa					; lo(mip*rh)
-	adc tmp0				; + hi(mip*rl) → (mip*recip)>>8
+	txa
+	adc tmp0
 	sta texstep_l
 	lda tmp1
 	adc #0
 	sta texstep_h
-	; acc = (py_row - near_fcol) * step  (low 16 of 8×16)
+	rts
+
+; ---------------------------------------------------------------------------
+; item_vdda_seed — texstep set; py_row / near_fcol set; tmp5 = mip_h
+; Exit: acc = v at py_row (8.8). Clobbers tmp0/tmp2, X, Y.
+; ---------------------------------------------------------------------------
+item_vdda_seed
 	lda py_row
 	sec
 	sbc near_fcol
-	sta tmp2				; dy (unsigned distance from sprite top)
+	sta tmp2
 	beq .ivs_z
 	tay
 	lda texstep_l
 	jsr mul_8x8
 	stx acc_l
-	sta tmp0				; hi(dy*step_l)
+	sta tmp0
 	ldy tmp2
 	lda texstep_h
 	jsr mul_8x8

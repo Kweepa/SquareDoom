@@ -125,13 +125,14 @@ clip_col_commit
 
 ; ---------------------------------------------------------------------------
 ; clip_col_find — want16 in wz_x_l/h (same scale as stack Z: ≈255·perp tiles)
+; Requires clip_base already bound (item draw binds once, advances per col).
 ; Entries are pushed near→far with increasing Z; an empty (top>=bot) entry is
 ; always last (DDA stops after closing). Pick the last entry with Z <= want:
 ;   open  → that aperture
 ;   empty → Z < want: occluded (miss); Z == want: quantization tie — the
 ;           sprite sits on that surface, use the previous (open) entry
 ; Exit: C=0 found, tmp0=top, tmp1=bot; C=1 miss/occluded
-; Clobbers: tmp3,tmp4,tmp5, ptr unused, X, Y, A
+; Clobbers: tmp3,tmp4,tmp5, X, Y, A
 ; ---------------------------------------------------------------------------
 clip_col_find
 	ldy col
@@ -142,7 +143,7 @@ clip_col_find
 	rts
 .ccf_go
 	sta tmp3				; n (entry count)
-	jsr clip_col_bind
+	; clip_base already set by caller
 	lda #$ff
 	sta tmp4				; best entry index ($FF = none)
 	ldx #0

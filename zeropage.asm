@@ -11,13 +11,17 @@ eyeheight	= $07
 col		= $08
 angle		= $09
 clip_n		= $0a			; cast_column: clip stack byte offset (n×4)
+item_sin	= $0b			; render_items: sintab[playera] (hoisted once/frame)
 ; $0b was dyindex (unused after rebuild_col_rays X/Y split)
 xstep		= $0c
 ystep		= $0d
 
 ; 16-bit TheKeep dd (fixsec); sdx/sdy 16-bit
+; After column cast, ddx_* reused as item U-DDA accumulator (item_u).
 ddx_l		= $0e
 ddx_h		= $0f
+item_u_l	= ddx_l			; enemy column U-DDA (8.8); bmp_x = item_u_h
+item_u_h	= ddx_h
 ddy_l		= $10
 ddy_h		= $11
 sdx_l		= $12
@@ -89,10 +93,10 @@ wish_y_h	= $47
 save_xl		= $48
 save_xh		= $49
 old_floor	= $7a			; SEC_FLOOR at move start (step-up / portal gate)
+item_cos	= $7b			; render_items: costab[playera] (hoisted once/frame)
 old_ceil	= $ae			; SEC_CEIL at move start (portal clearance)
 
 ; Status bar (drawn into FB row 24 when hud_dirty; blit copies it)
-; $7b free (was ammo; ammo_* are BSS in pickup.asm)
 health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
@@ -154,7 +158,8 @@ pat_base_h	= $77
 fill_pat	= $78			; screen code written with colour fills
 wall_pat	= $79			; min(15, wallz_h) for wall strips
 
-dda_steps	= $4c			; DDA only: spill while X holds step countdown (soft/cell)
+dda_steps	= $4c			; DDA spill; item draw: mirror flag (item_mirror)
+item_mirror	= dda_steps		; nonzero → flip bmp_x this sprite
 item_ybot	= $4d			; item draw: exclusive bottom of clipped column span
 						; (was xsgn; free after SMC ±X tile advance)
 
@@ -163,8 +168,11 @@ prof_snap_l	= $4e
 prof_snap_h	= $4f
 
 ; TheKeep-style marching pointer into level_map
+; After column cast, tile_* reused as hoisted enemy mip base (pre bmp_x).
 tile_l		= $50
 tile_h		= $51
+item_mip_base_l	= tile_l
+item_mip_base_h	= tile_h
 
 ; Profiler scratch — must NOT share tmp0..tmp5 (paint_portal keeps
 ; live values in tmp4/tmp5 across project_y calls).
@@ -279,10 +287,16 @@ COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES
 SEC_SEEN	= COL_CLIP_END		; SEC_TABLE_SIZE bytes, index = sector id
 SEC_SEEN_END	= SEC_SEEN + SEC_TABLE_SIZE
 
-; Item render sort buffer (depth hi + slot index), max 48 (= MAX_ITEMS)
-ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth
+; Item render sort + collect cache (index = sort slot 0..n-1)
+; Cache avoids redoing map_sector_id + item_calc_depth in item_draw_one.
+ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth (8-bit)
 ITEM_SORT_SLOT	= ITEM_SORT_DEPTH + 48
-ITEM_SORT_END	= ITEM_SORT_SLOT + 48
+ITEM_SORT_SEC	= ITEM_SORT_SLOT + 48	; sector id
+ITEM_SORT_DX	= ITEM_SORT_SEC + 48	; fracy = dx (signed)
+ITEM_SORT_DY	= ITEM_SORT_DX + 48	; fracx = dy (signed)
+ITEM_SORT_WZ_L	= ITEM_SORT_DY + 48	; depth16 lo (512/tile)
+ITEM_SORT_WZ_H	= ITEM_SORT_WZ_L + 48	; depth16 hi
+ITEM_SORT_END	= ITEM_SORT_WZ_H + 48
 
 ; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last two = missiles)
 MAX_MOBJ		= 32
