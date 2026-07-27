@@ -276,8 +276,8 @@ COL_CLIP_ZH	= COL_CLIP_ZL + COL_NUM * CLIP_MAX
 COL_CLIP_END	= COL_CLIP_ZH + COL_NUM * CLIP_MAX
 
 ; Per-frame sector visibility ($FF = seen this frame)
-SEC_SEEN	= COL_CLIP_END		; 256 bytes, index = sector id
-SEC_SEEN_END	= SEC_SEEN + 256
+SEC_SEEN	= COL_CLIP_END		; SEC_TABLE_SIZE bytes, index = sector id
+SEC_SEEN_END	= SEC_SEEN + SEC_TABLE_SIZE
 
 ; Item render sort buffer (depth hi + slot index), max 48 (= MAX_ITEMS)
 ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth
@@ -311,9 +311,9 @@ aim_item	= COL_AIM_Z + COL_NUM	; current billboard slot for aim ($FF none)
 MOBJ_END	= aim_item + 1
 
 ; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
-SEC_FLATGRP	= MOBJ_END		; 256 bytes, index = sector id
-SEC_FLATGRP_END	= SEC_FLATGRP + 256
+SEC_FLATGRP	= MOBJ_END		; SEC_TABLE_SIZE bytes, index = sector id
+SEC_FLATGRP_END	= SEC_FLATGRP + SEC_TABLE_SIZE
 
 ; Persistent automap fog: ever marked by mark_seen this level
-SEC_VISITED	= SEC_FLATGRP_END	; 256 bytes, index = sector id
-SEC_VISITED_END	= SEC_VISITED + 256
+SEC_VISITED	= SEC_FLATGRP_END	; SEC_TABLE_SIZE bytes, index = sector id
+SEC_VISITED_END	= SEC_VISITED + SEC_TABLE_SIZE

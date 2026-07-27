@@ -1,6 +1,7 @@
 /**
  * Cooked binary layout (no header), per level — structure-of-arrays:
- *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
+ *   1. Map: 1024 bytes sector ids (first so runtime level_map is $a000 / 32-aligned)
+ *   2. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
  *      order: floor, ceil, special (packed trigger|oneshot|action), targetSector,
  *      floorColor, ceilingColor, brightness
  *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
@@ -8,7 +9,6 @@
  *      Same-tag sectors are linked into a sibling chain via targetSector (head ← triggers;
  *      each member points at the next). Runtime walks the chain for remote door/floor actions.
  *      editor tag strings are not stored in the binary
- *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
  *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
@@ -60,10 +60,11 @@ import {
   normalizeAngle,
   setSpawn,
   getCell,
+  compactSectorIds,
 } from './model.js';
 
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
-const SECTOR_TABLE_SIZE = 256;		 // index = sector id; [0] unused
+const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
 const ITEM_BYTES = 4;
 const SPAWN_BYTES = 3;
 const EMPTY_ITEM_TYPE = 0xff;
@@ -117,7 +118,8 @@ export function levelFromJSON(data) {
   if (data.sectors) {
     for (const [key, s] of Object.entries(data.sectors)) {
       const id = Number(key);
-      if (id < 1 || id > MAX_SECTORS) continue;
+      // Allow sparse high ids on load; compactSectorIds remaps to 1..n
+      if (id < 1 || id > 255 || !Number.isFinite(id)) continue;
       const d = defaultSector();
       const targetTag = String(s.targetTag ?? d.targetTag ?? '').trim();
       let trigger = s.trigger;
@@ -235,9 +237,14 @@ export function levelFromJSON(data) {
     level.spawn = defaultSpawn();
   }
 
-  const shapeWarnings = enforceSectorShapes(level);
-  const borderIssues = validateVoidBorder(level);
-  const loadWarn = [...shapeWarnings, ...borderIssues];
+  compactSectorIds(level);
+  /** @type {string[]} */
+  const loadWarn = [];
+  if (level.sectors.size > MAX_SECTORS) {
+    loadWarn.push(`Too many sectors (${level.sectors.size}/${MAX_SECTORS})`);
+  }
+  loadWarn.push(...enforceSectorShapes(level));
+  loadWarn.push(...validateVoidBorder(level));
   if (loadWarn.length) {
     level._loadWarnings = loadWarn;
   }
@@ -317,6 +324,10 @@ export function cookLevel(level) {
   const warnings = [];
   /** @type {string[]} */
   const errors = [];
+  compactSectorIds(level);
+  if (level.sectors.size > MAX_SECTORS) {
+    errors.push(`Too many sectors (${level.sectors.size}/${MAX_SECTORS})`);
+  }
   warnings.push(...enforceSectorShapes(level));
   errors.push(...validateVoidBorder(level));
 
@@ -411,9 +422,10 @@ export function cookLevel(level) {
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
   const out = new Uint8Array(
-    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1,
+    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 1,
   );
   let o = 0;
+  out.set(mapBytes, o); o += mapBytes.length;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
   out.set(ceils, o); o += SECTOR_TABLE_SIZE;
   out.set(types, o); o += SECTOR_TABLE_SIZE;
@@ -421,7 +433,6 @@ export function cookLevel(level) {
   out.set(fcols, o); o += SECTOR_TABLE_SIZE;
   out.set(ccols, o); o += SECTOR_TABLE_SIZE;
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
-  out.set(mapBytes, o); o += mapBytes.length;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
   out[o] = sectorMax & 0xff;

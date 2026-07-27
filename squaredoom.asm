@@ -26,6 +26,8 @@ DBG_PORTAL = 0
 CENTER_COL = 19
 MUZZLE_COL = 20			; pistol muzzle aim column
 AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE±this (18..22)
+MAX_SECTORS = 199		; usable ids 1..199
+SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
 ; Memory ceilings:
 ;   low  → CHARSET at $3800 (COL/SQTAB/profil are under KERNAL $E000+)
@@ -106,16 +108,16 @@ free_mid = MEM_MID_LIMIT - end_mid
 
 ; ------------------------------------------------------------------
 ; Level window under BASIC ROM ($A000), RAM with $01=$35 — loaded from disk
-; SoA layout: 7×256 sector attr tables (id-indexed), map, spawn, items, sector_max
+; Layout: map first ($a000, 32-byte aligned for maprow+mapx), then 7×200
+; sector attr tables, spawn, items, sector_max
 ; ------------------------------------------------------------------
-LEVEL_BYTES = 3012
+LEVEL_BYTES = 2620
 *=$a000
 level_data
 	!fill LEVEL_BYTES, 0
 
 MAP_SIZE = 32
 MAP_CELLS = 1024
-MAX_SECTORS = 255
 MAX_ITEMS = 48
 ITEM_BYTES = 4			; SoA: 4 arrays × MAX_ITEMS
 SPAWN_BYTES = 3
@@ -146,12 +148,12 @@ ACT_DAMAGE_FLOOR = 13		; 5 HP / second while standing
 ACT_FLASH_LIGHTS = 14		; SEC_BRIGHT ↔ 16, 1 Hz (max 2 sectors)
 ACT_OPEN_MONSTER_CLOSET = 15	; raise floor+ceil +6, permanent
 
-SEC_TABLE_SIZE = 256
-
 ; level_item_meta: skill bits (switches use meta=0)
 
+; Map first so level_map is 32-byte aligned ($a000) for maprowlo+mapx
+level_map = level_data
 ; Attribute tables (index = sector id; [0] unused)
-SEC_FLOOR  = level_data
+SEC_FLOOR  = level_map + MAP_CELLS
 SEC_CEIL   = SEC_FLOOR + SEC_TABLE_SIZE
 SEC_TYPE   = SEC_CEIL + SEC_TABLE_SIZE
 SEC_TARGET = SEC_TYPE + SEC_TABLE_SIZE
@@ -159,8 +161,7 @@ SEC_FCOL   = SEC_TARGET + SEC_TABLE_SIZE
 SEC_CCOL   = SEC_FCOL + SEC_TABLE_SIZE
 SEC_BRIGHT = SEC_CCOL + SEC_TABLE_SIZE
 
-level_map = SEC_BRIGHT + SEC_TABLE_SIZE
-level_spawn = level_map + MAP_CELLS	; x, y, angle (playera)
+level_spawn = SEC_BRIGHT + SEC_TABLE_SIZE	; x, y, angle (playera)
 ; Items SoA (contiguous)
 level_item_type = level_spawn + SPAWN_BYTES	; 48: typeId or $FF empty
 level_item_x = level_item_type + MAX_ITEMS

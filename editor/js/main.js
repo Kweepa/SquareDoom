@@ -35,6 +35,7 @@ import {
   occupiedTiles,
   parseTileKey,
   rebuildSectors,
+  compactSectorIds,
   removeItem,
   sectorCount,
   shiftLevel,
@@ -230,6 +231,7 @@ async function saveNow(okMsg = 'Saved') {
   try {
     for (const name of LEVEL_NAMES) {
       rebuildSectors(episode.levels[name], { optimal: true });
+      compactSectorIds(episode.levels[name]);
     }
     refreshAfterPack();
 

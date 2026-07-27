@@ -637,7 +637,7 @@ const ITEM_IMAGE_DATA = {
 
 const MAP_SIZE = 32;
 const MAP_CELLS = MAP_SIZE * MAP_SIZE;
-const MAX_SECTORS = 255;
+const MAX_SECTORS = 199;
 const MAX_ITEMS = 48;
 /** Last two item slots reserved for enemy missile + player rocket. */
 const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
@@ -1032,7 +1032,7 @@ function createEmptyLevel() {
   return {
     /** Display name (max LEVEL_NAME_LEN); editor JSON only (not in cooked binary). */
     name: '',
-    /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..255) */
+    /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..199) */
     sectors: new Map(),
     /** @type {Uint8Array} */
     map: new Uint8Array(MAP_CELLS),
@@ -1079,12 +1079,49 @@ function clampWorld(v) {
   return Math.max(0, Math.min(WORLD_MAX, v | 0));
 }
 
-/** Allocate next free sector id 1..255, or 0 if full. */
+/** Allocate next free sector id 1..MAX_SECTORS, or 0 if full. */
 function allocSectorId(level) {
   for (let id = 1; id <= MAX_SECTORS; id++) {
     if (!level.sectors.has(id)) return id;
   }
   return 0;
+}
+
+/**
+ * Remap sector ids densely to 1..n (ascending old-id order). Rewrites map cells.
+ * Tags stay string-based (resolved at cook). Returns sector count after compact.
+ */
+function compactSectorIds(level) {
+  const oldIds = [...level.sectors.keys()]
+    .filter((id) => id > 0)
+    .sort((a, b) => a - b);
+  if (!oldIds.length) {
+    level.sectors.clear();
+    return 0;
+  }
+  let alreadyDense = oldIds.length <= MAX_SECTORS;
+  for (let i = 0; alreadyDense && i < oldIds.length; i++) {
+    if (oldIds[i] !== i + 1) alreadyDense = false;
+  }
+  if (alreadyDense) return oldIds.length;
+
+  /** @type {Map<number, number>} */
+  const remap = new Map();
+  /** @type {Map<number, ReturnType<typeof defaultSector>>} */
+  const next = new Map();
+  for (let i = 0; i < oldIds.length; i++) {
+    const oldId = oldIds[i];
+    const newId = i + 1;
+    remap.set(oldId, newId);
+    next.set(newId, level.sectors.get(oldId));
+  }
+  for (let i = 0; i < level.map.length; i++) {
+    const sid = level.map[i];
+    if (!sid) continue;
+    level.map[i] = remap.get(sid) ?? 0;
+  }
+  level.sectors = next;
+  return oldIds.length;
 }
 
 function sectorCellCount(level, sectorId) {
@@ -2310,7 +2347,8 @@ function activeLevel(episode) {
 // ---- js/io.js ----
 /**
  * Cooked binary layout (no header), per level — structure-of-arrays:
- *   1. Sector attribute tables: 7 × 256 bytes (index = sector id; byte 0 unused)
+ *   1. Map: 1024 bytes sector ids (first so runtime level_map is $a000 / 32-aligned)
+ *   2. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
  *      order: floor, ceil, special (packed trigger|oneshot|action), targetSector,
  *      floorColor, ceilingColor, brightness
  *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
@@ -2318,7 +2356,6 @@ function activeLevel(episode) {
  *      Same-tag sectors are linked into a sibling chain via targetSector (head ← triggers;
  *      each member points at the next). Runtime walks the chain for remote door/floor actions.
  *      editor tag strings are not stored in the binary
- *   2. Map: 1024 bytes sector ids
  *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
  *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
@@ -2332,7 +2369,7 @@ function activeLevel(episode) {
  */
 
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
-const SECTOR_TABLE_SIZE = 256;		 // index = sector id; [0] unused
+const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
 const ITEM_BYTES = 4;
 const SPAWN_BYTES = 3;
 const EMPTY_ITEM_TYPE = 0xff;
@@ -2386,7 +2423,8 @@ function levelFromJSON(data) {
   if (data.sectors) {
     for (const [key, s] of Object.entries(data.sectors)) {
       const id = Number(key);
-      if (id < 1 || id > MAX_SECTORS) continue;
+      // Allow sparse high ids on load; compactSectorIds remaps to 1..n
+      if (id < 1 || id > 255 || !Number.isFinite(id)) continue;
       const d = defaultSector();
       const targetTag = String(s.targetTag ?? d.targetTag ?? '').trim();
       let trigger = s.trigger;
@@ -2504,9 +2542,14 @@ function levelFromJSON(data) {
     level.spawn = defaultSpawn();
   }
 
-  const shapeWarnings = enforceSectorShapes(level);
-  const borderIssues = validateVoidBorder(level);
-  const loadWarn = [...shapeWarnings, ...borderIssues];
+  compactSectorIds(level);
+  /** @type {string[]} */
+  const loadWarn = [];
+  if (level.sectors.size > MAX_SECTORS) {
+    loadWarn.push(`Too many sectors (${level.sectors.size}/${MAX_SECTORS})`);
+  }
+  loadWarn.push(...enforceSectorShapes(level));
+  loadWarn.push(...validateVoidBorder(level));
   if (loadWarn.length) {
     level._loadWarnings = loadWarn;
   }
@@ -2586,6 +2629,10 @@ function cookLevel(level) {
   const warnings = [];
   /** @type {string[]} */
   const errors = [];
+  compactSectorIds(level);
+  if (level.sectors.size > MAX_SECTORS) {
+    errors.push(`Too many sectors (${level.sectors.size}/${MAX_SECTORS})`);
+  }
   warnings.push(...enforceSectorShapes(level));
   errors.push(...validateVoidBorder(level));
 
@@ -2680,9 +2727,10 @@ function cookLevel(level) {
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
   const out = new Uint8Array(
-    sectorBytes + mapBytes.length + SPAWN_BYTES + itemTable.length + 1,
+    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 1,
   );
   let o = 0;
+  out.set(mapBytes, o); o += mapBytes.length;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
   out.set(ceils, o); o += SECTOR_TABLE_SIZE;
   out.set(types, o); o += SECTOR_TABLE_SIZE;
@@ -2690,7 +2738,6 @@ function cookLevel(level) {
   out.set(fcols, o); o += SECTOR_TABLE_SIZE;
   out.set(ccols, o); o += SECTOR_TABLE_SIZE;
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
-  out.set(mapBytes, o); o += mapBytes.length;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
   out[o] = sectorMax & 0xff;
@@ -4502,6 +4549,7 @@ async function saveNow(okMsg = 'Saved') {
   try {
     for (const name of LEVEL_NAMES) {
       rebuildSectors(episode.levels[name], { optimal: true });
+      compactSectorIds(episode.levels[name]);
     }
     refreshAfterPack();
 

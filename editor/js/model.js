@@ -2,7 +2,7 @@
 
 export const MAP_SIZE = 32;
 export const MAP_CELLS = MAP_SIZE * MAP_SIZE;
-export const MAX_SECTORS = 255;
+export const MAX_SECTORS = 199;
 export const MAX_ITEMS = 48;
 /** Last two item slots reserved for enemy missile + player rocket. */
 export const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
@@ -397,7 +397,7 @@ export function createEmptyLevel() {
   return {
     /** Display name (max LEVEL_NAME_LEN); editor JSON only (not in cooked binary). */
     name: '',
-    /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..255) */
+    /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..199) */
     sectors: new Map(),
     /** @type {Uint8Array} */
     map: new Uint8Array(MAP_CELLS),
@@ -444,12 +444,49 @@ export function clampWorld(v) {
   return Math.max(0, Math.min(WORLD_MAX, v | 0));
 }
 
-/** Allocate next free sector id 1..255, or 0 if full. */
+/** Allocate next free sector id 1..MAX_SECTORS, or 0 if full. */
 export function allocSectorId(level) {
   for (let id = 1; id <= MAX_SECTORS; id++) {
     if (!level.sectors.has(id)) return id;
   }
   return 0;
+}
+
+/**
+ * Remap sector ids densely to 1..n (ascending old-id order). Rewrites map cells.
+ * Tags stay string-based (resolved at cook). Returns sector count after compact.
+ */
+export function compactSectorIds(level) {
+  const oldIds = [...level.sectors.keys()]
+    .filter((id) => id > 0)
+    .sort((a, b) => a - b);
+  if (!oldIds.length) {
+    level.sectors.clear();
+    return 0;
+  }
+  let alreadyDense = oldIds.length <= MAX_SECTORS;
+  for (let i = 0; alreadyDense && i < oldIds.length; i++) {
+    if (oldIds[i] !== i + 1) alreadyDense = false;
+  }
+  if (alreadyDense) return oldIds.length;
+
+  /** @type {Map<number, number>} */
+  const remap = new Map();
+  /** @type {Map<number, ReturnType<typeof defaultSector>>} */
+  const next = new Map();
+  for (let i = 0; i < oldIds.length; i++) {
+    const oldId = oldIds[i];
+    const newId = i + 1;
+    remap.set(oldId, newId);
+    next.set(newId, level.sectors.get(oldId));
+  }
+  for (let i = 0; i < level.map.length; i++) {
+    const sid = level.map[i];
+    if (!sid) continue;
+    level.map[i] = remap.get(sid) ?? 0;
+  }
+  level.sectors = next;
+  return oldIds.length;
 }
 
 export function sectorCellCount(level, sectorId) {

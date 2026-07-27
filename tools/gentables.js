@@ -80,8 +80,8 @@ function sinTable() {
 
 // Must match FRAMEBUFFER in squaredoom.asm / genblit.js
 const FRAMEBUFFER = 0xc800;
-// Must match squaredoom.asm: level_data=$a000, 7×256 SoA tables then map
-const LEVEL_MAP = 0xa000 + 7 * 256;
+// Must match squaredoom.asm: level_map first at $a000 (32-byte aligned), then SoA
+const LEVEL_MAP = 0xa000;
 
 const angles = anglesTable();
 const fishes = fishesTable(angles);
