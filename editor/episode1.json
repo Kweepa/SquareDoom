@@ -22298,8 +22298,8 @@
           "brightness": 6
         },
         "7": {
-          "floorHeight": 14,
-          "ceilingHeight": 14,
+          "floorHeight": 19,
+          "ceilingHeight": 19,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -22477,18 +22477,6 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "22": {
-          "floorHeight": 4,
-          "ceilingHeight": 19,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 11
-        },
         "23": {
           "floorHeight": 14,
           "ceilingHeight": 26,
@@ -22502,8 +22490,8 @@
           "brightness": 15
         },
         "24": {
-          "floorHeight": 4,
-          "ceilingHeight": 10,
+          "floorHeight": 6,
+          "ceilingHeight": 12,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -22602,8 +22590,8 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
-          "tag": "lower",
+          "action": "lower_floor_forever",
+          "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 15,
@@ -22626,8 +22614,8 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
-          "tag": "lower",
+          "action": "lower_floor_forever",
+          "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 15,
@@ -22638,8 +22626,8 @@
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
-          "tag": "lower",
+          "action": "lower_floor_forever",
+          "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 15,
@@ -22781,7 +22769,7 @@
           "floorHeight": 14,
           "ceilingHeight": 26,
           "trigger": "walk_into",
-          "singleShot": false,
+          "singleShot": true,
           "action": "open_monster_closet",
           "tag": "",
           "targetTag": "baron_closets",
@@ -22899,7 +22887,7 @@
         },
         "57": {
           "floorHeight": 14,
-          "ceilingHeight": 19,
+          "ceilingHeight": 26,
           "trigger": "use",
           "singleShot": false,
           "action": "lower_floor",
@@ -22910,8 +22898,8 @@
           "brightness": 11
         },
         "58": {
-          "floorHeight": 4,
-          "ceilingHeight": 4,
+          "floorHeight": 6,
+          "ceilingHeight": 6,
           "trigger": "use",
           "singleShot": true,
           "action": "open_door_forever",
@@ -22932,6 +22920,42 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
+        },
+        "60": {
+          "floorHeight": 4,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
+        },
+        "61": {
+          "floorHeight": 4,
+          "ceilingHeight": 10,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
+        },
+        "62": {
+          "floorHeight": 4,
+          "ceilingHeight": 10,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
         }
       },
       "map": [
@@ -23558,7 +23582,7 @@
         11,
         0,
         0,
-        12,
+        60,
         0,
         0,
         30,
@@ -23653,9 +23677,9 @@
         0,
         20,
         20,
-        22,
-        22,
-        22,
+        61,
+        12,
+        62,
         27,
         27,
         0,
@@ -24171,6 +24195,186 @@
           "type": "skullpile",
           "x": 127,
           "y": 177,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 99,
+          "y": 181,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 101,
+          "y": 175,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 103,
+          "y": 186,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 144,
+          "y": 177,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 145,
+          "y": 183,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 142,
+          "y": 189,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soulsphere",
+          "x": 139,
+          "y": 212,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 162,
+          "y": 237,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 99,
+          "y": 154,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 101,
+          "y": 157,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 68,
+          "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 93,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 127,
+          "y": 74,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 123,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 180,
+          "y": 99,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 178,
+          "y": 102,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "chaingun",
+          "x": 149,
+          "y": 155,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 146,
+          "y": 157,
           "skills": {
             "easy": true,
             "normal": true,

@@ -700,7 +700,7 @@ item_draw_one
 	lda MOBJ_HEALTH,y
 	beq .id_clp_start
 	lda MOBJ_INFO,y
-	cmp #4
+	cmp #MOBJINFO_IMPSHOT		; exclude missiles (baron = 4 is damageable)
 	bcs .id_clp_start
 	lda item_slot
 	sta aim_item

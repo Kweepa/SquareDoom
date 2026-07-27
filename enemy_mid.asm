@@ -1,8 +1,9 @@
 !zone enemy
 
 ; ============================================================================
-; enemy.asm — VicDoom p_enemy.c AI (possessed / imp / demon / caco + shot)
+; enemy_mid.asm — VicDoom p_enemy.c AI (possessed / imp / demon / caco + shot)
 ; Think only when SEC_SEEN[sector] (after render). Always camera-facing.
+; E1M8 baron wipeout → forever floors lives in enemy_low.asm.
 ; ============================================================================
 
 MF_JUSTATTACKED = 1
@@ -1874,16 +1875,22 @@ procket_scale_mom
 enemy_damage
 	sta damage_amount
 	jsr mobj_for_slot
-	bcs .ed_rts
+	bcc .ed_got
+	rts
+.ed_got
 	lda MOBJ_HEALTH,y
-	beq .ed_rts
+	bne .ed_alive
+	rts
+.ed_alive
 	sty enemy_actor
 	lda MOBJ_OBJ,y
 	sta enemy_obj
 	lda MOBJ_INFO,y
 	sta enemy_info
 	cmp #MOBJINFO_IMPSHOT
-	bcs .ed_rts
+	bcc .ed_dmg
+	rts
+.ed_dmg
 	; P_DamageMobj
 	lda MOBJ_HEALTH,y
 	sec
@@ -1926,6 +1933,8 @@ enemy_damage
 	ldy enemy_info
 	lda mobj_death_state,y
 	sta MOBJ_STATE,x
+	; E1M8: last baron → lower forever floors (enemy_low.asm)
+	jsr e1m8_baron_kill_hook
 .ed_rts
 	rts
 

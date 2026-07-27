@@ -46,6 +46,8 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "weapon.asm"
 ; loader was mid; moved here for headroom (mid was ~48 bytes free)
 !source "loader.asm"
+; enemy boss-death floors — low for mid headroom
+!source "enemy_low.asm"
 
 end_low = *
 free_low = FIST_RIGHT_SPRITES - end_low
@@ -80,7 +82,7 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "playsound.asm"
 !source "process.asm"
 !source "player.asm"
-!source "enemy.asm"
+!source "enemy_mid.asm"
 !source "hitscan.asm"
 !source "debug.asm"
 !source "ditherchars.asm"

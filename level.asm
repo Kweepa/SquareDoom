@@ -5,6 +5,8 @@
 ; ---------------------------------------------------------------------------
 start_level
 	jsr proc_init
+	lda #0
+	sta boss_floors_done
 	jsr find_spawn
 	jsr enemy_alloc_all
 	jsr init_hud_state
