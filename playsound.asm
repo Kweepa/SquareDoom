@@ -38,7 +38,6 @@ sound_index		!byte $ff
 sound_priority		!byte 0
 sound_count		!byte 0
 sound_max		!byte 0
-sfx_temp_vol		!byte 0
 ps_save_x		!byte 0
 ps_save_y		!byte 0
 
@@ -87,9 +86,6 @@ play_sound
 	txa
 	asl
 	tay
-	; first stop the old sound
-	lda #$ff
-	sta sound_index
 	; then set up the pointer to the data
 	lda sound_table,y
 	sta sound_ptr_l
@@ -119,19 +115,18 @@ play_sound
 update_sfx
 	; check we're playing a sound
 	lda sound_index
-	cmp #$ff
-	beq .sfx_idle
+	bmi .sfx_idle
 
 	ldx effects_vol
-	stx sfx_temp_vol
+	lda sound_index
 	cmp #14				; sawidl
 	bne .sfx_vol
-	lsr sfx_temp_vol
-	lsr sfx_temp_vol
+	txa
+	lsr
+	lsr
+	tax
 .sfx_vol
-	; turn up volume a bit
-	lda sfx_temp_vol
-	sta $d418
+	stx $d418
 
 	; play next sample (held until next ~7 ms tick — PC speaker timing)
 	inc sound_count

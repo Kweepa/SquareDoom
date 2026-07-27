@@ -73,28 +73,8 @@ fill_span
 	bne .fs_loop
 	rts
 
-; A = colour; fill_y0..fill_y1-1 with fill_pat (flat remainder path).
-; Clobbers X. paint_near inlines its own copies to avoid jsr tax.
-fill_flat_span
-!if PROFILE = 1 {
-	inc span_lo
-	bne .ffs_go
-	inc span_hi
-.ffs_go
-}
-	tax
-	ldy fill_y0
-	jmp .ffs_test
-.ffs_lp
-	txa
-	sta (col_base_l),y
-	lda fill_pat
-	sta (pat_base_l),y
-	iny
-.ffs_test
-	cpy fill_y1
-	bne .ffs_lp
-	rts
+; Alias — identical to fill_span (render_dda jmp target).
+fill_flat_span = fill_span
 
 ; col_base = FRAMEBUFFER + col * 25; pat_base = LIGHTFRAME + col * 25
 ; (LIGHTFRAME hi = FRAMEBUFFER hi + 4)
@@ -282,7 +262,6 @@ sector_specials_update
 	bcc .ssu_flash
 .ssu_dmg_fire
 	lda dmg_ms
-	sec
 	sbc #<DAMAGE_PERIOD_MS
 	sta dmg_ms
 	lda dmg_ms + 1
@@ -314,7 +293,6 @@ sector_specials_update
 	bcc .ssu_rts
 .ssu_flash_fire
 	lda flash_ms
-	sec
 	sbc #<FLASH_PERIOD_MS
 	sta flash_ms
 	lda flash_ms + 1

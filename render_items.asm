@@ -44,21 +44,19 @@ render_items
 	jsr prof_snap
 }
 	; Clear per-column aim ($FF = no live enemy this frame)
-	ldx #0
+	ldx #COL_NUM-1
 	lda #$ff
 .ri_clr_aim
 	sta COL_AIM_SLOT,x
-	inx
-	cpx #COL_NUM
-	bne .ri_clr_aim
+	dex
+	bpl .ri_clr_aim
 	lda #0
 	sta span_a
 	ldx #0
 .ri_col
 	lda level_item_type,x
-	cmp #ITEM_TYPE_EMPTY
 	beq .ri_nx
-	cmp #ITEM_TYPE_SPAWN
+	cmp #ITEM_TYPE_EMPTY
 	beq .ri_nx
 	lda level_item_x,x
 	lsr
@@ -151,8 +149,7 @@ item_calc_depth
 	beq .icd_msl_dx
 	; Items/enemies: center at n+0.5 (constant frac $80)
 	lda #$80
-	sec
-	sbc playerx
+	cmp playerx
 	lda tmp0
 	sbc playerx_h
 	sta fracy			; dx (signed; |dx|≤120)
@@ -164,8 +161,7 @@ item_calc_depth
 	; dx = hi((item_x:MOBJ_XFRAC) - (playerx_h:playerx))
 	lda MOBJ_XFRAC + MOBJ_PLAYER_ROCKET
 .icd_dx8
-	sec
-	sbc playerx
+	cmp playerx
 	lda tmp0
 	sbc playerx_h
 	sta fracy
@@ -186,8 +182,7 @@ item_calc_depth
 	cmp #ITEM_TYPE_PLASMABALL
 	beq .icd_msl_dy
 	lda #$80
-	sec
-	sbc playery
+	cmp playery
 	lda tmp1
 	sbc playery_h
 	sta fracx			; dy
@@ -198,8 +193,7 @@ item_calc_depth
 .icd_rok_dy
 	lda MOBJ_YFRAC + MOBJ_PLAYER_ROCKET
 .icd_dy8
-	sec
-	sbc playery
+	cmp playery
 	lda tmp1
 	sbc playery_h
 	sta fracx
@@ -243,9 +237,7 @@ item_calc_depth
 	bne .icd_clamp
 	lda wallz_l
 	beq .icd_bad
-	cmp #ITEM_DEPTH_MIN
-	bcc .icd_bad
-	jmp .icd_ok
+	bne .icd_ok
 .icd_clamp
 	lda #255
 	sta wallz_l
@@ -271,7 +263,6 @@ item_uabs8
 	sbc tmp2
 	rts
 .iu_ge
-	sec
 	sbc tmp3
 	rts
 
@@ -402,7 +393,6 @@ udiv16x8
 	sbc #0
 	sta aux_h
 	inx
-	cpx #0
 	bne .ud_lp
 	ldx #255
 .ud_done
@@ -498,14 +488,14 @@ item_draw_one
 	cmp #ITEM_TYPE_ENEMY_HI+1
 	bcs .id_half
 	lda tmp0				; enemies: worldH 4 × proj 32
-	jmp .id_h0
+	bpl .id_h0
 .id_half
 	lda wall_col
 	cmp #ITEM_TYPE_BAREXPL
 	beq .id_barexpl_h			; full height → one mip larger
 	lda tmp0
 	lsr					; pickups: half-height
-	jmp .id_h0
+	bpl .id_h0
 .id_barexpl_h
 	lda tmp0
 .id_h0
@@ -536,10 +526,6 @@ item_draw_one
 	sta far_floor			; 0 = item mip path
 	; Items: pick mip from projected size, then draw 1:1 (never >8×8)
 	lda far_ceil
-	cmp #8
-	bcc .id_item_band
-	lda #8
-.id_item_band
 	ldx #0
 	cmp #8
 	bcs .id_item_mip			; ≥8 → mip0 (8×8)
@@ -583,9 +569,7 @@ item_draw_one
 	ldx wallz_h
 	jsr mul_recip_z
 	clc
-	adc #HORIZON
-	clc
-	adc #1				; exclusive bot: last pixel on floor row
+	adc #HORIZON+1			; exclusive bot: last pixel on floor row
 	sta fill_y1
 	sec
 	sbc far_ceil			; top = bot - H (may be <0 or >24)
@@ -660,7 +644,7 @@ item_draw_one
 	ldx fracy
 	lda item_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
-	jmp .id_clp_go
+	bne .id_clp_go
 .id_emip
 	; Enemy mip from projected W (thresholds; U scales to mip_w)
 	lda last_near_ok
@@ -702,7 +686,7 @@ item_draw_one
 	cmp #ITEM_TYPE_BARREL
 	bne .id_aim_en
 	stx aim_item
-	jmp .id_clp_start
+	beq .id_clp_start
 .id_aim_en
 	cmp #ITEM_TYPE_ENEMY_LO
 	bcc .id_clp_start
@@ -746,12 +730,8 @@ item_draw_one
 	bcc .id_cin
 	rts
 .id_cin
-	cmp #40
-	bcs .id_cnx
 	jsr clip_col_find
-	bcc .id_found
-	jmp .id_cnx
-.id_found
+	bcs .id_cnx
 	lda fill_y0
 	cmp tmp0
 	bcs .id_yt
@@ -788,15 +768,6 @@ item_draw_one
 ; --- Enemy column (mip-aware; source W×H from tables) ---
 .id_e32
 	; bmp_x = (col - orig_left) * mip_w / W
-	lda fracx
-	bpl .id32_oxp
-	lda #0
-	sec
-	sbc fracx
-	clc
-	adc col
-	jmp .id32_ox
-.id32_oxp
 	lda col
 	sec
 	sbc fracx

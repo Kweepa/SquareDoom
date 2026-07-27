@@ -65,9 +65,6 @@ mul_8x8
 
 ; TheKeep API: aux * A → A=lo X=hi (middle 16 of 24-bit product).
 ; Used for mid(dd*fish) cache + initial wz = mid(s*fish).
-; mul_16x8_eor: treat factor as A^$ff (sq1/2 = fac^$ff, sq3/4 = fac).
-mul_16x8_eor
-	eor #$ff
 mul_16x8
 	sta sq1_l
 	sta sq2_l
@@ -200,12 +197,12 @@ mul_recip_z
 	adc #0
 	sta tmp1				; mid hi (= product >> 8)
 	; >>3 more → product >> 11 = v*32/z
-	ldx #3
-.mrz_shr
 	lsr tmp1
 	ror tmp0
-	dex
-	bne .mrz_shr
+	lsr tmp1
+	ror tmp0
+	lsr tmp1
+	ror tmp0
 	; clamp |result| to 127
 	lda tmp1
 	bne .mrz_sat			; ≥256 after >>11 → sat

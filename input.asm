@@ -651,7 +651,6 @@ apply_move
 
 ; A = sector id → C=1 blocked, C=0 walkable (vs old_floor / old_ceil)
 tile_blocked
-	cmp #0
 	beq .tb_yes
 	tax
 	jsr sec_action

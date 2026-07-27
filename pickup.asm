@@ -97,6 +97,7 @@ try_pickups
 	ldx #0
 .tp_loop
 	lda level_item_type,x
+	bmi .tp_next
 	cmp #ITEM_TYPE_HEALTH
 	bcc .tp_next
 	cmp #ITEM_TYPE_POSCORPSE + 1
@@ -114,7 +115,6 @@ try_pickups
 	sbc playerx_h
 	bcs .tp_dx
 	eor #$ff
-	clc
 	adc #1
 .tp_dx
 	cmp #PICKUP_RADIUS
@@ -125,7 +125,6 @@ try_pickups
 	sbc playery_h
 	bcs .tp_dy
 	eor #$ff
-	clc
 	adc #1
 .tp_dy
 	cmp #PICKUP_RADIUS

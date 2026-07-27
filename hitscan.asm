@@ -185,7 +185,6 @@ hitscan_process
 	sta xstep
 	lda tmp0
 	eor #$ff
-	clc
 	adc #1
 	sta hs_absx
 	jmp .hp_dy
@@ -210,7 +209,6 @@ hitscan_process
 	sta ystep
 	lda tmp0
 	eor #$ff
-	clc
 	adc #1
 	sta hs_absy
 	jmp .hp_tdelta
@@ -232,7 +230,6 @@ hitscan_process
 	sbc mapx
 	bcs .hp_txp
 	eor #$ff
-	clc
 	adc #1
 .hp_txp
 	sta hs_steps
@@ -241,7 +238,6 @@ hitscan_process
 	sbc mapy
 	bcs .hp_typ
 	eor #$ff
-	clc
 	adc #1
 .hp_typ
 	clc
@@ -258,7 +254,6 @@ hitscan_process
 	sbc hs_z0
 	bcs .hp_zdpos
 	eor #$ff
-	clc
 	adc #1
 	sta hs_zd
 	lda #$ff

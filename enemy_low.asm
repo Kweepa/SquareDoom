@@ -83,9 +83,8 @@ barrel_near_y
 	lda level_item_x,y
 	sec
 	sbc save_xh
-	bpl .bny_ax
+	bcs .bny_ax
 	eor #$ff
-	clc
 	adc #1
 .bny_ax
 	cmp #BARREL_SPLASH+1
@@ -93,9 +92,8 @@ barrel_near_y
 	lda level_item_y,y
 	sec
 	sbc save_yh
-	bpl .bny_ay
+	bcs .bny_ay
 	eor #$ff
-	clc
 	adc #1
 .bny_ay
 	cmp #BARREL_SPLASH+1
@@ -134,6 +132,7 @@ barrel_explode
 	sty tmp3
 	jsr GetRandom8
 	and #31
+	clc
 	adc #16
 	ldx tmp3
 	jsr enemy_damage

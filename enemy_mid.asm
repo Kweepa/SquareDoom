@@ -189,16 +189,15 @@ p_approx_distance
 	cmp tmp2
 	bcc .pad_y_smaller
 	; dy >= dx: dx/2 + dy
-	lsr tmp2
-	clc
 	lda tmp2
+	lsr
+	clc
 	adc tmp3
 	rts
 .pad_y_smaller
-	lsr tmp3
+	lsr
 	clc
-	lda tmp2
-	adc tmp3
+	adc tmp2
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -359,12 +358,6 @@ alloc_mobj
 ; ---------------------------------------------------------------------------
 ; Helpers: item XY / sector from enemy_obj
 ; ---------------------------------------------------------------------------
-; → A = type at enemy_obj
-obj_type
-	ldx enemy_obj
-	lda level_item_type,x
-	rts
-
 ; → tmp0=x_h tmp1=y_h
 obj_xy
 	ldx enemy_obj
@@ -471,8 +464,7 @@ enemy_single_think
 	ldx enemy_actor
 	ldy MOBJ_STATE,x
 	lda state_action,y
-	; dispatch
-	cmp #ACTION_CHASE
+	; dispatch (ACTION_CHASE = 0 — Z from lda; a_chase is out of branch range)
 	bne .est1
 	jmp a_chase
 .est1
@@ -535,8 +527,7 @@ p_check_missile_range_fixed
 	bcc .pcm2_no
 	ldy enemy_info
 	lda mobj_melee_state,y
-	cmp #$ff
-	beq .pcm2_d
+	bmi .pcm2_d
 	lda enemy_dist
 	cmp #6
 	bcc .pcm2_no
@@ -934,7 +925,6 @@ missile_try_move
 
 ; A = sector id → C=1 blocked (void / closed door only; no floor steps)
 missile_tile_blocked
-	cmp #0
 	beq .mtb_yes
 	tax
 	lda SEC_CEIL,x
@@ -1250,8 +1240,7 @@ a_chase
 .ac_melee
 	ldy enemy_info
 	lda mobj_melee_state,y
-	cmp #$ff
-	beq .ac_missile
+	bmi .ac_missile
 	jsr p_check_melee_range
 	bcc .ac_missile
 	ldx enemy_actor
@@ -1264,8 +1253,7 @@ a_chase
 .ac_missile
 	ldy enemy_info
 	lda mobj_shoot_state,y
-	cmp #$ff
-	beq .ac_move
+	bmi .ac_move
 	ldx enemy_actor
 	lda MOBJ_MOVECNT,x
 	bne .ac_move
@@ -1323,7 +1311,6 @@ a_chase
 .ac_move
 	ldx enemy_actor
 	dec MOBJ_MOVECNT,x
-	lda MOBJ_MOVECNT,x
 	bmi .ac_newdir
 	jsr p_move
 	bcs .ac_snd
@@ -1347,7 +1334,6 @@ a_flinch
 	lda MOBJ_MOVECNT,x
 	beq .afl_done
 	dec MOBJ_MOVECNT,x
-	lda MOBJ_MOVECNT,x
 	beq .afl_done
 	rts
 .afl_done
@@ -1560,8 +1546,8 @@ a_fall
 	lda MOBJ_MOVECNT,x
 	beq .af_corpse			; already 0 — do not dec into $FF
 	dec MOBJ_MOVECNT,x
-	lda MOBJ_MOVECNT,x
-	bne .af_done
+	beq .af_corpse
+	jmp .af_done
 .af_corpse
 	; pos/imp/demon → 20–22; baron → 23; caco → ITEM_CORPSE_TEX stub
 	lda MOBJ_INFO,x
@@ -1587,7 +1573,6 @@ a_fall
 	ldy MOBJ_OBJ,x
 	sta ITEM_CORPSE_TEX,y
 .af_free
-	ldx enemy_actor
 	txa				; mobj idx
 	jsr mobj_unlink
 	ldx enemy_actor
@@ -1610,9 +1595,8 @@ a_fly
 	lda missile_z
 	sec
 	sbc eyeheight
-	bpl .afy_zok
+	bcs .afy_zok
 	eor #$ff
-	clc
 	adc #1
 .afy_zok
 	cmp #3
@@ -1657,7 +1641,6 @@ a_fly
 	bcc .afy_boom			; z ≥ ceil
 	ldx enemy_actor
 	dec MOBJ_MOVECNT,x
-	lda MOBJ_MOVECNT,x
 	bmi .afy_die
 	rts
 .afy_boom
@@ -1716,7 +1699,6 @@ a_fly_player
 	bcc .afp_die
 	ldx enemy_actor
 	dec MOBJ_MOVECNT,x
-	lda MOBJ_MOVECNT,x
 	bmi .afp_die
 	rts
 .afp_die
@@ -1914,8 +1896,7 @@ enemy_damage
 .ed_pain
 	ldy enemy_info
 	lda mobj_pain_chance,y
-	cmp #$ff			; baron: never flinch
-	beq .ed_rts
+	bmi .ed_rts
 	lda mobj_pain_state,y
 	ldx enemy_actor
 	sta MOBJ_STATE,x
@@ -1931,9 +1912,7 @@ enemy_damage
 	inc num_kills
 	ldy enemy_info
 	lda mobj_death_sound,y
-	jsr play_sound			; preserves X/Y; reload actor anyway
-	ldx enemy_actor
-	ldy enemy_info
+	jsr play_sound			; preserves X/Y
 	lda mobj_death_state,y
 	sta MOBJ_STATE,x
 	; E1M8: last baron → lower forever floors (enemy_low.asm)
@@ -1953,8 +1932,7 @@ enemy_get_texture
 	cmp #ITEM_TYPE_ENEMY_LAST+1
 	bcs .egt_item8
 	lda ITEM_CORPSE_TEX,x
-	cmp #$ff
-	beq .egt_live
+	bmi .egt_live
 	sec
 	rts				; A = corpse tex stub (caco)
 .egt_live
@@ -1995,8 +1973,7 @@ TryDamageEnemy
 	ldx #MUZZLE_COL - AIM_COL_SLACK
 .tde_scan
 	lda COL_AIM_SLOT,x
-	cmp #$ff
-	beq .tde_nx
+	bmi .tde_nx
 	lda COL_AIM_Z,x
 	cmp tde_best_z
 	bcs .tde_nx
@@ -2008,11 +1985,9 @@ TryDamageEnemy
 	cpx #MUZZLE_COL + AIM_COL_SLACK + 1
 	bcc .tde_scan
 	lda tde_best_slot
-	cmp #$ff
-	beq .tde_rts
+	bmi .tde_rts
 	lda tde_max_z
-	cmp #$ff
-	beq .tde_slot
+	bmi .tde_slot
 	lda tde_best_z
 	cmp tde_max_z
 	bcs .tde_rts			; too far for melee

@@ -443,7 +443,6 @@ try_switch
 	sbc playerx_h
 	bcs .ts_x
 	eor #$ff
-	clc
 	adc #1
 .ts_x
 	cmp #SWITCH_USE_RADIUS
@@ -455,7 +454,6 @@ try_switch
 	sbc playery_h
 	bcs .ts_y
 	eor #$ff
-	clc
 	adc #1
 .ts_y
 	cmp #SWITCH_USE_RADIUS

@@ -54,10 +54,10 @@ wpn_setup_hi
 	!byte >setup_minigun, >setup_rocket
 wpn_damage_lo
 	!byte <damage_fist, <damage_chainsaw, <damage_pistol, <damage_shotgun
-	!byte <damage_minigun, <damage_rocket
+	!byte <damage_pistol, <spawn_player_rocket
 wpn_damage_hi
 	!byte >damage_fist, >damage_chainsaw, >damage_pistol, >damage_shotgun
-	!byte >damage_minigun, >damage_rocket
+	!byte >damage_pistol, >spawn_player_rocket
 
 ; SMC stubs — +1/+2 patched by switch_weapon
 wpn_setup
@@ -249,38 +249,12 @@ show_weapon
 	tax
 	lda bright_to_wpn_hi,x
 .wh_apply
+	sta $d027
 	ldx cur_weapon
-	beq .wh_fist
-	cpx #1
-	beq .wh_saw
-	cpx #2
-	beq .wh_pistol
-	cpx #3
-	beq .wh_sg
 	cpx #4
-	beq .wh_minigun
-	cpx #5
-	beq .wh_rocket
-.wh_rts
-	rts
-.wh_fist
-	sta $d027			; fist grey highlight
-	rts
-.wh_saw
-	sta $d027			; chainsaw blade highlight
-	rts
-.wh_pistol
-	sta $d027			; pistol sprite 0 (gun highlight)
-	rts
-.wh_sg
-	sta $d027			; shotgun sprite 0 (highlight)
-	rts
-.wh_minigun
-	sta $d027			; sprites 0–1 are highlights
+	bne .wh_rts
 	sta $d028
-	rts
-.wh_rocket
-	sta $d027			; sprite 0 hi only (1 = fixed detail grey)
+.wh_rts
 	rts
 
 ; SEC_BRIGHT 0..16 → weapon highlight C64 colour
@@ -303,7 +277,7 @@ bright_to_wpn_hi
 setup_fist
 	lda #FIST_RIGHT_SPR_PTR0
 	ldx #0				; idle X table
-	jmp .fist_apply
+	beq .fist_apply
 
 ; Punch pose — replaces open right hand for PUNCH_MS
 setup_fist_punch
@@ -323,11 +297,11 @@ setup_fist_punch
 	sta $d010
 	ldx #0
 	ldy #0
+	clc
 .sf_set
 	lda fist_spr_col,x
 	sta $d027,x
 	txa
-	clc
 	adc tmp0
 	sta $07f8,x
 	lda tmp1
@@ -362,11 +336,11 @@ setup_chainsaw
 	sta $d010
 	ldx #0
 	ldy #0
+	clc
 .sc_set
 	lda chainsaw_spr_col,x
 	sta $d027,x
 	txa
-	clc
 	adc #CHAINSAW_SPR_PTR0
 	sta $07f8,x
 	lda chainsaw_spr_x,x
@@ -391,13 +365,13 @@ setup_pistol
 	sta $d010
 	ldx #0
 	ldy #0
+	clc
 .sp_set
 	lda pistol_spr_col,x
 	sta $d027,x
 	cpx #6
 	bcs .sp_xy			; flash ptrs via .set_muzzle_ptrs
 	txa
-	clc
 	adc #PISTOL_SPR_PTR0
 	sta $07f8,x
 .sp_xy
@@ -423,13 +397,13 @@ setup_shotgun
 	sta $d010
 	ldx #0
 	ldy #0
+	clc
 .ss_set
 	lda shotgun_spr_col,x
 	sta $d027,x
 	cpx #6
 	bcs .ss_xy
 	txa
-	clc
 	adc #SHOTGUN_SPR_PTR0
 	sta $07f8,x
 .ss_xy
@@ -455,13 +429,13 @@ setup_minigun
 	sta $d010
 	ldx #0
 	ldy #0
+	clc
 .sm_set
 	lda minigun_spr_col,x
 	sta $d027,x
 	cpx #6
 	bcs .sm_xy
 	txa
-	clc
 	adc #MINIGUN_SPR_PTR0
 	sta $07f8,x
 .sm_xy
@@ -482,10 +456,8 @@ setup_minigun
 	lda muzzle_flash_var
 	and #1
 	asl				; ×2 → 0 or 2
-	clc
 	adc #MUZZLE_FLASH_PTR0
 	sta $07fe			; sprite 6 white
-	clc
 	adc #1
 	sta $07ff			; sprite 7 red
 	rts
@@ -501,11 +473,11 @@ setup_rocket
 	sta $d010
 	ldx #0
 	ldy #0
+	clc
 .sr_set
 	lda rocket_spr_col,x
 	sta $d027,x
 	txa
-	clc
 	adc #ROCKET_SPR_PTR0
 	sta $07f8,x
 	lda rocket_spr_x,x
@@ -524,7 +496,7 @@ setup_rocket
 damage_fist
 	lda #0
 	sta pain_boost
-	jmp .dmg_melee
+	beq .dmg_melee
 damage_chainsaw
 	lda #10				; bias past typical mobj_pain_chance
 	sta pain_boost
@@ -559,12 +531,6 @@ damage_shotgun
 	clc
 	adc #3
 	jmp TryDamageEnemy
-
-damage_minigun
-	jmp damage_pistol
-
-damage_rocket
-	jmp spawn_player_rocket
 
 ; Spend 1 ammo from the active weapon's reserve, show muzzle flash, damage via SMC.
 ; C=0 ok, C=1 no ammo (or rocket slot busy). Melee (0/1) skips ammo/flash.
@@ -696,11 +662,6 @@ update_muzzle_flash
 .mf_done
 	rts
 .mf_stop_rpt
-	lda #0
-	sta fire_rpt_l
-	sta fire_rpt_h
-	rts
-
 .mf_up
 	lda #0
 	sta fire_rpt_l

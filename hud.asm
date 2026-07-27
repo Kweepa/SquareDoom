@@ -148,7 +148,6 @@ hud_print3
 	lda tmp0
 	cmp #100
 	bcc .tens
-	sec
 	sbc #100
 	sta tmp0
 	inc tmp1
@@ -157,7 +156,6 @@ hud_print3
 	lda tmp0
 	cmp #10
 	bcc .ones
-	sec
 	sbc #10
 	sta tmp0
 	inc tmp2

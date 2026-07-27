@@ -49,7 +49,6 @@ update_map_time
 	sbc #>1000
 	bcc .umt_rts
 	lda map_time_ms
-	sec
 	sbc #<1000
 	sta map_time_ms
 	lda map_time_ms + 1
@@ -144,7 +143,6 @@ put_pct_val
 	lda tmp2
 	cmp #100
 	bcc .pp_t
-	sec
 	sbc #100
 	sta tmp2
 	inc tmp0
@@ -153,7 +151,6 @@ put_pct_val
 	lda tmp2
 	cmp #10
 	bcc .pp_o
-	sec
 	sbc #10
 	sta tmp2
 	inc tmp1
@@ -259,7 +256,6 @@ print_2dig_at_y
 	lda tmp3
 	cmp #10
 	bcc .p2_o
-	sec
 	sbc #10
 	sta tmp3
 	inc tmp4

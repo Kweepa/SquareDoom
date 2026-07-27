@@ -129,10 +129,7 @@ clip_col_push
 	lda COL_CLIP_N,y
 	cmp #CLIP_MAX
 	bcs .ccp_full
-	sta tmp0				; n
-	clc
-	lda clip_base_l
-	adc tmp0
+	adc clip_base_l
 	sta ptr_l
 	lda clip_base_h
 	adc #0
@@ -167,11 +164,8 @@ clip_col_push
 	sta ptr_h
 	lda wallz_h
 	sta (ptr_l),y
-	ldy col
-	ldx COL_CLIP_N,y
-	inx
-	txa
-	sta COL_CLIP_N,y
+	ldx col
+	inc COL_CLIP_N,x
 .ccp_full
 	rts
 
@@ -237,8 +231,7 @@ clip_col_find
 	bcc .ccf_lp
 .ccf_done
 	lda tmp4
-	cmp #$ff
-	beq .ccf_miss
+	bmi .ccf_miss
 .ccf_load
 	; TOP/BOT for entry tmp4
 	clc
