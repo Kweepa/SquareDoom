@@ -62,6 +62,7 @@ init_charset
 	sta CHARSET+$700,x
 	inx
 	bne .copy0
+
 	pla
 	sta $01				; restore $35 (KERNAL out, I/O in)
 
@@ -84,11 +85,11 @@ init_charset
 	cpx #128
 	bcc .patch_wall
 
-	; Floor dither → chars 219–234
+	; Floor dither → chars 240–255
 	ldx #0
 .patch_floor
 	lda dither_floor_glyphs,x
-	sta CHARSET + 219 * 8,x
+	sta CHARSET + 240 * 8,x
 	inx
 	cpx #128
 	bcc .patch_floor

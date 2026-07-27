@@ -27,6 +27,8 @@ node tools\genenemysprites.js
 if errorlevel 1 exit /b 1
 node tools\gensounds.js
 if errorlevel 1 exit /b 1
+node tools\genlogo.js
+if errorlevel 1 exit /b 1
 "%ACME%" -v3 --vicelabels squaredoom.lbl squaredoom.asm
 if errorlevel 1 (
   echo.

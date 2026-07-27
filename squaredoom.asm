@@ -16,7 +16,7 @@ ROCKET_SPRITES = $3180		; 8×64-byte rocket+pink flash (VIC bank 0)
 SHOTGUN_SPRITES = $3380	; 6×64-byte shotgun body (VIC bank 0)
 PISTOL_SPRITES = $3500		; 6×64-byte pistol body (VIC bank 0)
 MUZZLE_FLASH_SPRITES = $3680	; 4×64 shared flash A/B white+red (pistol/sg/mg)
-FLOOR_PAT_BASE = 219		; floor dither glyphs 219–234 (after skull @ 218)
+FLOOR_PAT_BASE = 240		; floor dither glyphs 240–255 (after skull + menu + arrows)
 ITEM_PAT = 235			; itemudg.png shading glyph
 
 MAX_DDA = 32
@@ -177,6 +177,7 @@ level_sector_max = level_item_meta + MAX_ITEMS
 !source "item_bitmaps.asm"
 !source "mapscreen.asm"
 !source "dpsounds.asm"
+!source "logo.asm"
 
 !zone 0
 

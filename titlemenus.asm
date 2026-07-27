@@ -4,7 +4,9 @@
 
 MSG_LET0 = 192
 MENU_CURSOR = 218			; skull (@); wall dither owns charset 0
-MENU_Y = 11
+MENU_Y = 15			; below 26x13 logo (rows 1–13)
+MENU_CLR_TOP = 15
+MENU_CLR_BOT = 23		; exclusive end row for menu-area clear
 TEXT_COL = 2
 HILITE_COL = 7
 UI_COL = 1
@@ -395,32 +397,69 @@ next_menu
 
 ; ==================================================================
 draw_title_banner
-	lda #6 ; blue
-	sta ui_text_col
-	lda #<str_title
-	ldy #>str_title
-	ldx #2
-	jsr print_centered
-	lda #8 ; orange
-	sta ui_text_col
-	lda #<str_subtitle
-	ldy #>str_subtitle
-	ldx #4
-	jmp print_centered
+	jmp draw_logo
+
+; RLE-decode logo_pair_* + logo_rle_* into screen/colour RAM
+draw_logo
+	lda #0
+	sta tmp2			; RLE stream index
+	lda #LOGO_ROW
+	sta pr_row
+	lda #LOGO_H
+	sta tmp3			; rows remaining
+.dl_row
+	lda #LOGO_COL
+	ldx pr_row
+	jsr cell_addr
+	lda #LOGO_W
+	sta tmp4			; cells left in row
+.dl_cell
+	ldy tmp2
+	lda logo_rle_runs,y
+	sta tmp5			; run length
+	lda logo_rle_ids,y
+	tay
+	lda logo_pair_chars,y
+	sta tmp0
+	lda logo_pair_cols,y
+	sta tmp1
+	inc tmp2
+.dl_run
+	lda tmp0
+	ldy #0
+	sta (ptr_l),y
+	lda tmp1
+	sta (aux_l),y
+	inc ptr_l
+	bne .dl_p1
+	inc ptr_h
+.dl_p1
+	inc aux_l
+	bne .dl_p2
+	inc aux_h
+.dl_p2
+	dec tmp4
+	beq .dl_next
+	dec tmp5
+	bne .dl_run
+	jmp .dl_cell
+.dl_next
+	inc pr_row
+	dec tmp3
+	bne .dl_row
+	rts
 
 draw_menu
 	; cell_addr clobbers X — use pr_row as loop index
-	lda #11
+	lda #MENU_CLR_TOP
 	sta pr_row
 .dm_c
 	ldx pr_row
 	jsr clear_row
 	inc pr_row
 	lda pr_row
-	cmp #19
+	cmp #MENU_CLR_BOT
 	bcc .dm_c
-
-	jsr draw_title_banner
 
 	lda #4
 	sta menu_size
@@ -437,7 +476,7 @@ draw_menu
 	sta ui_text_col
 	lda #<str_hint
 	ldy #>str_hint
-	ldx #21
+	ldx #24
 	jsr print_centered
 .dm_nh
 	ldx #0
