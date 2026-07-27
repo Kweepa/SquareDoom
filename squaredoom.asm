@@ -92,19 +92,30 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "hud.asm"
 !source "pickup.asm"
 !source "titlemenus.asm"
-; P + clip moved out of low (which is nearly full); py_tab needs page alignment
+; P + clip moved out of low (which is nearly full)
 !source "render_project_y.asm"
 !source "render_clip.asm"
-!source "pytab.asm"
 ; Enemy mips in mid (always-RAM); dpsounds moved to high for headroom
 !source "enemy_sprites.asm"
 
+; py_tab: 12 page-aligned pages, packed against $a000 so mid free is the
+; gap before it (old mid-file !align pad + tail, now one allocatable region).
+PY_TAB_PAGES = 12
+PY_TAB_SIZE = PY_TAB_PAGES * 256
+PY_TAB = MEM_MID_LIMIT - PY_TAB_SIZE	; $9400
+
 end_mid = *
-free_mid = MEM_MID_LIMIT - end_mid
+free_mid = PY_TAB - end_mid
 !if free_mid < 0 {
-	!error "Mid code overlaps level at $a000; overshoot=", end_mid - MEM_MID_LIMIT
+	!error "Mid code overlaps py_tab at $", PY_TAB, "; overshoot=", end_mid - PY_TAB
 }
-!warn "mem: mid  end=$", end_mid, " free to $a000 =", free_mid
+!warn "mem: mid  end=$", end_mid, " free to py_tab $", PY_TAB, " =", free_mid
+
+*=PY_TAB
+!source "pytab.asm"
+!if * != MEM_MID_LIMIT {
+	!error "py_tab must end at $a000; ended at $", *
+}
 
 ; ------------------------------------------------------------------
 ; Level window under BASIC ROM ($A000), RAM with $01=$35 — loaded from disk

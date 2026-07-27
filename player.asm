@@ -5,6 +5,8 @@
 ; ============================================================================
 
 hurt_flash		!byte 0		; frames of red border left (incl. next render)
+death_ms		!byte 0, 0		; death-cam timer (ms); armed on killing blow
+DEATH_PAUSE_MS = 2000
 
 ; ---------------------------------------------------------------------------
 ; player_frame — once per gameloop; keep hurt border through one full frame
@@ -28,6 +30,8 @@ player_frame
 ; ---------------------------------------------------------------------------
 damage_player
 	sta tmp0
+	lda health
+	beq .dp_rts			; already dead
 	lda #SOUND_OOF
 	jsr play_sound
 	lda #1
@@ -39,8 +43,52 @@ damage_player
 	sbc tmp0
 	bcs .dp_ok
 	lda #0
+	sta death_ms			; start death-cam pause
+	sta death_ms + 1
+	jsr hide_weapon
 .dp_ok
 	sta health
 	lda #1
 	sta hud_dirty
+.dp_rts
+	rts
+
+; ---------------------------------------------------------------------------
+; player_death_frame — dead-player preamble (replaces input/move in gameloop)
+;
+; Red border, frame dt, death timer → next_level after DEATH_PAUSE_MS.
+; ---------------------------------------------------------------------------
+player_death_frame
+	lda #2				; keep hurt border
+	sta $d020
+	jsr calc_frame_dt
+	clc
+	lda death_ms
+	adc dt_ms
+	sta death_ms
+	lda death_ms + 1
+	adc #0
+	sta death_ms + 1
+	cmp #>DEATH_PAUSE_MS
+	bcc .pdf_go
+	bne .pdf_restart
+	lda death_ms
+	cmp #<DEATH_PAUSE_MS
+	bcc .pdf_go
+.pdf_restart
+	jmp next_level
+.pdf_go
+	jmp update_map_time
+
+; ---------------------------------------------------------------------------
+; player_death_eye — after update_eye: floor+1 while dead, else leave standing
+; ---------------------------------------------------------------------------
+player_death_eye
+	lda health
+	bne .pde_rts
+	lda eyeheight
+	sec
+	sbc #2				; floor + 3 → floor + 1
+	sta eyeheight
+.pde_rts
 	rts

@@ -225,6 +225,8 @@ hide_weapon
 ; After first blit — allow $d015 writes and enable current spr_en.
 ; Also refresh weapon highlight colour from player sector brightness.
 show_weapon
+	lda health
+	beq hide_weapon			; death / pre-start: keep sprites off
 	lda #$ff
 	sta wpn_visible
 	lda spr_en
