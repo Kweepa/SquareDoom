@@ -10,8 +10,8 @@ eyeheight	= $07
 
 col		= $08
 angle		= $09
-dxindex		= $0a
-dyindex		= $0b
+clip_n		= $0a			; cast_column: clip stack byte offset (n×4)
+; $0b was dyindex (unused after rebuild_col_rays X/Y split)
 xstep		= $0c
 ystep		= $0d
 
@@ -182,7 +182,7 @@ fracx_inv	= $5d			; fracx ^ $FF (TheKeep +X/+Y distance factor)
 fracy_inv	= $5e
 last_playera	= $5f			; $FF = force rebuild_col_rays
 
-; COL_CLIP_TOP + col*CLIP_MAX — set once per column (clip_col_reset / bind)
+; COL_CLIP_ENTRIES + col*CLIP_COL_BYTES — set once per column (reset / bind)
 clip_base_l	= $5b
 clip_base_h	= $5c
 
@@ -266,14 +266,13 @@ PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
 ; Per-column portal clip stack for item draw (40 cols × CLIP_MAX)
-; Entry = {top, bot, zl, zh}; z = full fish wallz (16-bit)
+; Interleaved entries: {top, bot, zl, zh} × CLIP_MAX per column
 CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step
-COL_CLIP_N	= PROC_END		; 40 bytes: entries used per column
-COL_CLIP_TOP	= COL_CLIP_N + COL_NUM	; 40×CLIP_MAX clip top
-COL_CLIP_BOT	= COL_CLIP_TOP + COL_NUM * CLIP_MAX
-COL_CLIP_ZL	= COL_CLIP_BOT + COL_NUM * CLIP_MAX
-COL_CLIP_ZH	= COL_CLIP_ZL + COL_NUM * CLIP_MAX
-COL_CLIP_END	= COL_CLIP_ZH + COL_NUM * CLIP_MAX
+CLIP_ENTRY	= 4
+CLIP_COL_BYTES	= CLIP_MAX * CLIP_ENTRY	; 96 — whole column Y-reachable from clip_base
+COL_CLIP_N	= PROC_END		; 40 bytes: entry count per column
+COL_CLIP_ENTRIES = COL_CLIP_N + COL_NUM	; 40 × CLIP_COL_BYTES interleaved stack
+COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES
 
 ; Per-frame sector visibility ($FF = seen this frame)
 SEC_SEEN	= COL_CLIP_END		; SEC_TABLE_SIZE bytes, index = sector id

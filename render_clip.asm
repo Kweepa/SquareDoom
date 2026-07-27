@@ -3,17 +3,17 @@
 ; ============================================================================
 ; render_clip.asm — per-column portal clip stack + SEC_SEEN helpers
 ; ============================================================================
-; Stack layout (idx = col*CLIP_MAX + n): COL_CLIP_TOP/BOT/ZL/ZH.
+; Interleaved layout: COL_CLIP_ENTRIES[col] = CLIP_MAX × {top,bot,zl,zh}.
+; clip_base → column start; entry n at offset n×4 (CLIP_COL_BYTES=96 ≤ 255).
 ; Entry 0 = nearest (player, Z=0); higher n = farther after hard portals /
 ; solid close. Z = full 16-bit fish wallz from calc_wallz.
 ; Billboards: want16 = depth16·255/512 in wz_x — both Z and item depth16
 ; are perpendicular distances (255/tile vs 512/tile), one constant scale.
 ; Closed (top>=bot): occlude if Z < want; Z == want ties fall back nearer.
 ;
-; clip_base_l/h = &COL_CLIP_TOP[col*CLIP_MAX] — computed once per column.
+; During cast_column, clip_n (zp) holds the next byte offset; COL_CLIP_N is
+; written once at column end. Item draw reads COL_CLIP_N + clip_col_find.
 ; ============================================================================
-
-CLIP_STRIDE = COL_NUM * CLIP_MAX	; bytes between TOP / BOT / ZL / ZH tables
 
 ; ---------------------------------------------------------------------------
 ; clear_sector_seen — clear SEC_SEEN[1..level_sector_max]
@@ -56,7 +56,7 @@ mark_seen
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_bind — clip_base = COL_CLIP_TOP + col*CLIP_MAX (lookup table)
+; clip_col_bind — clip_base = COL_CLIP_ENTRIES + col*CLIP_COL_BYTES
 ; Clobbers: X, A
 ; ---------------------------------------------------------------------------
 clip_col_bind
@@ -68,70 +68,59 @@ clip_col_bind
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_reset — COL_CLIP_N[col] = 0; bind clip_base for this column
+; clip_col_reset — clip_n = 0; COL_CLIP_N[col] = 0; bind clip_base
 ; ---------------------------------------------------------------------------
 clip_col_reset
 	ldy col
 	lda #0
 	sta COL_CLIP_N,y
+	sta clip_n
 	jmp clip_col_bind
 
-; COL_CLIP_TOP + col*CLIP_MAX — assemble-time constant (CLIP_MAX=24)
+; COL_CLIP_ENTRIES + col*CLIP_COL_BYTES
 clip_base_lo
 !for .col, 40 {
-	!byte <(COL_CLIP_TOP + (.col - 1) * CLIP_MAX)
+	!byte <(COL_CLIP_ENTRIES + (.col - 1) * CLIP_COL_BYTES)
 }
 clip_base_hi
 !for .col, 40 {
-	!byte >(COL_CLIP_TOP + (.col - 1) * CLIP_MAX)
+	!byte >(COL_CLIP_ENTRIES + (.col - 1) * CLIP_COL_BYTES)
 }
+
 ; ---------------------------------------------------------------------------
-; clip_col_push — push {ytop, ybot, wallz_l, wallz_h} if n < CLIP_MAX
-; Requires clip_base bound. Clobbers: tmp0, ptr_l/h, X, Y
+; clip_col_push — push {ytop, ybot, wallz_l, wallz_h} if room
+; Requires clip_base bound; uses zp clip_n (byte offset). Clobbers: Y, A
 ; ---------------------------------------------------------------------------
 clip_col_push
-	ldy col
-	lda COL_CLIP_N,y
-	cmp #CLIP_MAX
+	ldy clip_n
+	cpy #CLIP_COL_BYTES
 	bcs .ccp_full
-	adc clip_base_l
-	sta ptr_l
-	lda clip_base_h
-	adc #0
-	sta ptr_h
-	ldy #0
 	lda ytop
-	sta (ptr_l),y
-	clc
-	lda ptr_l
-	adc #<CLIP_STRIDE
-	sta ptr_l
-	lda ptr_h
-	adc #>CLIP_STRIDE
-	sta ptr_h
+	sta (clip_base_l),y
+	iny
 	lda ybot
-	sta (ptr_l),y
-	clc
-	lda ptr_l
-	adc #<CLIP_STRIDE
-	sta ptr_l
-	lda ptr_h
-	adc #>CLIP_STRIDE
-	sta ptr_h
+	sta (clip_base_l),y
+	iny
 	lda wallz_l
-	sta (ptr_l),y
-	clc
-	lda ptr_l
-	adc #<CLIP_STRIDE
-	sta ptr_l
-	lda ptr_h
-	adc #>CLIP_STRIDE
-	sta ptr_h
+	sta (clip_base_l),y
+	iny
 	lda wallz_h
-	sta (ptr_l),y
-	ldx col
-	inc COL_CLIP_N,x
+	sta (clip_base_l),y
+	iny
+	sty clip_n
 .ccp_full
+	rts
+
+; ---------------------------------------------------------------------------
+; clip_col_commit — COL_CLIP_N[col] = clip_n / 4 (end of cast_column)
+; Clobbers: A, Y
+; ---------------------------------------------------------------------------
+clip_col_commit
+	lda clip_n
+	lsr
+	lsr
+	ldy col
+	sta COL_CLIP_N,y
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -142,7 +131,7 @@ clip_col_push
 ;   empty → Z < want: occluded (miss); Z == want: quantization tie — the
 ;           sprite sits on that surface, use the previous (open) entry
 ; Exit: C=0 found, tmp0=top, tmp1=bot; C=1 miss/occluded
-; Clobbers: tmp3,tmp4,tmp5, ptr_l/h, aux_l/h, X, Y
+; Clobbers: tmp3,tmp4,tmp5, ptr unused, X, Y, A
 ; ---------------------------------------------------------------------------
 clip_col_find
 	ldy col
@@ -152,71 +141,52 @@ clip_col_find
 	sec
 	rts
 .ccf_go
-	sta tmp3				; n
+	sta tmp3				; n (entry count)
 	jsr clip_col_bind
-	; aux = &ZL[0], ptr = &ZH[0] (plane bases; index with Y)
-	clc
-	lda clip_base_l
-	adc #<(CLIP_STRIDE*2)
-	sta aux_l
-	lda clip_base_h
-	adc #>(CLIP_STRIDE*2)
-	sta aux_h
-	clc
-	lda clip_base_l
-	adc #<(CLIP_STRIDE*3)
-	sta ptr_l
-	lda clip_base_h
-	adc #>(CLIP_STRIDE*3)
-	sta ptr_h
 	lda #$ff
-	sta tmp4				; best index ($FF = none)
-	ldy #0
+	sta tmp4				; best entry index ($FF = none)
+	ldx #0
 .ccf_lp
-	lda (ptr_l),y			; zh
+	txa
+	asl
+	asl
+	tay					; Y = entry×4
+	iny
+	iny
+	iny					; ZH
+	lda (clip_base_l),y
 	cmp wz_x_h
 	bcc .ccf_lt				; zh < want_h → Z < want
-	bne .ccf_done			; zh > want_h → Z > want; stop (monotonic)
-	lda (aux_l),y			; zl
+	bne .ccf_done			; zh > want_h → Z > want; stop
+	dey					; ZL
+	lda (clip_base_l),y
 	cmp wz_x_l
 	beq .ccf_eq
 	bcs .ccf_done			; Z > want; stop
 .ccf_lt
-	sty tmp4
+	stx tmp4
 	lda #0
 	sta tmp5				; Z < want
 	beq .ccf_nx
 .ccf_eq
-	sty tmp4
+	stx tmp4
 	lda #1
 	sta tmp5				; Z == want (tie)
 .ccf_nx
-	iny
-	cpy tmp3
+	inx
+	cpx tmp3
 	bcc .ccf_lp
 .ccf_done
 	lda tmp4
 	bmi .ccf_miss
 .ccf_load
-	; TOP/BOT for entry tmp4
-	clc
-	lda clip_base_l
-	adc tmp4
-	sta ptr_l
-	lda clip_base_h
-	adc #0
-	sta ptr_h
-	ldy #0
-	lda (ptr_l),y
+	asl
+	asl
+	tay
+	lda (clip_base_l),y
 	sta tmp0				; top
-	clc
-	lda ptr_l
-	adc #<CLIP_STRIDE
-	sta aux_l
-	lda ptr_h
-	adc #>CLIP_STRIDE
-	sta aux_h
-	lda (aux_l),y
+	iny
+	lda (clip_base_l),y
 	sta tmp1				; bot
 	lda tmp0
 	cmp tmp1
@@ -230,7 +200,8 @@ clip_col_find
 	dec tmp4
 	lda #0
 	sta tmp5				; previous entries have Z < want
-	beq .ccf_load
+	lda tmp4
+	bpl .ccf_load			; always (tmp4 ≥ 0)
 .ccf_miss2
 	sec
 	rts
