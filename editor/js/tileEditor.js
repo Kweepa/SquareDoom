@@ -93,6 +93,8 @@ export class TileEditor {
    *   hasItemSelection: () => boolean,
    *   getLevelName: () => string,
    *   onLevelNameChange: (name: string) => void,
+   *   getParTime: () => number,
+   *   onParTimeChange: (sec: number) => void,
    *   onChange: (patch: object) => void,
    *   onClear: () => void,
    *   onSelectSector: () => void,
@@ -290,10 +292,10 @@ export class TileEditor {
     const field = textInput('te-level-name', 'Name', this.opts.getLevelName() || '', false);
     field.input.maxLength = LEVEL_NAME_LEN;
     field.input.placeholder = 'Level name';
-    const commit = () => {
+    const commitName = () => {
       this.opts.onLevelNameChange(field.input.value);
     };
-    field.input.addEventListener('change', commit);
+    field.input.addEventListener('change', commitName);
     field.input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -301,6 +303,20 @@ export class TileEditor {
       }
     });
     this.root.appendChild(field.wrap);
+
+    const par = numInput('te-par-time', 'Par (sec)', 0, 255, this.opts.getParTime(), false);
+    const commitPar = () => {
+      if (par.input.value === '') return;
+      this.opts.onParTimeChange(Number(par.input.value));
+    };
+    par.input.addEventListener('change', commitPar);
+    par.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        par.input.blur();
+      }
+    });
+    this.root.appendChild(par.wrap);
   }
 
   #actions() {

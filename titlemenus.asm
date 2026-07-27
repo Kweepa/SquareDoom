@@ -691,125 +691,6 @@ print_at_typed
 	iny
 	bne .pt
 
-summary_screen
-	jsr clear_screen
-	lda #UI_COL
-	sta ui_text_col
-	jsr get_level_title
-	ldx #1
-	jsr print_centered
-	lda #TEXT_COL
-	sta ui_text_col
-	lda #<str_finished
-	ldy #>str_finished
-	ldx #2
-	jsr print_centered
-
-	; VicDoom layout (22-col) +9 to centre on 40-col
-SUM_LAB = 13
-SUM_PCT = 23
-SUM_TIME = 22
-
-	lda #<str_kills
-	sta ui_str_l
-	lda #>str_kills
-	sta ui_str_h
-	ldx #5
-	lda #SUM_LAB
-	jsr print_at
-	lda #<str_items
-	sta ui_str_l
-	lda #>str_items
-	sta ui_str_h
-	ldx #7
-	lda #SUM_LAB
-	jsr print_at
-	lda #<str_secret
-	sta ui_str_l
-	lda #>str_secret
-	sta ui_str_h
-	ldx #9
-	lda #SUM_LAB
-	jsr print_at
-	lda #<str_time
-	sta ui_str_l
-	lda #>str_time
-	sta ui_str_h
-	ldx #12
-	lda #SUM_LAB
-	jsr print_at
-	lda #<str_par
-	sta ui_str_l
-	lda #>str_par
-	sta ui_str_h
-	ldx #14
-	lda #SUM_LAB
-	jsr print_at
-
-	ldx #5
-	jsr put_pct0
-	jsr wait_frames_60
-	ldx #7
-	jsr put_pct0
-	jsr wait_frames_60
-	ldx #9
-	jsr put_pct0
-	jsr wait_frames_60
-	ldx #12
-	jsr put_time0
-	jsr wait_frames_60
-	ldx #14
-	jsr put_time0
-	jsr wait_frames_60
-
-	lda #HILITE_COL
-	sta ui_text_col
-	lda #<str_press_key
-	ldy #>str_press_key
-	ldx #20
-	jsr print_centered
-	jsr wait_key
-	jmp clear_screen
-
-put_pct0
-	stx pr_row
-	lda #SUM_PCT
-	ldx pr_row
-	jsr cell_addr
-	lda #' '
-	ldy #0
-	jsr store_asc
-	iny
-	lda #' '
-	jsr store_asc
-	iny
-	lda #'0'
-	jsr store_asc
-	iny
-	lda #'%'
-	jmp store_asc
-
-put_time0
-	stx pr_row
-	lda #SUM_TIME
-	ldx pr_row
-	jsr cell_addr
-	lda #'0'
-	ldy #0
-	jsr store_asc
-	iny
-	lda #'0'
-	jsr store_asc
-	iny
-	lda #':'
-	jsr store_asc
-	iny
-	lda #'0'
-	jsr store_asc
-	iny
-	lda #'0'
-	jmp store_asc
-
 store_asc
 	sta tmp0
 	jsr ascii_to_scr
@@ -1218,6 +1099,7 @@ str_items		    !scr "items",0
 str_secret		    !scr "secret",0
 str_time		    !scr "time",0
 str_par			    !scr "par",0
+str_sucks		    !scr "sucks",0
 str_press_key		!scr "press a key",0
 str_hint		    !scr "w s move   return select",0
 str_new_game		!scr "new  game",0

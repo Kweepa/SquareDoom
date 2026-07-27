@@ -84,6 +84,7 @@ export const ACTIONS = [
   { id: 'damage_floor', name: 'Damage (5%)', value: 13 },
   { id: 'flash_lights', name: 'Flash lights', value: 14 },
   { id: 'open_monster_closet', name: 'Open monster closet', value: 15 },
+  { id: 'secret', name: 'Secret', value: 16 },
 ];
 
 const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t]));
@@ -278,6 +279,27 @@ export function enemyCount(level) {
   return level.items.filter((it) => ENEMY_TYPES.has(it.type)).length;
 }
 
+/** Pickups that count toward intermission item % (health…radsuit; not corpses). */
+export const STAT_ITEM_TYPES = new Set([
+  'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
+  'greenarmor', 'bluearmor', 'backpack',
+  'redcard', 'bluecard', 'yellowcard',
+  'soulsphere', 'radsuit',
+]);
+
+export function statItemCount(level) {
+  return level.items.filter((it) => STAT_ITEM_TYPES.has(it.type)).length;
+}
+
+/** Sectors with action secret (intermission secret % denominator). */
+export function secretCount(level) {
+  let n = 0;
+  for (const s of level.sectors.values()) {
+    if (normalizeAction(s.action) === 'secret') n++;
+  }
+  return n;
+}
+
 export function getSectorAtWorld(level, wx, wy) {
   const { tx, ty } = worldToTile(wx, wy);
   const id = getCell(level, tx, ty);
@@ -393,10 +415,32 @@ export function clampLevelName(name) {
   return String(name ?? '').trim().slice(0, LEVEL_NAME_LEN);
 }
 
+/** Par time in seconds (cooked as one byte). */
+export const DEFAULT_PAR_TIME = 30;
+export const DEFAULT_PAR_BY_LEVEL = {
+  E1M1: 30,
+  E1M2: 45,
+  E1M3: 60,
+  E1M4: 105,
+  E1M5: 165,
+  E1M6: 180,
+  E1M7: 150,
+  E1M8: 90,
+  E1M9: 30,
+};
+
+export function clampParTime(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return DEFAULT_PAR_TIME;
+  return Math.max(0, Math.min(255, n | 0));
+}
+
 export function createEmptyLevel() {
   return {
     /** Display name (max LEVEL_NAME_LEN); editor JSON only (not in cooked binary). */
     name: '',
+    /** Intermission par time in seconds (0..255); cooked into level binary. */
+    parTime: DEFAULT_PAR_TIME,
     /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..199) */
     sectors: new Map(),
     /** @type {Uint8Array} */
@@ -1514,7 +1558,13 @@ export function applyTilePatch(level, tiles, patch) {
     if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
     if ('trigger' in patch) next.trigger = normalizeTrigger(patch.trigger);
     if ('singleShot' in patch) next.singleShot = !!patch.singleShot;
-    if ('action' in patch) next.action = normalizeAction(patch.action);
+    if ('action' in patch) {
+      next.action = normalizeAction(patch.action);
+      if (next.action === 'secret') {
+        next.trigger = 'walk_into';
+        next.singleShot = true;
+      }
+    }
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
     if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 16);

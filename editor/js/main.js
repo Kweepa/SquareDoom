@@ -17,6 +17,8 @@ import {
   applyTilePatch,
   clearTiles,
   closetNeighbourFloor,
+  clampLevelName,
+  clampParTime,
   createEpisode,
   defaultSkills,
   enemyCount,
@@ -42,7 +44,6 @@ import {
   tileKey,
   tilesInSector,
   clampWorld,
-  clampLevelName,
   itemsInTiles,
   normalizeAngle,
   validateVoidBorder,
@@ -353,6 +354,17 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
     level.name = next;
     markDirty();
     setStatus(next ? `Level name: ${next}` : 'Level name cleared');
+    refreshEditors();
+  },
+  getParTime: () => clampParTime(activeLevel(episode).parTime),
+  onParTimeChange: (sec) => {
+    const level = activeLevel(episode);
+    const next = clampParTime(sec);
+    if (clampParTime(level.parTime) === next) return;
+    pushUndo();
+    level.parTime = next;
+    markDirty();
+    setStatus(`Par time: ${next}s`);
     refreshEditors();
   },
   onChange: (patch) => {

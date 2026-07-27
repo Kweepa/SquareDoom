@@ -719,6 +719,7 @@ const ACTIONS = [
   { id: 'damage_floor', name: 'Damage (5%)', value: 13 },
   { id: 'flash_lights', name: 'Flash lights', value: 14 },
   { id: 'open_monster_closet', name: 'Open monster closet', value: 15 },
+  { id: 'secret', name: 'Secret', value: 16 },
 ];
 
 const TRIGGER_BY_ID = Object.fromEntries(TRIGGERS.map((t) => [t.id, t]));
@@ -913,6 +914,27 @@ function enemyCount(level) {
   return level.items.filter((it) => ENEMY_TYPES.has(it.type)).length;
 }
 
+/** Pickups that count toward intermission item % (health…radsuit; not corpses). */
+const STAT_ITEM_TYPES = new Set([
+  'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
+  'greenarmor', 'bluearmor', 'backpack',
+  'redcard', 'bluecard', 'yellowcard',
+  'soulsphere', 'radsuit',
+]);
+
+function statItemCount(level) {
+  return level.items.filter((it) => STAT_ITEM_TYPES.has(it.type)).length;
+}
+
+/** Sectors with action secret (intermission secret % denominator). */
+function secretCount(level) {
+  let n = 0;
+  for (const s of level.sectors.values()) {
+    if (normalizeAction(s.action) === 'secret') n++;
+  }
+  return n;
+}
+
 function getSectorAtWorld(level, wx, wy) {
   const { tx, ty } = worldToTile(wx, wy);
   const id = getCell(level, tx, ty);
@@ -1028,10 +1050,32 @@ function clampLevelName(name) {
   return String(name ?? '').trim().slice(0, LEVEL_NAME_LEN);
 }
 
+/** Par time in seconds (cooked as one byte). */
+const DEFAULT_PAR_TIME = 30;
+const DEFAULT_PAR_BY_LEVEL = {
+  E1M1: 30,
+  E1M2: 45,
+  E1M3: 60,
+  E1M4: 105,
+  E1M5: 165,
+  E1M6: 180,
+  E1M7: 150,
+  E1M8: 90,
+  E1M9: 30,
+};
+
+function clampParTime(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return DEFAULT_PAR_TIME;
+  return Math.max(0, Math.min(255, n | 0));
+}
+
 function createEmptyLevel() {
   return {
     /** Display name (max LEVEL_NAME_LEN); editor JSON only (not in cooked binary). */
     name: '',
+    /** Intermission par time in seconds (0..255); cooked into level binary. */
+    parTime: DEFAULT_PAR_TIME,
     /** @type {Map<number, ReturnType<typeof defaultSector>>} sectorId -> data (1..199) */
     sectors: new Map(),
     /** @type {Uint8Array} */
@@ -2149,7 +2193,13 @@ function applyTilePatch(level, tiles, patch) {
     if ('ceilingHeight' in patch) next.ceilingHeight = clampNum(patch.ceilingHeight, 0, 31);
     if ('trigger' in patch) next.trigger = normalizeTrigger(patch.trigger);
     if ('singleShot' in patch) next.singleShot = !!patch.singleShot;
-    if ('action' in patch) next.action = normalizeAction(patch.action);
+    if ('action' in patch) {
+      next.action = normalizeAction(patch.action);
+      if (next.action === 'secret') {
+        next.trigger = 'walk_into';
+        next.singleShot = true;
+      }
+    }
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
     if ('brightness' in patch) next.brightness = clampNum(patch.brightness, 0, 16);
@@ -2362,6 +2412,7 @@ function activeLevel(episode) {
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
+ *   6. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
 
@@ -2392,6 +2443,7 @@ function levelToJSON(level) {
   }
   return {
     name: clampLevelName(level.name),
+    parTime: clampParTime(level.parTime),
     sectors: sectorObj,
     map: Array.from(level.map),
     spawn: {
@@ -2417,9 +2469,14 @@ function levelToJSON(level) {
   };
 }
 
-function levelFromJSON(data) {
+function levelFromJSON(data, opts = {}) {
   const level = createEmptyLevel();
   level.name = clampLevelName(data.name);
+  const fallbackPar =
+    data.parTime != null
+      ? data.parTime
+      : (opts.defaultPar ?? level.parTime);
+  level.parTime = clampParTime(fallbackPar);
   if (data.sectors) {
     for (const [key, s] of Object.entries(data.sectors)) {
       const id = Number(key);
@@ -2577,7 +2634,9 @@ function episodeFromJSON(data) {
   if (data.levels) {
     for (const name of LEVEL_NAMES) {
       if (data.levels[name]) {
-        episode.levels[name] = levelFromJSON(data.levels[name]);
+        episode.levels[name] = levelFromJSON(data.levels[name], {
+          defaultPar: DEFAULT_PAR_BY_LEVEL[name],
+        });
       }
     }
   }
@@ -2726,8 +2785,10 @@ function cookLevel(level) {
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
+  const nItems = statItemCount(level);
+  const nSecrets = secretCount(level);
   const out = new Uint8Array(
-    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 1,
+    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 5,
   );
   let o = 0;
   out.set(mapBytes, o); o += mapBytes.length;
@@ -2740,7 +2801,11 @@ function cookLevel(level) {
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
-  out[o] = sectorMax & 0xff;
+  out[o++] = sectorMax & 0xff;
+  out[o++] = nEnemies & 0xff;
+  out[o++] = nItems & 0xff;
+  out[o++] = nSecrets & 0xff;
+  out[o++] = clampParTime(level.parTime) & 0xff;
   return { bytes: out, warnings, errors };
 }
 
@@ -3817,6 +3882,8 @@ class TileEditor {
    *   hasItemSelection: () => boolean,
    *   getLevelName: () => string,
    *   onLevelNameChange: (name: string) => void,
+   *   getParTime: () => number,
+   *   onParTimeChange: (sec: number) => void,
    *   onChange: (patch: object) => void,
    *   onClear: () => void,
    *   onSelectSector: () => void,
@@ -4014,10 +4081,10 @@ class TileEditor {
     const field = textInput('te-level-name', 'Name', this.opts.getLevelName() || '', false);
     field.input.maxLength = LEVEL_NAME_LEN;
     field.input.placeholder = 'Level name';
-    const commit = () => {
+    const commitName = () => {
       this.opts.onLevelNameChange(field.input.value);
     };
-    field.input.addEventListener('change', commit);
+    field.input.addEventListener('change', commitName);
     field.input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -4025,6 +4092,20 @@ class TileEditor {
       }
     });
     this.root.appendChild(field.wrap);
+
+    const par = numInput('te-par-time', 'Par (sec)', 0, 255, this.opts.getParTime(), false);
+    const commitPar = () => {
+      if (par.input.value === '') return;
+      this.opts.onParTimeChange(Number(par.input.value));
+    };
+    par.input.addEventListener('change', commitPar);
+    par.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        par.input.blur();
+      }
+    });
+    this.root.appendChild(par.wrap);
   }
 
   #actions() {
@@ -4672,6 +4753,17 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
     level.name = next;
     markDirty();
     setStatus(next ? `Level name: ${next}` : 'Level name cleared');
+    refreshEditors();
+  },
+  getParTime: () => clampParTime(activeLevel(episode).parTime),
+  onParTimeChange: (sec) => {
+    const level = activeLevel(episode);
+    const next = clampParTime(sec);
+    if (clampParTime(level.parTime) === next) return;
+    pushUndo();
+    level.parTime = next;
+    markDirty();
+    setStatus(`Par time: ${next}s`);
     refreshEditors();
   },
   onChange: (patch) => {

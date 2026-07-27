@@ -15,6 +15,7 @@
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
  *   5. sector_max: 1 byte — max sector id used in map or sector table
+ *   6. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
 
@@ -43,8 +44,12 @@ import {
   MAX_SECTORS,
   ENEMY_TYPES,
   enemyCount,
+  statItemCount,
+  secretCount,
   colorIndex,
   clampLevelName,
+  clampParTime,
+  DEFAULT_PAR_BY_LEVEL,
   createEmptyLevel,
   createEpisode,
   defaultSector,
@@ -87,6 +92,7 @@ export function levelToJSON(level) {
   }
   return {
     name: clampLevelName(level.name),
+    parTime: clampParTime(level.parTime),
     sectors: sectorObj,
     map: Array.from(level.map),
     spawn: {
@@ -112,9 +118,14 @@ export function levelToJSON(level) {
   };
 }
 
-export function levelFromJSON(data) {
+export function levelFromJSON(data, opts = {}) {
   const level = createEmptyLevel();
   level.name = clampLevelName(data.name);
+  const fallbackPar =
+    data.parTime != null
+      ? data.parTime
+      : (opts.defaultPar ?? level.parTime);
+  level.parTime = clampParTime(fallbackPar);
   if (data.sectors) {
     for (const [key, s] of Object.entries(data.sectors)) {
       const id = Number(key);
@@ -272,7 +283,9 @@ export function episodeFromJSON(data) {
   if (data.levels) {
     for (const name of LEVEL_NAMES) {
       if (data.levels[name]) {
-        episode.levels[name] = levelFromJSON(data.levels[name]);
+        episode.levels[name] = levelFromJSON(data.levels[name], {
+          defaultPar: DEFAULT_PAR_BY_LEVEL[name],
+        });
       }
     }
   }
@@ -421,8 +434,10 @@ export function cookLevel(level) {
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
+  const nItems = statItemCount(level);
+  const nSecrets = secretCount(level);
   const out = new Uint8Array(
-    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 1,
+    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 5,
   );
   let o = 0;
   out.set(mapBytes, o); o += mapBytes.length;
@@ -435,7 +450,11 @@ export function cookLevel(level) {
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
-  out[o] = sectorMax & 0xff;
+  out[o++] = sectorMax & 0xff;
+  out[o++] = nEnemies & 0xff;
+  out[o++] = nItems & 0xff;
+  out[o++] = nSecrets & 0xff;
+  out[o++] = clampParTime(level.parTime) & 0xff;
   return { bytes: out, warnings, errors };
 }
 

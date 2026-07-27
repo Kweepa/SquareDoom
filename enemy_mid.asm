@@ -1928,6 +1928,7 @@ enemy_damage
 	sta MOBJ_HEALTH,x
 	lda #2
 	sta MOBJ_MOVECNT,x
+	inc num_kills
 	ldy enemy_info
 	lda mobj_death_sound,y
 	jsr play_sound			; preserves X/Y; reload actor anyway

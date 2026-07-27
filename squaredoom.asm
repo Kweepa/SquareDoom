@@ -109,9 +109,9 @@ free_mid = MEM_MID_LIMIT - end_mid
 ; ------------------------------------------------------------------
 ; Level window under BASIC ROM ($A000), RAM with $01=$35 — loaded from disk
 ; Layout: map first ($a000, 32-byte aligned for maprow+mapx), then 7×200
-; sector attr tables, spawn, items, sector_max
+; sector attr tables, spawn, items, sector_max, enemies, items, secrets, par
 ; ------------------------------------------------------------------
-LEVEL_BYTES = 2620
+LEVEL_BYTES = 2624
 *=$a000
 level_data
 	!fill LEVEL_BYTES, 0
@@ -121,6 +121,7 @@ MAP_CELLS = 1024
 MAX_ITEMS = 48
 ITEM_BYTES = 4			; SoA: 4 arrays × MAX_ITEMS
 SPAWN_BYTES = 3
+STATS_BYTES = 4			; num_enemies, num_items, num_secrets, par_time
 ; SEC_TYPE packed: action[4:0] | trigger[6:5] | single_shot[7]
 ACT_MASK = $1f
 TRIG_MASK = $60
@@ -147,6 +148,7 @@ ACT_LOWER_FLOOR_15S = 12	; min adjacent + return 15s
 ACT_DAMAGE_FLOOR = 13		; 5 HP / second while standing
 ACT_FLASH_LIGHTS = 14		; SEC_BRIGHT ↔ 16, 1 Hz (max 2 sectors)
 ACT_OPEN_MONSTER_CLOSET = 15	; raise floor+ceil +6, permanent
+ACT_SECRET = 16			; walk-into oneshot → inc secrets found
 
 ; level_item_meta: skill bits (switches use meta=0)
 
@@ -170,7 +172,11 @@ level_item_meta = level_item_y + MAX_ITEMS	; skill bits / switch target
 level_items = level_item_type
 
 level_sector_max = level_item_meta + MAX_ITEMS
-!if level_sector_max + 1 - level_data != LEVEL_BYTES {
+level_num_enemies = level_sector_max + 1
+level_num_items = level_num_enemies + 1
+level_num_secrets = level_num_items + 1
+level_par_time = level_num_secrets + 1
+!if level_par_time + 1 - level_data != LEVEL_BYTES {
 	!error "LEVEL_BYTES mismatch vs layout"
 }
 
@@ -180,6 +186,7 @@ level_sector_max = level_item_meta + MAX_ITEMS
 !source "mapscreen.asm"
 !source "dpsounds.asm"
 !source "logo.asm"
+!source "levelstats.asm"
 
 !zone 0
 

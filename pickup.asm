@@ -135,6 +135,12 @@ try_pickups
 	lda tmp4
 	jsr pickup_apply
 	bcc .tp_done			; not taken
+	; countable pickup (not poscorpse) → stats
+	lda tmp4
+	cmp #ITEM_TYPE_RADSUIT + 1
+	bcs .tp_consume
+	inc num_items_got
+.tp_consume
 	; consume item
 	ldx tmp5
 	lda #ITEM_TYPE_EMPTY

@@ -9,6 +9,7 @@ start_level
 	sta boss_floors_done
 	jsr find_spawn
 	jsr enemy_alloc_all
+	jsr init_level_stats
 	jsr init_hud_state
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays

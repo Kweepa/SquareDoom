@@ -760,8 +760,13 @@ trigger_action
 	jmp .ta_stairs
 .ta_nc
 	cmp #ACT_OPEN_MONSTER_CLOSET
-	bne .ta_none
+	bne .ta_nsec
 	jmp .ta_closet
+.ta_nsec
+	cmp #ACT_SECRET
+	bne .ta_none
+	inc num_secrets_got
+	jmp .ta_shot
 .ta_none
 	rts
 .ta_end

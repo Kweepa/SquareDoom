@@ -9,6 +9,7 @@ gameloop
 	jsr gameloop_check_esc
 	jsr player_frame
 	jsr calc_frame_dt
+	jsr update_map_time
 	jsr read_input
 	jsr gameloop_check_map
 	clc
