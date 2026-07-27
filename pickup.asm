@@ -59,7 +59,8 @@ ITEM_TYPE_REDCARD = 16
 ITEM_TYPE_BLUECARD = 17
 ITEM_TYPE_YELLOWCARD = 18
 ITEM_TYPE_SOULSPHERE = 19
-ITEM_TYPE_POSCORPSE = 20
+ITEM_TYPE_RADSUIT = 20
+ITEM_TYPE_POSCORPSE = 21
 ITEM_TYPE_EMPTY = $ff
 
 ; ---------------------------------------------------------------------------
@@ -168,12 +169,12 @@ pickup_apply
 	!byte <.pa_health, <.pa_shells, <.pa_weapon, <.pa_weapon
 	!byte <.pa_weapon, <.pa_weapon, <.pa_garmor, <.pa_barmor
 	!byte <.pa_pack, <.pa_red, <.pa_blue, <.pa_yellow
-	!byte <.pa_soulsphere, <.pa_poscorpse
+	!byte <.pa_soulsphere, <.pa_radsuit, <.pa_poscorpse
 .pa_jmp_hi
 	!byte >.pa_health, >.pa_shells, >.pa_weapon, >.pa_weapon
 	!byte >.pa_weapon, >.pa_weapon, >.pa_garmor, >.pa_barmor
 	!byte >.pa_pack, >.pa_red, >.pa_blue, >.pa_yellow
-	!byte >.pa_soulsphere, >.pa_poscorpse
+	!byte >.pa_soulsphere, >.pa_radsuit, >.pa_poscorpse
 
 .pa_health
 	lda health
@@ -287,6 +288,14 @@ pickup_apply
 .pa_soul_ok
 	sta health
 	lda #ITEM_TYPE_SOULSPHERE
+	jmp pickup_message
+
+.pa_radsuit
+	lda #<RADSUIT_MS
+	sta radsuit_ms
+	lda #>RADSUIT_MS
+	sta radsuit_ms + 1
+	lda #ITEM_TYPE_RADSUIT
 	jmp pickup_message
 
 .pa_weapon
@@ -542,12 +551,12 @@ pickup_name_lo
 	!byte <name_health, <name_ammo, <name_shotgun, <name_chaingun
 	!byte <name_chainsaw, <name_rocket, <name_garmor, <name_barmor
 	!byte <name_backpack, <name_redcard, <name_bluecard, <name_yellowcard
-	!byte <name_soulsphere, <name_clips
+	!byte <name_soulsphere, <name_radsuit, <name_clips
 pickup_name_hi
 	!byte >name_health, >name_ammo, >name_shotgun, >name_chaingun
 	!byte >name_chainsaw, >name_rocket, >name_garmor, >name_barmor
 	!byte >name_backpack, >name_redcard, >name_bluecard, >name_yellowcard
-	!byte >name_soulsphere, >name_clips
+	!byte >name_soulsphere, >name_radsuit, >name_clips
 
 name_health
 	!scr "health"
@@ -591,19 +600,6 @@ name_yellowcard
 name_soulsphere
 	!scr "soulsphere"
 	!byte 0
-
-door_msg_lo
-	!byte <msg_need_red, <msg_need_yellow, <msg_need_blue
-door_msg_hi
-	!byte >msg_need_red, >msg_need_yellow, >msg_need_blue
-door_msg_len
-	!byte 36, 39, 37			; screen columns (no trailing NUL)
-msg_need_red
-	!scr "you need a red key to open this door"
-	!byte 0
-msg_need_yellow
-	!scr "you need a yellow key to open this door"
-	!byte 0
-msg_need_blue
-	!scr "you need a blue key to open this door"
+name_radsuit
+	!scr "rad suit"
 	!byte 0

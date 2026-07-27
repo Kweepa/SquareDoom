@@ -185,6 +185,7 @@ export const ITEM_TYPES = [
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere',
+  'radsuit',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'skullpile', 'techcolumn',
   'switch',

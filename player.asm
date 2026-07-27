@@ -13,16 +13,15 @@ hurt_flash		!byte 0		; frames of red border left (incl. next render)
 ;   this frame ends red → next frame start keeps red through render → then off.
 ; ---------------------------------------------------------------------------
 player_frame
+	jsr radsuit_tick
 	lda hurt_flash
-	beq .pf_black
+	beq .pf_suit
 	dec hurt_flash
-	lda #2				; red
+	lda #2				; red overrides green
 	sta $d020
 	rts
-.pf_black
-	lda #0
-	sta $d020
-	rts
+.pf_suit
+	jmp radsuit_set_border
 
 ; ---------------------------------------------------------------------------
 ; damage_player — A = damage; queue red border for the next full frame

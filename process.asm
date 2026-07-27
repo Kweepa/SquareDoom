@@ -17,7 +17,7 @@ DOOR_MODE_5S = 1
 DOOR_MODE_10S = 2
 DOOR_MODE_30S = 3
 MOTION_STEP_MS = 128			; 1 height unit per 128 ms
-ITEM_TYPE_SWITCH = 26
+ITEM_TYPE_SWITCH = 27
 SWITCH_USE_RADIUS = 6
 
 player_prev_sec	!byte 0			; last player sector (walk trigger)

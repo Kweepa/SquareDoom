@@ -209,12 +209,15 @@ FLASH_MAX = 2
 FLASH_PERIOD_MS = 1000
 DAMAGE_PERIOD_MS = 1000
 DAMAGE_PER_TICK = 5
+RADSUIT_MS = 60000
+RADSUIT_WARN_MS = 5000
 
 flash_sec	!byte 0, 0		; sector ids (0 = empty)
 flash_base	!byte 0, 0		; authored SEC_BRIGHT
 flash_lit	!byte 0			; 0 = base, 1 = bright 16
 flash_ms	!word 0
 dmg_ms		!word 0
+radsuit_ms	!word 0			; remaining protection (0 = off)
 
 ; Scan sectors for ACT_FLASH_LIGHTS → flash_sec/base (max 2). Call at level start.
 flash_lights_init
@@ -228,6 +231,8 @@ flash_lights_init
 	sta flash_ms + 1
 	sta dmg_ms
 	sta dmg_ms + 1
+	sta radsuit_ms
+	sta radsuit_ms + 1
 	ldy #0				; slot
 	ldx #1
 .fli_l
@@ -259,6 +264,9 @@ sector_specials_update
 	jsr sec_action
 	cmp #ACT_DAMAGE_FLOOR
 	bne .ssu_dmg_clr
+	lda radsuit_ms
+	ora radsuit_ms + 1
+	bne .ssu_dmg_clr			; suit: ignore sludge
 	lda dmg_ms
 	clc
 	adc dt_ms
@@ -379,3 +387,72 @@ closet_activate
 	jmp play_sound
 .ca_fail
 	rts
+
+; ------------------------------------------------------------------
+; radsuit_tick — subtract dt_ms from radsuit_ms (clamp at 0)
+; ------------------------------------------------------------------
+radsuit_tick
+	lda radsuit_ms
+	ora radsuit_ms + 1
+	beq .rst_rts
+	lda radsuit_ms
+	sec
+	sbc dt_ms
+	sta radsuit_ms
+	lda radsuit_ms + 1
+	sbc #0
+	sta radsuit_ms + 1
+	bcs .rst_rts
+	lda #0
+	sta radsuit_ms
+	sta radsuit_ms + 1
+.rst_rts
+	rts
+
+; ------------------------------------------------------------------
+; radsuit_set_border — green while active; green/black flash in last 5s
+; Caller must not call when hurt_flash is showing red.
+; ------------------------------------------------------------------
+radsuit_set_border
+	lda radsuit_ms
+	ora radsuit_ms + 1
+	beq .rsb_black
+	lda radsuit_ms + 1
+	cmp #>RADSUIT_WARN_MS
+	bcc .rsb_flash
+	bne .rsb_green
+	lda radsuit_ms
+	cmp #<RADSUIT_WARN_MS
+	bcc .rsb_flash
+.rsb_green
+	lda #5				; green
+	sta $d020
+	rts
+.rsb_flash
+	lda radsuit_ms + 1
+	lsr				; ~512 ms phase
+	bcc .rsb_black
+	lda #5
+	sta $d020
+	rts
+.rsb_black
+	lda #0
+	sta $d020
+	rts
+
+; Locked-door key messages (moved from pickup — mid headroom)
+door_msg_lo
+	!byte <msg_need_red, <msg_need_yellow, <msg_need_blue
+door_msg_hi
+	!byte >msg_need_red, >msg_need_yellow, >msg_need_blue
+door_msg_len
+	!byte 36, 39, 37			; screen columns (no trailing NUL)
+msg_need_red
+	!scr "you need a red key to open this door"
+	!byte 0
+msg_need_yellow
+	!scr "you need a yellow key to open this door"
+	!byte 0
+msg_need_blue
+	!scr "you need a blue key to open this door"
+	!byte 0
