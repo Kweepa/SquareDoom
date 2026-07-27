@@ -70,17 +70,24 @@ At least need a budget. Maybe <1ms per frame is good enough?
 ## Pickups
 
 Need the smaller pickups (health, armour, clip) and so on.
+Or just put weapons everywhere instead for the ammo.
 
 ## Levels
 
 Finish levels :)
 Almost half way there...
+All laid out, just need polish.
 
 ## Editor
 
-- determine the max sector count. currently it's 255 but I expect it will be closer to 160
+- max sector count is 199 (table size 200)
 
 ## Weapons
 
 - Animate the weapons in and out.
-- Add rocket launcher (pickup, ammo pickup, weapon sprites, rocket behaviour).
+
+## Misc
+
+- secrets
+- level stats
+- player death pause
