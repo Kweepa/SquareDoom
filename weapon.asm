@@ -611,14 +611,11 @@ wpn_sound
 ; Note: $d015 is write-only — use spr_en mirror; gated by wpn_visible.
 update_muzzle_flash
 	; --- muzzle flash / fist-punch timeout ---
+	; Flash bits are ORed into spr_en at fire time (.fire_shot); no per-frame
+	; re-OR needed — show_weapon copies spr_en→$d015, expiry calls wpn_setup.
 	lda muzzle_ms_l
 	ora muzzle_ms_h
 	beq .mf_keys
-	ldx cur_weapon
-	beq .mf_tick			; fist punch: no flash OR
-	lda spr_en
-	ora #FLASH_ENABLE
-	jsr .wpn_en
 .mf_tick
 	sec
 	lda muzzle_ms_l

@@ -62,9 +62,10 @@ find_spawn
 	rts
 
 ; eyeheight = floor(sector at player) + 3
+; Uses player_prev_sec from try_walk_into (same frame on alive path;
+; death path does not move — cached id stays valid).
 update_eye
-	jsr player_tile
-	jsr map_sector_id
+	lda player_prev_sec
 	beq .ue_empty
 	tax
 	lda SEC_FLOOR,x

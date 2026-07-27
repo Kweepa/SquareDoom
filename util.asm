@@ -244,10 +244,10 @@ flash_lights_init
 	rts
 
 ; Per-frame: damage if standing on ACT_DAMAGE_FLOOR; toggle flash lights.
+; Sector id from player_prev_sec (try_walk_into already resolved it this frame).
 sector_specials_update
 	; --- damage ---
-	jsr player_tile
-	jsr map_sector_id
+	lda player_prev_sec
 	beq .ssu_dmg_clr
 	tax
 	jsr sec_action
