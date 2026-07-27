@@ -78,16 +78,10 @@ Finish levels :)
 Almost half way there...
 All laid out, just need polish.
 
-## Editor
-
-- max sector count is 199 (table size 200)
-
 ## Weapons
 
 - Animate the weapons in and out.
 
 ## Misc
 
-- secrets
-- level stats
 - player death pause
