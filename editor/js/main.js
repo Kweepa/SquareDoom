@@ -16,6 +16,7 @@ import {
   addTile,
   applyTilePatch,
   clearTiles,
+  closetNeighbourFloor,
   createEpisode,
   defaultSkills,
   enemyCount,
@@ -27,6 +28,7 @@ import {
   isSpawn,
   isSwitch,
   itemStillOnLevel,
+  monsterClosetHeights,
   moveItemsBy,
   moveTiles,
   nudgeTileHeights,
@@ -365,6 +367,27 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
   },
   onSelectSector: () => {
     doSelectSector();
+  },
+  onMakeMonsterCloset: () => {
+    const level = activeLevel(episode);
+    const tiles = [...selection.tiles].map(parseTileKey);
+    if (!tiles.length) {
+      setStatus('Select tiles to make a monster closet');
+      return;
+    }
+    const n = closetNeighbourFloor(level, tiles);
+    if (n == null) {
+      setStatus('No adjacent neighbour floor found for monster closet');
+      return;
+    }
+    const heights = monsterClosetHeights(n);
+    pushUndo();
+    applyTilePatch(level, tiles, heights);
+    markDirty();
+    setStatus(
+      `Monster closet: floor ${heights.floorHeight}, ceil ${heights.ceilingHeight} (neighbour floor ${n})`,
+    );
+    refreshAll();
   },
 });
 

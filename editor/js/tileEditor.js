@@ -96,6 +96,7 @@ export class TileEditor {
    *   onChange: (patch: object) => void,
    *   onClear: () => void,
    *   onSelectSector: () => void,
+   *   onMakeMonsterCloset: () => void,
    * }} opts
    */
   constructor(root, opts) {
@@ -312,6 +313,14 @@ export class TileEditor {
     selectSector.title = 'Select all tiles in the sector of the primary selected tile';
     selectSector.addEventListener('click', () => this.opts.onSelectSector());
     actions.appendChild(selectSector);
+
+    const closet = document.createElement('button');
+    closet.type = 'button';
+    closet.textContent = 'Make monster closet';
+    closet.title = 'Set floor to neighbour−6 and ceiling to floor+5 (mapper wires trigger/tag)';
+    closet.disabled = this.opts.getTiles().length === 0;
+    closet.addEventListener('click', () => this.opts.onMakeMonsterCloset());
+    actions.appendChild(closet);
 
     const clear = document.createElement('button');
     clear.type = 'button';

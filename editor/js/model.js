@@ -655,6 +655,56 @@ const NEIGHBOR_4 = [
 ];
 
 /**
+ * Most common floor height among NESW neighbours outside the selection.
+ * @param {ReturnType<typeof createLevel>} level
+ * @param {Array<{tx:number,ty:number}>} tiles
+ * @returns {number|null}
+ */
+export function closetNeighbourFloor(level, tiles) {
+  if (!tiles?.length) return null;
+  const selected = new Set(tiles.map(({ tx, ty }) => tileKey(tx, ty)));
+  /** @type {Map<number, number>} */
+  const counts = new Map();
+  let firstOrder = [];
+  for (const { tx, ty } of tiles) {
+    for (const [dx, dy] of NEIGHBOR_4) {
+      const nx = tx + dx;
+      const ny = ty + dy;
+      if (nx < 0 || ny < 0 || nx >= MAP_SIZE || ny >= MAP_SIZE) continue;
+      if (selected.has(tileKey(nx, ny))) continue;
+      const id = getCell(level, nx, ny);
+      if (!id) continue;
+      const s = level.sectors.get(id);
+      if (!s) continue;
+      const h = s.floorHeight;
+      if (!counts.has(h)) firstOrder.push(h);
+      counts.set(h, (counts.get(h) || 0) + 1);
+    }
+  }
+  if (!firstOrder.length) return null;
+  let best = firstOrder[0];
+  let bestN = counts.get(best);
+  for (const h of firstOrder) {
+    const n = counts.get(h);
+    if (n > bestN) {
+      best = h;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+/**
+ * Floor/ceil for a monster closet relative to neighbour floor N.
+ * @returns {{ floorHeight: number, ceilingHeight: number }}
+ */
+export function monsterClosetHeights(neighbourFloor) {
+  const floorHeight = clampNum(neighbourFloor - 6, 0, 31);
+  const ceilingHeight = clampNum(floorHeight + 5, 0, 31);
+  return { floorHeight, ceilingHeight };
+}
+
+/**
  * 4-connected groups of tiles whose sector props match via sectorsEqual.
  * @returns {{ props: ReturnType<typeof defaultSector>, tiles: {tx:number,ty:number}[], oldIds: number[] }[]}
  */
