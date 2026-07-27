@@ -1150,7 +1150,7 @@
         "96": {
           "floorHeight": 4,
           "ceilingHeight": 12,
-          "trigger": "none",
+          "trigger": "walk_into",
           "singleShot": true,
           "action": "lower_floor_forever",
           "tag": "",
@@ -2253,7 +2253,7 @@
         {
           "type": "barrel",
           "x": 98,
-          "y": 58,
+          "y": 59,
           "skills": {
             "easy": true,
             "normal": true,
