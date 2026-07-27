@@ -399,7 +399,7 @@ next_menu
 draw_title_banner
 	jmp draw_logo
 
-; RLE-decode logo_pair_* + logo_rle_* into screen/colour RAM
+; Packed RLE: logo_rle token = index[7:3] | (run-1)[2:0]
 draw_logo
 	lda #0
 	sta tmp2			; RLE stream index
@@ -415,10 +415,17 @@ draw_logo
 	sta tmp4			; cells left in row
 .dl_cell
 	ldy tmp2
-	lda logo_rle_runs,y
-	sta tmp5			; run length
-	lda logo_rle_ids,y
-	tay
+	lda logo_rle,y
+	tax
+	and #7
+	clc
+	adc #1
+	sta tmp5			; run length 1..8
+	txa
+	lsr
+	lsr
+	lsr
+	tay				; pair index
 	lda logo_pair_chars,y
 	sta tmp0
 	lda logo_pair_cols,y
