@@ -19483,14 +19483,14 @@
         "68": {
           "floorHeight": 12,
           "ceilingHeight": 18,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "switch",
+          "singleShot": true,
+          "action": "open_door_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "end_door",
           "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 9
+          "ceilingColor": 2,
+          "brightness": 15
         },
         "69": {
           "floorHeight": 12,
@@ -19509,7 +19509,7 @@
           "ceilingHeight": 13,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "flash_lights",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -19562,15 +19562,15 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 10
         },
         "75": {
           "floorHeight": 12,
-          "ceilingHeight": 18,
+          "ceilingHeight": 12,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
-          "tag": "",
+          "tag": "end_door",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
@@ -19766,7 +19766,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 6
         },
         "92": {
           "floorHeight": 8,
@@ -19831,11 +19831,11 @@
         "97": {
           "floorHeight": 8,
           "ceilingHeight": 14,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "open_door_forever",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "closet_blue",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
@@ -19938,11 +19938,11 @@
         },
         "106": {
           "floorHeight": 8,
-          "ceilingHeight": 13,
+          "ceilingHeight": 8,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
-          "tag": "",
+          "tag": "closet_blue",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
@@ -20370,7 +20370,7 @@
         },
         "142": {
           "floorHeight": 8,
-          "ceilingHeight": 8,
+          "ceilingHeight": 15,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -20401,8 +20401,8 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 9
+          "ceilingColor": 2,
+          "brightness": 15
         },
         "145": {
           "floorHeight": 8,
@@ -20458,7 +20458,7 @@
           "trigger": "none",
           "singleShot": false,
           "action": "none",
-          "tag": "",
+          "tag": "door_outside",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
@@ -20490,7 +20490,7 @@
         },
         "152": {
           "floorHeight": 8,
-          "ceilingHeight": 13,
+          "ceilingHeight": 16,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -20702,7 +20702,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 16
         },
         "170": {
           "floorHeight": 12,
@@ -20732,7 +20732,7 @@
           "floorHeight": 16,
           "ceilingHeight": 21,
           "trigger": "walk_into",
-          "singleShot": false,
+          "singleShot": true,
           "action": "open_door_forever",
           "tag": "",
           "targetTag": "closet_red1",
@@ -20744,13 +20744,49 @@
           "floorHeight": 16,
           "ceilingHeight": 21,
           "trigger": "walk_into",
-          "singleShot": false,
+          "singleShot": true,
           "action": "open_door_forever",
           "tag": "",
           "targetTag": "closet_red2",
           "floorColor": 11,
           "ceilingColor": 2,
           "brightness": 15
+        },
+        "174": {
+          "floorHeight": 8,
+          "ceilingHeight": 24,
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "open_door_forever",
+          "tag": "",
+          "targetTag": "door_outside",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "175": {
+          "floorHeight": 13,
+          "ceilingHeight": 16,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "window",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 12
+        },
+        "176": {
+          "floorHeight": 12,
+          "ceilingHeight": 12,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 9,
+          "brightness": 9
         }
       },
       "map": [
@@ -20825,7 +20861,7 @@
         13,
         4,
         4,
-        4,
+        174,
         97,
         82,
         7,
@@ -20957,8 +20993,8 @@
         145,
         15,
         17,
-        142,
         106,
+        142,
         0,
         34,
         32,
@@ -21470,7 +21506,7 @@
         67,
         67,
         67,
-        0,
+        176,
         0,
         121,
         0,
@@ -21511,10 +21547,10 @@
         0,
         0,
         69,
-        66,
-        86,
-        86,
-        86,
+        69,
+        69,
+        69,
+        69,
         80,
         89,
         89,
@@ -21541,12 +21577,12 @@
         91,
         91,
         91,
-        0,
+        175,
         69,
-        66,
-        86,
-        86,
-        86,
+        69,
+        69,
+        69,
+        69,
         80,
         89,
         89,
@@ -21573,12 +21609,12 @@
         91,
         91,
         91,
-        0,
+        175,
         69,
-        66,
-        86,
-        86,
-        86,
+        69,
+        69,
+        69,
+        69,
         0,
         89,
         89,
@@ -21606,7 +21642,7 @@
         91,
         91,
         0,
-        69,
+        71,
         0,
         0,
         75,
@@ -21638,10 +21674,10 @@
         91,
         91,
         0,
-        69,
+        71,
         0,
         0,
-        75,
+        83,
         83,
         83,
         83,
@@ -21670,7 +21706,7 @@
         91,
         91,
         0,
-        69,
+        71,
         0,
         0,
         0,
@@ -21702,7 +21738,7 @@
         0,
         0,
         0,
-        69,
+        71,
         0,
         31,
         31,
@@ -21728,13 +21764,13 @@
         133,
         133,
         99,
-        71,
-        71,
-        71,
-        71,
-        71,
-        71,
-        69,
+        74,
+        74,
+        86,
+        86,
+        86,
+        86,
+        86,
         0,
         31,
         31,
@@ -22042,7 +22078,7 @@
         },
         {
           "type": "switch",
-          "x": 244,
+          "x": 242,
           "y": 220
         },
         {
@@ -22059,6 +22095,121 @@
           "type": "soldier",
           "x": 12,
           "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 101,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 101,
+          "y": 157,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 98,
+          "y": 155,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "switch",
+          "x": 132,
+          "y": 179
+        },
+        {
+          "type": "soldier",
+          "x": 132,
+          "y": 208,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 156,
+          "y": 244,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 192,
+          "y": 220,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 199,
+          "y": 219,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 170,
+          "y": 203,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 144,
+          "y": 195,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 131,
+          "y": 219,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 12,
+          "y": 151,
           "skills": {
             "easy": true,
             "normal": true,
