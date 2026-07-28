@@ -260,16 +260,16 @@ item_spr_techcolumn_m2
 item_spr_techcolumn_m3
 	!byte $0c
 item_spr_switch_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	!byte $ff,$ff,$0c,$0b,$ff,$ff,$ff,$0c,$ff,$0c,$0c,$0b,$ff,$ff,$0c,$0c
-	!byte $0c,$07,$0c,$0b,$0b,$0c,$0b,$0c,$0c,$07,$0c,$0b,$ff,$ff,$0b,$0b
-	!byte $0c,$0c,$0b,$ff,$ff,$ff,$ff,$0b,$0c,$0b,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0b,$0c,$0c,$0c,$0b,$ff,$ff,$ff
+	!byte $0c,$0d,$0d,$0d,$0b,$02,$ff,$ff,$0c,$05,$05,$0d,$0b,$ff,$ff,$ff
+	!byte $0f,$0d,$0d,$0d,$0b,$ff,$ff,$ff,$0c,$05,$0d,$05,$0b,$02,$ff,$ff
+	!byte $0b,$0f,$0c,$0c,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_switch_m1
-	!byte $ff,$ff,$ff,$ff,$ff,$0c,$ff,$0c,$0c,$07,$0b,$0c,$0c,$ff,$ff,$0b
+	!byte $ff,$ff,$ff,$ff,$0d,$0d,$0b,$02,$0d,$0d,$0b,$02,$ff,$ff,$ff,$ff
 item_spr_switch_m2
-	!byte $ff,$ff,$07,$0c
+	!byte $ff,$ff,$0d,$02
 item_spr_switch_m3
-	!byte $07
+	!byte $0d
 item_spr_fireball_m0
 	!byte $ff,$ff,$02,$ff,$02,$ff,$02,$ff,$02,$ff,$02,$02,$08,$02,$ff,$ff
 	!byte $ff,$02,$08,$07,$07,$08,$02,$02,$02,$08,$07,$07,$07,$07,$02,$ff

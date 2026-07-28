@@ -16,6 +16,7 @@ ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
 ITEM_TYPE_BARREL = 6
+ITEM_TYPE_SWITCH = 27
 ITEM_TYPE_FIREBALL = 28
 ITEM_TYPE_PLASMABALL = 29
 ITEM_TYPE_ROCKET = 30
@@ -493,14 +494,9 @@ item_draw_one
 	lda tmp0				; enemies: worldH 4 × proj 32
 	bpl .id_h0
 .id_half
-	lda wall_col
-	cmp #ITEM_TYPE_BAREXPL
-	beq .id_barexpl_h			; full height → one mip larger
 	lda tmp0
 	lsr					; pickups: half-height
 	bpl .id_h0
-.id_barexpl_h
-	lda tmp0
 .id_h0
 	cmp #1
 	bcs .id_h1
@@ -526,7 +522,12 @@ item_draw_one
 	jmp .id_feet
 .id_w_sq
 	lda #0
-	sta far_floor			; 0 = item mip path
+	sta far_floor			; 0 = item path (1:1 or stretch)
+	lda wall_col
+	cmp #ITEM_TYPE_BAREXPL
+	beq .id_large
+	cmp #ITEM_TYPE_SWITCH
+	beq .id_large
 	; Items: pick mip from projected size, then draw 1:1 (never >8×8)
 	lda far_ceil
 	ldx #0
@@ -544,7 +545,30 @@ item_draw_one
 	lda item_mip_w,x
 	sta far_ceil			; screen H = mip H
 	sta last_near_ok			; screen W = mip W
-	; fall through
+	jmp .id_feet
+.id_large
+	; barexpl/switch: S = min(2*H, 16); mip from S; DDA stretch to S×S
+	lda far_ceil
+	asl					; 2H
+	cmp #17
+	bcc .id_large_s
+	lda #16
+.id_large_s
+	sta far_ceil
+	sta last_near_ok
+	ldx #0
+	cmp #8
+	bcs .id_large_mip			; ≥8 → mip0
+	ldx #1
+	cmp #4
+	bcs .id_large_mip			; ≥4 → mip1
+	ldx #2
+	cmp #2
+	bcs .id_large_mip			; ≥2 → mip2
+	ldx #3				; else mip3
+.id_large_mip
+	stx fracy
+	; fall through — screen W/H stay S
 .id_feet
 	; Feet: missiles use flight Z (hitscan-style height); else sector floor
 	lda wall_col
@@ -643,7 +667,7 @@ item_draw_one
 .id_vok
 	lda far_floor
 	bne .id_emip
-	; Item: mip already in fracy; W/H == mip (1:1)
+	; Item: mip already in fracy; last_near_ceil = mip_w (1:1 or stretch)
 	ldx fracy
 	lda item_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
@@ -669,9 +693,82 @@ item_draw_one
 	lda enemy_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 .id_clp_go
-	; Enemies need recip[W]/recip[H] for UV; items are 1:1 (no UV).
+	; Enemies / stretch items need recip[W]/recip[H]; 1:1 items skip
 	lda far_floor
-	bne .id_enemy_setup
+	beq .id_clp_item
+	jmp .id_enemy_setup
+.id_clp_item
+	lda wall_col
+	cmp #ITEM_TYPE_BAREXPL
+	beq .id_item_stretch_setup
+	cmp #ITEM_TYPE_SWITCH
+	beq .id_item_stretch_setup
+	jmp .id_clp_no_recip
+.id_item_stretch_setup
+	; Same ustep/vstep as enemies; item mip base + $ff clear in column draw
+	ldx last_near_ok			; screen W (=S)
+	lda recip_lo,x
+	sta wish_x_l
+	lda recip_hi,x
+	sta wish_x_h
+	ldx far_ceil				; screen H (=S)
+	lda recip_lo,x
+	sta wish_y_l
+	lda recip_hi,x
+	sta wish_y_h
+	ldy last_near_ceil			; mip_w
+	lda wish_x_l
+	jsr mul_8x8
+	sta tmp0
+	ldy last_near_ceil
+	lda wish_x_h
+	jsr mul_8x8
+	sta tmp1
+	clc
+	txa
+	adc tmp0
+	sta wish_x_l			; ustep_l
+	lda tmp1
+	adc #0
+	sta wish_x_h			; ustep_h
+	lda span_a
+	sec
+	sbc fracx
+	sta tmp2
+	beq .id_is_uz
+	tay
+	lda wish_x_l
+	jsr mul_8x8
+	stx item_u_l
+	sta tmp0
+	ldy tmp2
+	lda wish_x_h
+	jsr mul_8x8
+	clc
+	txa
+	adc tmp0
+	sta item_u_h
+	jmp .id_is_uok
+.id_is_uz
+	sta item_u_l
+	sta item_u_h
+.id_is_uok
+	lda #0
+	sta item_mirror
+	lda wall_col
+	asl
+	asl
+	clc
+	adc fracy
+	tax
+	lda item_mip_base_lo,x
+	sta item_mip_base_l
+	lda item_mip_base_hi,x
+	sta item_mip_base_h
+	ldx fracy
+	lda item_mip_h,x
+	sta wallz_l
+	jsr item_vdda_texstep
 	jmp .id_clp_no_recip
 .id_enemy_setup
 	ldx last_near_ok			; projected W
@@ -824,9 +921,16 @@ item_draw_one
 	cmp item_ybot
 	bcc .id_spanok
 .id_cnx
-	; Advance U-DDA for enemies (also on clip-miss columns)
+	; Advance U-DDA for enemies + stretch items (also on clip-miss columns)
 	lda far_floor
-	beq .id_cnx_nou
+	bne .id_cnx_uadv
+	lda wall_col
+	cmp #ITEM_TYPE_BAREXPL
+	beq .id_cnx_uadv
+	cmp #ITEM_TYPE_SWITCH
+	beq .id_cnx_uadv
+	bne .id_cnx_nou
+.id_cnx_uadv
 	clc
 	lda item_u_l
 	adc wish_x_l			; ustep
@@ -857,8 +961,88 @@ item_draw_one
 .id_draw
 	jsr set_col_base
 	lda far_floor
-	bne .id_e32
+	beq .id_draw_item
+	jmp .id_e32
+.id_draw_item
+	lda wall_col
+	cmp #ITEM_TYPE_BAREXPL
+	beq .id_e_stretch
+	cmp #ITEM_TYPE_SWITCH
+	beq .id_e_stretch
 	jmp .id_e8
+
+; --- Stretch item column (U/V DDA; item mips, $ff = clear) ---
+.id_e_stretch
+	lda item_u_h			; bmp_x
+	cmp last_near_ceil
+	bcc .ids_xok
+	lda last_near_ceil
+	sec
+	sbc #1
+.ids_xok
+	sta last_near_floor		; bmp_x
+	; ptr = hoisted mip base + bmp_x * mip_h
+	lda item_mip_base_l
+	sta ptr_l
+	lda item_mip_base_h
+	sta ptr_h
+	lda last_near_floor
+	sta aux_l
+	lda #0
+	sta aux_h
+	ldx fracy
+	lda item_mip_vshift,x
+	beq .ids_vx0
+	tax
+.ids_vxlp
+	asl aux_l
+	rol aux_h
+	dex
+	bne .ids_vxlp
+.ids_vx0
+	clc
+	lda ptr_l
+	adc aux_l
+	sta ptr_l
+	lda ptr_h
+	adc aux_h
+	sta ptr_h
+	lda wallz_l
+	sta tmp5
+	jsr item_vdda_seed
+	ldy py_row
+.ids_rlp
+	cpy item_ybot
+	bcc .ids_row
+	jmp .id_cnx
+.ids_row
+	sty tmp4
+	lda acc_h				; bmp_y
+	cmp tmp5
+	bcc .ids_yok
+	lda tmp5
+	sec
+	sbc #1
+.ids_yok
+	tay
+	lda (ptr_l),y
+	cmp #$ff				; $ff = clear
+	beq .ids_skip
+	ldy tmp4
+	sta (col_base_l),y
+	lda #ITEM_PAT
+	sta (pat_base_l),y
+.ids_skip
+	clc
+	lda acc_l
+	adc texstep_l
+	sta acc_l
+	lda acc_h
+	adc texstep_h
+	sta acc_h
+	ldy tmp4
+	iny
+	jmp .ids_rlp
 
 ; --- Enemy column (U-DDA + hoisted invariants) ---
 .id_e32
