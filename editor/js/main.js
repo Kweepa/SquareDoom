@@ -40,6 +40,7 @@ import {
   compactSectorIds,
   removeItem,
   sectorCount,
+  secretCount,
   shiftLevel,
   tileKey,
   tilesInSector,
@@ -344,6 +345,8 @@ const tileEditor = new TileEditor(document.getElementById('tile-editor'), {
   },
   sectorCount: () => sectorCount(activeLevel(episode)),
   itemCount: () => gameItemCount(activeLevel(episode)),
+  enemyCount: () => enemyCount(activeLevel(episode)),
+  secretCount: () => secretCount(activeLevel(episode)),
   hasItemSelection: () => selection.items.size > 0,
   getLevelName: () => activeLevel(episode).name || '',
   onLevelNameChange: (name) => {
@@ -902,8 +905,16 @@ function handlePointer(e, info) {
               selection.primaryTile = { tx: startTx, ty: startTy };
             }
           } else {
-            selection.items.clear();
-            setTileSelection([{ tx: startTx, ty: startTy }], { tx: startTx, ty: startTy });
+            const key = tileKey(startTx, startTy);
+            // Click selected empty (void) tile → deselect
+            if (!getCell(level, startTx, startTy) && selection.tiles.has(key)) {
+              selection.items.clear();
+              selection.tiles.clear();
+              selection.primaryTile = null;
+            } else {
+              selection.items.clear();
+              setTileSelection([{ tx: startTx, ty: startTy }], { tx: startTx, ty: startTy });
+            }
           }
         } else {
           applyBoxSelection(additive, startTx, startTy, drag.lastTx, drag.lastTy, baseTiles);

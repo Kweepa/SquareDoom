@@ -7,6 +7,10 @@ import {
   colorHex,
   isDoorSector,
   isWindowSector,
+  isSwitch,
+  findSectorIdByTag,
+  normalizeTrigger,
+  worldToTile,
 } from './model.js';
 
 export class MapView {
@@ -240,6 +244,19 @@ export class MapView {
       }
     }
 
+    // Target link arrows for a single selected tile
+    if (sel.tiles?.size === 1) {
+      const [selKey] = sel.tiles;
+      const [stx, sty] = selKey.split(',').map(Number);
+      drawTargetArrows(ctx, level, stx, sty, c);
+    }
+
+    // Switch → target: single selected switch on a sector with trigger=switch + targetTag
+    if (sel.items?.size === 1) {
+      const [it] = sel.items;
+      if (isSwitch(it)) drawSwitchTargetArrow(ctx, level, it, c);
+    }
+
     // Marquee box
     if (sel.box) {
       const x0 = Math.min(sel.box.x0, sel.box.x1);
@@ -353,4 +370,117 @@ function sharedSelectionSector(level, tiles) {
     }
   }
   return sectorId;
+}
+
+/** Average tile coords of a sector (for arrow endpoints). */
+function sectorCentroid(level, sectorId) {
+  const tiles = tilesInSector(level, sectorId);
+  if (!tiles.length) return null;
+  let sx = 0;
+  let sy = 0;
+  for (const { tx, ty } of tiles) {
+    sx += tx;
+    sy += ty;
+  }
+  return { tx: sx / tiles.length, ty: sy / tiles.length };
+}
+
+/**
+ * Draw arrows for sector targetTag links when a single tile is selected:
+ * - outgoing: selected sector → its targetTag sector
+ * - incoming: sectors that target this sector's tag → selected tile
+ */
+function drawTargetArrows(ctx, level, stx, sty, c) {
+  const sectorId = getCell(level, stx, sty);
+  if (!sectorId) return;
+  const s = level.sectors.get(sectorId);
+  if (!s) return;
+
+  /** @type {{ from: {tx:number,ty:number}, to: {tx:number,ty:number} }[]} */
+  const arrows = [];
+  const selected = { tx: stx, ty: sty };
+
+  const to = resolveTargetCentroid(level, s, sectorId);
+  if (to) arrows.push({ from: selected, to });
+
+  const tag = String(s.tag || '').trim();
+  if (tag) {
+    for (const [id, other] of level.sectors) {
+      if (id === sectorId) continue;
+      if (String(other.targetTag || '').trim() !== tag) continue;
+      const from = sectorCentroid(level, id);
+      if (from) arrows.push({ from, to: selected });
+    }
+  }
+
+  for (const { from, to: dest } of arrows) {
+    drawArrow(
+      ctx,
+      (from.tx + 0.5) * c,
+      (from.ty + 0.5) * c,
+      (dest.tx + 0.5) * c,
+      (dest.ty + 0.5) * c,
+    );
+  }
+}
+
+/**
+ * Arrow from the tile under a switch to its target sector, when the sector
+ * under the switch has trigger=switch and a resolvable targetTag.
+ */
+function drawSwitchTargetArrow(ctx, level, it, c) {
+  const { tx, ty } = worldToTile(it.x, it.y);
+  const sectorId = getCell(level, tx, ty);
+  if (!sectorId) return;
+  const s = level.sectors.get(sectorId);
+  if (!s) return;
+  if (normalizeTrigger(s.trigger) !== 'switch') return;
+  const to = resolveTargetCentroid(level, s, sectorId);
+  if (!to) return;
+  drawArrow(
+    ctx,
+    (tx + 0.5) * c,
+    (ty + 0.5) * c,
+    (to.tx + 0.5) * c,
+    (to.ty + 0.5) * c,
+  );
+}
+
+/** Centroid of the sector named by s.targetTag, or null if unset/unresolved. */
+function resolveTargetCentroid(level, s, fromSectorId) {
+  const targetTag = String(s.targetTag || '').trim();
+  if (!targetTag) return null;
+  const tid = findSectorIdByTag(level, targetTag);
+  if (!tid || tid === fromSectorId) return null;
+  return sectorCentroid(level, tid);
+}
+
+function drawArrow(ctx, x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 2) return;
+  const ux = dx / len;
+  const uy = dy / len;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(80, 200, 255, 0.95)';
+  ctx.fillStyle = 'rgba(80, 200, 255, 0.95)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
+
+  const ah = Math.max(6, Math.min(14, len * 0.22));
+  const aw = ah * 0.55;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - ux * ah - uy * aw, y1 - uy * ah + ux * aw);
+  ctx.lineTo(x1 - ux * ah + uy * aw, y1 - uy * ah - ux * aw);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
