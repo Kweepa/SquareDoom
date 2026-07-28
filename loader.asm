@@ -30,6 +30,7 @@ FormatDosName
 ENTER_MIN_JIFFIES = 120			; ~2s NTSC / 2.4s PAL
 
 load_jiffy0	!byte 0
+load_saved_wpn	!byte 2			; cur_weapon across $90–$98 wipe
 
 LoadLevel
 	sei
@@ -52,6 +53,14 @@ LoadLevel
 
 	lda #0					; silent — no SEARCHING/LOADING text
 	jsr $ff90				; SETMSG
+
+	; cur_weapon lives in wiped range — stash before ST…LDTND clear
+	lda cur_weapon
+	cmp #$ff
+	bne .ll_save_wpn
+	lda #2				; unset → pistol
+.ll_save_wpn
+	sta load_saved_wpn
 
 	; ST…LDTND ($90–$98); stray $98 kills OPEN
 	ldx #0
@@ -100,10 +109,10 @@ LoadLevel
 	sta $d021
 	jsr prof_init
 	jsr input_irq_init
-	; LoadLevel wiped $90-$98 (KERNAL); restore weapon fire interval
+	; LoadLevel wiped $90-$98 (KERNAL); restore prior weapon
 	lda #$ff
 	sta cur_weapon
-	ldx #2				; pistol
+	ldx load_saved_wpn
 	jsr switch_weapon
 	plp
 	rts

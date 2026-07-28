@@ -570,7 +570,7 @@ name_ammo
 	!scr "shells"
 	!byte 0
 name_clips
-	!scr "clips"
+	!scr "ammo"
 	!byte 0
 name_shotgun
 	!scr "shotgun"

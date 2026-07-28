@@ -23,8 +23,11 @@ start_level
 	jsr update_eye
 	rts
 
-; Default status values
+; Default status values. health=0 (new game / death / menu restart) → full
+; reset; else keep ammo, weapons, health, armor, backpack across maps.
 init_hud_state
+	lda health
+	bne .ihs_carry
 	lda #50
 	sta ammo_bullets
 	lda #0
@@ -36,12 +39,19 @@ init_hud_state
 	sta health
 	lda #0
 	sta armor
+	sta has_backpack
+	; LoadLevel may have restored prior cur_weapon; force pistol defaults
+	lda #$ff
+	sta cur_weapon
+	ldx #2
+	jsr switch_weapon
+.ihs_carry
+	lda #0
 	sta keys
 	sta info_ms_l
 	sta info_ms_h
 	sta info_len
 	sta info_kind
-	sta has_backpack
 	sta key_use_was
 	sta radsuit_ms
 	sta radsuit_ms + 1
