@@ -81,9 +81,6 @@ fill_span
 	bne .fs_loop
 	rts
 
-; Alias — identical to fill_span (render_dda jmp target).
-fill_flat_span = fill_span
-
 ; col_base = FRAMEBUFFER + col * 25; pat_base = LIGHTFRAME + col * 25
 ; (LIGHTFRAME hi = FRAMEBUFFER hi + 4)
 set_col_base
@@ -98,44 +95,31 @@ set_col_base
 	sta pat_base_h
 	rts
 
-; wall_pat = min(15, min(15, wallz_h) + (15 - SEC_BRIGHT[cur_id]))
-; SEC_BRIGHT 16 = full bright (pattern 0, no distance darken).
-; also → fill_pat for wall strips. Clobbers X.
-set_wall_pat
-	ldx cur_id
-	lda SEC_BRIGHT,x
-	cmp #16
-	bcc .swp_dim
-	lda #0				; full bright: ignore wallz
-	sta wall_pat
-	sta fill_pat
-	rts
-.swp_dim
-	tax
-	lda bright_to_darken,x
-	sta fill_pat			; scratch: darken stops (overwritten below)
-	lda wallz_h
-	cmp #16
-	bcc .swp_zok
-	lda #15
-.swp_zok
-	clc
-	adc fill_pat
-	tax
-	lda pat_clamp,x
-	sta wall_pat
-	sta fill_pat
-	rts
-
-; A = SEC_BRIGHT → A = floor screen code FLOOR_PAT_BASE..+15 (16 → base). Clobbers X.
-bright_to_floor_pat
-	tax
-	lda bright_to_fpat,x
-	rts
-
-; SEC_BRIGHT 0..15 → extra dither stops (15 = distance only, 0 = +15 stops)
-bright_to_darken
+; wall_pat / fill_pat from SEC_WDARK[cur] + min(15, wallz_h).
+; SEC_WDARK $FF = full bright (pattern 0, ignore wallz). Inlined at on_cell .edge.
+; bright_to_wdark: SEC_BRIGHT 0..15 → darken 15..0; 16 → $FF
+bright_to_wdark
 	!byte 15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
+	!byte $ff
+
+; build_sec_wdark — SEC_WDARK[id] from SEC_BRIGHT (level load)
+build_sec_wdark
+	lda #0
+	sta SEC_WDARK			; void
+	lda level_sector_max
+	beq .bw_done
+	ldx #1
+.bw_l
+	lda SEC_BRIGHT,x
+	tay
+	lda bright_to_wdark,y
+	sta SEC_WDARK,x
+	cpx level_sector_max
+	bcs .bw_done
+	inx
+	bne .bw_l
+.bw_done
+	rts
 
 ; SEC_BRIGHT 0..16 → floor pattern (FLOOR_PAT_BASE + darken; 16 → base)
 bright_to_fpat
@@ -192,7 +176,7 @@ random	!word $a3b7			; 16-bit LCG state
 
 ; ------------------------------------------------------------------
 ; Passive sector specials (damage floor / flash lights) — sim tick, low mem
-; FLASH_MAX = 2 registered at level load; SEC_BRIGHT toggled in place.
+; FLASH_MAX = 2 registered at level load; SEC_BRIGHT + SEC_WDARK toggled in place.
 ; ------------------------------------------------------------------
 FLASH_MAX = 2
 FLASH_PERIOD_MS = 1000
@@ -317,11 +301,16 @@ sector_specials_update
 	lda flash_lit
 	bne .ssu_fhi
 	lda flash_base,x
-	sta SEC_BRIGHT,y
-	jmp .ssu_fn
+	jmp .ssu_fset
 .ssu_fhi
 	lda #16
+.ssu_fset
 	sta SEC_BRIGHT,y
+	stx tmp0				; flash slot; Y = sector
+	tax
+	lda bright_to_wdark,x
+	sta SEC_WDARK,y
+	ldx tmp0
 .ssu_fn
 	inx
 	cpx #FLASH_MAX

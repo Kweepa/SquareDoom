@@ -31,7 +31,7 @@
 ; cast_column — one screen column (col already set; col_base from set_col_base)
 ;
 ; Restores plr map/tile; builds sdx/sdy/wz; walks until clip closed, MAX_DDA,
-; or s overflow. Ends with fill_open_remainder if [ytop,ybot) still open.
+; or s overflow. Ends by flooding any leftover [ytop,ybot) with cur floor.
 ; ---------------------------------------------------------------------------
 cast_column
 !if PROFILE = 1 {
@@ -361,29 +361,35 @@ cast_column
 	ldy #PROF_DDA
 	jsr prof_add_bucket
 }
-	jmp fill_open_remainder
-
-; ---------------------------------------------------------------------------
-; fill_open_remainder — if clip still open after ray stop, flood with cur
-; sector floor colour (no project_y; wallz may be stale on overflow/cap).
-; ---------------------------------------------------------------------------
-fill_open_remainder
+	; Inlined former fill_open_remainder: flood leftover clip with cur floor
+	; (no project_y; wallz may be stale on overflow/cap). Dual-FB loop like
+	; paint_near — no jsr bright_to_floor_pat / fill_span.
 	lda ytop
 	cmp ybot
-	bcc .for_go
-	rts
-.for_go
+	bcs .for_rts			; clip closed
 	lda cur_id
-	beq .for_done
-	tay					; Y survives bright_to_floor_pat
+	beq .for_rts			; void
+	tay
 	lda SEC_BRIGHT,y
-	jsr bright_to_floor_pat
+	tax
+	lda bright_to_fpat,x
 	sta fill_pat
-	lda SEC_FCOL,y
+	ldx SEC_FCOL,y
+!if PROFILE = 1 {
+	inc span_lo
+	bne .for_go
+	inc span_hi
+.for_go
+}
 	ldy ytop
-	sty fill_y0
-	ldy ybot
-	sty fill_y1
-	jmp fill_flat_span
-.for_done
+	; ytop < ybot → at least one row
+.for_lp
+	txa
+	sta (col_base_l),y
+	lda fill_pat
+	sta (pat_base_l),y
+	iny
+	cpy ybot
+	bne .for_lp
+.for_rts
 	rts

@@ -14,6 +14,7 @@ start_level
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr build_sec_flatgrp
+	jsr build_sec_wdark
 	jsr flash_lights_init
 	jsr clear_sector_visited		; automap fog starts cleared
 	jsr player_tile
@@ -64,6 +65,7 @@ find_spawn
 ; eyeheight = floor(sector at player) + 3
 ; Uses player_prev_sec from try_walk_into (same frame on alive path;
 ; death path does not move — cached id stays valid).
+; Also patches project_y_sbc_eye immediate (project_y hot path).
 update_eye
 	lda player_prev_sec
 	beq .ue_empty
@@ -72,10 +74,12 @@ update_eye
 	clc
 	adc #3
 	sta eyeheight
+	sta project_y_sbc_eye + 1
 	rts
 .ue_empty
 	lda #11
 	sta eyeheight
+	sta project_y_sbc_eye + 1
 	rts
 
 ; ---------------------------------------------------------------------------

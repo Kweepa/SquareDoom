@@ -87,13 +87,14 @@ render
 on_cell
 	; Callers (.ax_cell / .ay_cell) already guarantee next_id ≠ cur_id
 	jsr calc_wallz			; W: side's wz → texstep for project_y
-	jsr set_wall_pat		; wall_pat = min(15, wallz_h); also → fill_pat
 !if PROFILE = 1 {
 	ldy #PROF_WALLZ
 	jsr prof_add_bucket
 }
 	lda cur_id
-	beq .void_enter			; leaving void: just adopt next_id
+	bne .oc_has_cur
+	jmp .void_enter			; leaving void: just adopt next_id
+.oc_has_cur
 	; Same-flat skip: identical flat group already painted this column
 	lda last_near_ok
 	beq .do_near
@@ -128,8 +129,8 @@ on_cell
 	sta near_ccol
 	lda SEC_FLATGRP,x
 	sta last_near_flatgrp
-	lda SEC_BRIGHT,x
-	jsr bright_to_floor_pat
+	ldy SEC_BRIGHT,x
+	lda bright_to_fpat,y		; SEC_BRIGHT → floor dither (no jsr)
 	sta near_fpat
 	jsr paint_near			; N: ceil/floor strips + span_a/b
 	lda #1
@@ -158,10 +159,34 @@ on_cell
 	clc
 	rts
 .edge
+	; Only drawable solid/portal edges consume wall_pat/fill_pat. Near-only
+	; clip closure and void entry return above without paying this cost.
+	; Inlined set_wall_pat: SEC_WDARK[cur] + min(15, wallz_h) → wall_pat/fill_pat
+	ldx cur_id
+	lda SEC_WDARK,x
+	bmi .swp_full			; $FF → pat 0 (full bright)
+	sta fill_pat			; darken 0..15 scratch
+	lda wallz_h
+	cmp #16
+	bcc .swp_zok
+	lda #15
+.swp_zok
+	clc
+	adc fill_pat
+	tax
+	lda pat_clamp,x
+	sta wall_pat
+	sta fill_pat
+	jmp .swp_done
+.swp_full
+	lda #0
+	sta wall_pat
+	sta fill_pat
+.swp_done
 	lda next_id
 	bne .portal
 	; Solid wall (next_id=0): flood remaining clip, then force-close
-	jsr wall_colour_ns_ew		; fill_pat already from set_wall_pat
+	jsr wall_colour_ns_ew
 	lda wall_col
 	jsr fill_col_span
 	lda ybot
@@ -177,7 +202,7 @@ on_cell
 	sec
 	rts
 .portal
-	jsr paint_portal			; L: upper/lower ledges + ybot shrink (fill_pat from set_wall_pat)
+	jsr paint_portal			; L: upper/lower ledges + ybot shrink
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
@@ -208,6 +233,5 @@ on_cell
 !source "render_setup.asm"
 !source "render_dda.asm"
 !source "render_wallz.asm"
-!source "render_near.asm"
 !source "render_ledge.asm"
 !source "render_items.asm"

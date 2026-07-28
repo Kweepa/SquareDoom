@@ -80,6 +80,9 @@ What hurt or was not worth it
   at-wallz cases dominate → worst-case P worse; reverted. Do not revive
   without a caller-gated “second height at this wallz” path that skips
   the min check on the common first project.
+- Call-site elision (skip raised-floor project unless lower ledge; split
+  same-flat refresh to one span): preamble (next_id / SEC_* / eye compare)
+  costs more than a fast-path project_y on typical views → slower; reverted.
 
 Profiling pitfalls
 ------------------
@@ -154,3 +157,24 @@ Portal clip / rising floors
 - DBG_PORTAL line: id ytop ybot span_a span_b near_floor above_eye
   farFloorY texstep_h. farFloorY=$FF if not projected; span_b=$FF if floor
   skip. above_eye = 1 if near_floor > eyeheight. Do not read ytop as floor.
+
+Near-path A/B (reverted — release F worse in most poses)
+-------------------------------------------------------
+- Same-flat early exit when SEC_FLATGRP[next]==last_near_flatgrp: skipped
+  height probes + refresh, but net slower on typical views (extra compare
+  on the common differing-group path outweighs rare equal-group wins).
+- One-row fill peel in paint_near: multi-row spans pay iny/cpy/bne tax;
+  short-span wins were too rare. Also ~39 B mid (free ~123→84).
+- Both reverted. Keep fused clamps + direct fill entry + deferred set_wall_pat
+  + inlined bright_to_fpat.
+
+- fill_open_remainder inlined into cast_column .done: bright_to_fpat + dual-FB
+  loop (cpy ybot), no jsr/jmp to helper or fill_span. Dead bright_to_floor_pat
+  removed. Low free ~489→494. Release F unchanged (open remainders rare after
+  solid/portal close) — kept as cleanup, not an F win.
+
+- set_wall_pat → SEC_WDARK[cur] precomputed from SEC_BRIGHT (0..15 darken,
+  $FF full bright). Built at level load (util); flash toggle updates both.
+  Inlined at on_cell .edge (no jsr). Drops bright load + bright_to_darken on
+  dim path. Release: low ~462, mid ~120, kernal tail 112. Small release F win
+  — kept.

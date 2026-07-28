@@ -20,6 +20,10 @@ prof_hi		= PROF_BSS + PROF_NBUCKET * 2
 frame_t0	= PROF_BSS + $15		; after 7×3 bucket bytes
 frame_cy	= PROF_BSS + $19
 casc_now	= PROF_BSS + $1d
+; Per-frame project_y diagnostics (not on HUD; inspect in VICE/monitor)
+py_calls	= PROF_BSS + $21		; total project_y / pair-slot calls
+py_slow		= PROF_BSS + $23		; texstep_h != 0
+py_pair		= PROF_BSS + $25		; paired projector uses (0 until pair path)
 } else {
 frame_t0	= PROF_BSS
 frame_cy	= PROF_BSS + 4
@@ -159,6 +163,12 @@ prof_reset_frame
 	sta prof_hi,x
 	dex
 	bpl .prf
+	sta py_calls
+	sta py_calls + 1
+	sta py_slow
+	sta py_slow + 1
+	sta py_pair
+	sta py_pair + 1
 	jmp prof_snap
 
 ; Y = bucket id. Add (snap - now) into bucket; leave snap = now.
@@ -190,7 +200,47 @@ prof_add_bucket
 	sta prof_hi,y
 	rts
 
+; After project_y: count call + hi-path, then bucket only projection time.
+; Callers must dump pending non-P work (N/L) with prof_add_bucket first.
 prof_add_py
+	inc py_calls
+	bne .pap_slow
+	inc py_calls + 1
+.pap_slow
+	lda texstep_h
+	beq .pap_buck
+	inc py_slow
+	bne .pap_buck
+	inc py_slow + 1
+.pap_buck
+	ldy #PROF_PROJECT_Y
+	jmp prof_add_bucket
+
+; After project_y_pair: count 2 heights + 1 pair use, one P sample.
+; Store X/A results before calling (prof_read_cia clobbers X).
+prof_add_py_pair
+	inc py_pair
+	bne .papp_c0
+	inc py_pair + 1
+.papp_c0
+	inc py_calls
+	bne .papp_c1
+	inc py_calls + 1
+.papp_c1
+	inc py_calls
+	bne .papp_slow
+	inc py_calls + 1
+.papp_slow
+	lda texstep_h
+	beq .papp_buck
+	inc py_slow
+	bne .papp_s1
+	inc py_slow + 1
+.papp_s1
+	inc py_slow
+	bne .papp_buck
+	inc py_slow + 1
+.papp_buck
 	ldy #PROF_PROJECT_Y
 	jmp prof_add_bucket
 }

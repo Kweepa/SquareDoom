@@ -8,12 +8,14 @@
 ; Front-to-back: ceil first; floor only if clip still open (and floor not
 ; above HORIZON — raised floors keep span_b but do not yank ybot).
 ;
-; N is sampled once at on_cell .after_near (not mid-paint). project_y
-; cost is bucketed to P via prof_add_py.
+; PROFILE: dump pending work to N before each project_y so P is projection
+; only (ceil fill must not land in the floor P sample). Final N bookend at
+; on_cell .after_near covers remaining floor fill / glue.
 ; Flat fills are inlined with lda near_fpat (no jsr fill_span).
 ; ============================================================================
 
 ; A = row → clamp into [ytop, ybot]; result in A. Macro-local @ labels.
+; Used by clamp_span (ledge); paint_near fuses clamp with fill decisions.
 !macro clamp_span_inline {
 	cmp ytop
 	bcs @cs1
@@ -43,7 +45,10 @@ paint_near
 	sta span_b			; clip closed — no floor Y for ledge
 	rts
 .pn_go
-	; --- Ceiling strip ---
+!if PROFILE = 1 {
+	ldy #PROF_NEAR
+	jsr prof_add_bucket		; post-W glue → N (not P)
+}
 	lda near_ceil
 	jsr project_y
 !if PROFILE = 1 {
@@ -52,12 +57,16 @@ paint_near
 }
 	sta span_a			; nearCeilY for paint_portal (A = py_row)
 
-	+clamp_span_inline
-	sta tmp1			; ceilEnd in [ytop,ybot]
+	; Fuse clamp + fill test: no fill when row <= ytop (clamps to ytop).
+	; Else ceilEnd = min(row, ybot); fill even when ceilEnd == ybot.
 	cmp ytop
 	beq .nc
 	bcc .nc
-	; Fill [ytop, ceilEnd) even when ceilEnd==ybot (close false openings)
+	cmp ybot
+	bcc .pn_cf_ready
+	lda ybot
+.pn_cf_ready
+	sta tmp1			; ceilEnd in (ytop, ybot]
 !if PROFILE = 1 {
 	inc span_lo
 	bne .pn_cf_go
@@ -66,14 +75,13 @@ paint_near
 }
 	ldx near_ccol
 	ldy ytop
-	jmp .pn_cf_test
+	; tmp1 > ytop → at least one row; enter body directly
 .pn_cf_lp
 	txa
 	sta (col_base_l),y
 	lda near_fpat
 	sta (pat_base_l),y
 	iny
-.pn_cf_test
 	cpy tmp1
 	bne .pn_cf_lp
 	sty ytop			; Y == tmp1 at exit; shrink open window from the top
@@ -86,6 +94,10 @@ paint_near
 	rts
 .pn_floor
 	; --- Floor strip (only when at/below HORIZON) ---
+!if PROFILE = 1 {
+	ldy #PROF_NEAR
+	jsr prof_add_bucket		; clamp + ceil fill → N (not floor P)
+}
 	lda near_floor
 	jsr project_y
 !if PROFILE = 1 {
@@ -95,12 +107,18 @@ paint_near
 	sta span_b			; nearFloorY kept even if we skip fill
 	cmp #HORIZON
 	bcc .pnd			; raised floor: span_b only, leave ybot
-	+clamp_span_inline
-	sta tmp1
+
+	; Fuse clamp + fill test: floorStart = clamp(row); fill iff start < ybot
+	; (including floorStart == ytop for false-opening close).
+	cmp ytop
+	bcs .pn_ff_hi
+	lda ytop
+	bcc .pn_ff_clamped		; C=0 after untaken bcs; always taken
+.pn_ff_hi
 	cmp ybot
-	bcs .pnd
-	; Fill [floorStart, ybot) even when floorStart==ytop (close false openings)
-	; and pull ybot up. After clamp, floorStart >= ytop always.
+	bcs .pnd			; start >= ybot → empty
+.pn_ff_clamped
+	sta tmp1			; floorStart in [ytop, ybot)
 !if PROFILE = 1 {
 	inc span_lo
 	bne .pn_ff_go
@@ -109,14 +127,13 @@ paint_near
 }
 	ldx near_fcol
 	ldy tmp1
-	jmp .pn_ff_test
+	; tmp1 < ybot → at least one row; enter body directly
 .pn_ff_lp
 	txa
 	sta (col_base_l),y
 	lda near_fpat
 	sta (pat_base_l),y
 	iny
-.pn_ff_test
 	cpy ybot
 	bne .pn_ff_lp
 	lda tmp1
@@ -131,25 +148,23 @@ paint_near
 ; nearFloorY / nearCeilY at the current wallz.
 ; ---------------------------------------------------------------------------
 refresh_near_spans
+!if PROFILE = 1 {
+	ldy #PROF_NEAR
+	jsr prof_add_bucket
+}
 	lda near_ceil
-	jsr project_y
-!if PROFILE = 1 {
-	jsr prof_add_py
-	lda py_row
-}
-	sta span_a
-	lda near_floor
-	jsr project_y
-!if PROFILE = 1 {
-	jsr prof_add_py
-	lda py_row
-}
+	ldy near_floor
+	jsr project_y_pair
+	stx span_a
 	sta span_b
+!if PROFILE = 1 {
+	jsr prof_add_py_pair
+}
 	rts
 
 ; ---------------------------------------------------------------------------
 ; clamp_span — A = row → clamp into [ytop, ybot]; result in A
-; Used by render_ledge; paint_near inlines via +clamp_span_inline.
+; Used by render_ledge; paint_near fuses clamp via open-coded compares.
 ; ---------------------------------------------------------------------------
 clamp_span
 	+clamp_span_inline

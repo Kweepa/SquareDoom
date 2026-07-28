@@ -254,7 +254,7 @@ COL_DDWY_H	= COL_DDWY_L + COL_NUM
 COL_END		= COL_DDWY_H + COL_NUM	; first byte after ray cache
 
 PROF_BSS	= COL_END		; CIA cascade / PROFILE buckets (must be ≥ COL_END)
-PROF_BSS_SIZE	= $24			; 7×3 buckets + frame/cascade (PROFILE=1)
+PROF_BSS_SIZE	= $27			; 7×3 buckets + frame/cascade + py counters
 PROF_END	= PROF_BSS + PROF_BSS_SIZE
 
 ; Door / sector processes (SoA, max 8)
@@ -331,3 +331,7 @@ SEC_FLATGRP_END	= SEC_FLATGRP + SEC_TABLE_SIZE
 ; Persistent automap fog: ever marked by mark_seen this level
 SEC_VISITED	= SEC_FLATGRP_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_VISITED_END	= SEC_VISITED + SEC_TABLE_SIZE
+
+; Per-sector wall darken for set_wall_pat (from SEC_BRIGHT; $FF = full bright)
+SEC_WDARK	= SEC_VISITED_END	; SEC_TABLE_SIZE bytes, index = sector id
+SEC_WDARK_END	= SEC_WDARK + SEC_TABLE_SIZE

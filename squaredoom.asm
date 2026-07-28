@@ -92,7 +92,8 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "hud.asm"
 !source "pickup.asm"
 !source "titlemenus.asm"
-; P + clip moved out of low (which is nearly full)
+; Near flats + P + clip in mid (low headroom for PROFILE hooks elsewhere)
+!source "render_near.asm"
 !source "render_project_y.asm"
 !source "render_clip.asm"
 ; Enemy mips in mid (always-RAM); dpsounds moved to high for headroom
@@ -208,8 +209,8 @@ free_high = MEM_HIGH_LIMIT - end_high
 }
 !warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
 
-; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj, flatgrp, visited; tail free to $10000
-free_kernal = $10000 - SEC_VISITED_END
+; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj, flatgrp, visited, wdark; tail free to $10000
+free_kernal = $10000 - SEC_WDARK_END
 free_total = free_low + free_mid + free_high + free_kernal
-!warn "mem: kernal BSS $e000..$", SEC_VISITED_END - 1, " free tail =", free_kernal
+!warn "mem: kernal BSS $e000..$", SEC_WDARK_END - 1, " free tail =", free_kernal
 !warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"

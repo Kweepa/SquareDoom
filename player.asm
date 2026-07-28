@@ -90,5 +90,6 @@ player_death_eye
 	sec
 	sbc #2				; floor + 3 → floor + 1
 	sta eyeheight
+	sta project_y_sbc_eye + 1
 .pde_rts
 	rts

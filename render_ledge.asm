@@ -66,6 +66,26 @@ paint_portal
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
 }
+	lda far_floor
+	cmp near_floor
+	bcc .pp_upper_only
+	beq .pp_upper_only
+	; Both ledges at this edge — pair-project far ceil + floor
+	lda far_ceil
+	ldy far_floor
+	jsr project_y_pair
+	stx tmp4			; farCeilY
+	sta tmp5			; farFloorY
+!if DBG_PORTAL = 1 {
+	sta dbg_far_y
+}
+!if PROFILE = 1 {
+	jsr prof_add_py_pair
+}
+	jsr .pp_draw_u
+	jmp .pp_do_l
+
+.pp_upper_only
 	lda far_ceil
 	jsr project_y
 !if PROFILE = 1 {
@@ -73,29 +93,6 @@ paint_portal
 	lda py_row
 }
 	sta tmp4			; farCeilY
-	lda far_floor
-	cmp near_floor
-	bcc .pp_do_u
-	beq .pp_do_u
-	; Both ledges at this edge
-!if PROFILE = 1 {
-	ldy #PROF_LEDGE
-	jsr prof_add_bucket
-}
-	lda far_floor
-	jsr project_y
-!if PROFILE = 1 {
-	jsr prof_add_py
-	lda py_row
-}
-	sta tmp5			; farFloorY
-!if DBG_PORTAL = 1 {
-	sta dbg_far_y
-}
-	jsr .pp_draw_u
-	jmp .pp_do_l
-
-.pp_do_u
 	jmp .pp_draw_u
 .ppd
 	rts
