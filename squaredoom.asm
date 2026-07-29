@@ -113,6 +113,7 @@ free_low = MINIGUN_B_SPRITES - end_low
 !source "debug.asm"
 !source "hud.asm"
 !source "pickup.asm"
+!source "cheats.asm"			; iddqd / idkfa / idclev (after pickup for INFO_*)
 !source "logo_defs.asm"			; LOGO_* constants (payload on disk → FRAMEBUFFER)
 !source "loader.asm"			; mid — LoadPrg/LoadUiFile; mid has room after UI dumps left
 !source "titlemenus.asm"
