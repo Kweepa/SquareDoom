@@ -17,7 +17,7 @@ ROCKET_SPRITES = $3180		; 8×64-byte rocket+pink flash (VIC bank 0)
 SHOTGUN_SPRITES = $3380	; 6×64-byte shotgun body (VIC bank 0)
 PISTOL_SPRITES = $3500		; 6×64-byte pistol body (VIC bank 0)
 MUZZLE_FLASH_SPRITES = $3680	; 4×64 shared flash A/B white+red (pistol/sg/mg)
-; Packed charset at $3800 (tools/gencharset.js) — mid code starts at MID_BASE
+; Packed charset at $3800 (tools/gencharset.js); cock sprites; mid after
 ; 0–15 walls; 16–63 doomfont punct/HUD/digits + gap packs; 64–89 A–Z; 90–105 floors
 MENU_CURSOR = 16		; skull (gap)
 MAP_ARROW0 = 17			; arrows 17–20
@@ -27,7 +27,9 @@ MSG_LET0 = 64			; A–Z (walls own PETSCII letter codes 1–15)
 MSG_LETTER0 = MSG_LET0
 FLOOR_PAT_BASE = 90		; floor dither 90–105
 CHARSET_NUM = 106
-MID_BASE = CHARSET + CHARSET_NUM * 8	; $3b50
+CHARSET_END = CHARSET + CHARSET_NUM * 8	; $3b50
+SHOTGUN_COCK_SPRITES = $3b80	; 6×64 cock pose (VIC bank 0; after charset pad)
+MID_BASE = SHOTGUN_COCK_SPRITES + 6 * 64	; $3d00
 
 MAX_DDA = 32
 PROFILE = 0
@@ -40,7 +42,7 @@ MAX_SECTORS = 199		; usable ids 1..199
 SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
 ; Memory ceilings:
-;   low  → sprites before CHARSET; packed charset $3800..MID_BASE-1
+;   low  → sprites before CHARSET; charset $3800..CHARSET_END; cock $3b80; mid $3d00+
 ;   mid  → MID_BASE → level_data at $a000; enemy mips here
 ;   high → FRAMEBUFFER at $c800 ($c000–$c7ff free after SQTAB move)
 MEM_MID_LIMIT = $a000
@@ -55,7 +57,6 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "profil.asm"
 !source "render.asm"
 !source "blit.asm"
-!source "weapon.asm"
 ; enemy boss-death floors — low for mid headroom
 !source "enemy_low.asm"
 
@@ -89,13 +90,19 @@ free_low = MINIGUN_B_SPRITES - end_low
 	!error "Muzzle sprites overlap charset at $3800; end=$", *
 }
 
-; Packed charset image (VIC reads in place); mid follows immediately
+; Packed charset image (VIC reads in place); cock sprites; mid follows
 *=CHARSET
 !source "charset.asm"
+!if * != CHARSET_END {
+	!error "charset.asm size mismatch: ended at $", *, " expected CHARSET_END $", CHARSET_END
+}
+*=SHOTGUN_COCK_SPRITES
+!source "shotgun_cock_sprites.asm"
 !if * != MID_BASE {
-	!error "charset.asm size mismatch: ended at $", *, " expected MID_BASE $", MID_BASE
+	!error "cock sprites size mismatch: ended at $", *, " expected MID_BASE $", MID_BASE
 }
 *=MID_BASE
+!source "weapon.asm"			; mid — grew past low free; sprites stay in bank 0
 !source "gameloop.asm"
 !source "level.asm"
 !source "playsound.asm"

@@ -6,6 +6,7 @@
 ;   chainsaw hi2 $2dc0 (punch pad); body $2e00: 8 sprites (no flash)
 ;   minigun  $3000: 6 A/shared body; rocket $3180: 8; shotgun $3380: 6
 ;   pistol   $3500: 6 body; shared muzzle $3680: flash A/B white+red (sprites 6–7)
+;   cock     $3b80: 6 layers (after charset pad; mid at $3d00)
 FIST_RIGHT_SPR_PTR0 = FIST_RIGHT_SPRITES / 64
 FIST_PUNCH_SPR_PTR0 = FIST_PUNCH_SPRITES / 64
 CHAINSAW_BLADE_HI2_PTR = CHAINSAW_BLADE_HI2_SPRITES / 64
@@ -14,8 +15,10 @@ MINIGUN_B_SPR_PTR0 = MINIGUN_B_SPRITES / 64
 MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
+SHOTGUN_COCK_SPR_PTR0 = SHOTGUN_COCK_SPRITES / 64
 PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
 MUZZLE_FLASH_PTR0 = MUZZLE_FLASH_SPRITES / 64
+SG_COCK_MS = 600			; cock pose duration after muzzle expires (ms)
 EIGHT_ENABLE_IDLE = $3f		; sprites 0–5 (body; flash 6–7 off)
 EIGHT_ENABLE_ALL = $ff		; all eight (chainsaw)
 FIST_ENABLE = $7f			; sprites 0–6 (hand layers)
@@ -98,6 +101,24 @@ shotgun_spr_y
 	!byte 208, 208			; hand
 	!byte 162, 162			; flash
 
+; Cock pose: 6 layers, stacked blacks (hi+42=lo), no flash, 2× expand
+; Layer order (low VIC# = front): black_hi, black_lo, grey, highlight, brown, orange
+shotgun_cock_col
+	!byte 0, 0			; black top / black bottom
+	!byte 11			; dark grey detail (top)
+	!byte 15			; highlight (bottom)
+	!byte 9, 8			; hand brown / orange
+shotgun_cock_x
+	!byte 100, 100			; black layers
+	!byte 100			; grey
+	!byte 100			; highlight
+	!byte 100, 100			; hand
+shotgun_cock_y
+	!byte 166, 208			; black hi / lo (stacked)
+	!byte 166			; grey (top half)
+	!byte 208			; highlight (bottom half)
+	!byte 186, 184			; brown rows 10–30; orange rows 9–29
+
 minigun_spr_col
 	!byte 15, 15			; upper / lower highlights (brightness-updated)
 	!byte 11, 11			; grey body L/R
@@ -112,7 +133,7 @@ minigun_spr_y
 	!byte 194, 208			; upper / lower hi
 	!byte 194, 194			; grey (+7 sprite px above black)
 	!byte 208, 208			; black
-	!byte 166, 166			; flash
+	!byte 172, 172			; flash
 
 rocket_spr_col
 	!byte 15, 11			; hi (brightness-updated) / detail dark grey
@@ -200,6 +221,8 @@ switch_weapon
 	sta muzzle_ms_h
 	sta fire_rpt_l
 	sta fire_rpt_h
+	sta sg_cock_ms_l
+	sta sg_cock_ms_h
 	lda #1
 	sta hud_dirty
 	jsr wpn_setup
@@ -235,7 +258,11 @@ show_weapon
 	sta $d015
 	; fall through
 ; Highlight colour: random muzzle tint while flash is up, else SEC_BRIGHT mapping.
+; Skip while shotgun cock pose is up (sprite 0 is black base, not highlight).
 .wpn_hi_bright
+	lda sg_cock_ms_l
+	ora sg_cock_ms_h
+	bne .wh_rts
 	lda muzzle_ms_l
 	ora muzzle_ms_h
 	beq .wh_sector
@@ -420,6 +447,37 @@ setup_shotgun
 	bcc .ss_set
 	jmp .set_muzzle_ptrs
 
+; Show shotgun cock pose — sprites 0–5 from SHOTGUN_COCK area, flash off.
+; Called after muzzle expires on a shotgun shot; sg_cock_ms must be pre-set.
+setup_shotgun_cock
+	lda #EIGHT_ENABLE_IDLE		; sprites 0–5 on, 6–7 off
+	jsr .wpn_en
+	lda #$ff
+	sta $d01d
+	sta $d017
+	lda #0
+	sta $d01c
+	sta $d010
+	ldx #0
+	ldy #0
+	clc
+.ssc_set
+	lda shotgun_cock_col,x
+	sta $d027,x
+	txa
+	adc #SHOTGUN_COCK_SPR_PTR0
+	sta $07f8,x
+	lda shotgun_cock_x,x
+	sta $d000,y
+	lda shotgun_cock_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #6
+	bcc .ssc_set
+	rts
+
 setup_minigun
 	lda #0
 	sta mg_frame
@@ -547,14 +605,36 @@ damage_pistol
 	adc #1
 	jmp TryDamageEnemy
 
+; 5 pellets: each picks a random column in 18..22 and applies pistol damage.
 damage_shotgun
+	ldy #5
+.sg_pellet
+	tya
+	pha				; preserve pellet count across GetRandom8 / damage
+	jsr GetRandom8
+	and #15
+.sg_reduce
+	cmp #5
+	bcc .sg_col
+	sbc #5			; C=1 from cmp
+	jmp .sg_reduce		; re-cmp (do not bcs — C stays set)
+.sg_col
+	clc
+	adc #MUZZLE_COL - AIM_COL_SLACK	; 18
+	tax
 	jsr GetRandom8
 	lsr
 	lsr
 	lsr
+	lsr
 	clc
-	adc #3
-	jmp TryDamageEnemy
+	adc #1				; pistol 1..16
+	jsr TryDamageAtCol
+	pla
+	tay
+	dey
+	bne .sg_pellet
+	rts
 
 ; Spend 1 ammo from the active weapon's reserve, show muzzle flash, damage via SMC.
 ; C=0 ok, C=1 no ammo (or rocket slot busy). Melee (0/1) skips ammo/flash.
@@ -645,7 +725,7 @@ update_muzzle_flash
 	; re-OR needed — show_weapon copies spr_en→$d015, expiry calls wpn_setup.
 	lda muzzle_ms_l
 	ora muzzle_ms_h
-	beq .mf_keys
+	beq .mf_cock
 .mf_tick
 	sec
 	lda muzzle_ms_l
@@ -656,13 +736,50 @@ update_muzzle_flash
 	sta muzzle_ms_h
 	bcc .mf_expired		; underflow
 	ora muzzle_ms_l		; A = hi
-	bne .mf_keys		; still > 0
+	bne .mf_cock		; still > 0
 .mf_expired
 	lda #0
 	sta muzzle_ms_l
 	sta muzzle_ms_h
+	; Shotgun: start cock animation instead of restoring idle pose
+	lda cur_weapon
+	cmp #3
+	bne .mf_restore
+	lda #<SG_COCK_MS
+	sta sg_cock_ms_l
+	lda #>SG_COCK_MS
+	sta sg_cock_ms_h
+	lda #SOUND_SGCOCK
+	jsr play_sound
+	jsr setup_shotgun_cock
+	jsr .wpn_hi_bright
+	jmp .mf_cock
+.mf_restore
 	; restore idle weapon pose (fist → open hand; guns → flash off)
 	jsr wpn_setup
+	jsr .wpn_hi_bright
+
+	; --- shotgun cock animation timeout ---
+.mf_cock
+	lda sg_cock_ms_l
+	ora sg_cock_ms_h
+	beq .mf_keys
+	sec
+	lda sg_cock_ms_l
+	sbc dt_ms
+	sta sg_cock_ms_l
+	lda sg_cock_ms_h
+	sbc #0
+	sta sg_cock_ms_h
+	bcc .mf_cock_done	; underflow
+	ora sg_cock_ms_l
+	bne .mf_keys		; still ticking
+.mf_cock_done
+	lda #0
+	sta sg_cock_ms_l
+	sta sg_cock_ms_h
+	; restore idle shotgun pose
+	jsr setup_shotgun
 	jsr .wpn_hi_bright
 
 .mf_keys
@@ -680,6 +797,18 @@ update_muzzle_flash
 	sta fire_rpt_h
 	bcs .mf_done
 .mf_shot
+	; Cancel cock pose and restore idle body before flash (ptrs may still be cock)
+	lda sg_cock_ms_l
+	ora sg_cock_ms_h
+	beq .mf_fire
+	lda #0
+	sta sg_cock_ms_l
+	sta sg_cock_ms_h
+	lda cur_weapon
+	cmp #3
+	bne .mf_fire
+	jsr setup_shotgun
+.mf_fire
 	jsr .fire_shot
 	bcs .mf_stop_rpt
 	lda wpn_fire_ms_l

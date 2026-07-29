@@ -337,6 +337,9 @@ SEC_FLATGRP_END	= SEC_FLATGRP + SEC_TABLE_SIZE
 SEC_VISITED	= SEC_FLATGRP_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_VISITED_END	= SEC_VISITED + SEC_TABLE_SIZE
 
+sg_cock_ms_l	= $b0			; shotgun cock animation ms remaining (lo)
+sg_cock_ms_h	= $b1			; shotgun cock animation ms remaining (hi)
+
 ; Per-sector wall darken for set_wall_pat (from SEC_BRIGHT; $FF = full bright)
 SEC_WDARK	= SEC_VISITED_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_WDARK_END	= SEC_WDARK + SEC_TABLE_SIZE

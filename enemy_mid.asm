@@ -1900,6 +1900,7 @@ enemy_get_texture
 ; TryDamageEnemy — A = damage; nearest live enemy on MUZZLE±AIM_COL_SLACK
 ; via COL_AIM_* (per-column stamp; pick lowest COL_AIM_Z in the cone).
 ; TryDamageMelee — same, but only if COL_AIM_Z < MELEERANGE.
+; TryDamageAtCol — A = damage, X = column; hit that column's aim target only.
 ; ---------------------------------------------------------------------------
 TryDamageMelee
 	sta damage_amount
@@ -1956,3 +1957,11 @@ TryDamageEnemy
 	jmp barrel_explode
 .tde_rts
 	rts
+
+; A = damage, X = screen column — damage COL_AIM_SLOT,x if live (any range).
+TryDamageAtCol
+	sta damage_amount
+	lda COL_AIM_SLOT,x
+	bmi .tde_rts
+	sta tde_best_slot
+	jmp .tde_slot
