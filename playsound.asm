@@ -25,14 +25,15 @@ SOUND_SAWIDL = 14
 SOUND_SAWFUL = 15
 SOUND_SAWHIT = 16
 SOUND_PUNCH = 17
+SOUND_BAREXP = 18
 
 sound_priorities
 ; claw, dmpain, doropn, dorcls, itemup, oof
 	!byte 2,2,1,1,1,2
 ; gurgle, pistol, plpain, popain, sgcock, sgtdth
 	!byte 0,2,2,2,2,2
-; shotgn, stnmov, sawidl, sawful, sawhit, punch
-	!byte 2,0,0,1,2,2
+; shotgn, stnmov, sawidl, sawful, sawhit, punch, barexp
+	!byte 2,0,0,1,2,2,2
 
 sound_index		!byte $ff
 sound_priority		!byte 0

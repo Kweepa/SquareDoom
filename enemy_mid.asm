@@ -75,7 +75,7 @@ ITEM_TYPE_DEMONCORPSE = 23
 ITEM_TYPE_BARONCORPSE = 24
 ITEM_TYPE_PLASMABALL = 29
 ITEM_TYPE_ROCKET = 30
-ITEM_TYPE_BAREXPL = 31
+ITEM_TYPE_EXPLOSION = 31
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -1614,7 +1614,7 @@ a_fly
 	sta MOBJ_ALLOC,x
 	rts
 
-; Player rocket flight — damages enemies on XY contact; no splash
+; Player rocket flight — explode (splash) on enemy contact / wall / timeout
 a_fly_player
 	jsr procket_try_hit
 	bcs .afp_die
@@ -1650,16 +1650,15 @@ a_fly_player
 	bmi .afp_die
 	rts
 .afp_die
-	lda #ITEM_TYPE_EMPTY_E
-	sta level_item_type + ITEM_PLAYER_ROCKET
 	lda #$ff
 	sta MOBJ_FOR_ITEM + ITEM_PLAYER_ROCKET
 	ldx #MOBJ_PLAYER_ROCKET
 	lda #0
 	sta MOBJ_ALLOC,x
-	rts
+	ldx #ITEM_PLAYER_ROCKET
+	jmp explode
 
-; C=1 if rocket hit an enemy (damaged). Uses ITEM_PLAYER_ROCKET pos.
+; C=1 if rocket near an enemy (proximity only; splash via explode). Uses rocket pos.
 procket_try_hit
 	lda level_item_x + ITEM_PLAYER_ROCKET
 	sta save_xh
@@ -1682,20 +1681,9 @@ procket_try_hit
 	sbc save_yh
 	sta tmp1
 	stx tmp5			; mobj idx
-	sty tmp4			; item slot
 	jsr p_approx_distance
 	cmp #3
 	bcs .pth_rest
-	; hit — damage from rocket HEALTH payload + rand
-	ldx #MOBJ_PLAYER_ROCKET
-	lda MOBJ_HEALTH,x
-	sta tmp0
-	jsr GetRandom8
-	and #15
-	clc
-	adc tmp0
-	ldx tmp4
-	jsr enemy_damage
 	sec
 	rts
 .pth_rest
@@ -1763,13 +1751,6 @@ spawn_player_rocket
 	sta MOBJ_FLAGS,x
 	lda #48
 	sta MOBJ_MOVECNT,x
-	; damage payload (was hitscan rocket)
-	jsr GetRandom8
-	lsr
-	lsr
-	clc
-	adc #20
-	sta MOBJ_HEALTH,x
 	clc
 	rts
 
@@ -1954,7 +1935,7 @@ TryDamageEnemy
 	lda level_item_type,x
 	cmp #ITEM_TYPE_BARREL
 	bne .tde_rts
-	jmp barrel_explode
+	jmp explode
 .tde_rts
 	rts
 

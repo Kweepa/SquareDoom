@@ -80,8 +80,14 @@ dppunch
 	!byte 53, 35, 54, 35, 54, 34, 54, 33, 36, 33, 29, 32, 22, 31, 14, 30
 	!byte 7, 29, 0, 26, 0, 25, 0, 21, 0, 18, 0, 16, 0, 15, 0, 10
 	!byte 0, 8, 0, 7, 0, 6, 0, 5, 0, 5, 0, 5
+dpbarexp
+	!byte 79, 13, 24, 32, 14, 21, 34, 23, 14, 12, 3, 42, 13, 12, 3, 4
+	!byte 21, 35, 23, 45, 23, 43, 12, 5, 12, 3, 51, 23, 44, 12, 3, 41
+	!byte 12, 34, 23, 15, 12, 34, 52, 34, 32, 1, 4, 21, 34, 23, 1, 5
+	!byte 21, 3, 45, 23, 4, 12, 3, 52, 13, 4, 32, 1, 5, 32, 15, 23
+	!byte 14, 32, 1, 5, 21, 3, 45, 23, 4, 12, 3, 4, 32, 1, 52, 35
 
-; total sound payload 772 bytes (count + samples)
+; total sound payload 852 bytes (count + samples)
 sound_table
 	!word dpclaw
 	!word dpdmpain
@@ -101,6 +107,7 @@ sound_table
 	!word dpsawful
 	!word dpsawhit
 	!word dppunch
+	!word dpbarexp
 
 ; Pitch 0..95 → SID Fn (0 = silence). From pcsounds/speaker.txt × NTSC φ2.
 pcsfreq_lo

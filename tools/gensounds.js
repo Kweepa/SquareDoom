@@ -14,6 +14,7 @@ const EFFECTS = [
   'dpclaw', 'dpdmpain', 'dpdoropn', 'dpdorcls', 'dpitemup', 'dpoof',
   'dpbgact', 'dppistol', 'dpplpain', 'dppopain', 'dpsgcock', 'dpsgtdth',
   'dpshotgn', 'dpstnmov', 'dpsawidl', 'dpsawful', 'dpsawhit', 'dppunch',
+  'dpbarexp',
 ];
 
 const PHI2_NTSC = 1022727;

@@ -1,17 +1,17 @@
 !zone enemy_low
 
 ; ============================================================================
-; enemy_low.asm — E1M8 boss death → forever floors; exploding barrels
+; enemy_low.asm — E1M8 boss death → forever floors; explosions (barrels + rockets)
 ; (lives in low for mid headroom). Baron hook from enemy_mid .ed_kill.
 ; ============================================================================
 
 BARREL_FUSE = $83			; bit7 lit + 3-frame countdown
-BARREL_SPLASH = 8			; world units (1 tile)
+EXPLOSION_SPLASH = 8			; world units (1 tile)
 MAX_PLACEABLE_ITEMS = 46		; slots 0..45 (46/47 reserved)
 
 boss_floors_done	!byte 0
 boss_scan_sec	!byte 0
-barrel_events	!byte 0			; active BAREXPL + fused barrels
+barrel_events	!byte 0			; active EXPLOSION + fused barrels
 
 ; e1m8_baron_kill_hook — after any kill; if last baron on E1M8, lower floors
 e1m8_baron_kill_hook
@@ -78,37 +78,37 @@ boss_lower_forever_floors
 	rts
 
 ; ---------------------------------------------------------------------------
-; barrel_near_y — Y = item slot; C=0 if within BARREL_SPLASH of save_xh/yh
+; explosion_near_y — Y = item slot; C=0 if within EXPLOSION_SPLASH of save_xh/yh
 ; ---------------------------------------------------------------------------
-barrel_near_y
+explosion_near_y
 	lda level_item_x,y
 	sec
 	sbc save_xh
-	bcs .bny_ax
+	bcs .eny_ax
 	eor #$ff
 	adc #1
-.bny_ax
-	cmp #BARREL_SPLASH+1
-	bcs .bny_out
+.eny_ax
+	cmp #EXPLOSION_SPLASH+1
+	bcs .eny_out
 	lda level_item_y,y
 	sec
 	sbc save_yh
-	bcs .bny_ay
+	bcs .eny_ay
 	eor #$ff
 	adc #1
-.bny_ay
-	cmp #BARREL_SPLASH+1
+.eny_ay
+	cmp #EXPLOSION_SPLASH+1
 	rts
-.bny_out
+.eny_out
 	sec
 	rts
 
 ; ---------------------------------------------------------------------------
-; barrel_explode — X = barrel item slot
-; barexpl for 2 display frames; splash enemies; fuse neighbour barrels.
+; explode — X = item slot (barrel or rocket)
+; EXPLOSION for 2 display frames; splash enemies; fuse neighbour barrels.
 ; ---------------------------------------------------------------------------
-barrel_explode
-	lda #ITEM_TYPE_BAREXPL
+explode
+	lda #ITEM_TYPE_EXPLOSION
 	sta level_item_type,x
 	lda #2
 	sta level_item_meta,x
@@ -118,7 +118,7 @@ barrel_explode
 	sta save_xh
 	lda level_item_y,x
 	sta save_yh
-	lda #SOUND_SHOTGN
+	lda #SOUND_BAREXP
 	jsr play_sound
 	ldx #0
 .bex_mobj
@@ -128,7 +128,7 @@ barrel_explode
 	cmp #MOBJINFO_IMPSHOT
 	bcs .bex_mn
 	ldy MOBJ_OBJ,x
-	jsr barrel_near_y
+	jsr explosion_near_y
 	bcs .bex_mn
 	stx tmp5
 	sty tmp3
@@ -154,7 +154,7 @@ barrel_explode
 	bmi .bex_in
 	txa
 	tay
-	jsr barrel_near_y
+	jsr explosion_near_y
 	bcs .bex_in
 	lda #BARREL_FUSE
 	sta level_item_meta,x
@@ -166,7 +166,7 @@ barrel_explode
 	rts
 
 ; ---------------------------------------------------------------------------
-; barrel_update — barexpl countdown + fused barrel detonation (after fire)
+; barrel_update — explosion countdown + fused barrel detonation (after fire)
 ; ---------------------------------------------------------------------------
 barrel_update
 	lda barrel_events
@@ -176,7 +176,7 @@ barrel_update
 	ldx #0
 .bu_lp
 	lda level_item_type,x
-	cmp #ITEM_TYPE_BAREXPL
+	cmp #ITEM_TYPE_EXPLOSION
 	beq .bu_expl
 	cmp #ITEM_TYPE_BARREL
 	bne .bu_nx
@@ -188,7 +188,7 @@ barrel_update
 	bne .bu_nx
 	dec barrel_events			; fuse consumed
 	stx tmp2
-	jsr barrel_explode
+	jsr explode
 	ldx tmp2
 	jmp .bu_nx
 .bu_expl
@@ -204,4 +204,17 @@ barrel_update
 	inx
 	cpx #MAX_PLACEABLE_ITEMS
 	bcc .bu_lp
+	; Rocket slot (46) can be ITEM_TYPE_EXPLOSION — placeable loop skips it
+	lda level_item_type + ITEM_PLAYER_ROCKET
+	cmp #ITEM_TYPE_EXPLOSION
+	bne .bu_rts
+	lda level_item_meta + ITEM_PLAYER_ROCKET
+	beq .bu_rclr
+	dec level_item_meta + ITEM_PLAYER_ROCKET
+	rts
+.bu_rclr
+	lda #ITEM_TYPE_EMPTY_E
+	sta level_item_type + ITEM_PLAYER_ROCKET
+	dec barrel_events
+.bu_rts
 	rts

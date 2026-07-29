@@ -20,7 +20,7 @@ ITEM_TYPE_SWITCH = 27
 ITEM_TYPE_FIREBALL = 28
 ITEM_TYPE_PLASMABALL = 29
 ITEM_TYPE_ROCKET = 30
-ITEM_TYPE_BAREXPL = 31
+ITEM_TYPE_EXPLOSION = 31
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -524,7 +524,7 @@ item_draw_one
 	lda #0
 	sta far_floor			; 0 = item path (1:1 or stretch)
 	lda wall_col
-	cmp #ITEM_TYPE_BAREXPL
+	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_large
 	cmp #ITEM_TYPE_SWITCH
 	beq .id_large
@@ -547,7 +547,7 @@ item_draw_one
 	sta last_near_ok			; screen W = mip W
 	jmp .id_feet
 .id_large
-	; barexpl/switch: S = min(2*H, 16); mip from S; DDA stretch to S×S
+	; explosion/switch: S = min(2*H, 16); mip from S; DDA stretch to S×S
 	lda far_ceil
 	asl					; 2H
 	cmp #17
@@ -699,7 +699,7 @@ item_draw_one
 	jmp .id_enemy_setup
 .id_clp_item
 	lda wall_col
-	cmp #ITEM_TYPE_BAREXPL
+	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_item_stretch_setup
 	cmp #ITEM_TYPE_SWITCH
 	beq .id_item_stretch_setup
@@ -925,7 +925,7 @@ item_draw_one
 	lda far_floor
 	bne .id_cnx_uadv
 	lda wall_col
-	cmp #ITEM_TYPE_BAREXPL
+	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_cnx_uadv
 	cmp #ITEM_TYPE_SWITCH
 	beq .id_cnx_uadv
@@ -965,7 +965,7 @@ item_draw_one
 	jmp .id_e32
 .id_draw_item
 	lda wall_col
-	cmp #ITEM_TYPE_BAREXPL
+	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_e_stretch
 	cmp #ITEM_TYPE_SWITCH
 	beq .id_e_stretch
