@@ -96,7 +96,8 @@ input_irq_init
 	rts
 
 ; ------------------------------------------------------------------
-; input_irq — TB → SFX; TA → key sample (unless input_paused). No tmp*.
+; input_irq — TB → SFX; TA → key sample (unless input_paused) + check_cheats.
+; No main-thread tmp* (IRQ scratch only).
 ; ------------------------------------------------------------------
 input_irq
 	pha
@@ -240,6 +241,9 @@ input_irq
 .irq_nof1
 
 	jsr update_saw_blade
+	lda health
+	beq .irq_rti
+	jsr check_cheats
 
 .irq_rti
 	pla

@@ -9,6 +9,7 @@ MENU_CLR_BOT = 23		; exclusive end row for menu-area clear
 TEXT_COL = 2
 HILITE_COL = 7
 UI_COL = 1
+MENU_BORDER = 6			; blue border while in menus
 NM_BACK = 256 - 66
 NM_START = 256 - 10
 NM_CRED = 256 - 1
@@ -48,6 +49,7 @@ game_start
 	sta level_num
 	lda #0
 	sta health
+	sta god_mode
 
 next_level
 	jsr hide_weapon
@@ -79,6 +81,12 @@ show_entering
 
 after_level_end
 	jsr hide_weapon
+	lda clev
+	beq .ale_normal
+	lda #0
+	sta clev
+	jmp next_level			; idclev: skip summary / don't inc
+.ale_normal
 	lda #TEXT_COL
 	sta ui_text_col
 	lda #<str_map_complete
@@ -123,6 +131,7 @@ gameloop_check_esc
 	sta level_num
 	lda #0
 	sta health
+	sta god_mode
 	pla
 	pla
 	jmp next_level
@@ -153,11 +162,11 @@ run_menu
 	; Pause key sampling in IRQ — ui_read_keys owns $dc00; SFX still ticks
 	lda #1
 	sta input_paused
-	lda #TEXT_COL			; red border while in menus
-	sta $d020
 	jsr ui_wait_esc_up
 	jsr clear_screen
 	jsr draw_title_banner
+	lda #MENU_BORDER		; after LoadUiFile (LoadPrg clears $d020)
+	sta $d020
 	jsr sync_vol_strings
 	lda #0
 	sta menu_id
@@ -358,6 +367,8 @@ menu_select
 	jsr show_text_screen
 	jsr clear_screen
 	jsr draw_title_banner
+	lda #MENU_BORDER
+	sta $d020
 	jsr draw_menu
 .ms_st
 	clc
@@ -599,6 +610,8 @@ show_text_screen
 	adc #1				; UI_CRED..UI_ENDG
 	jsr LoadUiFile
 	bcs .st_fail
+	lda #MENU_BORDER		; LoadPrg cleared border
+	sta $d020
 	jsr clear_screen
 	jsr wait_frames_30
 	lda #<FRAMEBUFFER
