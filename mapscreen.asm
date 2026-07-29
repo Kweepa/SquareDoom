@@ -4,8 +4,7 @@
 
 MAP_OX = 4				; center 32 cols in 40
 MAP_SCROLL_MAX = 7			; 32 - 25
-MAP_SOLID = 160				; reverse space (solid block)
-MAP_ARROW0 = 236			; charset slots 236–239
+; MAP_SOLID / MAP_ARROW0 — see squaredoom.asm charset map
 
 map_scroll	!byte 0
 map_row		!byte 0
@@ -17,13 +16,6 @@ map_pl_col	!byte 0			; screen col of pointer
 map_arrow_dir
 	!byte 3, 0, 1, 2			; N→D E→L S→U W→R
 
-; TheKeep arrowgfx — left, up, right, down
-map_arrowgfx
-	!byte 255,255,157,96,96,157,255,255
-	!byte 231,219,219,231,231,231,195,231
-	!byte 255,255,185,6,6,185,255,255
-	!byte 231,195,231,231,231,219,219,231
-
 ; ------------------------------------------------------------------
 ; mapscreen — overlay; F1 toggles exit (edge); W/S held scroll 1 row/frame
 ; ------------------------------------------------------------------
@@ -33,7 +25,6 @@ mapscreen
 	sta input_paused
 	lda #0
 	sta map_pl_on
-	jsr map_install_arrows
 	jsr ui_wait_map_up
 
 	; Center vertically on player tile
@@ -97,17 +88,6 @@ mapscreen
 	sta input_paused
 	lda #1
 	sta hud_dirty			; map used FRAMEBUFFER as colour backbuffer
-	rts
-
-; ------------------------------------------------------------------
-map_install_arrows
-	ldx #0
-.mia_lp
-	lda map_arrowgfx,x
-	sta CHARSET + MAP_ARROW0 * 8,x
-	inx
-	cpx #32
-	bne .mia_lp
 	rts
 
 ; ------------------------------------------------------------------

@@ -11,13 +11,23 @@ FIST_RIGHT_SPRITES = $2a00	; 8×64 open right hand (7 used)
 FIST_PUNCH_SPRITES = $2c00	; 8×64 punch pose (7 used; pad overwritten by saw hi2)
 CHAINSAW_BLADE_HI2_SPRITES = FIST_PUNCH_SPRITES + 7 * 64	; $2dc0
 CHAINSAW_SPRITES = $2e00	; 8×64-byte chainsaw (no flash; VIC bank 0)
-MINIGUN_SPRITES = $3000	; 6×64-byte minigun body (VIC bank 0)
+MINIGUN_B_SPRITES = FIST_RIGHT_SPRITES - 3 * 64	; $2940 — frame B upper+grey L/R
+MINIGUN_SPRITES = $3000	; 6×64 A/shared body (VIC bank 0)
 ROCKET_SPRITES = $3180		; 8×64-byte rocket+pink flash (VIC bank 0)
 SHOTGUN_SPRITES = $3380	; 6×64-byte shotgun body (VIC bank 0)
 PISTOL_SPRITES = $3500		; 6×64-byte pistol body (VIC bank 0)
 MUZZLE_FLASH_SPRITES = $3680	; 4×64 shared flash A/B white+red (pistol/sg/mg)
-FLOOR_PAT_BASE = 240		; floor dither glyphs 240–255 (after skull + menu + arrows)
-ITEM_PAT = 235			; itemudg.png shading glyph
+; Packed charset at $3800 (tools/gencharset.js) — mid code starts at MID_BASE
+; 0–15 walls; 16–63 doomfont punct/HUD/digits + gap packs; 64–89 A–Z; 90–105 floors
+MENU_CURSOR = 16		; skull (gap)
+MAP_ARROW0 = 17			; arrows 17–20
+MAP_SOLID = 21			; filled block (map + logo)
+ITEM_PAT = MAP_SOLID		; item soft-sprite fill (solid)
+MSG_LET0 = 64			; A–Z (walls own PETSCII letter codes 1–15)
+MSG_LETTER0 = MSG_LET0
+FLOOR_PAT_BASE = 90		; floor dither 90–105
+CHARSET_NUM = 106
+MID_BASE = CHARSET + CHARSET_NUM * 8	; $3b50
 
 MAX_DDA = 32
 PROFILE = 0
@@ -30,8 +40,8 @@ MAX_SECTORS = 199		; usable ids 1..199
 SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
 ; Memory ceilings:
-;   low  → CHARSET at $3800 (COL/SQTAB/profil are under KERNAL $E000+)
-;   mid  → level_data at $a000 (BASIC ROM area, RAM with $01=$35); enemy mips here
+;   low  → sprites before CHARSET; packed charset $3800..MID_BASE-1
+;   mid  → MID_BASE → level_data at $a000; enemy mips here
 ;   high → FRAMEBUFFER at $c800 ($c000–$c7ff free after SQTAB move)
 MEM_MID_LIMIT = $a000
 MEM_HIGH_LIMIT = FRAMEBUFFER
@@ -46,19 +56,20 @@ MEM_HIGH_LIMIT = FRAMEBUFFER
 !source "render.asm"
 !source "blit.asm"
 !source "weapon.asm"
-; loader was mid; moved here for headroom (mid was ~48 bytes free)
-!source "loader.asm"
 ; enemy boss-death floors — low for mid headroom
 !source "enemy_low.asm"
 
 end_low = *
-free_low = FIST_RIGHT_SPRITES - end_low
+free_low = MINIGUN_B_SPRITES - end_low
 !if free_low < 0 {
-	!error "Low code overlaps fist sprites at $2a00; overshoot=", end_low - FIST_RIGHT_SPRITES
+	!error "Low code overlaps minigun B sprites at $2940; overshoot=", end_low - MINIGUN_B_SPRITES
 }
-!warn "mem: low  end=$", end_low, " free to fist $2a00 =", free_low
+!warn "mem: low  end=$", end_low, " free to minigun B $2940 =", free_low
 
 ; Weapon sprite banks in VIC bank 0, before charset
+; minigun_weapon.asm: B×3 then *= MINIGUN_SPRITES for A/shared×6
+*=MINIGUN_B_SPRITES
+!source "minigun_weapon.asm"
 *=FIST_RIGHT_SPRITES
 !source "fist_righthand.asm"
 *=FIST_PUNCH_SPRITES
@@ -66,8 +77,6 @@ free_low = FIST_RIGHT_SPRITES - end_low
 ; chainsaw_weapon.asm: hi2 (64) then 8 layers — starts in punch pad
 *=CHAINSAW_BLADE_HI2_SPRITES
 !source "chainsaw_weapon.asm"
-*=MINIGUN_SPRITES
-!source "minigun_weapon.asm"
 *=ROCKET_SPRITES
 !source "rocket_weapon.asm"
 *=SHOTGUN_SPRITES
@@ -76,9 +85,17 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "pistol_sprites.asm"
 *=MUZZLE_FLASH_SPRITES
 !source "muzzle_flash.asm"
+!if * > CHARSET {
+	!error "Muzzle sprites overlap charset at $3800; end=$", *
+}
 
-; Rest after charset window $3800–$3FFF
-*=$4000
+; Packed charset image (VIC reads in place); mid follows immediately
+*=CHARSET
+!source "charset.asm"
+!if * != MID_BASE {
+	!error "charset.asm size mismatch: ended at $", *, " expected MID_BASE $", MID_BASE
+}
+*=MID_BASE
 !source "gameloop.asm"
 !source "level.asm"
 !source "playsound.asm"
@@ -87,10 +104,10 @@ free_low = FIST_RIGHT_SPRITES - end_low
 !source "enemy_mid.asm"
 !source "hitscan.asm"
 !source "debug.asm"
-!source "ditherchars.asm"
-!source "doomfont.asm"
 !source "hud.asm"
 !source "pickup.asm"
+!source "logo_defs.asm"			; LOGO_* constants (payload on disk → FRAMEBUFFER)
+!source "loader.asm"			; mid — LoadPrg/LoadUiFile; mid has room after UI dumps left
 !source "titlemenus.asm"
 ; Near flats + P + clip in mid (low headroom for PROFILE hooks elsewhere)
 !source "render_near.asm"
@@ -197,7 +214,6 @@ level_par_time = level_num_secrets + 1
 !source "item_bitmaps.asm"
 !source "mapscreen.asm"
 !source "dpsounds.asm"
-!source "logo.asm"
 !source "levelstats.asm"
 
 !zone 0

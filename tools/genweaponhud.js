@@ -2,12 +2,12 @@
  * Cut itemgraphics/multicolour/{pistol,minigun,rocketlauncher}.png into
  * 24×21 hi-res VIC layers, write crop PNGs, and emit:
  *   pistol_sprites.asm  — 6 sprites (gun×3 + hand×3; flash shared)
- *   minigun_weapon.asm  — 6 sprites (2 hi + 2 light + 2 dark; flash shared)
+ *   minigun_weapon.asm  — 9 blobs (B×3 @ $2940; A/shared×6 @ $3000; flash shared)
  *   rocket_weapon.asm   — 8 sprites (hi + detail + 4 dark + pink flash behind)
  *
  * Layout (sprite pixels; ×2 on screen with XY expand):
  *   Pistol  24×32: gun @y=0 (white/grey/black); hand @y=11 (orange/brown/black)
- *   Minigun 48×28: dark@y=7 side-by-side, light@y=0 (+7), hi centered @y=0/7
+ *   Minigun 48×28 layer PNGs: black@y=7, grey@y=0, hi centered @y=0/7; A/B swap
  *   Rocket  48×44: pink flash L/R @y=0; dark 2×2 @y=9; white hi + grey detail
  *
  * Shared muzzle flash A/B is emitted by tools/genmuzzle.js (muzzle_flash.asm).
@@ -261,6 +261,31 @@ function processCrops(file, expectW, expectH, crops) {
   return { layers, info };
 }
 
+/** Per-crop source file (layer PNGs). Each crop: { file, label, x, y, rgb }. */
+function processLayerCrops(expectW, expectH, crops) {
+  const cache = new Map();
+  const layers = [];
+  const info = [];
+  for (const c of crops) {
+    let decoded = cache.get(c.file);
+    if (!decoded) {
+      decoded = decodePngRgba(readFileSync(join(imgDir, c.file)));
+      if (decoded.width !== expectW || decoded.height !== expectH) {
+        throw new Error(`${c.file}: expected ${expectW}×${expectH}, got ${decoded.width}×${decoded.height}`);
+      }
+      cache.set(c.file, decoded);
+    }
+    const { mask, n } = cropMask(decoded.pixels, decoded.width, c.x, c.y, c.rgb);
+    if (n === 0) throw new Error(`${c.label}: no pixels matched RGB ${c.rgb} in ${c.file}`);
+    const previewRgb = c.rgb[0] || c.rgb[1] || c.rgb[2] ? c.rgb : [0x4a, 0x4a, 0x4a];
+    // Never clobber layer source PNGs that share the label name
+    writeCropPng(join(imgDir, `${c.label}_crop.png`), mask, previewRgb);
+    layers.push({ label: c.label, mask });
+    info.push(`${c.file} → ${c.label}: opaque=${n}`);
+  }
+  return { layers, info };
+}
+
 // --- Pistol: 24×32 (gun @y=0; hand @y=11) — body only; flash in muzzle_flash.asm ---
 {
   const WHITE = [255, 255, 255];
@@ -291,26 +316,43 @@ function processCrops(file, expectW, expectH, crops) {
   for (const line of info) console.log(' ', line);
 }
 
-// --- Minigun: 48×28 ---
+// --- Minigun: 48×28 layer PNGs — B×3 @ MINIGUN_B_SPRITES, A/shared×6 @ $3000 ---
 {
-  const { layers, info } = processCrops('minigun.png', 48, 28, [
-    { label: 'minigun_hi_top', x: 12, y: 0, rgb: [255, 255, 255] },
-    { label: 'minigun_hi_bot', x: 12, y: 7, rgb: [255, 255, 255] },
-    { label: 'minigun_light_left', x: 0, y: 0, rgb: [137, 137, 137] },
-    { label: 'minigun_light_right', x: 24, y: 0, rgb: [137, 137, 137] },
-    { label: 'minigun_dark_left', x: 0, y: 7, rgb: [0, 0, 0] },
-    { label: 'minigun_dark_right', x: 24, y: 7, rgb: [0, 0, 0] },
+  const WHITE = [255, 255, 255];
+  const GREY = [137, 137, 137];
+  const BLACK = [0, 0, 0];
+  // Emit order: frame B alts first (placed at $2940), then *= $3000 idle A + shared.
+  const { layers, info } = processLayerCrops(48, 28, [
+    { file: 'minigun_b_upperhighlight.png', label: 'minigun_b_upperhighlight', x: 12, y: 0, rgb: WHITE },
+    { file: 'minigun_b_grey.png', label: 'minigun_b_grey_left', x: 0, y: 0, rgb: GREY },
+    { file: 'minigun_b_grey.png', label: 'minigun_b_grey_right', x: 24, y: 0, rgb: GREY },
+    { file: 'minigun_a_upperhighlight.png', label: 'minigun_a_upperhighlight', x: 12, y: 0, rgb: WHITE },
+    { file: 'minigun_lowerhighlight.png', label: 'minigun_lowerhighlight', x: 12, y: 7, rgb: WHITE },
+    { file: 'minigun_a_grey.png', label: 'minigun_a_grey_left', x: 0, y: 0, rgb: GREY },
+    { file: 'minigun_a_grey.png', label: 'minigun_a_grey_right', x: 24, y: 0, rgb: GREY },
+    { file: 'minigun_black.png', label: 'minigun_black_left', x: 0, y: 7, rgb: BLACK },
+    { file: 'minigun_black.png', label: 'minigun_black_right', x: 24, y: 7, rgb: BLACK },
   ]);
-  emitWeaponAsm(
-    'minigun',
-    'minigun',
-    layers,
-    `; Six body layers (low VIC # = front): hi×2, light×2, dark×2.\n` +
-      `;   PNG: white hi, grey(137) light, opaque black dark (alpha = clear).\n` +
-      `;   Layout: dark side-by-side; light +7px; hi centered stacked.\n` +
-      `;   Shared muzzle flash: muzzle_flash.asm (sprites 6–7).\n`
-  );
-  console.log('wrote minigun_weapon.asm (6×64) + 6 crop PNGs');
+  const bLayers = layers.slice(0, 3);
+  const aLayers = layers.slice(3);
+  let asm = `; Auto-generated from minigun_* layer PNGs - do not edit\n`;
+  asm += `; Nine blobs: B upper+grey L/R @ MINIGUN_B_SPRITES ($2940), then\n`;
+  asm += `;   *= MINIGUN_SPRITES: A upper, lower hi, A grey L/R, black L/R.\n`;
+  asm += `;   VIC 0/2/3 swap A↔B on fire; 1/4/5 shared. Muzzle: sprites 6–7.\n`;
+  asm += `!zone minigun\n\n`;
+  for (const layer of bLayers) {
+    asm += `${layer.label}\n`;
+    asm += fmtBytes(packSprite(layer.mask));
+    asm += `\n`;
+  }
+  asm += `*=MINIGUN_SPRITES\n\n`;
+  for (const layer of aLayers) {
+    asm += `${layer.label}\n`;
+    asm += fmtBytes(packSprite(layer.mask));
+    asm += `\n`;
+  }
+  writeFileSync(join(root, 'minigun_weapon.asm'), asm);
+  console.log('wrote minigun_weapon.asm (B×3 + A/shared×6) + crop PNGs');
   for (const line of info) console.log(' ', line);
 }
 

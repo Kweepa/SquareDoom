@@ -2,8 +2,7 @@
 ; Screen ptrs: scr_ptr = $0400 cell, col_ptr = $d800 cell, ui_str_l/h = string
 !zone titlemenus
 
-MSG_LET0 = 192
-MENU_CURSOR = 218			; skull (@); wall dither owns charset 0
+; MSG_LET0 / MENU_CURSOR — see squaredoom.asm charset map
 MENU_Y = 15			; below 26x13 logo (rows 1–13)
 MENU_CLR_TOP = 15
 MENU_CLR_BOT = 23		; exclusive end row for menu-area clear
@@ -39,6 +38,8 @@ melt_col	!byte 0
 ; ==================================================================
 game_start
 	cli
+	lda #$ff
+	sta ui_buf_id
 	jsr hide_weapon
 	jsr clear_screen
 	lda #0
@@ -97,7 +98,7 @@ after_level_end
 	bcc .ale_next
 	jmp game_start
 .ale_end
-	lda #3				; txt_endgame
+	lda #3				; endgame text index → UI_ENDG
 	jsr show_text_screen
 	jmp game_start
 .ale_next
@@ -204,6 +205,10 @@ menu_exit
 	sta input_paused
 	lda #0				; black border for play / other UI
 	sta $d020
+	lda #1
+	sta hud_dirty
+	lda #$ff
+	sta ui_buf_id			; gameplay will overwrite FRAMEBUFFER
 	pla
 	rts
 
@@ -366,10 +371,12 @@ next_menu
 
 ; ==================================================================
 draw_title_banner
-	jmp draw_logo
-
-; Packed RLE: logo_rle token = index[7:3] | (run-1)[2:0]
+	; fall through
+; Packed RLE in FRAMEBUFFER: token = index[7:3] | (run-1)[2:0]
 draw_logo
+	lda #UI_LOGO
+	jsr LoadUiFile
+	bcs .dl_fail
 	lda #0
 	sta tmp2			; RLE stream index
 	lda #LOGO_ROW
@@ -384,7 +391,7 @@ draw_logo
 	sta tmp4			; cells left in row
 .dl_cell
 	ldy tmp2
-	lda logo_rle,y
+	lda LOGO_RLE,y
 	tax
 	and #7
 	clc
@@ -395,9 +402,9 @@ draw_logo
 	lsr
 	lsr
 	tay				; pair index
-	lda logo_pair_chars,y
+	lda LOGO_PAIR_CHARS,y
 	sta tmp0
-	lda logo_pair_cols,y
+	lda LOGO_PAIR_COLS,y
 	sta tmp1
 	inc tmp2
 .dl_run
@@ -423,6 +430,7 @@ draw_logo
 	inc pr_row
 	dec tmp3
 	bne .dl_row
+.dl_fail
 	rts
 
 draw_menu
@@ -587,13 +595,15 @@ write_vol2
 ; A = text screen index (0=credits 1=help 2=order 3=endgame)
 ; Types out character-by-character (VicDoom style); red default, ^ → yellow
 show_text_screen
-	sta tmp5
+	clc
+	adc #1				; UI_CRED..UI_ENDG
+	jsr LoadUiFile
+	bcs .st_fail
 	jsr clear_screen
 	jsr wait_frames_30
-	ldx tmp5
-	lda text_scr_lo,x
+	lda #<FRAMEBUFFER
 	sta ui_str_l
-	lda text_scr_hi,x
+	lda #>FRAMEBUFFER
 	sta ui_str_h
 	lda #TEXT_COL			; red default
 	sta ui_text_col
@@ -630,6 +640,8 @@ show_text_screen
 	bcc .st_l
 .st_d
 	jmp wait_key
+.st_fail
+	rts
 
 ; Like print_at but some non-space glyphs per second (VicDoom typing feel)
 print_at_typed
@@ -1126,87 +1138,3 @@ menu_str_hi
 	!byte >str_e1, >str_e2, >str_e3, >str_back
 	!byte >str_fx_vol, >str_mus_vol, >str_controls, >str_back
 	!byte >str_itytd, >str_hmp, >str_uv, >str_back
-
-text_scr_lo
-	!byte <txt_credits, <txt_help, <txt_order, <txt_endgame
-text_scr_hi
-	!byte >txt_credits, >txt_help, >txt_order, >txt_endgame
-
-txt_credits
-	!scr "^doom^ for the ^commodore 64^", 0
-    !scr " ",0
-    !scr "ported by ^steve mccrea^, july 2026.",0
-    !scr " ",0
-    !scr "developed using the ^acme^ assembler",0
-    !scr "by ^marco baye^.",0
-    !scr " ",0
-    !scr "tested using the ^vice^ emulator",0
-    !scr "by ^andreas boose^ and the ^vice team^.",0
-    !scr " ",0
-	!scr "based on ^the keep^ and ^vicdoom^",0
-    !scr "by ^steve mccrea^.", 0
-    !scr " ",0
-	!scr "press a key", 0
-	!byte 0
-
-txt_help
-	!scr "^controls^",0
-    !scr " ",0
-	!scr "move forward      w",0
-	!scr "move backward     s",0
-	!scr "strafe left       a",0
-	!scr "strafe right      d",0
-	!scr "turn left         j",0
-	!scr "turn right        l",0
-	!scr "use               k",0
-	!scr "fire              space",0
-	!scr "toggle map        f1",0
-    !scr " ",0
-	!scr "switch weapon    12345",0
-	!scr "menu              runstop",0
-    !scr " ",0
-	!scr "press a key",0
-	!byte 0
-
-txt_order
-    !scr "sure, don't order ^doom^. sit back with",0
-    !scr "your milk and cookies and let the",0
-    !scr "universe go to hell. don't face the",0
-    !scr "onslaught of demons and spectres that",0
-    !scr "await you on ^the shores of hell^.",0
-    !scr "avoid the terrifying confrontations",0
-    !scr "with cacodemons and lost souls that",0
-    !scr "infest ^inferno^.",0
-    !scr " ",0
-    !scr "or, act like a man! slap a few shells",0
-    !scr "into your shotgun and let's kick some",0
-    !scr "demonic butt. order the entire ^doom^",0
-    !scr "trilogy now! after all, you'll probably",0
-    !scr "end up in hell eventually. shouldn't",0
-    !scr "you know your way around before you",0
-    !scr "make the extended visit?",0
-    !scr " ",0
-    !scr "to order ^doom^, call ^1-800-]games^.",0
-    !scr " ",0
-    !scr "press a key",0
-	!byte 0
-
-txt_endgame
-	!scr "once you beat the big badasses and",0
-	!scr "clean out the moon base you're supposed",0
-	!scr "to win, aren't you? aren't you? where's",0
-	!scr "your fat reward and ticket home? what",0
-	!scr "the hell is this? it's not supposed to",0
-	!scr "end this way!",0
-	!scr " ",0
-	!scr "it stinks like rotten meat, but looks",0
-	!scr "like the lost deimos base. looks like",0
-	!scr "you're stuck on ^the shores of hell^.",0
-	!scr "the only way out is through.",0
-	!scr " ",0
-	!scr "to continue the ^doom^ experience, play",0
-	!scr "^the shores of hell^ and its amazing",0
-	!scr "sequel, ^inferno^!",0
-	!scr " ",0
-	!scr "press a key",0
-	!byte 0

@@ -1,5 +1,5 @@
 ; Auto-generated from lightingdither.png (floors = walls 90° CW) + itemudg.png — do not edit
-; Wall UDGs $00–$0F; floors → chars 219–234 (rotated); item → 235
+; Wall UDGs $00–$0F; floors rotated (packed at FLOOR_PAT_BASE by gencharset.js); item solid unused (ITEM_PAT=MAP_SOLID)
 !zone ditherchars
 
 dither_wall_glyphs

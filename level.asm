@@ -40,7 +40,7 @@ init_hud_state
 	lda #0
 	sta armor
 	sta has_backpack
-	; LoadLevel may have restored prior cur_weapon; force pistol defaults
+	; Force pistol defaults at level start
 	lda #$ff
 	sta cur_weapon
 	ldx #2

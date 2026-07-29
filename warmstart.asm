@@ -16,7 +16,8 @@ warmstart
 	sta $d020		; border black
 	sta $d021		; background black
 
-	jsr init_charset		; ROM font @ $3800 + dither UDGs
+	lda #CHARSET_PTR		; charset baked at $3800 in PRG
+	sta $d018
 	jsr init_weapon			; HUD weapon sprites + muzzle flash state
 
 	; Clear colour RAM (chars filled by blit_fb)
@@ -35,92 +36,3 @@ warmstart
 	jsr play_sound_init
 	jsr input_irq_init
 	jmp game_start
-
-; Copy CHARROM → $3800, patch light glyphs $00–$08, point VIC at it
-init_charset
-	lda $01
-	pha
-	lda #$33			; CHARROM visible at $D000
-	sta $01
-	ldx #0
-.copy0
-	lda $d000,x
-	sta CHARSET,x
-	lda $d100,x
-	sta CHARSET+$100,x
-	lda $d200,x
-	sta CHARSET+$200,x
-	lda $d300,x
-	sta CHARSET+$300,x
-	lda $d400,x
-	sta CHARSET+$400,x
-	lda $d500,x
-	sta CHARSET+$500,x
-	lda $d600,x
-	sta CHARSET+$600,x
-	lda $d700,x
-	sta CHARSET+$700,x
-	inx
-	bne .copy0
-
-	pla
-	sta $01				; restore $35 (KERNAL out, I/O in)
-
-	; Overlay VicDoom doomfont glyphs 0–63 (digits, HUD icons)
-	ldx #0
-.copy_df
-	lda doomfont_udgs,x
-	sta CHARSET,x
-	lda doomfont_udgs+$100,x
-	sta CHARSET+$100,x
-	inx
-	bne .copy_df
-
-	; Wall dither $00–$0F only (leave doomfont 16–63 for HUD/space)
-	ldx #0
-.patch_wall
-	lda dither_wall_glyphs,x
-	sta CHARSET,x
-	inx
-	cpx #128
-	bcc .patch_wall
-
-	; Floor dither → chars 240–255
-	ldx #0
-.patch_floor
-	lda dither_floor_glyphs,x
-	sta CHARSET + 240 * 8,x
-	inx
-	cpx #128
-	bcc .patch_floor
-
-	; Item glyph → char 235
-	ldx #0
-.patch_item
-	lda dither_item_glyph,x
-	sta CHARSET + 235 * 8,x
-	inx
-	cpx #8
-	bcc .patch_item
-
-	; A–Z for top-line messages at screen codes 192–217 (walls own 0–15)
-	ldx #0
-.msgfont
-	lda doomfont_udgs + 8,x		; char 1 = 'A'
-	sta CHARSET + 192 * 8,x
-	inx
-	cpx #26 * 8
-	bne .msgfont
-
-	; Skull (@) — doomfont char 0; walls own slot 0, so keep at 218
-	ldx #0
-.skull
-	lda doomfont_udgs,x
-	sta CHARSET + 218 * 8,x
-	inx
-	cpx #8
-	bne .skull
-
-	lda #CHARSET_PTR
-	sta $d018
-	rts

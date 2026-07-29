@@ -1,12 +1,26 @@
-; Load level PRG from disk device 8 into $A000 (SA=1 uses file load address).
-; DOS name E1M1..E1M9 — uppercase like JSW's R00.
+; Load PRG from disk device 8 (SA=1 → file load address).
+; Levels → $A000 (E1M1..E1M9); UI screens → FRAMEBUFFER $C800 (logo/cred/…).
 !zone loader
 
 LEVEL_LFN = 15
 LEVEL_DEVICE = 8
 
+; UI file indices (LoadUiFile / ui_buf_id)
+UI_LOGO = 0
+UI_CRED = 1
+UI_HELP = 2
+UI_ORDR = 3
+UI_ENDG = 4
+
 level_dos_name
 	!text "E1M1"
+
+ui_dos_names
+	!text "LOGO"
+	!text "CRED"
+	!text "HELP"
+	!text "ORDR"
+	!text "ENDG"
 
 ; FormatDosName — write "ENMM" into level_dos_name from episode + level_num
 FormatDosName
@@ -24,15 +38,23 @@ FormatDosName
 	sta level_dos_name + 3
 	rts
 
-; LoadLevel — C64 needs IOINIT so CIA2 is IEC-ready (profil_init owns CIA2 timers).
-; After LOAD, hold until ~2s of jiffies have elapsed (pads fast FSDrive loads).
-; C=0 ok, C=1 error.
+load_namelen	!byte 0
+load_name_l	!byte 0
+load_name_h	!byte 0
+load_jiffy0	!byte 0
+load_ui_pending	!byte 0
+load_do_pad	!byte 0			; nonzero → pad ENTER_MIN_JIFFIES after LOAD
+
 ENTER_MIN_JIFFIES = 120			; ~2s NTSC / 2.4s PAL
 
-load_jiffy0	!byte 0
-load_saved_wpn	!byte 2			; cur_weapon across $90–$98 wipe
+; LoadPrg — A=name length, X/Y=name pointer.
+; If load_do_pad ≠ 0, hold ≥ ENTER_MIN_JIFFIES on success (level ENTERING).
+; C=0 ok, C=1 error. cur_weapon at $FB survives; no stash.
+LoadPrg
+	sta load_namelen
+	stx load_name_l
+	sty load_name_h
 
-LoadLevel
 	sei
 	lda #$7f
 	sta $dc0d
@@ -54,22 +76,14 @@ LoadLevel
 	lda #0					; silent — no SEARCHING/LOADING text
 	jsr $ff90				; SETMSG
 
-	; cur_weapon lives in wiped range — stash before ST…LDTND clear
-	lda cur_weapon
-	cmp #$ff
-	bne .ll_save_wpn
-	lda #2				; unset → pistol
-.ll_save_wpn
-	sta load_saved_wpn
-
-	; ST…LDTND ($90–$98); stray $98 kills OPEN
+	; ST…LDTND ($90–$98); stray $98 kills OPEN (no game symbols here)
 	ldx #0
 	txa
-.ll_clr
+.lp_clr
 	sta $90,x
 	inx
 	cpx #9
-	bne .ll_clr
+	bne .lp_clr
 
 	jsr $ffe7				; CLALL
 
@@ -77,9 +91,9 @@ LoadLevel
 	lda $a2					; jiffy low (ticks under KERNAL IRQ)
 	sta load_jiffy0
 
-	lda #4
-	ldx #<level_dos_name
-	ldy #>level_dos_name
+	lda load_namelen
+	ldx load_name_l
+	ldy load_name_h
 	jsr $ffbd				; SETNAM
 	lda #LEVEL_LFN
 	ldx #LEVEL_DEVICE
@@ -89,18 +103,19 @@ LoadLevel
 	jsr $ffd5				; LOAD
 	php
 
-	; Keep ENTERING up for at least ENTER_MIN_JIFFIES (skip pad on error)
 	plp
 	php
-	bcs .ll_done
-.ll_pad
+	bcs .lp_done
+	lda load_do_pad
+	beq .lp_done
+.lp_pad
 	lda $a2
 	sec
 	sbc load_jiffy0
 	cmp #ENTER_MIN_JIFFIES
-	bcc .ll_pad
+	bcc .lp_pad
 
-.ll_done
+.lp_done
 	sei
 	lda #$35
 	sta $01
@@ -109,10 +124,44 @@ LoadLevel
 	sta $d021
 	jsr prof_init
 	jsr input_irq_init
-	; LoadLevel wiped $90-$98 (KERNAL); restore prior weapon
-	lda #$ff
-	sta cur_weapon
-	ldx load_saved_wpn
-	jsr switch_weapon
 	plp
+	rts
+
+; LoadLevel — FormatDosName + LoadPrg with ENTERING jiffy pad. C=0 ok, C=1 error.
+LoadLevel
+	jsr FormatDosName
+	lda #1
+	sta load_do_pad
+	lda #4
+	ldx #<level_dos_name
+	ldy #>level_dos_name
+	jmp LoadPrg
+
+; LoadUiFile — A = UI_LOGO..UI_ENDG. Skip if ui_buf_id matches. C=0 ok, C=1 error.
+LoadUiFile
+	cmp ui_buf_id
+	beq .lui_ok
+	sta load_ui_pending
+	asl
+	asl					; index * 4
+	clc
+	adc #<ui_dos_names
+	tax
+	lda #0
+	adc #>ui_dos_names
+	tay
+	lda #0
+	sta load_do_pad
+	lda #4
+	jsr LoadPrg
+	bcs .lui_fail
+	lda load_ui_pending
+	sta ui_buf_id
+.lui_ok
+	clc
+	rts
+.lui_fail
+	lda #$ff
+	sta ui_buf_id
+	sec
 	rts

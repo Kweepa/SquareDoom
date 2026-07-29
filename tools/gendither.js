@@ -1,7 +1,9 @@
 /**
  * Read lightingdither.png (8×8 tiles, closest→furthest) and emit
- * ditherchars.asm: wall glyphs (runtime $00–$0F) + floor glyphs (walls
- * rotated 90° CW; runtime chars 219–234) + item (itemudg.png; runtime 235).
+ * ditherchars.asm: wall glyphs ($00–$0F) + floor glyphs (walls rotated
+ * 90° CW; packed at FLOOR_PAT_BASE via tools/gencharset.js). Item UDG
+ * is solid — shared with MAP_SOLID/ITEM_PAT in the packed charset.
+ * After changing dither art, run: node tools/gendither.js && node tools/gencharset.js
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { inflateSync } from 'zlib';
@@ -186,7 +188,7 @@ if (itemImg.width !== 8 || itemImg.height !== 8) {
 const item = tileBytes(itemImg.pixels, itemImg.width, 0);
 
 let asm = `; Auto-generated from lightingdither.png (floors = walls 90° CW) + itemudg.png — do not edit\n`;
-asm += `; Wall UDGs $00–$0F; floors → chars 219–234 (rotated); item → 235\n`;
+asm += `; Wall UDGs $00–$0F; floors rotated (packed at FLOOR_PAT_BASE by gencharset.js); item solid unused (ITEM_PAT=MAP_SOLID)\n`;
 asm += `!zone ditherchars\n\n`;
 asm += `dither_wall_glyphs\n`;
 for (let t = 0; t < WALL_LEVELS; t++) {

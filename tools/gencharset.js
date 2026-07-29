@@ -1,0 +1,173 @@
+#!/usr/bin/env node
+'use strict';
+/**
+ * Build packed charset.asm at $3800 layout:
+ *   0–15 walls, 16–63 doomfont+gaps, 64–89 A–Z, 90–105 floors
+ * Gap packs: skull, arrows, solid(=ITEM_PAT), logo PETSCII shapes
+ */
+const fs = require('fs');
+const path = require('path');
+
+const root = path.join(__dirname, '..');
+
+const MENU_CURSOR = 16;
+const MAP_ARROW0 = 17;
+const MAP_SOLID = 21;
+const MSG_LET0 = 64;
+const FLOOR_PAT_BASE = 90;
+const CHARSET_NUM = 106;
+
+// Old PETSCII screen codes → packed slots (space stays 32)
+const LOGO_REMAP = {
+  0x4d: 22,
+  0x4e: 23,
+  0x56: 24,
+  0x5f: 25,
+  0x69: 26,
+  0x6a: 27,
+  0xdf: 28,
+  0xe6: 35,
+  0xe9: 36,
+  0xa0: MAP_SOLID,
+  0x20: 32,
+};
+
+// Logo PETSCII shapes from C64 CHARROM (901225-01). Prefer VICE dump when present.
+const C64_CHARGEN_CANDIDATES = [
+  path.join('C:', 'app', 'vice3.10', 'C64', 'chargen-901225-01.bin'),
+  path.join('C:', 'app', 'VICE3.7.1', 'C64', 'chargen-901225-01.bin'),
+];
+
+// Fallback: C64 uppercase/graphics set (not VIC-20 — diagonals/checker differ)
+const LOGO_GLYPHS_C64 = {
+  0x4d: [0xc0, 0xe0, 0x70, 0x38, 0x1c, 0x0e, 0x07, 0x03],
+  0x4e: [0x03, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xc0],
+  0x56: [0xc3, 0xe7, 0x7e, 0x3c, 0x3c, 0x7e, 0xe7, 0xc3],
+  0x5f: [0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01],
+  0x69: [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80],
+  0x6a: [0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03],
+  0xa0: [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+  0xdf: [0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe],
+  0xe6: [0x33, 0x33, 0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc],
+  0xe9: [0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f],
+};
+
+function loadLogoGlyphs() {
+  for (const p of C64_CHARGEN_CANDIDATES) {
+    if (!fs.existsSync(p)) continue;
+    const rom = fs.readFileSync(p);
+    if (rom.length < 2048) continue;
+    const glyphs = {};
+    for (const code of Object.keys(LOGO_REMAP).map(Number)) {
+      if (code === 0x20) continue;
+      glyphs[code] = [...rom.subarray(code * 8, code * 8 + 8)];
+    }
+    console.log('logo glyphs from', p);
+    return glyphs;
+  }
+  console.log('logo glyphs: embedded C64 CHARROM fallback');
+  return { ...LOGO_GLYPHS_C64 };
+}
+
+const LOGO_GLYPHS = loadLogoGlyphs();
+
+const ARROWS = [
+  [255, 255, 157, 96, 96, 157, 255, 255],
+  [231, 219, 219, 231, 231, 231, 195, 231],
+  [255, 255, 185, 6, 6, 185, 255, 255],
+  [231, 195, 231, 231, 231, 219, 219, 231],
+];
+
+function parseGlyphBlob(asm, label) {
+  const idx = asm.indexOf(label);
+  if (idx < 0) throw new Error(`label ${label} not found`);
+  const rest = asm.slice(idx);
+  const bytes = [];
+  const re = /\$([0-9A-Fa-f]{2})/g;
+  let m;
+  // stop at next label-ish line that isn't a !byte
+  const lines = rest.split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\w/.test(line) && !line.startsWith('!')) break;
+    if (!line.includes('!byte') && !line.includes('!BYTE')) {
+      if (/^\s*;/.test(line) || !line.trim()) continue;
+      if (/^\w/.test(line.trim())) break;
+    }
+    while ((m = re.exec(line))) bytes.push(parseInt(m[1], 16));
+  }
+  return bytes;
+}
+
+function fmt(bytes) {
+  return bytes.map((b) => '$' + b.toString(16).padStart(2, '0')).join(',');
+}
+
+const dither = fs.readFileSync(path.join(root, 'ditherchars.asm'), 'utf8');
+const walls = parseGlyphBlob(dither, 'dither_wall_glyphs');
+const floors = parseGlyphBlob(dither, 'dither_floor_glyphs');
+if (walls.length !== 128) throw new Error(`walls ${walls.length}`);
+if (floors.length !== 128) throw new Error(`floors ${floors.length}`);
+
+const doom = fs.readFileSync(path.join(root, 'doomfont.asm'), 'utf8');
+const doomfont = parseGlyphBlob(doom, 'doomfont_udgs');
+if (doomfont.length !== 512) throw new Error(`doomfont ${doomfont.length}`);
+
+const image = Buffer.alloc(CHARSET_NUM * 8, 0);
+
+function put(code, glyph) {
+  if (code < 0 || code >= CHARSET_NUM) throw new Error(`code ${code}`);
+  if (glyph.length !== 8) throw new Error(`glyph len ${glyph.length} at ${code}`);
+  for (let i = 0; i < 8; i++) image[code * 8 + i] = glyph[i];
+}
+
+// 0–15 walls
+for (let c = 0; c < 16; c++) put(c, walls.slice(c * 8, c * 8 + 8));
+
+// 16–63: doomfont band (identity punct/HUD/digits)
+for (let c = 16; c < 64; c++) put(c, doomfont.slice(c * 8, c * 8 + 8));
+
+// Gap packs (overwrite unused doomfont holes)
+put(MENU_CURSOR, doomfont.slice(0, 8)); // skull = doomfont char 0
+for (let i = 0; i < 4; i++) put(MAP_ARROW0 + i, ARROWS[i]);
+put(MAP_SOLID, LOGO_GLYPHS[0xa0]);
+for (const [old, neu] of Object.entries(LOGO_REMAP)) {
+  const o = Number(old);
+  if (o === 0x20) continue;
+  put(neu, LOGO_GLYPHS[o]);
+}
+
+// 64–89 A–Z from doomfont chars 1–26
+for (let i = 0; i < 26; i++) {
+  put(MSG_LET0 + i, doomfont.slice((1 + i) * 8, (1 + i) * 8 + 8));
+}
+
+// 90–105 floors
+for (let c = 0; c < 16; c++) {
+  put(FLOOR_PAT_BASE + c, floors.slice(c * 8, c * 8 + 8));
+}
+
+let out = '';
+out += '; Packed charset image at $3800 — generated by tools/gencharset.js\n';
+out += '; 0–15 walls; 16–63 doomfont+gaps; 64–89 A–Z; 90–105 floors\n';
+out += '; Gaps: skull@16 arrows@17–20 solid/ITEM@21 logo@22–28,35–36\n';
+out += '!zone charset\n\n';
+out += 'charset_image\n';
+for (let c = 0; c < CHARSET_NUM; c++) {
+  const g = [...image.subarray(c * 8, c * 8 + 8)];
+  let note = '';
+  if (c < 16) note = `\t; wall ${c}`;
+  else if (c === MENU_CURSOR) note = '\t; skull MENU_CURSOR';
+  else if (c >= MAP_ARROW0 && c < MAP_ARROW0 + 4) note = `\t; map arrow ${c - MAP_ARROW0}`;
+  else if (c === MAP_SOLID) note = '\t; solid MAP_SOLID/ITEM_PAT';
+  else if (c >= MSG_LET0 && c < MSG_LET0 + 26) note = `\t; '${String.fromCharCode(65 + c - MSG_LET0)}'`;
+  else if (c >= FLOOR_PAT_BASE && c < FLOOR_PAT_BASE + 16) note = `\t; floor ${c - FLOOR_PAT_BASE}`;
+  else if (c === 32) note = '\t; space';
+  out += `\t!byte ${fmt(g)}${note}\n`;
+}
+
+fs.writeFileSync(path.join(root, 'charset.asm'), out);
+console.log(`wrote charset.asm (${CHARSET_NUM} chars, ${CHARSET_NUM * 8} bytes)`);
+console.log('LOGO_REMAP', LOGO_REMAP);
+
+module.exports = { LOGO_REMAP, MENU_CURSOR, MAP_ARROW0, MAP_SOLID, MSG_LET0, FLOOR_PAT_BASE, CHARSET_NUM };

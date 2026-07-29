@@ -18,7 +18,7 @@ HEALTH_MEGA_MAX = 200
 ARMOR_GREEN = 100
 ARMOR_BLUE = 200
 
-MSG_LETTER0 = 192			; screen code for 'A' (glyph bank)
+; MSG_LETTER0 / letter bank — see squaredoom.asm (MSG_LET0)
 INFO_COLOR = 7				; yellow
 
 ; 0 = "picked up the "+name+"."; 1 = full string at info_name

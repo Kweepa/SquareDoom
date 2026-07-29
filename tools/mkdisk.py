@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build squaredoom.d64 from squaredoom.prg and levels/e1m*.bin via c1541."""
+"""Build squaredoom.d64 from squaredoom.prg, levels/e1m*.bin, and UI screens."""
 
 import argparse
 import os
@@ -14,7 +14,17 @@ from typing import List, Optional, Tuple
 
 DEFAULT_VICE_BIN = Path(r"c:\app\vice3.10\bin")
 LEVEL_LOAD_ADDR = 0xA000
+UI_LOAD_ADDR = 0xC800
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
+
+# (dos_name, relative path under screens/, kind: "bin" raw or "prg" with header)
+UI_FILES = [
+    ("logo", "logo.bin", "bin"),
+    ("cred", "cred.prg", "prg"),
+    ("help", "help.prg", "prg"),
+    ("ordr", "ordr.prg", "prg"),
+    ("endg", "endg.prg", "prg"),
+]
 
 
 def find_c1541(explicit: Optional[Path] = None) -> Optional[Path]:
@@ -48,11 +58,33 @@ def collect_levels(level_dir: Path) -> List[Tuple[str, Path]]:
     return levels
 
 
+def stage_ui(screens_dir: Path, tmp_dir: Path) -> List[Tuple[str, Path]]:
+    staged: List[Tuple[str, Path]] = []
+    for dos_name, rel, kind in UI_FILES:
+        src = screens_dir / rel
+        if not src.is_file():
+            print(f"missing UI screen: {src}", file=sys.stderr)
+            sys.exit(1)
+        out = tmp_dir / dos_name
+        if kind == "bin":
+            out.write_bytes(struct.pack("<H", UI_LOAD_ADDR) + src.read_bytes())
+        else:
+            # ACME cbm PRG already has load address
+            out.write_bytes(src.read_bytes())
+        staged.append((dos_name, out))
+    return staged
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Build squaredoom.d64 via c1541")
     ap.add_argument("--out", default="squaredoom.d64")
     ap.add_argument("--prg", default="squaredoom.prg")
     ap.add_argument("--levels", default="levels", help="directory with e1mN.bin files")
+    ap.add_argument(
+        "--screens",
+        default="screens",
+        help="directory with logo.bin and cred/help/ordr/endg.prg",
+    )
     ap.add_argument(
         "--c1541",
         type=Path,
@@ -81,7 +113,7 @@ def main() -> None:
 
     d64 = Path(args.out)
 
-    with tempfile.TemporaryDirectory(prefix="sd_levels_") as tmp:
+    with tempfile.TemporaryDirectory(prefix="sd_disk_") as tmp:
         tmp_dir = Path(tmp)
         staged: List[Tuple[str, Path]] = []
         for dos_name, bin_path in levels:
@@ -89,6 +121,9 @@ def main() -> None:
             prg_path = tmp_dir / dos_name
             prg_path.write_bytes(struct.pack("<H", LEVEL_LOAD_ADDR) + payload)
             staged.append((dos_name, prg_path))
+
+        ui_staged = stage_ui(Path(args.screens), tmp_dir)
+        staged.extend(ui_staged)
 
         # Format creates/overwrites the image (no prior unlink — VICE may hold the file)
         cmd = [
@@ -107,7 +142,9 @@ def main() -> None:
             cmd.extend(["-write", str(path), f"{dos_name},p"])
         subprocess.check_call(cmd)
 
-    print(f"Wrote {d64} via {c1541} ({len(staged)} level files)")
+    print(
+        f"Wrote {d64} via {c1541} ({len(levels)} levels, {len(ui_staged)} UI screens)"
+    )
 
 
 if __name__ == "__main__":

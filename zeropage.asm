@@ -123,19 +123,19 @@ has_backpack	= $8c			; 1 after backpack pickup
 in_turn_l	= $8d			; J held ms this frame
 in_turn_r	= $8e			; L held ms
 in_fwd		= $8f			; W
-; $90-$95 — KERNAL serial/IEC during LOAD (ST, C3PO, BSOUR, …). Do not place
-; game ZP here; stray $90 (ST) bit6/7 aborts KERNAL LOAD early (see JSW zp.asm).
-; $96-$98 also wiped by LoadLevel (through LDTND) — keep weapon interval out.
-cur_weapon	= $96			; 0=fist 1=chainsaw 2=pistol 3=shotgun 4=minigun 5=rocket
+; $90–$AF / $B7–$BC — KERNAL-owned during OPEN/LOAD (ST…EAL, SETNAM/SETLFS).
+; LoadPrg pre-clears $90–$98 (stray ST bit6/7 aborts LOAD; LDTND≥$0A kills OPEN).
+; Do not place anything that must survive LOAD here. Survivors → $FB+.
+; $99–$AE ok only under $01=$35 after load (re-inited / transient).
 in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b
 key_wpn_shotgun	= $9c
-; Menu/UI string pointer (safe outside pickup message window)
+; Menu/UI string pointer (re-set after UI load; clobbered during LOAD)
 ui_str_l	= $9d
 ui_str_h	= $9e
-; Input hold times moved off $90-$95 (KERNAL LOAD clobber)
-in_back		= $a2			; S
+; Input hold times — clobbered during LOAD; fine after input_irq_init
+in_back		= $a2			; S (also jiffy lo while KERNAL IRQ owns machine)
 in_strafel	= $a3			; A
 in_strafer	= $a4			; D
 in_use		= $a5			; OR-latch: K held any sample
@@ -144,10 +144,13 @@ vel_ms		= $a7			; hold-ms fed to turn_deliver / scale_vel
 ; SFX playback pointer (IRQ-safe; not shared with render temps)
 sound_ptr_l	= $a9
 sound_ptr_h	= $aa
-; Active weapon fire interval (ms) — must not sit in $90-$98 (LoadLevel wipe)
 wpn_fire_ms_l	= $ab
 wpn_fire_ms_h	= $ac
 near_fpat	= $ad			; floor/ceil dither screen code for paint_near
+
+; KERNAL-safe survivors ($FB–$FE; unused by IEC/LOAD)
+cur_weapon	= $fb			; 0=fist 1=chainsaw 2=pistol 3=shotgun 4=minigun 5=rocket
+ui_buf_id	= $fc			; asset in FRAMEBUFFER; $ff = unknown/none
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a

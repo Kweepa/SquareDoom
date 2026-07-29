@@ -2,14 +2,15 @@
 !zone weapon
 
 ; Contiguous banks in VIC bank 0 (see squaredoom.asm):
-;   fist right $2a00 / punch $2c00: 7 layers + pad each
+;   minigun B $2940: 3 alt (upper+grey L/R); fist right $2a00 / punch $2c00
 ;   chainsaw hi2 $2dc0 (punch pad); body $2e00: 8 sprites (no flash)
-;   minigun  $3000: 6 body; rocket $3180: 8 (pink flash); shotgun $3380: 6
+;   minigun  $3000: 6 A/shared body; rocket $3180: 8; shotgun $3380: 6
 ;   pistol   $3500: 6 body; shared muzzle $3680: flash A/B white+red (sprites 6–7)
 FIST_RIGHT_SPR_PTR0 = FIST_RIGHT_SPRITES / 64
 FIST_PUNCH_SPR_PTR0 = FIST_PUNCH_SPRITES / 64
 CHAINSAW_BLADE_HI2_PTR = CHAINSAW_BLADE_HI2_SPRITES / 64
 CHAINSAW_SPR_PTR0 = CHAINSAW_SPRITES / 64
+MINIGUN_B_SPR_PTR0 = MINIGUN_B_SPRITES / 64
 MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
 ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
 SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
@@ -37,6 +38,7 @@ muzzle_flash_var !byte 0		; bit0: 0=flash A, 1=flash B (shared pistol/sg/mg)
 saw_blade_frame	!byte 0			; 0=hi, 1=hi2
 saw_blade_div	!byte 0			; IRQ tick; toggle every 4th (100 ms)
 saw_running	!byte 0			; 1 = fire held: Y+4 + blade anim
+mg_frame	!byte 0			; 0=minigun A, 1=B (upper+grey L/R)
 muzzle_hi_cols
 	!byte 1, 7, 1, 10		; some bright colours
 
@@ -97,19 +99,19 @@ shotgun_spr_y
 	!byte 162, 162			; flash
 
 minigun_spr_col
-	!byte 15, 15			; highlights (brightness-updated)
-	!byte 11, 11			; light grey body
-	!byte 0, 0   			; dark grey body
+	!byte 15, 15			; upper / lower highlights (brightness-updated)
+	!byte 11, 11			; grey body L/R
+	!byte 0, 0   			; black body L/R
 	!byte 1, 2			; flash white, red
 minigun_spr_x
-	!byte 160, 160			; hi top / bot (centred)
-	!byte 136, 184			; light L / R
-	!byte 136, 184			; dark L / R
+	!byte 160, 160			; upper / lower hi (centred)
+	!byte 136, 184			; grey L / R
+	!byte 136, 184			; black L / R
 	!byte 160, 160			; flash
 minigun_spr_y
-	!byte 194, 208			; hi top / bot
-	!byte 194, 194			; light (+7 sprite px above dark)
-	!byte 208, 208			; dark
+	!byte 194, 208			; upper / lower hi
+	!byte 194, 194			; grey (+7 sprite px above black)
+	!byte 208, 208			; black
 	!byte 166, 166			; flash
 
 rocket_spr_col
@@ -419,6 +421,8 @@ setup_shotgun
 	jmp .set_muzzle_ptrs
 
 setup_minigun
+	lda #0
+	sta mg_frame
 	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
 	lda #$ff
@@ -460,6 +464,26 @@ setup_minigun
 	sta $07fe			; sprite 6 white
 	adc #1
 	sta $07ff			; sprite 7 red
+	rts
+
+; Minigun body A/B → VIC 0 (upper), 2–3 (grey L/R). Shared 1/4/5 unchanged.
+.set_minigun_frame_ptrs
+	lda mg_frame
+	bne .smfp_b
+	lda #MINIGUN_SPR_PTR0		; A upper
+	sta $07f8
+	lda #MINIGUN_SPR_PTR0 + 2	; A grey L
+	sta $07fa
+	lda #MINIGUN_SPR_PTR0 + 3	; A grey R
+	sta $07fb
+	rts
+.smfp_b
+	lda #MINIGUN_B_SPR_PTR0		; B upper
+	sta $07f8
+	lda #MINIGUN_B_SPR_PTR0 + 1	; B grey L
+	sta $07fa
+	lda #MINIGUN_B_SPR_PTR0 + 2	; B grey R
+	sta $07fb
 	rts
 
 setup_rocket
@@ -562,6 +586,12 @@ damage_shotgun
 	beq .fs_flash_en
 	jsr .set_muzzle_ptrs		; current A/B (start at A)
 	inc muzzle_flash_var		; next shot flips
+	cpx #4				; minigun: swap body A/B each shot
+	bne .fs_flash_en
+	lda mg_frame
+	eor #1
+	sta mg_frame
+	jsr .set_minigun_frame_ptrs
 .fs_flash_en
 	lda spr_en
 	ora #FLASH_ENABLE
@@ -663,6 +693,16 @@ update_muzzle_flash
 	lda #0
 	sta fire_rpt_l
 	sta fire_rpt_h
+	; Minigun: return body to frame A when fire stops
+	lda cur_weapon
+	cmp #4
+	bne .mf_up_rts
+	lda mg_frame
+	beq .mf_up_rts
+	lda #0
+	sta mg_frame
+	jsr .set_minigun_frame_ptrs
+.mf_up_rts
 	rts
 
 ; Called from input_irq (Timer A, every SAMPLE_MS). Chainsaw + SPACE:
