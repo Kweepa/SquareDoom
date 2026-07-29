@@ -3,7 +3,10 @@
 * = $c800
 	!scr "^doom^ for the ^commodore 64^", 0
 	!scr " ",0
-	!scr "ported by ^steve mccrea^, july 2026.",0
+	!scr "ported by ^steve mccrea^, july-august",0
+	!scr "2026.",0
+	!scr " ",0
+	!scr "sid music by ^???^",0
 	!scr " ",0
 	!scr "developed using the ^acme^ assembler",0
 	!scr "by ^marco baye^.",0
