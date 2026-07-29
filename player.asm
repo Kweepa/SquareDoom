@@ -32,6 +32,8 @@ damage_player
 	sta tmp0
 	lda health
 	beq .dp_rts			; already dead
+	lda god_mode
+	bne .dp_rts			; iddqd
 	lda #SOUND_OOF
 	jsr play_sound
 	lda #1
