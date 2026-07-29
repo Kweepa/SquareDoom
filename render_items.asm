@@ -676,17 +676,17 @@ item_draw_one
 	; Enemy mip from projected W (thresholds; U scales to mip_w)
 	lda last_near_ok
 	ldx #0
-	cmp #16
-	bcs .id_mip_got			; ≥16 → mip0
+	cmp #13
+	bcs .id_mip_got			; ≥ 13 → mip0
 	ldx #1
-	cmp #8
-	bcs .id_mip_got			; ≥8 → mip1
+	cmp #7
+	bcs .id_mip_got			; ≥ 7 → mip1
 	ldx #2
 	cmp #4
-	bcs .id_mip_got			; ≥4 → mip2
+	bcs .id_mip_got			; ≥ 4 → mip2
 	ldx #3
 	cmp #2
-	bcs .id_mip_got			; ≥2 → mip3
+	bcs .id_mip_got			; ≥ 2 → mip3
 	ldx #4				; else mip4
 .id_mip_got
 	stx fracy				; mip index
