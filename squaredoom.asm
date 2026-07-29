@@ -210,6 +210,7 @@ level_par_time = level_num_secrets + 1
 }
 
 !source "tables.asm"
+!source "sky.asm"
 !source "recip.asm"
 !source "item_bitmaps.asm"
 !source "mapscreen.asm"

@@ -57,6 +57,7 @@ render
 	sta col
 .col_loop
 	jsr set_col_base		; FRAMEBUFFER column base for fills
+	jsr set_sky_ptr			; sky_cols strip for cyan ceil/ledge
 	jsr cast_column
 	inc col
 	lda col

@@ -31,6 +31,8 @@ node tools\gensounds.js
 if errorlevel 1 exit /b 1
 node tools\genlogo.js
 if errorlevel 1 exit /b 1
+node tools\gensky.js
+if errorlevel 1 exit /b 1
 "%ACME%" screens\cred.asm
 if errorlevel 1 exit /b 1
 "%ACME%" screens\help.asm

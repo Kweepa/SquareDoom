@@ -45,6 +45,7 @@ player_face_nesw
 
 ; Fill colour+pattern column: A = colour, ytop..ybot-1
 ; Clobbers X (colour kept in X across the dual-FB store).
+; Cyan (3) → sky_cols[sky_col][row] via sky_put (see fill_sky path).
 fill_col_span
 	ldy ybot
 	sty fill_y1
@@ -57,6 +58,8 @@ fill_col_span
 .fcs_go
 }
 	tax
+	cpx #3
+	beq .fs_sky_test
 	jmp .fs_loop_test
 ; A = colour, fill_pat = screen code; fill_y0..fill_y1-1 into both FBs
 ; Clobbers X. Empty span (fill_y0 == fill_y1) is a no-op.
@@ -68,8 +71,13 @@ fill_span
 .fs_go
 }
 	tax				; colour in X — avoids pha/pla per row (30→25 cy)
+	cpx #3
+	beq .fs_sky
 	ldy fill_y0
 	jmp .fs_loop_test
+.fs_sky
+	ldy fill_y0
+	jmp .fs_sky_test
 .fs_loop
 	txa
 	sta (col_base_l),y
@@ -79,6 +87,33 @@ fill_span
 .fs_loop_test
 	cpy fill_y1
 	bne .fs_loop
+	rts
+
+; Cyan span: sample sky_ptr (row clamped to 0..11), FLOOR_PAT_BASE UDG.
+.fs_sky_loop
+	cpy #12
+	bcs .fs_sky_hi
+	lda (sky_ptr_l),y
+	jsr sky_put
+	iny
+.fs_sky_test
+	cpy fill_y1
+	bne .fs_sky_loop
+	rts
+.fs_sky_hi
+	sty tmp0			; FB row ≥12 → clamp sample to row 11
+	ldy #11
+	lda (sky_ptr_l),y
+	ldy tmp0
+	jsr sky_put
+	iny
+	jmp .fs_sky_test
+
+; A = sky colour, Y = FB row — colour from map, brightest floor dither UDG
+sky_put
+	sta (col_base_l),y
+	lda #FLOOR_PAT_BASE
+	sta (pat_base_l),y
 	rts
 
 ; col_base = FRAMEBUFFER + col * 25; pat_base = LIGHTFRAME + col * 25
@@ -93,6 +128,62 @@ set_col_base
 	clc
 	adc #4
 	sta pat_base_h
+	rts
+
+; sky_ptr = sky_cols + ((playera*5/8)+col) mod 40 * 12
+; playera*5/8 = 160 cols / 360° → sky wraps 4× per turn.
+; *12 is 16-bit (8-bit mul broke sky_col ≥ 22). Clobbers tmp0–tmp2.
+set_sky_ptr
+	lda playera
+	sta tmp0
+	asl
+	asl
+	clc
+	adc tmp0			; playera * 5
+	lsr
+	lsr
+	lsr				; /8 → 0..159
+	clc
+	adc col
+.ssp_wrap
+	cmp #40
+	bcc .ssp_col
+	sbc #40
+	bcs .ssp_wrap
+.ssp_col
+	tax				; sky_col 0..39
+	lda #0
+	sta tmp1
+	txa
+	asl
+	rol tmp1
+	asl
+	rol tmp1
+	asl
+	rol tmp1			; *8 → A/tmp1
+	sta tmp0
+	lda tmp1
+	sta tmp2			; *8 hi
+	lda #0
+	sta tmp1
+	txa
+	asl
+	rol tmp1
+	asl
+	rol tmp1			; *4 → A/tmp1
+	clc
+	adc tmp0
+	sta tmp0			; *12 lo
+	lda tmp1
+	adc tmp2
+	sta tmp1			; *12 hi
+	clc
+	lda tmp0
+	adc #<sky_cols
+	sta sky_ptr_l
+	lda tmp1
+	adc #>sky_cols
+	sta sky_ptr_h
 	rts
 
 ; wall_pat / fill_pat from SEC_WDARK[cur] + min(15, wallz_h).

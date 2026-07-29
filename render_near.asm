@@ -73,7 +73,10 @@ paint_near
 	inc span_hi
 .pn_cf_go
 }
-	ldx near_ccol
+	lda near_ccol
+	cmp #3
+	beq .pn_sky
+	tax
 	ldy ytop
 	; tmp1 > ytop → at least one row; enter body directly
 .pn_cf_lp
@@ -85,6 +88,29 @@ paint_near
 	cpy tmp1
 	bne .pn_cf_lp
 	sty ytop			; Y == tmp1 at exit; shrink open window from the top
+	jmp .nc
+.pn_sky
+	ldy ytop
+.pn_sky_lp
+	cpy #12
+	bcs .pn_sky_hi
+	lda (sky_ptr_l),y
+	jsr sky_put
+	iny
+	cpy tmp1
+	bne .pn_sky_lp
+	sty ytop
+	jmp .nc
+.pn_sky_hi
+	sty tmp0			; rare: ceil past horizon
+	ldy #11
+	lda (sky_ptr_l),y
+	ldy tmp0
+	jsr sky_put
+	iny
+	cpy tmp1
+	bne .pn_sky_lp
+	sty ytop
 .nc
 	lda ytop
 	cmp ybot

@@ -151,6 +151,8 @@ near_fpat	= $ad			; floor/ceil dither screen code for paint_near
 ; KERNAL-safe survivors ($FB–$FE; unused by IEC/LOAD)
 cur_weapon	= $fb			; 0=fist 1=chainsaw 2=pistol 3=shotgun 4=minigun 5=rocket
 ui_buf_id	= $fc			; asset in FRAMEBUFFER; $ff = unknown/none
+sky_ptr_l	= $fd			; sky_cols + sky_col*12 for this screen column
+sky_ptr_h	= $fe
 
 ; Base of current column in transposed framebuffer (25 bytes)
 col_base_l	= $4a
