@@ -33,10 +33,14 @@ const LOGO_REMAP = {
 };
 
 // Logo PETSCII shapes from C64 CHARROM (901225-01). Prefer VICE dump when present.
-const C64_CHARGEN_CANDIDATES = [
-  path.join('C:', 'app', 'vice3.10', 'C64', 'chargen-901225-01.bin'),
-  path.join('C:', 'app', 'VICE3.7.1', 'C64', 'chargen-901225-01.bin'),
-];
+function chargenCandidates() {
+  const out = [];
+  if (process.env.VICE_CHARGEN) out.push(process.env.VICE_CHARGEN);
+  if (process.env.VICE_BIN) {
+    out.push(path.join(process.env.VICE_BIN, '..', 'C64', 'chargen-901225-01.bin'));
+  }
+  return out;
+}
 
 // Fallback: C64 uppercase/graphics set (not VIC-20 — diagonals/checker differ)
 const LOGO_GLYPHS_C64 = {
@@ -53,7 +57,7 @@ const LOGO_GLYPHS_C64 = {
 };
 
 function loadLogoGlyphs() {
-  for (const p of C64_CHARGEN_CANDIDATES) {
+  for (const p of chargenCandidates()) {
     if (!fs.existsSync(p)) continue;
     const rom = fs.readFileSync(p);
     if (rom.length < 2048) continue;

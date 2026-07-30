@@ -2,6 +2,9 @@
 
 A Doom-lite for the stock Commodore 64.
 
+**Building:** see [SETUP.md](SETUP.md), then run `make.bat`.  
+**Collaborating:** see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 This differs from my vicdoom port in that the map is a grid like Wolfenstein, but there are floor and ceiling heights and "textured" floors and ceilings to make this look much more like Doom.
 
 It's fullscreen, using dither patterns to allow for lighting, so the pixel grid is just 40x25, which is a little rough.
@@ -30,7 +33,7 @@ A standard DDA walks the tile grid. Same-looking sectors get a cheap advance; wh
 
 ## Render near
 
-This is a floor and ceiling fill. Floors and ceilings aren't depth shaded; that would need a depth per pixel or per span, and at this resolution that's almost the same thing and I decided (for now...?) it isn't worth it. Instead, I just draw the flats with a dark colour, unless they are toxic sludge or the sky, which are supposed to glow.
+This is a floor and ceiling fill. Floors and ceilings aren't depth shaded; that would need a depth per pixel or per span, and at this resolution that's almost the same thing and I decided (for now...?) it isn't worth it. Instead, I just draw the flats with a dark colour, unless they are toxic sludge or the sky, which are supposed to glow. Cyan ceilings (and cyan upper ledges) sample `sky1.png` as a 40×12 block-colour strip with the brightest floor dither UDG, scrolled so the sky wraps four times per full turn.
 
 ## Render ledge
 
@@ -65,23 +68,18 @@ The limit here is the content, not the tech.
 
 Try recruiting @Nordischsound?
 Probably still need a SID player.
-At least need a budget. Maybe <1ms per frame is good enough?
+At least need a budget. 2k mem, 3% CPU?
 
 ## Pickups
 
 Need the smaller pickups (health, armour, clip) and so on.
-Or just put weapons everywhere instead for the ammo.
+Or just put weapons/full armour everywhere instead for the ammo.
 
 ## Levels
 
 Finish levels :)
-Almost half way there...
 All laid out, just need polish.
 
 ## Weapons
 
 - Animate the weapons in and out.
-
-## Misc
-
-- player death pause

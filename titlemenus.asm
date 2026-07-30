@@ -649,8 +649,7 @@ show_text_screen
 	; keep toggle sticky within the dump instead)
 	ldx pr_row
 	inx
-	cpx #22
-	bcc .st_l
+	bne .st_l
 .st_d
 	jmp wait_key
 .st_fail
@@ -704,8 +703,7 @@ print_at_typed
 .pt_nx
 	ldy tmp1
 	iny
-	cpy #40
-	bcc .pt
+	bne .pt
 .pt_d
 	rts
 .pt_tog
@@ -879,8 +877,7 @@ print_at
 .pa_p2
 	ldy tmp1
 	iny
-	cpy #40
-	bcc .pa
+	bne .pa
 .pa_d
 	rts
 .pa_tog
@@ -904,8 +901,7 @@ str_len
 	inx
 .sl_sk
 	iny
-	cpy #40
-	bcc .sl
+	bne .sl
 .sl_d
 	txa
 	rts

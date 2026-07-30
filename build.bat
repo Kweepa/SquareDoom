@@ -1,8 +1,13 @@
 @echo off
-set ACME=C:\app\acme\acme.exe
-if exist "%ACME%" goto run
+setlocal
+cd /d "%~dp0"
+
+if exist "%~dp0setup-env.bat" call "%~dp0setup-env.bat"
+
+if defined ACME if exist "%ACME%" goto run
 where acme >nul 2>&1 && set ACME=acme && goto run
-echo ACME assembler not found. Install ACME or set path in build.bat
+echo ACME assembler not found. Install ACME or set ACME in setup-env.bat
+echo See SETUP.md
 exit /b 1
 :run
 node tools\cook.js

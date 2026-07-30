@@ -12,7 +12,6 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-DEFAULT_VICE_BIN = Path(r"c:\app\vice3.10\bin")
 LEVEL_LOAD_ADDR = 0xA000
 UI_LOAD_ADDR = 0xC800
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
@@ -37,10 +36,6 @@ def find_c1541(explicit: Optional[Path] = None) -> Optional[Path]:
             p = Path(env) / name
             if p.is_file():
                 return p
-    for name in ("c1541.exe", "c1541"):
-        p = DEFAULT_VICE_BIN / name
-        if p.is_file():
-            return p
     w = shutil.which("c1541")
     return Path(w) if w else None
 
@@ -89,14 +84,14 @@ def main() -> None:
         "--c1541",
         type=Path,
         default=None,
-        help=f"path to c1541 (default: {DEFAULT_VICE_BIN}\\c1541.exe or PATH)",
+        help="path to c1541 (default: VICE_BIN env or PATH)",
     )
     args = ap.parse_args()
 
     c1541 = find_c1541(args.c1541)
     if not c1541:
         print(
-            "c1541 not found. Install VICE or set VICE_BIN / --c1541.",
+            "c1541 not found. Install VICE or set VICE_BIN in setup-env.bat / --c1541.",
             file=sys.stderr,
         )
         sys.exit(1)
