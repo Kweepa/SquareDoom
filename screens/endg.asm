@@ -1,4 +1,4 @@
-; Endgame text — load address $c800 (FRAMEBUFFER)
+; Endgame text - load address $c800 (the framebuffer)
 !to "screens/endg.prg", cbm
 * = $c800
 	!scr "once you beat the big badasses and",0
