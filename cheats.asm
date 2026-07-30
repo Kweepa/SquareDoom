@@ -257,6 +257,8 @@ cheat_do_kfa
 	sta owned_weapons
 	lda #200
 	sta armor
+	lda #1
+	sta combat_armor
 	ldx #0
 .ck_ammo
 	lda has_backpack

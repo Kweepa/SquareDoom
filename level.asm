@@ -39,6 +39,7 @@ init_hud_state
 	sta health
 	lda #0
 	sta armor
+	sta combat_armor
 	sta has_backpack
 	; Force pistol defaults at level start
 	lda #$ff

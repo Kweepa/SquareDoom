@@ -64,16 +64,23 @@ draw_hud
 	ldy #HUD_COL_RED
 	jsr hud_print3
 
-	; --- right: armor ---
+	; --- right: armor (green ≤100%, blue >100%) ---
+	lda #HUD_COL_GREEN
+	ldx armor
+	cpx #101
+	bcc .dh_armor_col
+	lda #HUD_COL_BLUE
+.dh_armor_col
+	sta tmp2			; armor colour
 	ldx #HUD_COL_ARMOR
 	lda #HUD_ARMOR_ICON
 	sta tmp0
-	lda #HUD_COL_GREEN
+	lda tmp2
 	jsr hud_put
 
 	lda armor
 	ldx #HUD_COL_ARMOR + 1
-	ldy #HUD_COL_GREEN
+	ldy tmp2
 	jsr hud_print3
 
 	ldx #HUD_COL_ARMOR + 4

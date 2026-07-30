@@ -27,9 +27,13 @@ player_frame
 
 ; ---------------------------------------------------------------------------
 ; damage_player — A = damage; queue red border for the next full frame
+;
+; Armor (VicDoom): blue absorbs 1/2, green ≈1/3 (damage/4 + damage/16).
+; No clamp — leftover armorDamage still reduces health hit; armor underflow
+; (unsigned >200) clears armor + combat_armor.
 ; ---------------------------------------------------------------------------
 damage_player
-	sta tmp0
+	sta tmp0			; damage remaining for health
 	lda health
 	beq .dp_rts			; already dead
 	lda god_mode
@@ -40,6 +44,45 @@ damage_player
 	sta hurt_flash
 	lda #2
 	sta $d020
+
+	lda armor
+	beq .dp_health
+	; saved = combat_armor ? damage/2 : damage/4 + damage/16
+	lda combat_armor
+	bne .dp_half
+	lda tmp0
+	lsr
+	lsr				; /4
+	sta tmp1
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	lsr				; /16
+	clc
+	adc tmp1
+	jmp .dp_saved
+.dp_half
+	lda tmp0
+	lsr				; /2
+.dp_saved
+	beq .dp_health			; tiny hit, nothing absorbed
+	sta tmp1
+	lda tmp0
+	sec
+	sbc tmp1
+	sta tmp0
+	lda armor
+	sec
+	sbc tmp1
+	sta armor
+	cmp #201			; underflow → used up
+	bcc .dp_health
+	lda #0
+	sta armor
+	sta combat_armor
+
+.dp_health
 	lda health
 	sec
 	sbc tmp0

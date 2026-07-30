@@ -28,6 +28,7 @@ info_kind		!byte 0
 ammo_bullets		!byte 0
 ammo_shells		!byte 0
 ammo_rockets		!byte 0
+combat_armor		!byte 0		; 0 = green (1/3), 1 = blue (1/2); VicDoom
 
 ; bit0=chainsaw bit1=pistol bit2=shotgun bit3=minigun bit4=rocket
 owned_weapons		!byte 0
@@ -224,6 +225,8 @@ pickup_apply
 .pa_garmor_go
 	lda #ARMOR_GREEN
 	sta armor
+	lda #0
+	sta combat_armor
 	lda #ITEM_TYPE_GREENARMOR
 	jmp pickup_message
 
@@ -235,6 +238,8 @@ pickup_apply
 .pa_barmor_go
 	lda #ARMOR_BLUE
 	sta armor
+	lda #1
+	sta combat_armor
 	lda #ITEM_TYPE_BLUEARMOR
 	jmp pickup_message
 
