@@ -645,13 +645,19 @@ damage_shotgun
 	cpx #5				; rocket — need free projectile slot
 	bne .fs_ammo
 	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
-	bne .fs_empty
+	bne .fs_to_empty
+	lda level_item_type + ITEM_PLAYER_ROCKET
+	cmp #ITEM_TYPE_EMPTY_E		; also wait out explosion sprite
+	bne .fs_to_empty
 .fs_ammo
 	ldx cur_weapon
 	lda wpn_ammo_idx,x
 	tay
 	lda ammo_bullets,y
-	beq .fs_empty
+	bne .fs_have_ammo
+.fs_to_empty
+	jmp .fs_empty
+.fs_have_ammo
 	sec
 	sbc #1
 	sta ammo_bullets,y

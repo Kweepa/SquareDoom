@@ -302,11 +302,11 @@ item_calc_screen
 	rol
 	asl aux_l
 	rol					; A = lateral >> 6 (signed low byte)
-	; centre col = 19 + lateral*32/z  (Larsson recip: mul_recip_z)
+	; centre col = MUZZLE_COL + lateral*32/z  (match hitscan aim; was #19)
 	ldx wallz_h
 	jsr mul_recip_z
 	clc
-	adc #19
+	adc #MUZZLE_COL
 	sta last_near_fcol
 	rts
 

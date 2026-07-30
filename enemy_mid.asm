@@ -1698,7 +1698,11 @@ procket_try_hit
 ; Spawn player rocket along look direction. C=0 spawned, C=1 busy/fail.
 spawn_player_rocket
 	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
+	bne .spr_busy
+	lda level_item_type + ITEM_PLAYER_ROCKET
+	cmp #ITEM_TYPE_EMPTY_E
 	beq .spr_ok
+.spr_busy
 	sec
 	rts
 .spr_ok
@@ -1747,6 +1751,21 @@ spawn_player_rocket
 	sta MOBJ_XFRAC,x
 	lda playery
 	sta MOBJ_YFRAC,x
+	; one flight-tick ahead along look (clears player center toward crosshair)
+	clc
+	lda MOBJ_XFRAC,x
+	adc procket_momx_l
+	sta MOBJ_XFRAC,x
+	lda level_item_x + ITEM_PLAYER_ROCKET
+	adc procket_momx_h
+	sta level_item_x + ITEM_PLAYER_ROCKET
+	clc
+	lda MOBJ_YFRAC,x
+	adc procket_momy_l
+	sta MOBJ_YFRAC,x
+	lda level_item_y + ITEM_PLAYER_ROCKET
+	adc procket_momy_h
+	sta level_item_y + ITEM_PLAYER_ROCKET
 	lda #0
 	sta MOBJ_FLAGS,x
 	lda #48
