@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M3",
+  "activeLevel": "E1M7",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -448,7 +448,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 12,
+          "ceilingColor": 4,
           "brightness": 15
         },
         "38": {
@@ -3434,7 +3434,7 @@
           "tag": "return_door",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 3,
+          "ceilingColor": 12,
           "brightness": 7
         },
         "81": {
@@ -7048,7 +7048,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 4,
           "brightness": 8
         },
         "103": {
@@ -7402,11 +7402,11 @@
         "132": {
           "floorHeight": 10,
           "ceilingHeight": 21,
-          "trigger": "none",
+          "trigger": "walk_into",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "door_to_yellow",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 9
@@ -9338,9 +9338,9 @@
         "2": {
           "floorHeight": 18,
           "ceilingHeight": 25,
-          "trigger": "none",
+          "trigger": "switch",
           "singleShot": false,
-          "action": "none",
+          "action": "end_level",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -9568,7 +9568,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -9592,7 +9592,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -9628,7 +9628,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -9652,7 +9652,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -9841,7 +9841,7 @@
         },
         "44": {
           "floorHeight": 14,
-          "ceilingHeight": 20,
+          "ceilingHeight": 14,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -9856,7 +9856,7 @@
           "ceilingHeight": 9,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -9868,7 +9868,7 @@
           "ceilingHeight": 9,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -9880,7 +9880,7 @@
           "ceilingHeight": 9,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10028,7 +10028,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 4,
           "brightness": 8
         },
         "60": {
@@ -10456,7 +10456,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10492,7 +10492,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10504,7 +10504,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10528,7 +10528,7 @@
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10600,7 +10600,7 @@
           "ceilingHeight": 22,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10612,7 +10612,7 @@
           "ceilingHeight": 22,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -10740,11 +10740,11 @@
           "brightness": 9
         },
         "119": {
-          "floorHeight": 10,
+          "floorHeight": 14,
           "ceilingHeight": 19,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "secret",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -11092,7 +11092,7 @@
           "ceilingHeight": 9,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -11104,7 +11104,7 @@
           "ceilingHeight": 16,
           "trigger": "none",
           "singleShot": false,
-          "action": "none",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -11352,7 +11352,7 @@
           "brightness": 12
         },
         "170": {
-          "floorHeight": 13,
+          "floorHeight": 12,
           "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
@@ -11378,9 +11378,9 @@
         "172": {
           "floorHeight": 4,
           "ceilingHeight": 9,
-          "trigger": "walk_into",
+          "trigger": "none",
           "singleShot": true,
-          "action": "secret",
+          "action": "damage_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 5,
@@ -15647,9 +15647,9 @@
       "items": [
         {
           "type": "camera",
-          "x": 139.17347646276258,
-          "y": 51.49507561926934,
-          "angle": 0.14680339502754958
+          "x": 122.63463939046616,
+          "y": 162.63577597349962,
+          "angle": 5.872135801102399
         },
         {
           "type": "yellowcard",
@@ -16127,7 +16127,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 3,
+          "ceilingColor": 11,
           "brightness": 9
         },
         "10": {
@@ -16684,7 +16684,7 @@
         },
         "56": {
           "floorHeight": 11,
-          "ceilingHeight": 16,
+          "ceilingHeight": 11,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -17382,7 +17382,7 @@
           "floorHeight": 11,
           "ceilingHeight": 19,
           "trigger": "walk_into",
-          "singleShot": false,
+          "singleShot": true,
           "action": "open_monster_closet",
           "tag": "",
           "targetTag": "monster_closet",
@@ -17487,8 +17487,8 @@
           "brightness": 9
         },
         "123": {
-          "floorHeight": 11,
-          "ceilingHeight": 11,
+          "floorHeight": 15,
+          "ceilingHeight": 15,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -17500,7 +17500,7 @@
         },
         "124": {
           "floorHeight": 11,
-          "ceilingHeight": 16,
+          "ceilingHeight": 11,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -18135,8 +18135,8 @@
           "brightness": 9
         },
         "177": {
-          "floorHeight": 5,
-          "ceilingHeight": 10,
+          "floorHeight": 7,
+          "ceilingHeight": 12,
           "trigger": "walk_into",
           "singleShot": true,
           "action": "secret",
@@ -18257,9 +18257,9 @@
         "187": {
           "floorHeight": 15,
           "ceilingHeight": 20,
-          "trigger": "none",
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "lower_floor",
           "tag": "",
           "targetTag": "",
           "floorColor": 12,
@@ -21795,7 +21795,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 4,
           "brightness": 9
         },
         "168": {
@@ -23387,7 +23387,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "3": {
@@ -23399,13 +23399,13 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "4": {
           "floorHeight": 14,
           "ceilingHeight": 19,
-          "trigger": "switch",
+          "trigger": "walk_into",
           "singleShot": true,
           "action": "lower_floor_forever",
           "tag": "",
@@ -23471,7 +23471,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "10": {
@@ -23495,7 +23495,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "12": {
@@ -23543,7 +23543,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "16": {
@@ -23555,7 +23555,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "17": {
@@ -23579,7 +23579,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "19": {
@@ -23615,7 +23615,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "22": {
@@ -23675,7 +23675,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "27": {
@@ -23687,7 +23687,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "28": {
@@ -23711,7 +23711,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "30": {
@@ -23723,7 +23723,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "31": {
@@ -23735,7 +23735,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "32": {
@@ -23747,7 +23747,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "33": {
@@ -23759,7 +23759,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "34": {
@@ -23771,11 +23771,11 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "35": {
-          "floorHeight": 16,
+          "floorHeight": 14,
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
@@ -23783,11 +23783,11 @@
           "tag": "stair_1",
           "targetTag": "stair_2",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "36": {
-          "floorHeight": 17,
+          "floorHeight": 14,
           "ceilingHeight": 26,
           "trigger": "none",
           "singleShot": false,
@@ -23795,7 +23795,7 @@
           "tag": "stair_2",
           "targetTag": "stair_3",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "37": {
@@ -23807,19 +23807,19 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "38": {
-          "floorHeight": 19,
+          "floorHeight": 18,
           "ceilingHeight": 26,
-          "trigger": "switch",
+          "trigger": "walk_into",
           "singleShot": false,
           "action": "end_level",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 15,
+          "floorColor": 4,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "39": {
@@ -23831,7 +23831,7 @@
           "tag": "stair_3",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "40": {
@@ -23843,7 +23843,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "41": {
@@ -23855,19 +23855,19 @@
           "tag": "",
           "targetTag": "baron_closets",
           "floorColor": 2,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "42": {
           "floorHeight": 14,
           "ceilingHeight": 26,
-          "trigger": "switch",
+          "trigger": "none",
           "singleShot": false,
-          "action": "raise_stairs",
+          "action": "none",
           "tag": "",
-          "targetTag": "stair_1",
+          "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 15,
+          "ceilingColor": 3,
           "brightness": 15
         },
         "43": {
@@ -23944,7 +23944,7 @@
         },
         "49": {
           "floorHeight": 14,
-          "ceilingHeight": 26,
+          "ceilingHeight": 24,
           "trigger": "use",
           "singleShot": false,
           "action": "lower_floor",
@@ -24013,6 +24013,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 11
+        },
+        "55": {
+          "floorHeight": 14,
+          "ceilingHeight": 26,
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "raise_stairs",
+          "tag": "",
+          "targetTag": "stair_1",
+          "floorColor": 11,
+          "ceilingColor": 3,
+          "brightness": 15
         }
       },
       "map": [
@@ -24216,21 +24228,21 @@
         0,
         0,
         0,
-        32,
-        32,
-        32,
-        32,
-        32,
-        32,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        34,
+        55,
         42,
-        34,
-        34,
-        34,
-        34,
-        34,
-        34,
-        34,
-        34,
+        42,
+        42,
+        42,
+        42,
+        42,
+        42,
         0,
         0,
         0,
@@ -25048,11 +25060,6 @@
       },
       "items": [
         {
-          "type": "switch",
-          "x": 77,
-          "y": 235
-        },
-        {
           "type": "pinky",
           "x": 118,
           "y": 236,
@@ -25159,11 +25166,6 @@
           "angle": 6.253824628174073
         },
         {
-          "type": "switch",
-          "x": 124,
-          "y": 18
-        },
-        {
           "type": "barrel",
           "x": 84,
           "y": 101,
@@ -25202,11 +25204,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 117,
-          "y": 49
         },
         {
           "type": "chaingun",
