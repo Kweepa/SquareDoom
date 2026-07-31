@@ -281,9 +281,9 @@ PROC_END	= PROC_E + PROC_NUM
 
 ; Per-column portal clip stack for item draw (40 cols × CLIP_MAX)
 ; Interleaved entries: {top, bot, zl, zh} × CLIP_MAX per column
-CLIP_MAX	= 24				; ≥ MAX_DDA; same-flat splits can push each step
+CLIP_MAX	= 14				; measured peak through E1; push silently drops when full
 CLIP_ENTRY	= 4
-CLIP_COL_BYTES	= CLIP_MAX * CLIP_ENTRY	; 96 — whole column Y-reachable from clip_base
+CLIP_COL_BYTES	= CLIP_MAX * CLIP_ENTRY	; 56 — whole column Y-reachable from clip_base
 COL_CLIP_N	= PROC_END		; 40 bytes: entry count per column
 COL_CLIP_ENTRIES = COL_CLIP_N + COL_NUM	; 40 × CLIP_COL_BYTES interleaved stack
 COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES

@@ -4,7 +4,7 @@
 ; render_clip.asm — per-column portal clip stack + SEC_SEEN helpers
 ; ============================================================================
 ; Interleaved layout: COL_CLIP_ENTRIES[col] = CLIP_MAX × {top,bot,zl,zh}.
-; clip_base → column start; entry n at offset n×4 (CLIP_COL_BYTES=96 ≤ 255).
+; clip_base → column start; entry n at offset n×4 (CLIP_COL_BYTES ≤ 255).
 ; Entry 0 = nearest (player, Z=0); higher n = farther after hard portals /
 ; solid close. Z = full 16-bit fish wallz from calc_wallz.
 ; Billboards: want16 = depth16·255/512 in wz_x — both Z and item depth16
