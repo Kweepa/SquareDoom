@@ -680,6 +680,7 @@ tile_blocked
 .tb_minc
 	sec
 	sbc tmp3				; min ceil - max floor
+	bcc .tb_yes			; negative opening (ceil below floor) → solid
 	cmp #4
 	bcc .tb_yes
 .tb_no
