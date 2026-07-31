@@ -109,6 +109,7 @@ free_low = MINIGUN_B_SPRITES - end_low
 !source "process.asm"
 !source "player.asm"
 !source "enemy_mid.asm"
+!source "missile.asm"
 !source "hitscan.asm"
 !source "debug.asm"
 !source "hud.asm"

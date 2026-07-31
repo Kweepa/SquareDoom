@@ -647,9 +647,17 @@ item_draw_one
 	bcc .id_vspan
 	rts
 .id_vspan
-	; Clamp draw span only — near_fcol keeps true top for UV
+	; Clamp draw span only — near_fcol keeps true top for UV.
+	; Negative fill_y1 = sprite fully above view; must not unsigned-clamp to 25
+	; (that blew 1:1 items into a full-column OOB texture walk).
+	lda fill_y1
+	bmi .id_rts
 	lda fill_y0
-	bpl .id_topok
+	bmi .id_clamp_top
+	cmp #25
+	bcs .id_rts			; fully below view
+	bcc .id_topok
+.id_clamp_top
 	lda #0
 	sta fill_y0
 .id_topok
@@ -661,9 +669,20 @@ item_draw_one
 .id_botok
 	lda fill_y0
 	cmp fill_y1
-	bcc .id_vok
+	bcc .id_span_ok
 .id_rts
 	rts
+.id_span_ok
+	; 1:1 / item path: never draw more rows than mip H (far_ceil)
+	lda far_floor
+	bne .id_vok			; enemies: projected H is intentional
+	lda fill_y1
+	sec
+	sbc fill_y0
+	cmp far_ceil
+	beq .id_vok
+	bcc .id_vok
+	rts				; span > mip H — reject bogus clamp inflate
 .id_vok
 	lda far_floor
 	bne .id_emip
@@ -939,7 +958,7 @@ item_draw_one
 	adc wish_x_h
 	sta item_u_h
 .id_cnx_nou
-	; Next column's clip stack (96-byte interleaved stride)
+	; Next column's clip stack (CLIP_COL_BYTES interleaved stride)
 	clc
 	lda clip_base_l
 	adc #CLIP_COL_BYTES
