@@ -770,6 +770,8 @@ trigger_action
 .ta_end
 	lda #1
 	sta end_level
+	lda #SOUND_STNMOV
+	jsr play_sound
 	jmp .ta_shot
 .ta_door5
 	lda #DOOR_MODE_5S
