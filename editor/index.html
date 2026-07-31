@@ -2199,6 +2199,9 @@ function applyTilePatch(level, tiles, patch) {
         next.trigger = 'walk_into';
         next.singleShot = true;
       }
+      if (next.action === 'open_monster_closet') {
+        next.singleShot = true;
+      }
     }
     if ('tag' in patch) next.tag = String(patch.tag ?? '').trim();
     if ('targetTag' in patch) next.targetTag = String(patch.targetTag ?? '').trim();
