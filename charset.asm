@@ -11,7 +11,7 @@ charset_image
 	!byte $eb,$ee,$ee,$ae,$aa,$ba,$bb,$bb	; wall 4
 	!byte $aa,$ea,$ee,$ae,$aa,$ba,$bb,$ab	; wall 5
 	!byte $aa,$ea,$ae,$aa,$aa,$ba,$ab,$aa	; wall 6
-	!byte $aa,$aa,$55,$55,$aa,$aa,$55,$55	; wall 7
+	!byte $a2,$ea,$ae,$aa,$28,$ba,$ab,$8a	; wall 7
 	!byte $aa,$aa,$a2,$aa,$2a,$a8,$8a,$aa	; wall 8
 	!byte $a8,$88,$8a,$aa,$a2,$22,$2a,$aa	; wall 9
 	!byte $a8,$88,$88,$8a,$a2,$22,$22,$2a	; wall 10
@@ -101,7 +101,7 @@ charset_image
 	!byte $ff,$07,$ff,$e0,$ff,$0e,$ff,$c1	; floor 4
 	!byte $ff,$06,$ff,$60,$ff,$0c,$ff,$c0	; floor 5
 	!byte $ff,$02,$ff,$20,$ff,$04,$ff,$40	; floor 6
-	!byte $33,$cc,$33,$cc,$33,$cc,$33,$cc	; floor 7
+	!byte $ef,$02,$7f,$20,$fe,$04,$ef,$40	; floor 7
 	!byte $ef,$00,$bf,$00,$fb,$00,$df,$00	; floor 8
 	!byte $9f,$00,$f9,$00,$cf,$00,$fc,$00	; floor 9
 	!byte $1f,$00,$f1,$00,$8f,$00,$f8,$00	; floor 10
