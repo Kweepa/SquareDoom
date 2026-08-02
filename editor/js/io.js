@@ -14,8 +14,10 @@
  *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
- *   5. sector_max: 1 byte — max sector id used in map or sector table
- *   6. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
+ *   5. switch faces: 17 bytes — count, sec[8], dir[8]
+ *      (switch sector id + NESW face of the solid; see buildSwitchFaceBindings)
+ *   6. sector_max: 1 byte — max sector id used in map or sector table
+ *   7. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
 
@@ -26,7 +28,6 @@ import {
   ITEM_TYPES,
   CAMERA_TYPE,
   SPAWN_TYPE,
-  SWITCH_TYPE,
   WORLD_PER_TILE,
   isGameItem,
   isSwitch,
@@ -42,6 +43,7 @@ import {
   MAX_PLACEABLE_ITEMS,
   MAX_ENEMIES,
   MAX_SECTORS,
+  MAX_SWITCH_FACES,
   ENEMY_TYPES,
   enemyCount,
   statItemCount,
@@ -66,12 +68,14 @@ import {
   setSpawn,
   getCell,
   compactSectorIds,
+  buildSwitchFaceBindings,
 } from './model.js';
 
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
 const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
 const ITEM_BYTES = 4;
 const SPAWN_BYTES = 3;
+const SWITCH_FACE_BYTES = 1 + MAX_SWITCH_FACES * 2;
 const EMPTY_ITEM_TYPE = 0xff;
 
 export function levelToJSON(level) {
@@ -100,21 +104,19 @@ export function levelToJSON(level) {
       y: level.spawn?.y ?? 0,
       angle: level.spawn?.angle ?? 0,
     },
-    items: level.items.map((it) => {
-      const base = {
-        type: it.type,
-        x: it.x,
-        y: it.y,
-      };
-      if (it.type === CAMERA_TYPE) {
-        return { ...base, angle: it.angle ?? 0 };
-      }
-      if (isSwitch(it)) {
-        const sw = coerceSwitchItem(it);
-        return { type: SWITCH_TYPE, x: sw.x, y: sw.y };
-      }
-      return { ...base, skills: { ...it.skills } };
-    }),
+    items: level.items
+      .filter((it) => !isSwitch(it))
+      .map((it) => {
+        const base = {
+          type: it.type,
+          x: it.x,
+          y: it.y,
+        };
+        if (it.type === CAMERA_TYPE) {
+          return { ...base, angle: it.angle ?? 0 };
+        }
+        return { ...base, skills: { ...it.skills } };
+      }),
   };
 }
 
@@ -186,8 +188,7 @@ export function levelFromJSON(data, opts = {}) {
       }
       const asSwitch = coerceSwitchItem(it);
       if (asSwitch) {
-        if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
-        level.items.push(asSwitch);
+        // Legacy prop — effect lives on sector trigger=switch; do not place item.
         if (it.switchAction || it.targetTag) {
           legacySwitches.push({
             x: asSwitch.x,
@@ -391,15 +392,6 @@ export function cookLevel(level) {
   for (let i = 0; i < MAX_ITEMS; i++) {
     const it = gameItems[i];
     if (!it) continue;
-    if (isSwitch(it)) {
-      const sw = coerceSwitchItem(it);
-      const typeId = ITEM_TYPES.indexOf(SWITCH_TYPE);
-      typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-      xs[i] = sw.x & 0xff;
-      ys[i] = sw.y & 0xff;
-      metas[i] = 0;
-      continue;
-    }
     const typeId = ITEM_TYPES.indexOf(it.type);
     typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
     xs[i] = it.x & 0xff;
@@ -433,11 +425,30 @@ export function cookLevel(level) {
   }
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
+  const switchFaces = buildSwitchFaceBindings(level);
+  if (switchFaces.length > MAX_SWITCH_FACES) {
+    errors.push(
+      `Too many switch faces (${switchFaces.length}/${MAX_SWITCH_FACES})`,
+    );
+  }
+  const switchTable = new Uint8Array(SWITCH_FACE_BYTES);
+  const nSw = Math.min(switchFaces.length, MAX_SWITCH_FACES);
+  switchTable[0] = nSw;
+  for (let i = 0; i < nSw; i++) {
+    switchTable[1 + i] = switchFaces[i].sec & 0xff;
+    switchTable[1 + MAX_SWITCH_FACES + i] = switchFaces[i].dir & 3;
+  }
+
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
   const nItems = statItemCount(level);
   const nSecrets = secretCount(level);
   const out = new Uint8Array(
-    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 5,
+    mapBytes.length +
+      sectorBytes +
+      SPAWN_BYTES +
+      itemTable.length +
+      SWITCH_FACE_BYTES +
+      5,
   );
   let o = 0;
   out.set(mapBytes, o); o += mapBytes.length;
@@ -450,6 +461,7 @@ export function cookLevel(level) {
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
+  out.set(switchTable, o); o += SWITCH_FACE_BYTES;
   out[o++] = sectorMax & 0xff;
   out[o++] = nEnemies & 0xff;
   out[o++] = nItems & 0xff;

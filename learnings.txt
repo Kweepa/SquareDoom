@@ -21,7 +21,7 @@ What helped N
 - paint_near inlines clamp_span via +clamp_span_inline macro (saves jsr/rts
   ×2); render_ledge keeps the subroutine.
 - fill_span's span_lo/hi count gated to PROFILE=1 (diagnostic only).
-- Colour-only flat fills (LIGHTFRAME pre-set to FLOOR_PAT + dirty-band
+- Colour-only flat fills (PATTERNBUFFER pre-set to FLOOR_PAT + dirty-band
   reset) skipped: flats will soon vary by sector type (sludge/lava/dirt/
   stone patterns), so a single FLOOR_PAT preset won’t hold.
 - Absolute N ≈ 102 was largely PROFILE sample inflation, not fill work.

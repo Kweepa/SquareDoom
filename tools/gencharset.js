@@ -15,7 +15,7 @@ const MAP_ARROW0 = 17;
 const MAP_SOLID = 21;
 const MSG_LET0 = 64;
 const FLOOR_PAT_BASE = 90;
-const CHARSET_NUM = 106;
+const CHARSET_NUM = FLOOR_PAT_BASE + 16; // 106 (through floors)
 
 // Old PETSCII screen codes → packed slots (space stays 32)
 const LOGO_REMAP = {

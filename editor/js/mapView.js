@@ -7,10 +7,8 @@ import {
   colorHex,
   isDoorSector,
   isWindowSector,
-  isSwitch,
+  isSwitchSector,
   findSectorIdByTag,
-  normalizeTrigger,
-  worldToTile,
 } from './model.js';
 
 export class MapView {
@@ -188,7 +186,7 @@ export class MapView {
       }
     }
 
-    // Door / window markers mid-tile
+    // Door / window / switch markers mid-tile
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${Math.max(4, Math.floor(c * 0.325))}px sans-serif`;
@@ -207,6 +205,9 @@ export class MapView {
         } else if (isWindowSector(s)) {
           ctx.fillStyle = 'rgba(255,255,255,0.9)';
           mark = 'W';
+        } else if (isSwitchSector(s)) {
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          mark = 'S';
         }
         if (mark) ctx.fillText(mark, tx * c + c / 2, ty * c + c / 2);
       }
@@ -249,12 +250,6 @@ export class MapView {
       const [selKey] = sel.tiles;
       const [stx, sty] = selKey.split(',').map(Number);
       drawTargetArrows(ctx, level, stx, sty, c);
-    }
-
-    // Switch → target: single selected switch on a sector with trigger=switch + targetTag
-    if (sel.items?.size === 1) {
-      const [it] = sel.items;
-      if (isSwitch(it)) drawSwitchTargetArrow(ctx, level, it, c);
     }
 
     // Marquee box
@@ -422,28 +417,6 @@ function drawTargetArrows(ctx, level, stx, sty, c) {
       (dest.ty + 0.5) * c,
     );
   }
-}
-
-/**
- * Arrow from the tile under a switch to its target sector, when the sector
- * under the switch has trigger=switch and a resolvable targetTag.
- */
-function drawSwitchTargetArrow(ctx, level, it, c) {
-  const { tx, ty } = worldToTile(it.x, it.y);
-  const sectorId = getCell(level, tx, ty);
-  if (!sectorId) return;
-  const s = level.sectors.get(sectorId);
-  if (!s) return;
-  if (normalizeTrigger(s.trigger) !== 'switch') return;
-  const to = resolveTargetCentroid(level, s, sectorId);
-  if (!to) return;
-  drawArrow(
-    ctx,
-    (tx + 0.5) * c,
-    (ty + 0.5) * c,
-    (to.tx + 0.5) * c,
-    (to.ty + 0.5) * c,
-  );
 }
 
 /** Centroid of the sector named by s.targetTag, or null if unset/unresolved. */

@@ -150,18 +150,19 @@ near_fpat	= $ad			; floor/ceil dither screen code for paint_near
 
 ; KERNAL-safe survivors ($FB–$FE; unused by IEC/LOAD)
 cur_weapon	= $fb			; 0=fist 1=chainsaw 2=pistol 3=shotgun 4=minigun 5=rocket
-ui_buf_id	= $fc			; asset in FRAMEBUFFER; $ff = unknown/none
+ui_buf_id	= $fc			; asset in SCREENBUFFER; $ff = unknown/none
 sky_ptr_l	= $fd			; sky_cols + sky_col*12 for this screen column
 sky_ptr_h	= $fe
 
-; Base of current column in transposed framebuffer (25 bytes)
+; Base of current column in transposed SCREENBUFFER (25 bytes)
 col_base_l	= $4a
 col_base_h	= $4b
-; Matching column base in LIGHTFRAME ($CC00 = FRAMEBUFFER+$400)
+; Matching column base in PATTERNBUFFER (= SCREENBUFFER+$400)
 pat_base_l	= $76
 pat_base_h	= $77
 fill_pat	= $78			; screen code written with colour fills
 wall_pat	= $79			; min(15, wallz_h) for wall strips
+wall_u		= $9f			; face U 0..255 (calc_wall_u; door jambs / switch)
 
 dda_steps	= $4c			; DDA spill; item draw: mirror flag (item_mirror)
 item_mirror	= dda_steps		; nonzero → flip bmp_x this sprite
@@ -236,16 +237,34 @@ dt_ms		= $73			; last frame period ≈ ms, 1..255
 turn_acc_l	= $74			; angle×1024 remainder
 turn_acc_h	= $75
 
-; Under-KERNAL RAM ($01=$35): runtime tables / BSS (not in PRG image)
-; Judd square tabs $e000–$e7ff; COL ray cache; profiler BSS
-SQTAB1		= $e000
-SQTAB2		= $e200
-SQTAB3		= $e400
-SQTAB4		= $e600
+; ------------------------------------------------------------------
+; Under-KERNAL / always-RAM play BSS ($01=$35 for $E000+)
+; Judd SQTAB at $c800 (always RAM; former screen-buffer slot)
+; Contiguous play buffers at $e000 (menu overlay = buffers after UI_LOAD_MAX):
+;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
+; ------------------------------------------------------------------
+SQTAB1		= $c800
+SQTAB2		= $c800 + $200
+SQTAB3		= $c800 + $400
+SQTAB4		= $c800 + $600
+
+; Per-column portal clip stack — packed after PATTERNBUFFER
+CLIP_MAX	= 14				; measured peak through E1; push silently drops when full
+CLIP_ENTRY	= 4
+CLIP_COL_BYTES	= CLIP_MAX * CLIP_ENTRY	; 56 — whole column Y-reachable from clip_base
+COL_NUM		= 40
+COL_CLIP_N	= PATTERNBUFFER + $400	; $e800 — 40 bytes: entry count per column
+COL_CLIP_ENTRIES = COL_CLIP_N + COL_NUM	; 40 × CLIP_COL_BYTES interleaved stack
+COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES
+
+; MENU.PRG: UI loads clobber SCREENBUFFER[0..UI_LOAD_MAX); code starts after
+MENU_BASE	= SCREENBUFFER + UI_LOAD_MAX
+MENU_LIMIT	= COL_CLIP_END
+run_menu	= MENU_BASE		; jmp stub → run_menu_body
+show_text_screen = MENU_BASE + 3	; jmp stub → show_text_screen_body
 
 ; Per-column ray cache (rebuilt when playera changes), 10×40 = 400 bytes
-COL_NUM		= 40
-COL_DDX_L	= $e800
+COL_DDX_L	= COL_CLIP_END
 COL_DDX_H	= COL_DDX_L + COL_NUM
 COL_DDY_L	= COL_DDX_H + COL_NUM
 COL_DDY_H	= COL_DDY_L + COL_NUM
@@ -279,17 +298,8 @@ PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
 PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
-; Per-column portal clip stack for item draw (40 cols × CLIP_MAX)
-; Interleaved entries: {top, bot, zl, zh} × CLIP_MAX per column
-CLIP_MAX	= 14				; measured peak through E1; push silently drops when full
-CLIP_ENTRY	= 4
-CLIP_COL_BYTES	= CLIP_MAX * CLIP_ENTRY	; 56 — whole column Y-reachable from clip_base
-COL_CLIP_N	= PROC_END		; 40 bytes: entry count per column
-COL_CLIP_ENTRIES = COL_CLIP_N + COL_NUM	; 40 × CLIP_COL_BYTES interleaved stack
-COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES
-
 ; Per-frame sector visibility ($FF = seen this frame)
-SEC_SEEN	= COL_CLIP_END		; SEC_TABLE_SIZE bytes, index = sector id
+SEC_SEEN	= PROC_END		; SEC_TABLE_SIZE bytes, index = sector id
 SEC_SEEN_END	= SEC_SEEN + SEC_TABLE_SIZE
 
 ; Item render sort + collect cache (index = sort slot 0..n-1)
@@ -343,3 +353,4 @@ sg_cock_ms_h	= $b1			; shotgun cock animation ms remaining (hi)
 ; Per-sector wall darken for set_wall_pat (from SEC_BRIGHT; $FF = full bright)
 SEC_WDARK	= SEC_VISITED_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_WDARK_END	= SEC_WDARK + SEC_TABLE_SIZE
+; Switch faces are cooked into level_data (level_switch_*) — not BSS.

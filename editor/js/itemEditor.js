@@ -2,11 +2,10 @@ import {
   ITEM_TYPES,
   CAMERA_TYPE,
   SPAWN_TYPE,
-  SWITCH_TYPE,
+  RUNTIME_ONLY_TYPES,
   WORLD_MAX,
   isCamera,
   isSpawn,
-  isSwitch,
   isSwitchCookType,
   normalizeAngle,
 } from './model.js';
@@ -46,7 +45,6 @@ export class ItemEditor {
     const item = items[0];
     const multi = items.length > 1;
     const onlySpawn = items.length === 1 && isSpawn(item);
-    const allSwitches = items.every((it) => isSwitch(it));
 
     const selLine = document.createElement('p');
     selLine.className = 'muted';
@@ -56,18 +54,13 @@ export class ItemEditor {
       selLine.textContent = `${items.length} items selected — edits apply to all`;
     } else if (isCamera(item)) {
       selLine.textContent = 'Editor only — not included in cooked binary.';
-    } else if (isSwitch(item)) {
-      selLine.textContent = 'Switch';
     } else {
       selLine.textContent = item.type;
     }
     this.root.appendChild(selLine);
 
     if (!onlySpawn) {
-      const typesSame = items.every((it) => {
-        if (isSwitch(it) && isSwitch(item)) return true;
-        return it.type === item.type;
-      });
+      const typesSame = items.every((it) => it.type === item.type);
       const typeLab = document.createElement('label');
       typeLab.className = 'field';
       typeLab.innerHTML = '<span>Type</span>';
@@ -79,15 +72,16 @@ export class ItemEditor {
         mixed.selected = true;
         typeSel.appendChild(mixed);
       }
-      // Spawn is level.spawn only — not a convertible item type
+      // Spawn is level.spawn only — not a convertible item type.
+      // Switch is a sector trigger, not a placeable prop.
       const types = ITEM_TYPES.filter(
-        (t) => t !== SPAWN_TYPE && !isSwitchCookType(t),
-      ).concat(SWITCH_TYPE, CAMERA_TYPE);
+        (t) => t !== SPAWN_TYPE && !isSwitchCookType(t) && !RUNTIME_ONLY_TYPES.has(t),
+      ).concat(CAMERA_TYPE);
       for (const t of types) {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
-        if (typesSame && (t === item.type || (t === SWITCH_TYPE && isSwitch(item)))) {
+        if (typesSame && t === item.type) {
           opt.selected = true;
         }
         typeSel.appendChild(opt);

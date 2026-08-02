@@ -4,7 +4,7 @@
 ; Sector specials: packed SEC_TYPE (trigger | single_shot | action).
 ; K-use: NESW neighbour with trigger=use.
 ; Walk: enter sector with trigger=walk_into.
-; Switch: switch ahead + nearby → sector under it with trigger=switch.
+; Switch: in trigger=switch sector, facing a bound switch solid, within 4u.
 ; Absolute JMPs used where relative branches would exceed ±127.
 
 DOOR_OPEN_GAP = 5
@@ -17,8 +17,6 @@ DOOR_MODE_5S = 1
 DOOR_MODE_10S = 2
 DOOR_MODE_30S = 3
 MOTION_STEP_MS = 128			; 1 height unit per 128 ms
-ITEM_TYPE_SWITCH = 27
-SWITCH_USE_RADIUS = 6
 
 player_prev_sec	!byte 0			; last player sector (walk trigger)
 elev_mode	!byte 0			; floor: 0=lower/1=raise; door: DOOR_MODE_*
@@ -419,111 +417,75 @@ try_walk_into
 	rts
 
 ; ------------------------------------------------------------------
-; try_switch — K held, switch ahead + within radius → sector under it
-; (trigger=switch).
+; try_switch — K held: player in trigger=switch sector, within 4u of the
+; faced solid neighbour, and that solid face is a bound switch texture.
+; (Held, not rising edge — try_use already consumes the press edge.)
 ; ------------------------------------------------------------------
 try_switch
 	lda key_use
 	bne .ts_g
+.ts_r
 	rts
 .ts_g
-	ldx #0
-.ts_l
-	lda level_item_type,x
-	cmp #ITEM_TYPE_SWITCH
-	beq .ts_is
-	jmp .ts_n
-.ts_is
-	lda level_item_x,x
-	sta tmp0
-	lda level_item_y,x
-	sta tmp1
-	lda tmp0
-	sec
-	sbc playerx_h
-	bcs .ts_x
-	eor #$ff
-	adc #1
-.ts_x
-	cmp #SWITCH_USE_RADIUS
-	bcc .ts_xin
-	jmp .ts_n
-.ts_xin
-	lda tmp1
-	sec
-	sbc playery_h
-	bcs .ts_y
-	eor #$ff
-	adc #1
-.ts_y
-	cmp #SWITCH_USE_RADIUS
-	bcc .ts_yin
-	jmp .ts_n
-.ts_yin
-	stx tmp5				; save item index
-	jsr player_face_nesw
-	tax
-	lda tu_face,x
-	bne .ts_need_hi
-	; ahead = switch on lo side of player (N/W)
-	lda tu_axis,x
-	bne .ts_lo_y
-	lda playerx_h
-	sec
-	sbc tmp0
-	jmp .ts_lo_d
-.ts_lo_y
-	lda playery_h
-	sec
-	sbc tmp1
-.ts_lo_d
-	beq .ts_n2
-	bcc .ts_n2
-	bcs .ts_ahead
-.ts_need_hi
-	; ahead = switch on hi side of player (E/S)
-	lda tu_axis,x
-	bne .ts_hi_y
-	lda tmp0
-	sec
-	sbc playerx_h
-	jmp .ts_hi_d
-.ts_hi_y
-	lda tmp1
-	sec
-	sbc playery_h
-.ts_hi_d
-	beq .ts_n2
-	bcc .ts_n2
-.ts_ahead
-	; map switch world → tile → sector
-	lda tmp0
-	lsr
-	lsr
-	lsr
-	sta mapx
-	lda tmp1
-	lsr
-	lsr
-	lsr
-	sta mapy
+	jsr player_tile
 	jsr map_sector_id
-	beq .ts_n2
+	beq .ts_r
 	sta trig_sec
 	tax
 	jsr sec_trigger
 	cmp #TRIG_SWITCH
-	bne .ts_n2
-	jmp trigger_action
-.ts_n2
+	bne .ts_r
+
+	jsr player_face_nesw
+	sta tmp5
+	tax
+	lda tu_axis,x
+	bne .ts_ly
+	jsr .tu_get_x
+	jmp .ts_near
+.ts_ly
+	jsr .tu_get_y
+.ts_near
 	ldx tmp5
-.ts_n
-	inx
-	cpx #MAX_ITEMS
-	bcs .ts_done
-	jmp .ts_l
-.ts_done
-	rts
+	lda tu_face,x
+	bne .ts_nh
+	jsr .tu_near_lo
+	jmp .ts_nd
+.ts_nh
+	jsr .tu_near_hi
+.ts_nd
+	bcc .ts_r
+
+	; Neighbour must be solid (map id 0)
+	ldx tmp5
+	lda mapx
+	clc
+	adc tu_dx,x
+	sta mapx
+	cmp #MAP_SIZE
+	bcs .ts_r
+	lda mapy
+	clc
+	adc tu_dy,x
+	sta mapy
+	cmp #MAP_SIZE
+	bcs .ts_r
+	jsr map_sector_id
+	bne .ts_r
+
+	; Face of that solid toward the player; match cooked (trig_sec, face)
+	ldx tmp5
+	lda ts_solid_face,x
+	sta tmp4
+	lda trig_sec
+	sta tmp3
+	jsr switch_face_listed
+	bcs .ts_r
+	jmp trigger_action
+
+; Player facing NESW → NESW face index on the solid ahead
+ts_solid_face
+	!byte 2, 3, 0, 1
 
 ; ------------------------------------------------------------------
 ; stairs_activate — tmp1 = Raise Stairs sector (walk-into; often single_shot)

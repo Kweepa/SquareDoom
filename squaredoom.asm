@@ -2,10 +2,14 @@
 !cpu 6502
 !to "squaredoom.prg", cbm
 
-; Column-major colour buffer (40×25); Judd tabs live under KERNAL at $E000
-FRAMEBUFFER = $c800
-; Matching lighting/pattern buffer (screen codes); hi = colour hi + 4
-LIGHTFRAME = $cc00
+; Play buffers under KERNAL (contiguous — also MENU.PRG overlay target).
+; Judd SQTAB lives at $c800 (former FB/pattern slot; always-RAM).
+; UI disk loads (logo/text) → SCREENBUFFER[0..UI_LOAD_MAX); menu code after that.
+UI_LOAD_MAX = 592			; ≥ max CRED/HELP/ORDR/ENDG/logo payload (ordr=582)
+SCREENBUFFER = $e000			; column-major colours (40×25)
+PATTERNBUFFER = SCREENBUFFER + $400	; screen codes; hi = colour hi + 4
+; COL_CLIP_* follows immediately after PATTERNBUFFER (see zeropage.asm)
+
 CHARSET = $3800
 FIST_RIGHT_SPRITES = $2a00	; 8×64 open right hand (7 used)
 FIST_PUNCH_SPRITES = $2c00	; 8×64 punch pose (7 used; pad overwritten by saw hi2)
@@ -44,9 +48,9 @@ SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 ; Memory ceilings:
 ;   low  → sprites before CHARSET; charset $3800..CHARSET_END; cock $3b80; mid $3d00+
 ;   mid  → MID_BASE → level_data at $a000; enemy mips here
-;   high → FRAMEBUFFER at $c800 ($c000–$c7ff free after SQTAB move)
+;   high → SQTAB at $c800
 MEM_MID_LIMIT = $a000
-MEM_HIGH_LIMIT = FRAMEBUFFER
+MEM_HIGH_LIMIT = $c800			; Judd SQTAB occupies $c800–$cfff
 
 !source "zeropage.asm"
 !source "basicstub.asm"
@@ -115,9 +119,9 @@ free_low = MINIGUN_B_SPRITES - end_low
 !source "hud.asm"
 !source "pickup.asm"
 !source "cheats.asm"			; iddqd / idkfa / idclev (after pickup for INFO_*)
-!source "logo_defs.asm"			; LOGO_* constants (payload on disk → FRAMEBUFFER)
-!source "loader.asm"			; mid — LoadPrg/LoadUiFile; mid has room after UI dumps left
-!source "titlemenus.asm"
+!source "logo_defs.asm"			; LOGO_* constants (payload on disk → SCREENBUFFER)
+!source "loader.asm"			; mid — LoadPrg/LoadMenu/LoadLevel; LoadUiFile in MENU.PRG
+!source "titleflow.asm"			; resident flow/print/melt; menu UI from MENU.PRG
 ; Near flats + P + clip in mid (low headroom for PROFILE hooks elsewhere)
 !source "render_near.asm"
 !source "render_project_y.asm"
@@ -149,7 +153,7 @@ free_mid = PY_TAB - end_mid
 ; Layout: map first ($a000, 32-byte aligned for maprow+mapx), then 7×200
 ; sector attr tables, spawn, items, sector_max, enemies, items, secrets, par
 ; ------------------------------------------------------------------
-LEVEL_BYTES = 2624
+LEVEL_BYTES = 2641
 *=$a000
 level_data
 	!fill LEVEL_BYTES, 0
@@ -160,6 +164,9 @@ MAX_ITEMS = 48
 ITEM_BYTES = 4			; SoA: 4 arrays × MAX_ITEMS
 SPAWN_BYTES = 3
 STATS_BYTES = 4			; num_enemies, num_items, num_secrets, par_time
+MAX_SWITCH_FACES = 8
+SWITCH_FACE_BYTES = 1 + MAX_SWITCH_FACES * 2	; n + sec[8] + dir[8]
+
 ; SEC_TYPE packed: action[4:0] | trigger[6:5] | single_shot[7]
 ACT_MASK = $1f
 TRIG_MASK = $60
@@ -206,10 +213,18 @@ level_spawn = SEC_BRIGHT + SEC_TABLE_SIZE	; x, y, angle (playera)
 level_item_type = level_spawn + SPAWN_BYTES	; 48: typeId or $FF empty
 level_item_x = level_item_type + MAX_ITEMS
 level_item_y = level_item_x + MAX_ITEMS
-level_item_meta = level_item_y + MAX_ITEMS	; skill bits / switch target
+level_item_meta = level_item_y + MAX_ITEMS	; skill bits
 level_items = level_item_type
 
-level_sector_max = level_item_meta + MAX_ITEMS
+; Cooked switch faces: count + switch-sector id + solid NESW face (0..3)
+level_switch_n = level_item_meta + MAX_ITEMS
+level_switch_sec = level_switch_n + 1
+level_switch_dir = level_switch_sec + MAX_SWITCH_FACES
+SWITCH_FACE_N = level_switch_n
+SWITCH_FACE_SEC = level_switch_sec
+SWITCH_FACE_DIR = level_switch_dir
+
+level_sector_max = level_switch_dir + MAX_SWITCH_FACES
 level_num_enemies = level_sector_max + 1
 level_num_items = level_num_enemies + 1
 level_num_secrets = level_num_items + 1
@@ -222,6 +237,7 @@ level_par_time = level_num_secrets + 1
 !source "sky.asm"
 !source "recip.asm"
 !source "item_bitmaps.asm"
+!source "wall_switch.asm"
 !source "mapscreen.asm"
 !source "dpsounds.asm"
 !source "levelstats.asm"
@@ -231,12 +247,19 @@ level_par_time = level_num_secrets + 1
 end_high = *
 free_high = MEM_HIGH_LIMIT - end_high
 !if free_high < 0 {
-	!error "High data overlaps FRAMEBUFFER at $c800; overshoot=", end_high - MEM_HIGH_LIMIT
+	!error "High data overlaps SQTAB at $c800; overshoot=", end_high - MEM_HIGH_LIMIT
 }
-!warn "mem: high end=$", end_high, " free to FB $c800 =", free_high
+!warn "mem: high end=$", end_high, " free to SQTAB $c800 =", free_high
 
-; Under-KERNAL BSS: SQTAB $e000–$e7ff, COL, PROF, PROC, mobj, flatgrp, visited, wdark; tail free to $10000
-free_kernal = $10000 - SEC_WDARK_END
+!if SEC_WDARK_END > $10000 {
+	!error "Under-KERNAL BSS past $10000; SEC_WDARK_END=$", SEC_WDARK_END
+}
+!if MENU_LIMIT > $fffa {
+	!error "MENU_LIMIT past vectors; COL_CLIP_END=$", COL_CLIP_END
+}
+; Play buffers $e000..COL_CLIP_END-1; MENU.PRG at MENU_BASE..MENU_LIMIT-1
+free_kernal = $10000 - SEC_WDARK_END	; scrap after play BSS (not menu — menu overlays buffers)
+free_menu = MENU_LIMIT - MENU_BASE	; MENU.PRG size budget
 free_total = free_low + free_mid + free_high + free_kernal
-!warn "mem: kernal BSS $e000..$", SEC_WDARK_END - 1, " free tail =", free_kernal
-!warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-tail)"
+!warn "mem: kernal BSS $e000..$", SEC_WDARK_END - 1, " scrap =", free_kernal, " MENU budget =", free_menu
+!warn "mem: TOTAL free =", free_total, " (low+mid+high+kernal-scrap)"

@@ -1,6 +1,6 @@
-; Credits text - load address $c800 (the framebuffer)
+; Credits text - load address $e000 (the SCREENBUFFER)
 !to "screens/cred.prg", cbm
-* = $c800
+* = $e000
 	!scr "^doom^ for the ^commodore 64^", 0
 	!scr " ",0
 	!scr "ported by ^steve mccrea^, jul-aug 2026.",0

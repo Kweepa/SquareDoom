@@ -638,6 +638,8 @@ const ITEM_IMAGE_DATA = {
 const MAP_SIZE = 32;
 const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 const MAX_SECTORS = 199;
+/** Cooked switch face table size (sector id + solid NESW face per entry). */
+const MAX_SWITCH_FACES = 8;
 const MAX_ITEMS = 48;
 /** Last two item slots reserved for enemy missile + player rocket. */
 const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
@@ -809,6 +811,10 @@ function isWindowSector(sector) {
   return normalizeAction(sector?.action) === 'window';
 }
 
+function isSwitchSector(sector) {
+  return normalizeTrigger(sector?.trigger) === 'switch';
+}
+
 function isElevatorSector(sector) {
   const a = normalizeAction(sector?.action);
   return a === 'lower_floor' || a === 'lower_floor_15s'
@@ -839,8 +845,8 @@ const FIREBALL_TYPE = 'fireball';
 const RUNTIME_ONLY_TYPES = new Set([
   'fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'plasmaball', 'rocket', 'barexpl',
+  'switch', // sector trigger=switch; not a placeable prop
 ]);
-
 /** Legacy cook type ids that map to SWITCH_TYPE. */
 const LEGACY_SWITCH_COOK_TYPES = new Set([
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
@@ -856,7 +862,7 @@ const EDITOR_ITEM_TYPES = [
 ];
 
 function isGameItem(type) {
-  return type !== CAMERA_TYPE && type !== SPAWN_TYPE;
+  return type !== CAMERA_TYPE && type !== SPAWN_TYPE && !isSwitchCookType(type);
 }
 
 function isCamera(item) {
@@ -1106,6 +1112,49 @@ function cellIndex(tx, ty) {
 function getCell(level, tx, ty) {
   if (tx < 0 || ty < 0 || tx >= MAP_SIZE || ty >= MAP_SIZE) return 0;
   return level.map[cellIndex(tx, ty)];
+}
+
+/**
+ * Cooked switch bindings: one { sec, dir } per trigger=switch sector.
+ * sec = switch sector id; dir = NESW face of the adjacent solid (0=N..3=W).
+ * Uses the first map cell of that sector with a solid neighbour:
+ *   1 solid → that wall; 3 → opposite the gap; 2/4 → first NESW.
+ */
+function buildSwitchFaceBindings(level) {
+  const faces = [];
+  const done = new Set();
+  const dirs = [
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+  ];
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      const sec = getCell(level, tx, ty);
+      if (!sec || done.has(sec)) continue;
+      const s = level.sectors.get(sec);
+      if (!s || normalizeTrigger(s.trigger) !== 'switch') continue;
+      const solid = [];
+      for (let d = 0; d < 4; d++) {
+        const mx = tx + dirs[d].dx;
+        const my = ty + dirs[d].dy;
+        if (mx < 0 || my < 0 || mx >= MAP_SIZE || my >= MAP_SIZE) continue;
+        if (getCell(level, mx, my) === 0) solid.push(d);
+      }
+      if (solid.length === 0) continue;
+      done.add(sec);
+      let toward;
+      if (solid.length === 3) {
+        const open = [0, 1, 2, 3].find((d) => !solid.includes(d));
+        toward = (open + 2) & 3;
+      } else {
+        toward = solid[0];
+      }
+      faces.push({ sec, dir: (toward + 2) & 3 });
+    }
+  }
+  return faces;
 }
 
 function setCell(level, tx, ty, sectorId) {
@@ -2414,8 +2463,10 @@ function activeLevel(episode) {
  *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
  *      unused item slots: typeId=0xFF
  *      spawn is not an item (typeId 0 unused in table)
- *   5. sector_max: 1 byte — max sector id used in map or sector table
- *   6. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
+ *   5. switch faces: 17 bytes — count, sec[8], dir[8]
+ *      (switch sector id + NESW face of the solid; see buildSwitchFaceBindings)
+ *   6. sector_max: 1 byte — max sector id used in map or sector table
+ *   7. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
 
@@ -2426,6 +2477,7 @@ const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
 const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
 const ITEM_BYTES = 4;
 const SPAWN_BYTES = 3;
+const SWITCH_FACE_BYTES = 1 + MAX_SWITCH_FACES * 2;
 const EMPTY_ITEM_TYPE = 0xff;
 
 function levelToJSON(level) {
@@ -2454,21 +2506,19 @@ function levelToJSON(level) {
       y: level.spawn?.y ?? 0,
       angle: level.spawn?.angle ?? 0,
     },
-    items: level.items.map((it) => {
-      const base = {
-        type: it.type,
-        x: it.x,
-        y: it.y,
-      };
-      if (it.type === CAMERA_TYPE) {
-        return { ...base, angle: it.angle ?? 0 };
-      }
-      if (isSwitch(it)) {
-        const sw = coerceSwitchItem(it);
-        return { type: SWITCH_TYPE, x: sw.x, y: sw.y };
-      }
-      return { ...base, skills: { ...it.skills } };
-    }),
+    items: level.items
+      .filter((it) => !isSwitch(it))
+      .map((it) => {
+        const base = {
+          type: it.type,
+          x: it.x,
+          y: it.y,
+        };
+        if (it.type === CAMERA_TYPE) {
+          return { ...base, angle: it.angle ?? 0 };
+        }
+        return { ...base, skills: { ...it.skills } };
+      }),
   };
 }
 
@@ -2540,8 +2590,7 @@ function levelFromJSON(data, opts = {}) {
       }
       const asSwitch = coerceSwitchItem(it);
       if (asSwitch) {
-        if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
-        level.items.push(asSwitch);
+        // Legacy prop — effect lives on sector trigger=switch; do not place item.
         if (it.switchAction || it.targetTag) {
           legacySwitches.push({
             x: asSwitch.x,
@@ -2745,15 +2794,6 @@ function cookLevel(level) {
   for (let i = 0; i < MAX_ITEMS; i++) {
     const it = gameItems[i];
     if (!it) continue;
-    if (isSwitch(it)) {
-      const sw = coerceSwitchItem(it);
-      const typeId = ITEM_TYPES.indexOf(SWITCH_TYPE);
-      typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-      xs[i] = sw.x & 0xff;
-      ys[i] = sw.y & 0xff;
-      metas[i] = 0;
-      continue;
-    }
     const typeId = ITEM_TYPES.indexOf(it.type);
     typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
     xs[i] = it.x & 0xff;
@@ -2787,11 +2827,30 @@ function cookLevel(level) {
   }
   if (sectorMax > MAX_SECTORS) sectorMax = MAX_SECTORS;
 
+  const switchFaces = buildSwitchFaceBindings(level);
+  if (switchFaces.length > MAX_SWITCH_FACES) {
+    errors.push(
+      `Too many switch faces (${switchFaces.length}/${MAX_SWITCH_FACES})`,
+    );
+  }
+  const switchTable = new Uint8Array(SWITCH_FACE_BYTES);
+  const nSw = Math.min(switchFaces.length, MAX_SWITCH_FACES);
+  switchTable[0] = nSw;
+  for (let i = 0; i < nSw; i++) {
+    switchTable[1 + i] = switchFaces[i].sec & 0xff;
+    switchTable[1 + MAX_SWITCH_FACES + i] = switchFaces[i].dir & 3;
+  }
+
   const sectorBytes = SECTOR_TABLE_COUNT * SECTOR_TABLE_SIZE;
   const nItems = statItemCount(level);
   const nSecrets = secretCount(level);
   const out = new Uint8Array(
-    mapBytes.length + sectorBytes + SPAWN_BYTES + itemTable.length + 5,
+    mapBytes.length +
+      sectorBytes +
+      SPAWN_BYTES +
+      itemTable.length +
+      SWITCH_FACE_BYTES +
+      5,
   );
   let o = 0;
   out.set(mapBytes, o); o += mapBytes.length;
@@ -2804,6 +2863,7 @@ function cookLevel(level) {
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
   out.set(itemTable, o); o += itemTable.length;
+  out.set(switchTable, o); o += SWITCH_FACE_BYTES;
   out[o++] = sectorMax & 0xff;
   out[o++] = nEnemies & 0xff;
   out[o++] = nItems & 0xff;
@@ -3205,7 +3265,7 @@ class MapView {
       }
     }
 
-    // Door / window markers mid-tile
+    // Door / window / switch markers mid-tile
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${Math.max(4, Math.floor(c * 0.325))}px sans-serif`;
@@ -3224,6 +3284,9 @@ class MapView {
         } else if (isWindowSector(s)) {
           ctx.fillStyle = 'rgba(255,255,255,0.9)';
           mark = 'W';
+        } else if (isSwitchSector(s)) {
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          mark = 'S';
         }
         if (mark) ctx.fillText(mark, tx * c + c / 2, ty * c + c / 2);
       }
@@ -3266,12 +3329,6 @@ class MapView {
       const [selKey] = sel.tiles;
       const [stx, sty] = selKey.split(',').map(Number);
       drawTargetArrows(ctx, level, stx, sty, c);
-    }
-
-    // Switch → target: single selected switch on a sector with trigger=switch + targetTag
-    if (sel.items?.size === 1) {
-      const [it] = sel.items;
-      if (isSwitch(it)) drawSwitchTargetArrow(ctx, level, it, c);
     }
 
     // Marquee box
@@ -3439,28 +3496,6 @@ function drawTargetArrows(ctx, level, stx, sty, c) {
       (dest.ty + 0.5) * c,
     );
   }
-}
-
-/**
- * Arrow from the tile under a switch to its target sector, when the sector
- * under the switch has trigger=switch and a resolvable targetTag.
- */
-function drawSwitchTargetArrow(ctx, level, it, c) {
-  const { tx, ty } = worldToTile(it.x, it.y);
-  const sectorId = getCell(level, tx, ty);
-  if (!sectorId) return;
-  const s = level.sectors.get(sectorId);
-  if (!s) return;
-  if (normalizeTrigger(s.trigger) !== 'switch') return;
-  const to = resolveTargetCentroid(level, s, sectorId);
-  if (!to) return;
-  drawArrow(
-    ctx,
-    (tx + 0.5) * c,
-    (ty + 0.5) * c,
-    (to.tx + 0.5) * c,
-    (to.ty + 0.5) * c,
-  );
 }
 
 /** Centroid of the sector named by s.targetTag, or null if unset/unresolved. */
@@ -3653,11 +3688,14 @@ class PreviewView {
       const planeX = Math.cos(cam.angle) * TAN_HALF_FOV;
       const planeY = Math.sin(cam.angle) * TAN_HALF_FOV;
 
+      const switchFaces = buildSwitchFaceBindings(level);
+      const switchImg = this.opts.images?.switch ?? null;
+
       for (let col = 0; col < view.w; col++) {
         const cameraX = (2 * col + 1) / view.w - 1;
         const rayDirX = dirX + planeX * cameraX;
         const rayDirY = dirY + planeY * cameraX;
-        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view);
+        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg);
       }
 
       this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view);
@@ -3690,7 +3728,7 @@ class PreviewView {
     const sprites = [];
 
     for (const it of level.items) {
-      if (isCamera(it)) continue;
+      if (isCamera(it) || isSwitch(it)) continue; // wall-face in castColumn
       const ix = it.x + 0.5;
       const iy = it.y + 0.5;
       const dx = ix - ox;
@@ -3763,7 +3801,7 @@ function sectorAtTile(level, tx, ty) {
  * into the open clip, draw upper/lower walls if heights change, then narrow
  * the clip. Farther sectors only paint into what's still open.
  */
-function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
+function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg) {
   const posX = ox / WORLD_PER_TILE;
   const posY = oy / WORLD_PER_TILE;
 
@@ -3817,6 +3855,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       perpTiles = (mapY - posY + (1 - stepY) / 2) / rayDirY;
     }
     const perpDist = Math.max(0.05, Math.abs(perpTiles)) * WORLD_PER_TILE;
+    const wallU = faceU(posX, posY, perpTiles, rayDirX, rayDirY, side, mapX, mapY, stepX, stepY);
     const outOfBounds = mapX < 0 || mapY < 0 || mapX >= MAP_SIZE || mapY >= MAP_SIZE;
     const next = outOfBounds ? null : sectorAtTile(level, mapX, mapY);
 
@@ -3862,14 +3901,21 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
     // Solid wall — fill remaining portal and stop (nothing farther may draw)
     if (!next) {
       if (yBot > yTop) {
-        ctx.fillStyle = wallColor(side);
-        ctx.fillRect(col, yTop, 1, yBot - yTop);
+        const grey = wallColor(side);
+        const hitFace = hitFaceNESW(side, stepX, stepY);
+        const isSw = isCookedSwitchFace(level, switchFaces, mapX, mapY, hitFace);
+        if (isSw && switchImg) {
+          paintSwitchColumn(ctx, col, yTop, yBot, wallU, switchImg, grey, nearCeilY, nearFloorY);
+        } else {
+          ctx.fillStyle = grey;
+          ctx.fillRect(col, yTop, 1, yBot - yTop);
+        }
       }
       break;
     }
 
-    // Upper ledge: door → ceil colour. Lower ledge: elevator → floor colour.
-    // Else N/S–E/W grey.
+    // Upper ledge: door → ceil colour on outer 1/8ths only. Else N/S–E/W grey.
+    // Lower ledge: elevator → floor colour. Else grey.
     const grey = wallColor(side);
     const farFloor = next.sector.floorHeight;
     const farCeil = next.sector.ceilingHeight;
@@ -3881,7 +3927,15 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       const wallTop = clampSpan(yTop, yBot, nearCeilY);
       const wallBot = clampSpan(yTop, yBot, farCeilY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = isDoorSector(next.sector) ? colorHex(next.sector.ceilingColor) : grey;
+        // Door: left/right = ceil colour, centre = floor colour (secret doors)
+        if (isDoorSector(next.sector)) {
+          const jamb = wallU < 1 / 8 || wallU >= 7 / 8;
+          ctx.fillStyle = colorHex(
+            jamb ? next.sector.ceilingColor : next.sector.floorColor,
+          );
+        } else {
+          ctx.fillStyle = grey;
+        }
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yTop = Math.max(yTop, wallBot);
@@ -3906,6 +3960,98 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
 
     cur = next;
   }
+}
+
+/**
+ * Face U in 0..1 = fractional coord of the grid crossing on the non-hit axis.
+ * side 0 (vertical gridline): frac(hitY); side 1: frac(hitX).
+ */
+function faceU(posX, posY, perpTiles, rayDirX, rayDirY, side, mapX, mapY, stepX, stepY) {
+  let u;
+  if (side === 0) {
+    const gridX = stepX > 0 ? mapX : mapX + 1;
+    const t = (gridX - posX) / rayDirX;
+    u = posY + t * rayDirY;
+  } else {
+    const gridY = stepY > 0 ? mapY : mapY + 1;
+    const t = (gridY - posY) / rayDirY;
+    u = posX + t * rayDirX;
+  }
+  u -= Math.floor(u);
+  if (side === 0 && rayDirX > 0) u = 1 - u;
+  if (side === 1 && rayDirY < 0) u = 1 - u;
+  if (u < 0) u = 0;
+  if (u >= 1) u = 0.999;
+  return u;
+}
+
+/** NESW face of solid cell that was hit: 0=N 1=E 2=S 3=W. */
+function hitFaceNESW(side, stepX, stepY) {
+  if (side === 0) return stepX < 0 ? 1 : 3; // E if stepping −X, else W
+  return stepY < 0 ? 2 : 0; // S if stepping −Y, else N
+}
+
+/** Match cooked {sec,dir} against solid cell + hit face (asm switch_face_match). */
+function isCookedSwitchFace(level, faces, mapX, mapY, hitFace) {
+  const nd = [
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+  ][hitFace];
+  const sec = getCell(level, mapX + nd.dx, mapY + nd.dy);
+  return faces.some((f) => f.sec === sec && f.dir === hitFace);
+}
+
+/** Sample 16×16 switch over unclamped wall [wallTopY, wallBotY); V=0 at floor. */
+function paintSwitchColumn(ctx, col, yTop, yBot, wallU, img, grey, wallTopY, wallBotY) {
+  if (yBot <= yTop) return;
+  const wallH = wallBotY - wallTopY;
+  if (wallH <= 0) return;
+  const pix = switchPixels(img);
+  const u = Math.min(15, Math.floor(wallU * 16));
+  for (let y = yTop; y < yBot; y++) {
+    const fromBottom = wallBotY - 1 - y;
+    let v = Math.floor((fromBottom * 16) / wallH);
+    if (v < 0) v = 0;
+    if (v > 15) v = 15;
+    const rgba = pix ? pix[(15 - v) * 16 + u] : null;
+    // Clear = alpha or magenta key (matches gen_wall_switch.js); black is opaque
+    const clear =
+      !rgba ||
+      rgba[3] < 128 ||
+      (rgba[0] === 255 && rgba[1] === 0 && rgba[2] === 255);
+    if (!clear) {
+      ctx.fillStyle = `rgb(${rgba[0]},${rgba[1]},${rgba[2]})`;
+    } else {
+      ctx.fillStyle = grey;
+    }
+    ctx.fillRect(col, y, 1, 1);
+  }
+}
+
+const switchPixCache = new WeakMap();
+
+function switchPixels(img) {
+  if (!img?.complete || !img.naturalWidth) return null;
+  let cached = switchPixCache.get(img);
+  if (cached) return cached;
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const c = document.createElement('canvas');
+  c.width = 16;
+  c.height = 16;
+  const cctx = c.getContext('2d');
+  cctx.imageSmoothingEnabled = false;
+  cctx.drawImage(img, 0, 0, w, h, 0, 0, 16, 16);
+  const data = cctx.getImageData(0, 0, 16, 16).data;
+  const pix = new Array(256);
+  for (let i = 0; i < 256; i++) {
+    const o = i * 4;
+    pix[i] = [data[o], data[o + 1], data[o + 2], data[o + 3]];
+  }
+  switchPixCache.set(img, pix);
+  return pix;
 }
 
 function clampSpan(yTop, yBot, y) {
@@ -4308,7 +4454,6 @@ class ItemEditor {
     const item = items[0];
     const multi = items.length > 1;
     const onlySpawn = items.length === 1 && isSpawn(item);
-    const allSwitches = items.every((it) => isSwitch(it));
 
     const selLine = document.createElement('p');
     selLine.className = 'muted';
@@ -4318,18 +4463,13 @@ class ItemEditor {
       selLine.textContent = `${items.length} items selected — edits apply to all`;
     } else if (isCamera(item)) {
       selLine.textContent = 'Editor only — not included in cooked binary.';
-    } else if (isSwitch(item)) {
-      selLine.textContent = 'Switch';
     } else {
       selLine.textContent = item.type;
     }
     this.root.appendChild(selLine);
 
     if (!onlySpawn) {
-      const typesSame = items.every((it) => {
-        if (isSwitch(it) && isSwitch(item)) return true;
-        return it.type === item.type;
-      });
+      const typesSame = items.every((it) => it.type === item.type);
       const typeLab = document.createElement('label');
       typeLab.className = 'field';
       typeLab.innerHTML = '<span>Type</span>';
@@ -4341,15 +4481,16 @@ class ItemEditor {
         mixed.selected = true;
         typeSel.appendChild(mixed);
       }
-      // Spawn is level.spawn only — not a convertible item type
+      // Spawn is level.spawn only — not a convertible item type.
+      // Switch is a sector trigger, not a placeable prop.
       const types = ITEM_TYPES.filter(
-        (t) => t !== SPAWN_TYPE && !isSwitchCookType(t),
-      ).concat(SWITCH_TYPE, CAMERA_TYPE);
+        (t) => t !== SPAWN_TYPE && !isSwitchCookType(t) && !RUNTIME_ONLY_TYPES.has(t),
+      ).concat(CAMERA_TYPE);
       for (const t of types) {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
-        if (typesSame && (t === item.type || (t === SWITCH_TYPE && isSwitch(item)))) {
+        if (typesSame && t === item.type) {
           opt.selected = true;
         }
         typeSel.appendChild(opt);
@@ -4949,19 +5090,18 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       if ('type' in patch) {
         if (isSpawn(item)) continue; // spawn type is fixed
         if (patch.type === SPAWN_TYPE) continue;
+        if (patch.type === SWITCH_TYPE || isSwitchCookType(patch.type)) {
+          continue; // switch is a sector trigger, not an item
+        }
         if (patch.type === CAMERA_TYPE && !isCamera(item)) {
           item.type = CAMERA_TYPE;
           item.angle = 0;
           delete item.skills;
-        } else if (patch.type === SWITCH_TYPE) {
-          item.type = SWITCH_TYPE;
-          delete item.skills;
-          delete item.angle;
         } else if (patch.type !== CAMERA_TYPE && isCamera(item)) {
           item.type = patch.type;
           item.skills = defaultSkills();
           delete item.angle;
-        } else if (isSwitch(item) && patch.type !== SWITCH_TYPE) {
+        } else if (isSwitch(item)) {
           item.type = patch.type;
           item.skills = defaultSkills();
         } else {

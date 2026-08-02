@@ -1,5 +1,5 @@
 ; In-game automap: floor-coloured visited tiles + TheKeep player arrow
-; Colour backbuffer in FRAMEBUFFER; chars set once; blit colours on vsync.
+; Colour backbuffer in SCREENBUFFER; chars set once; blit colours on vsync.
 !zone mapscreen
 
 MAP_OX = 4				; center 32 cols in 40
@@ -87,7 +87,7 @@ mapscreen
 	lda #0
 	sta input_paused
 	lda #1
-	sta hud_dirty			; map used FRAMEBUFFER as colour backbuffer
+	sta hud_dirty			; map used SCREENBUFFER as colour backbuffer
 	rts
 
 ; ------------------------------------------------------------------
@@ -139,16 +139,16 @@ map_get_id
 	rts
 
 ; ------------------------------------------------------------------
-; map_build_colours — paint viewport colours into FRAMEBUFFER (backbuffer)
+; map_build_colours — paint viewport colours into SCREENBUFFER (backbuffer)
 ; ------------------------------------------------------------------
 map_build_colours
 	ldx #0
 	lda #0
 .mbc_clr
-	sta FRAMEBUFFER,x
-	sta FRAMEBUFFER+$100,x
-	sta FRAMEBUFFER+$200,x
-	sta FRAMEBUFFER+$2e8,x
+	sta SCREENBUFFER,x
+	sta SCREENBUFFER+$100,x
+	sta SCREENBUFFER+$200,x
+	sta SCREENBUFFER+$2e8,x
 	inx
 	bne .mbc_clr
 
@@ -162,7 +162,7 @@ map_build_colours
 	lda #0
 	sta mapx
 
-	; aux → FRAMEBUFFER + row*40 + MAP_OX (colour backbuffer cell)
+	; aux → SCREENBUFFER + row*40 + MAP_OX (colour backbuffer cell)
 	lda #MAP_OX
 	ldx map_row
 	jsr cell_addr
@@ -173,7 +173,7 @@ map_build_colours
 	lda ptr_h
 	sbc #>$0400
 	clc
-	adc #>FRAMEBUFFER
+	adc #>SCREENBUFFER
 	sta aux_h
 
 	; row map pointer once (mapy fixed for the row)
@@ -203,18 +203,18 @@ map_build_colours
 	rts
 
 ; ------------------------------------------------------------------
-; map_blit_colours — FRAMEBUFFER → $d800 (call during / after vsync)
+; map_blit_colours — SCREENBUFFER → $d800 (call during / after vsync)
 ; ------------------------------------------------------------------
 map_blit_colours
 	ldx #0
 .mbl
-	lda FRAMEBUFFER,x
+	lda SCREENBUFFER,x
 	sta $d800,x
-	lda FRAMEBUFFER+$100,x
+	lda SCREENBUFFER+$100,x
 	sta $d900,x
-	lda FRAMEBUFFER+$200,x
+	lda SCREENBUFFER+$200,x
 	sta $da00,x
-	lda FRAMEBUFFER+$2e8,x
+	lda SCREENBUFFER+$2e8,x
 	sta $dae8,x
 	inx
 	bne .mbl

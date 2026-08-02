@@ -9,6 +9,8 @@ import {
   isCamera,
   isDoorSector,
   isElevatorSector,
+  isSwitch,
+  buildSwitchFaceBindings,
   colorHex,
 } from './model.js';
 
@@ -162,11 +164,14 @@ export class PreviewView {
       const planeX = Math.cos(cam.angle) * TAN_HALF_FOV;
       const planeY = Math.sin(cam.angle) * TAN_HALF_FOV;
 
+      const switchFaces = buildSwitchFaceBindings(level);
+      const switchImg = this.opts.images?.switch ?? null;
+
       for (let col = 0; col < view.w; col++) {
         const cameraX = (2 * col + 1) / view.w - 1;
         const rayDirX = dirX + planeX * cameraX;
         const rayDirY = dirY + planeY * cameraX;
-        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view);
+        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg);
       }
 
       this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view);
@@ -199,7 +204,7 @@ export class PreviewView {
     const sprites = [];
 
     for (const it of level.items) {
-      if (isCamera(it)) continue;
+      if (isCamera(it) || isSwitch(it)) continue; // wall-face in castColumn
       const ix = it.x + 0.5;
       const iy = it.y + 0.5;
       const dx = ix - ox;
@@ -272,7 +277,7 @@ function sectorAtTile(level, tx, ty) {
  * into the open clip, draw upper/lower walls if heights change, then narrow
  * the clip. Farther sectors only paint into what's still open.
  */
-function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
+function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg) {
   const posX = ox / WORLD_PER_TILE;
   const posY = oy / WORLD_PER_TILE;
 
@@ -326,6 +331,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       perpTiles = (mapY - posY + (1 - stepY) / 2) / rayDirY;
     }
     const perpDist = Math.max(0.05, Math.abs(perpTiles)) * WORLD_PER_TILE;
+    const wallU = faceU(posX, posY, perpTiles, rayDirX, rayDirY, side, mapX, mapY, stepX, stepY);
     const outOfBounds = mapX < 0 || mapY < 0 || mapX >= MAP_SIZE || mapY >= MAP_SIZE;
     const next = outOfBounds ? null : sectorAtTile(level, mapX, mapY);
 
@@ -371,14 +377,21 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
     // Solid wall — fill remaining portal and stop (nothing farther may draw)
     if (!next) {
       if (yBot > yTop) {
-        ctx.fillStyle = wallColor(side);
-        ctx.fillRect(col, yTop, 1, yBot - yTop);
+        const grey = wallColor(side);
+        const hitFace = hitFaceNESW(side, stepX, stepY);
+        const isSw = isCookedSwitchFace(level, switchFaces, mapX, mapY, hitFace);
+        if (isSw && switchImg) {
+          paintSwitchColumn(ctx, col, yTop, yBot, wallU, switchImg, grey, nearCeilY, nearFloorY);
+        } else {
+          ctx.fillStyle = grey;
+          ctx.fillRect(col, yTop, 1, yBot - yTop);
+        }
       }
       break;
     }
 
-    // Upper ledge: door → ceil colour. Lower ledge: elevator → floor colour.
-    // Else N/S–E/W grey.
+    // Upper ledge: door → ceil colour on outer 1/8ths only. Else N/S–E/W grey.
+    // Lower ledge: elevator → floor colour. Else grey.
     const grey = wallColor(side);
     const farFloor = next.sector.floorHeight;
     const farCeil = next.sector.ceilingHeight;
@@ -390,7 +403,15 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
       const wallTop = clampSpan(yTop, yBot, nearCeilY);
       const wallBot = clampSpan(yTop, yBot, farCeilY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = isDoorSector(next.sector) ? colorHex(next.sector.ceilingColor) : grey;
+        // Door: left/right = ceil colour, centre = floor colour (secret doors)
+        if (isDoorSector(next.sector)) {
+          const jamb = wallU < 1 / 8 || wallU >= 7 / 8;
+          ctx.fillStyle = colorHex(
+            jamb ? next.sector.ceilingColor : next.sector.floorColor,
+          );
+        } else {
+          ctx.fillStyle = grey;
+        }
         ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yTop = Math.max(yTop, wallBot);
@@ -415,6 +436,98 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view) {
 
     cur = next;
   }
+}
+
+/**
+ * Face U in 0..1 = fractional coord of the grid crossing on the non-hit axis.
+ * side 0 (vertical gridline): frac(hitY); side 1: frac(hitX).
+ */
+function faceU(posX, posY, perpTiles, rayDirX, rayDirY, side, mapX, mapY, stepX, stepY) {
+  let u;
+  if (side === 0) {
+    const gridX = stepX > 0 ? mapX : mapX + 1;
+    const t = (gridX - posX) / rayDirX;
+    u = posY + t * rayDirY;
+  } else {
+    const gridY = stepY > 0 ? mapY : mapY + 1;
+    const t = (gridY - posY) / rayDirY;
+    u = posX + t * rayDirX;
+  }
+  u -= Math.floor(u);
+  if (side === 0 && rayDirX > 0) u = 1 - u;
+  if (side === 1 && rayDirY < 0) u = 1 - u;
+  if (u < 0) u = 0;
+  if (u >= 1) u = 0.999;
+  return u;
+}
+
+/** NESW face of solid cell that was hit: 0=N 1=E 2=S 3=W. */
+function hitFaceNESW(side, stepX, stepY) {
+  if (side === 0) return stepX < 0 ? 1 : 3; // E if stepping −X, else W
+  return stepY < 0 ? 2 : 0; // S if stepping −Y, else N
+}
+
+/** Match cooked {sec,dir} against solid cell + hit face (asm switch_face_match). */
+function isCookedSwitchFace(level, faces, mapX, mapY, hitFace) {
+  const nd = [
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+  ][hitFace];
+  const sec = getCell(level, mapX + nd.dx, mapY + nd.dy);
+  return faces.some((f) => f.sec === sec && f.dir === hitFace);
+}
+
+/** Sample 16×16 switch over unclamped wall [wallTopY, wallBotY); V=0 at floor. */
+function paintSwitchColumn(ctx, col, yTop, yBot, wallU, img, grey, wallTopY, wallBotY) {
+  if (yBot <= yTop) return;
+  const wallH = wallBotY - wallTopY;
+  if (wallH <= 0) return;
+  const pix = switchPixels(img);
+  const u = Math.min(15, Math.floor(wallU * 16));
+  for (let y = yTop; y < yBot; y++) {
+    const fromBottom = wallBotY - 1 - y;
+    let v = Math.floor((fromBottom * 16) / wallH);
+    if (v < 0) v = 0;
+    if (v > 15) v = 15;
+    const rgba = pix ? pix[(15 - v) * 16 + u] : null;
+    // Clear = alpha or magenta key (matches gen_wall_switch.js); black is opaque
+    const clear =
+      !rgba ||
+      rgba[3] < 128 ||
+      (rgba[0] === 255 && rgba[1] === 0 && rgba[2] === 255);
+    if (!clear) {
+      ctx.fillStyle = `rgb(${rgba[0]},${rgba[1]},${rgba[2]})`;
+    } else {
+      ctx.fillStyle = grey;
+    }
+    ctx.fillRect(col, y, 1, 1);
+  }
+}
+
+const switchPixCache = new WeakMap();
+
+function switchPixels(img) {
+  if (!img?.complete || !img.naturalWidth) return null;
+  let cached = switchPixCache.get(img);
+  if (cached) return cached;
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const c = document.createElement('canvas');
+  c.width = 16;
+  c.height = 16;
+  const cctx = c.getContext('2d');
+  cctx.imageSmoothingEnabled = false;
+  cctx.drawImage(img, 0, 0, w, h, 0, 0, 16, 16);
+  const data = cctx.getImageData(0, 0, 16, 16).data;
+  const pix = new Array(256);
+  for (let i = 0; i < 256; i++) {
+    const o = i * 4;
+    pix[i] = [data[o], data[o + 1], data[o + 2], data[o + 3]];
+  }
+  switchPixCache.set(img, pix);
+  return pix;
 }
 
 function clampSpan(yTop, yBot, y) {

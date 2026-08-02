@@ -1,6 +1,6 @@
-; Order screen text - load address $c800 (the framebuffer)
+; Order screen text - load address $e000 (the SCREENBUFFER)
 !to "screens/ordr.prg", cbm
-* = $c800
+* = $e000
 	!scr "sure, don't order ^doom^. sit back with",0
 	!scr "your milk and cookies and let the",0
 	!scr "universe go to hell. don't face the",0

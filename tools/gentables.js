@@ -45,6 +45,15 @@ function secantTable() {
   return { lo, hi };
 }
 
+/** TheKeep fixcos[0..64] = round(255·cos(i·π/128)) — wall U from s×fixcos. */
+function fixcosTable() {
+  const out = [];
+  for (let i = 0; i <= 64; i++) {
+    out.push(Math.max(0, Math.min(255, Math.round(255 * Math.cos((i * Math.PI) / 128)))));
+  }
+  return out;
+}
+
 function colBaseTable(fb) {
   const lo = [];
   const hi = [];
@@ -78,15 +87,16 @@ function sinTable() {
   return out;
 }
 
-// Must match FRAMEBUFFER in squaredoom.asm / genblit.js
-const FRAMEBUFFER = 0xc800;
+// Must match SCREENBUFFER in squaredoom.asm / genblit.js
+const SCREENBUFFER = 0xe000;
 // Must match squaredoom.asm: level_map first at $a000 (32-byte aligned), then SoA
 const LEVEL_MAP = 0xa000;
 
 const angles = anglesTable();
 const fishes = fishesTable(angles);
 const { lo: secl, hi: sech } = secantTable();
-const { lo: cblo, hi: cbhi } = colBaseTable(FRAMEBUFFER);
+const fixcos = fixcosTable();
+const { lo: cblo, hi: cbhi } = colBaseTable(SCREENBUFFER);
 const { lo: mrlo, hi: mrhi } = mapRowTable(LEVEL_MAP);
 const sins = sinTable();
 
@@ -95,6 +105,7 @@ asm += emitBytes('angtab', angles);
 asm += emitBytes('fishtab', fishes);
 asm += emitBytes('fixsecl', secl);
 asm += emitBytes('fixsech', sech);
+asm += emitBytes('fixcos', fixcos);
 asm += emitBytes('colbaselo', cblo);
 asm += emitBytes('colbasehi', cbhi);
 asm += emitBytes('maprowlo', mrlo);
@@ -103,4 +114,4 @@ asm += emitBytes('sintab', sins.concat(sins.slice(0, 64)));
 asm += 'costab = sintab + 64\t; cos(a) = sin(a+64); wrap bytes appended above\n';
 
 writeFileSync(new URL('../tables.asm', import.meta.url), asm);
-console.log('wrote TheKeep tables + sintab/costab + colbase + maprow');
+console.log('wrote TheKeep tables + sintab/costab + fixcos + colbase + maprow');

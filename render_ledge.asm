@@ -8,10 +8,11 @@
 ; → immediate rts. Open portal after a step-up is [ytop, farFloorY) — always
 ; set ybot from far floor even when that Y is above HORIZON.
 ;
-; Door sectors: upper ledge uses far ceil colour.
+; Door sectors: upper ledge left/right 1/8ths = far ceil colour, middle =
+; far floor colour (secret doors can match surrounding flats).
 ; Elevator sectors: lower ledge (riser) uses far floor colour.
 ; Else N/S vs E/W grey.
-; ledge_col_flags[action]: bit0 = upper→SEC_CCOL, bit1 = lower→SEC_FCOL
+; ledge_col_flags[action]: bit0 = door upper (CCOL/FCOL by U), bit1 = lower→FCOL
 ; ---------------------------------------------------------------------------
 
 ledge_col_flags
@@ -173,13 +174,30 @@ paint_portal
 	and #ACT_MASK
 	tay
 	lda ledge_col_flags,y
-	lsr				; C = upper uses ceil
+	lsr				; C = door upper (CCOL sides / FCOL mid)
 	lda wall_col
 	bcc .pdu_fill
+	; Door: CCOL on outer 1/8ths, FCOL on middle 6/8ths.
+	; calc_wall_u clobbers tmp0..tmp3 / X — keep next_id on stack
+	; (tmp5 may hold farFloorY for a following lower ledge).
+	txa
+	pha
+	jsr calc_wall_u
+	pla
+	tax
+	lda wall_u
+	cmp #$20
+	bcc .pdu_ccol
+	cmp #$e0
+	bcc .pdu_fcol
+.pdu_ccol
 	lda SEC_CCOL,x
+	jmp .pdu_fill
+.pdu_fcol
+	lda SEC_FCOL,x
 .pdu_fill
 	jsr fill_span
-	lda tmp2
+	lda fill_y1
 	cmp ytop
 	bcc .pdu_r
 	sta ytop			; push open window down past upper ledge

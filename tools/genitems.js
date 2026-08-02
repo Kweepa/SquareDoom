@@ -28,9 +28,10 @@ const ITEM_TYPES = [
   'barexpl',
 ];
 
-/** No item atlas: spawn is never drawn; enemies use enemy_sprites mips. */
+/** No item atlas: spawn/enemies use other paths; switch is wall_switch.asm. */
 const SKIP_ITEM_ATLAS = new Set([
   'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron',
+  'switch',
 ]);
 
 const ATLAS_W = 12;
@@ -279,10 +280,7 @@ for (const type of ITEM_TYPES) {
     continue;
   }
   let path = join(gfxDir, `${type}.png`);
-  // Switch uses itemgraphics/switch.png
-  if (type === 'switch') {
-    path = join(gfxDir, 'switch.png');
-  } else if (!existsSync(path)) {
+  if (!existsSync(path)) {
     path = join(gfxDir, 'multicolour', `${type}.png`);
   }
   if (!existsSync(path)) {
@@ -318,7 +316,7 @@ if (missingMips.length) {
 let asm = `; Auto-generated from itemgraphics/*.png — do not edit\n`;
 asm += `; 12×8 atlases: mip0 8×8 left; mips 1–3 on right. Column-major, $ff = clear\n`;
 asm += `; Clear = PNG alpha/tRNS if present, else black RGB. Opaque black only with alpha.\n`;
-asm += `; spawn/enemies skip atlases (nodraw stub / enemy_sprites).\n`;
+asm += `; spawn/enemies/switch skip atlases (nodraw stub / enemy_sprites / wall_switch).\n`;
 asm += `!zone item_bitmaps\n\n`;
 asm += `ITEM_TYPE_COUNT = ${ITEM_TYPES.length}\n`;
 asm += `ITEM_MIP_COUNT = ${MIPS.length}\n\n`;

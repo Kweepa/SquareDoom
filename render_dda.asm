@@ -6,6 +6,7 @@
 ; Per column: load ray cache, mid(frac*dd) → sdx/sdy, mid(s*fish) → wz,
 ; then TheKeep-style march comparing sdx vs sdy. Same-id cells skip on_cell
 ; (cheap add only). Sector changes call on_cell in render.asm.
+; mapx/mapy advance with tile (SMC) so on_cell sees the hit cell.
 ;
 ; Incremental wz: each step does wz += ddw then s += dd (inlined; COL_DDWX/Y
 ; from setup). calc_wallz then only shifts — no fish mul at edges.
@@ -103,7 +104,8 @@ cast_column
 	sta wz_y_l
 	stx wz_y_h
 
-	; Patch tile advances for this column's (xstep, ystep) quadrant
+	; Patch tile + mapx/mapy advances for this column's (xstep, ystep) quadrant.
+	; mapx/mapy must track the marched cell (switch faces / wall U use them).
 	ldx #$e6				; INC zp
 	lda xstep
 	bpl .patch_x
@@ -111,6 +113,7 @@ cast_column
 .patch_x
 	stx .smc_x_lo
 	stx .smc_x_hi
+	stx .smc_mapx
 	ldx #$18				; CLC
 	ldy #$69				; ADC #
 	lda ystep
@@ -121,6 +124,12 @@ cast_column
 	stx .smc_y_clc
 	sty .smc_y_op1
 	sty .smc_y_op2
+	ldx #$e6				; INC mapy
+	lda ystep
+	bpl .patch_my
+	ldx #$c6				; DEC mapy
+.patch_my
+	stx .smc_mapy
 
 .cc_init
 	; Open clip [0,25); HUD columns leave row 24 untouched.
@@ -199,6 +208,8 @@ cast_column
 .smc_x_hi
 	inc tile_h
 .smc_x_ok
+.smc_mapx
+	inc mapx
 	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ax_same			; same sector — cheap path
@@ -265,15 +276,9 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
-	; Cell → .inner: PROFILE=1 inserts 5 bytes here and lands ~4 past ±127;
-	; PROFILE=0 fits bcc .inner. Overflow falls through to .ax_done via bcs.
-!if PROFILE = 1 {
+	; Cell → .inner: mapx/mapy tracking pushed this past ±127; always trampoline.
 	bcs .ax_done
 	jmp .inner
-} else {
-	bcc .inner
-	bcs .ax_done
-}
 
 .adv_y
 	; ±Y: SMC CLC+ADC #32 / SEC+SBC #32. Map sealed — no OOB check.
@@ -287,6 +292,8 @@ cast_column
 .smc_y_op2
 	adc #0
 	sta tile_h
+.smc_mapy
+	inc mapy
 	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ay_same

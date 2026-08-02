@@ -480,7 +480,7 @@ update_info_msg
 	rts
 
 ; ---------------------------------------------------------------------------
-; draw_info_msg — into FRAMEBUFFER/LIGHTFRAME row 0 (pre-blit)
+; draw_info_msg — into SCREENBUFFER/PATTERNBUFFER row 0 (pre-blit)
 ; Glyphs: letters → MSG_LETTER0+(n-1); space/digit/punct unchanged.
 ; ---------------------------------------------------------------------------
 draw_info_msg
@@ -525,7 +525,7 @@ draw_info_msg
 	bne .di_rawloop
 .di_done
 	rts
-; A = raw screen code from !scr → LIGHTFRAME row0 + FRAMEBUFFER colour
+; A = raw screen code from !scr → PATTERNBUFFER row0 + SCREENBUFFER colour
 .di_putc
 	sta tmp0
 	cmp #27
@@ -543,7 +543,7 @@ draw_info_msg
 	lda colbasehi,x
 	sta col_base_h
 	clc
-	adc #4				; LIGHTFRAME = FRAMEBUFFER+$400
+	adc #4				; PATTERNBUFFER = SCREENBUFFER+$400
 	sta pat_base_h
 	ldy #0				; row 0
 	lda #INFO_COLOR

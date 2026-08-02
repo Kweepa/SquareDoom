@@ -1,6 +1,6 @@
-; Endgame text - load address $c800 (the framebuffer)
+; Endgame text - load address $e000 (the SCREENBUFFER)
 !to "screens/endg.prg", cbm
-* = $c800
+* = $e000
 	!scr "once you beat the big badasses and",0
 	!scr "clean out the moon base you're supposed",0
 	!scr "to win, aren't you? aren't you? where's",0

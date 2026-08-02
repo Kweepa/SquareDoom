@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M7",
+  "activeLevel": "E1M8",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -658,14 +658,14 @@
         "55": {
           "floorHeight": 4,
           "ceilingHeight": 10,
-          "trigger": "switch",
+          "trigger": "none",
           "singleShot": false,
-          "action": "end_level",
+          "action": "none",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 15
+          "brightness": 11
         },
         "56": {
           "floorHeight": 0,
@@ -771,7 +771,7 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 12,
           "ceilingColor": 15,
           "brightness": 7
         },
@@ -1035,7 +1035,7 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 8,
           "ceilingColor": 9,
           "brightness": 8
         },
@@ -1206,6 +1206,42 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
+        },
+        "101": {
+          "floorHeight": 4,
+          "ceilingHeight": 9,
+          "trigger": "switch",
+          "singleShot": false,
+          "action": "end_level",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 16
+        },
+        "102": {
+          "floorHeight": 4,
+          "ceilingHeight": 10,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
+        },
+        "103": {
+          "floorHeight": 4,
+          "ceilingHeight": 10,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
         }
       },
       "map": [
@@ -2002,9 +2038,9 @@
         0,
         0,
         0,
-        55,
-        55,
-        55,
+        101,
+        102,
+        102,
         0,
         0,
         0,
@@ -2034,9 +2070,9 @@
         0,
         0,
         0,
-        55,
-        55,
-        55,
+        103,
+        103,
+        103,
         0,
         0,
         0,
@@ -2382,14 +2418,9 @@
         },
         {
           "type": "camera",
-          "x": 18.738944554369088,
-          "y": 85.20094677325534,
-          "angle": 3.1513717811125144
-        },
-        {
-          "type": "switch",
-          "x": 203,
-          "y": 197
+          "x": 213.7839623473819,
+          "y": 120.63006372767484,
+          "angle": 4.286653758703819
         },
         {
           "type": "soldier",
@@ -3193,7 +3224,7 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 12,
           "ceilingColor": 15,
           "brightness": 4
         },
@@ -3236,11 +3267,11 @@
         "64": {
           "floorHeight": 13,
           "ceilingHeight": 26,
-          "trigger": "switch",
-          "singleShot": true,
-          "action": "lower_floor_forever",
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
           "tag": "",
-          "targetTag": "saw",
+          "targetTag": "",
           "floorColor": 12,
           "ceilingColor": 11,
           "brightness": 14
@@ -3259,7 +3290,7 @@
         },
         "66": {
           "floorHeight": 1,
-          "ceilingHeight": 8,
+          "ceilingHeight": 6,
           "trigger": "switch",
           "singleShot": false,
           "action": "end_level",
@@ -3357,9 +3388,9 @@
           "floorHeight": 16,
           "ceilingHeight": 26,
           "trigger": "none",
-          "singleShot": false,
+          "singleShot": true,
           "action": "none",
-          "tag": "saw",
+          "tag": "chainsaw",
           "targetTag": "",
           "floorColor": 5,
           "ceilingColor": 7,
@@ -3895,7 +3926,7 @@
         },
         "119": {
           "floorHeight": 13,
-          "ceilingHeight": 24,
+          "ceilingHeight": 18,
           "trigger": "switch",
           "singleShot": true,
           "action": "open_door_forever",
@@ -3903,7 +3934,7 @@
           "targetTag": "door_to_maze",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 15
         },
         "120": {
           "floorHeight": 16,
@@ -4146,7 +4177,7 @@
           "brightness": 7
         },
         "140": {
-          "floorHeight": 12,
+          "floorHeight": 13,
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
@@ -4335,6 +4366,18 @@
           "targetTag": "",
           "floorColor": 6,
           "ceilingColor": 6,
+          "brightness": 15
+        },
+        "156": {
+          "floorHeight": 13,
+          "ceilingHeight": 18,
+          "trigger": "switch",
+          "singleShot": false,
+          "action": "lower_floor_forever",
+          "tag": "",
+          "targetTag": "chainsaw",
+          "floorColor": 12,
+          "ceilingColor": 11,
           "brightness": 15
         }
       },
@@ -4628,7 +4671,7 @@
         150,
         0,
         0,
-        64,
+        156,
         64,
         64,
         0,
@@ -5552,9 +5595,9 @@
         },
         {
           "type": "camera",
-          "x": 35.981834638253815,
-          "y": 198.12139620451865,
-          "angle": 3.885394132351273
+          "x": 156.48313583830694,
+          "y": 38.41929044126575,
+          "angle": 1.0080475898110732
         },
         {
           "type": "imp",
@@ -5587,24 +5630,9 @@
           }
         },
         {
-          "type": "switch",
-          "x": 165,
-          "y": 36
-        },
-        {
           "type": "shells",
-          "x": 115,
-          "y": 172,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "health",
           "x": 116,
-          "y": 174,
+          "y": 172,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5712,11 +5740,6 @@
           }
         },
         {
-          "type": "switch",
-          "x": 10,
-          "y": 75
-        },
-        {
           "type": "soldier",
           "x": 52,
           "y": 244,
@@ -5777,11 +5800,6 @@
           }
         },
         {
-          "type": "switch",
-          "x": 124,
-          "y": 84
-        },
-        {
           "type": "backpack",
           "x": 172,
           "y": 140,
@@ -5812,9 +5830,19 @@
           }
         },
         {
-          "type": "soulsphere",
+          "type": "chaingun",
           "x": 196,
           "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soulsphere",
+          "x": 196,
+          "y": 49,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5864,18 +5892,6 @@
           "brightness": 15
         },
         "4": {
-          "floorHeight": 6,
-          "ceilingHeight": 17,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 12
-        },
-        "5": {
           "floorHeight": 10,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -5887,7 +5903,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "6": {
+        "5": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -5899,7 +5915,7 @@
           "ceilingColor": 11,
           "brightness": 1
         },
-        "7": {
+        "6": {
           "floorHeight": 11,
           "ceilingHeight": 18,
           "trigger": "switch",
@@ -5911,7 +5927,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "8": {
+        "7": {
           "floorHeight": 11,
           "ceilingHeight": 18,
           "trigger": "none",
@@ -5923,7 +5939,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "9": {
+        "8": {
           "floorHeight": 11,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -5935,7 +5951,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "10": {
+        "9": {
           "floorHeight": 11,
           "ceilingHeight": 22,
           "trigger": "none",
@@ -5947,7 +5963,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "11": {
+        "10": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -5959,7 +5975,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "12": {
+        "11": {
           "floorHeight": 11,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -5970,6 +5986,18 @@
           "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 9
+        },
+        "12": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 3,
+          "brightness": 16
         },
         "13": {
           "floorHeight": 8,
@@ -5984,18 +6012,6 @@
           "brightness": 16
         },
         "14": {
-          "floorHeight": 8,
-          "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 3,
-          "brightness": 16
-        },
-        "15": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6007,7 +6023,7 @@
           "ceilingColor": 11,
           "brightness": 12
         },
-        "16": {
+        "15": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6019,7 +6035,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "17": {
+        "16": {
           "floorHeight": 10,
           "ceilingHeight": 18,
           "trigger": "walk_into",
@@ -6031,7 +6047,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "18": {
+        "17": {
           "floorHeight": 3,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -6043,7 +6059,7 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "19": {
+        "18": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6054,6 +6070,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 12
+        },
+        "19": {
+          "floorHeight": 9,
+          "ceilingHeight": 17,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 1
         },
         "20": {
           "floorHeight": 9,
@@ -6068,18 +6096,6 @@
           "brightness": 1
         },
         "21": {
-          "floorHeight": 9,
-          "ceilingHeight": 17,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 1
-        },
-        "22": {
           "floorHeight": 5,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6091,7 +6107,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "23": {
+        "22": {
           "floorHeight": 17,
           "ceilingHeight": 21,
           "trigger": "none",
@@ -6103,7 +6119,7 @@
           "ceilingColor": 2,
           "brightness": 12
         },
-        "24": {
+        "23": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6115,7 +6131,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "25": {
+        "24": {
           "floorHeight": 9,
           "ceilingHeight": 15,
           "trigger": "none",
@@ -6127,7 +6143,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "26": {
+        "25": {
           "floorHeight": 3,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6138,6 +6154,18 @@
           "floorColor": 5,
           "ceilingColor": 3,
           "brightness": 16
+        },
+        "26": {
+          "floorHeight": 11,
+          "ceilingHeight": 17,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 5
         },
         "27": {
           "floorHeight": 11,
@@ -6152,18 +6180,6 @@
           "brightness": 5
         },
         "28": {
-          "floorHeight": 11,
-          "ceilingHeight": 17,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 5
-        },
-        "29": {
           "floorHeight": 10,
           "ceilingHeight": 18,
           "trigger": "none",
@@ -6174,6 +6190,18 @@
           "floorColor": 5,
           "ceilingColor": 11,
           "brightness": 15
+        },
+        "29": {
+          "floorHeight": 3,
+          "ceilingHeight": 11,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 5,
+          "ceilingColor": 11,
+          "brightness": 14
         },
         "30": {
           "floorHeight": 3,
@@ -6200,16 +6228,16 @@
           "brightness": 14
         },
         "32": {
-          "floorHeight": 3,
-          "ceilingHeight": 11,
+          "floorHeight": 6,
+          "ceilingHeight": 17,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
           "tag": "",
           "targetTag": "",
-          "floorColor": 5,
+          "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 14
+          "brightness": 12
         },
         "33": {
           "floorHeight": 7,
@@ -6224,8 +6252,8 @@
           "brightness": 12
         },
         "34": {
-          "floorHeight": 8,
-          "ceilingHeight": 13,
+          "floorHeight": 9,
+          "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -6233,7 +6261,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 12
+          "brightness": 10
         },
         "35": {
           "floorHeight": 9,
@@ -6248,18 +6276,6 @@
           "brightness": 10
         },
         "36": {
-          "floorHeight": 9,
-          "ceilingHeight": 14,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 10
-        },
-        "37": {
           "floorHeight": 11,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -6271,7 +6287,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "38": {
+        "37": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6282,32 +6298,32 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 10
+        },
+        "38": {
+          "floorHeight": 3,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 5,
+          "ceilingColor": 3,
+          "brightness": 16
         },
         "39": {
-          "floorHeight": 3,
-          "ceilingHeight": 20,
+          "floorHeight": 9,
+          "ceilingHeight": 14,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
           "tag": "",
           "targetTag": "",
-          "floorColor": 5,
-          "ceilingColor": 3,
-          "brightness": 16
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 10
         },
         "40": {
-          "floorHeight": 9,
-          "ceilingHeight": 14,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 10
-        },
-        "41": {
           "floorHeight": 3,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6319,7 +6335,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "42": {
+        "41": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6330,6 +6346,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 10
+        },
+        "42": {
+          "floorHeight": 3,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 5,
+          "ceilingColor": 3,
+          "brightness": 16
         },
         "43": {
           "floorHeight": 3,
@@ -6344,18 +6372,6 @@
           "brightness": 16
         },
         "44": {
-          "floorHeight": 3,
-          "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 5,
-          "ceilingColor": 3,
-          "brightness": 16
-        },
-        "45": {
           "floorHeight": 10,
           "ceilingHeight": 13,
           "trigger": "none",
@@ -6367,7 +6383,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "46": {
+        "45": {
           "floorHeight": 8,
           "ceilingHeight": 8,
           "trigger": "use",
@@ -6376,10 +6392,10 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 15
         },
-        "47": {
+        "46": {
           "floorHeight": 14,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6391,7 +6407,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "48": {
+        "47": {
           "floorHeight": 11,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -6403,7 +6419,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "49": {
+        "48": {
           "floorHeight": 8,
           "ceilingHeight": 13,
           "trigger": "none",
@@ -6415,7 +6431,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "50": {
+        "49": {
           "floorHeight": 14,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6426,6 +6442,18 @@
           "floorColor": 11,
           "ceilingColor": 3,
           "brightness": 15
+        },
+        "50": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 10
         },
         "51": {
           "floorHeight": 8,
@@ -6440,16 +6468,16 @@
           "brightness": 10
         },
         "52": {
-          "floorHeight": 8,
-          "ceilingHeight": 13,
+          "floorHeight": 11,
+          "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 6,
           "ceilingColor": 11,
-          "brightness": 10
+          "brightness": 9
         },
         "53": {
           "floorHeight": 11,
@@ -6464,18 +6492,6 @@
           "brightness": 9
         },
         "54": {
-          "floorHeight": 11,
-          "ceilingHeight": 24,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 6,
-          "ceilingColor": 11,
-          "brightness": 9
-        },
-        "55": {
           "floorHeight": 14,
           "ceilingHeight": 20,
           "trigger": "use",
@@ -6487,12 +6503,24 @@
           "ceilingColor": 3,
           "brightness": 15
         },
-        "56": {
+        "55": {
           "floorHeight": 8,
           "ceilingHeight": 13,
           "trigger": "switch",
           "singleShot": false,
           "action": "end_level",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
+        },
+        "56": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -6509,21 +6537,9 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 11
-        },
-        "58": {
-          "floorHeight": 8,
-          "ceilingHeight": 13,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
           "brightness": 10
         },
-        "59": {
+        "58": {
           "floorHeight": 8,
           "ceilingHeight": 13,
           "trigger": "walk_into",
@@ -6535,7 +6551,7 @@
           "ceilingColor": 11,
           "brightness": 11
         },
-        "60": {
+        "59": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6547,7 +6563,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "61": {
+        "60": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6559,7 +6575,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "62": {
+        "61": {
           "floorHeight": 10,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6571,7 +6587,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "63": {
+        "62": {
           "floorHeight": 8,
           "ceilingHeight": 13,
           "trigger": "none",
@@ -6583,7 +6599,7 @@
           "ceilingColor": 11,
           "brightness": 11
         },
-        "64": {
+        "63": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -6594,6 +6610,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 9
+        },
+        "64": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
         },
         "65": {
           "floorHeight": 8,
@@ -6617,21 +6645,9 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 11
-        },
-        "67": {
-          "floorHeight": 8,
-          "ceilingHeight": 13,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
           "brightness": 10
         },
-        "68": {
+        "67": {
           "floorHeight": 7,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6643,7 +6659,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "69": {
+        "68": {
           "floorHeight": 8,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -6655,7 +6671,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "70": {
+        "69": {
           "floorHeight": 9,
           "ceilingHeight": 16,
           "trigger": "walk_into",
@@ -6667,7 +6683,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "71": {
+        "70": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -6679,7 +6695,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "72": {
+        "71": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -6691,7 +6707,7 @@
           "ceilingColor": 7,
           "brightness": 12
         },
-        "73": {
+        "72": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -6702,6 +6718,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 10
+        },
+        "73": {
+          "floorHeight": 8,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
         },
         "74": {
           "floorHeight": 8,
@@ -6716,18 +6744,6 @@
           "brightness": 8
         },
         "75": {
-          "floorHeight": 8,
-          "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 8
-        },
-        "76": {
           "floorHeight": 3,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -6739,7 +6755,7 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "77": {
+        "76": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6751,7 +6767,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "78": {
+        "77": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6763,7 +6779,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "79": {
+        "78": {
           "floorHeight": 3,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6775,7 +6791,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "80": {
+        "79": {
           "floorHeight": 8,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -6787,7 +6803,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "81": {
+        "80": {
           "floorHeight": 20,
           "ceilingHeight": 27,
           "trigger": "none",
@@ -6799,7 +6815,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "82": {
+        "81": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6811,7 +6827,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "83": {
+        "82": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -6823,7 +6839,7 @@
           "ceilingColor": 7,
           "brightness": 8
         },
-        "84": {
+        "83": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6835,7 +6851,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "85": {
+        "84": {
           "floorHeight": 8,
           "ceilingHeight": 8,
           "trigger": "none",
@@ -6843,11 +6859,11 @@
           "action": "open_door",
           "tag": "door_to_yellow",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 8,
           "ceilingColor": 11,
           "brightness": 10
         },
-        "86": {
+        "85": {
           "floorHeight": 20,
           "ceilingHeight": 27,
           "trigger": "none",
@@ -6859,8 +6875,20 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "87": {
+        "86": {
           "floorHeight": 8,
+          "ceilingHeight": 24,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 10
+        },
+        "87": {
+          "floorHeight": 9,
           "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
@@ -6873,18 +6901,6 @@
         },
         "88": {
           "floorHeight": 9,
-          "ceilingHeight": 24,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 10
-        },
-        "89": {
-          "floorHeight": 9,
           "ceilingHeight": 12,
           "trigger": "none",
           "singleShot": false,
@@ -6895,7 +6911,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "90": {
+        "89": {
           "floorHeight": 13,
           "ceilingHeight": 21,
           "trigger": "none",
@@ -6907,7 +6923,7 @@
           "ceilingColor": 11,
           "brightness": 11
         },
-        "91": {
+        "90": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -6919,7 +6935,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "92": {
+        "91": {
           "floorHeight": 13,
           "ceilingHeight": 21,
           "trigger": "none",
@@ -6931,7 +6947,7 @@
           "ceilingColor": 11,
           "brightness": 11
         },
-        "93": {
+        "92": {
           "floorHeight": 20,
           "ceilingHeight": 27,
           "trigger": "none",
@@ -6943,9 +6959,21 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "94": {
+        "93": {
           "floorHeight": 14,
           "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 12
+        },
+        "94": {
+          "floorHeight": 16,
+          "ceilingHeight": 24,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -6968,18 +6996,6 @@
           "brightness": 12
         },
         "96": {
-          "floorHeight": 16,
-          "ceilingHeight": 24,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 12
-        },
-        "97": {
           "floorHeight": 3,
           "ceilingHeight": 11,
           "trigger": "none",
@@ -6991,7 +7007,7 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "98": {
+        "97": {
           "floorHeight": 11,
           "ceilingHeight": 18,
           "trigger": "none",
@@ -7003,7 +7019,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "99": {
+        "98": {
           "floorHeight": 10,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7015,7 +7031,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "100": {
+        "99": {
           "floorHeight": 8,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -7027,7 +7043,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "101": {
+        "100": {
           "floorHeight": 20,
           "ceilingHeight": 27,
           "trigger": "none",
@@ -7039,7 +7055,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "102": {
+        "101": {
           "floorHeight": 13,
           "ceilingHeight": 13,
           "trigger": "use",
@@ -7051,7 +7067,7 @@
           "ceilingColor": 4,
           "brightness": 8
         },
-        "103": {
+        "102": {
           "floorHeight": 13,
           "ceilingHeight": 19,
           "trigger": "switch",
@@ -7063,7 +7079,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "104": {
+        "103": {
           "floorHeight": 8,
           "ceilingHeight": 8,
           "trigger": "use",
@@ -7075,7 +7091,7 @@
           "ceilingColor": 6,
           "brightness": 15
         },
-        "105": {
+        "104": {
           "floorHeight": 11,
           "ceilingHeight": 11,
           "trigger": "walk_into",
@@ -7087,7 +7103,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "106": {
+        "105": {
           "floorHeight": 11,
           "ceilingHeight": 11,
           "trigger": "walk_into",
@@ -7099,7 +7115,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "107": {
+        "106": {
           "floorHeight": 9,
           "ceilingHeight": 12,
           "trigger": "none",
@@ -7111,7 +7127,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "108": {
+        "107": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -7123,7 +7139,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "109": {
+        "108": {
           "floorHeight": 9,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7135,19 +7151,19 @@
           "ceilingColor": 11,
           "brightness": 1
         },
-        "110": {
-          "floorHeight": 6,
-          "ceilingHeight": 17,
-          "trigger": "switch",
+        "109": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
           "singleShot": false,
-          "action": "open_door_forever",
+          "action": "none",
           "tag": "",
-          "targetTag": "remote_door_1",
+          "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 8
+          "brightness": 12
         },
-        "111": {
+        "110": {
           "floorHeight": 9,
           "ceilingHeight": 9,
           "trigger": "use",
@@ -7156,10 +7172,10 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 10
         },
-        "112": {
+        "111": {
           "floorHeight": 8,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -7171,7 +7187,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "113": {
+        "112": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -7183,7 +7199,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "114": {
+        "113": {
           "floorHeight": 6,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7195,7 +7211,7 @@
           "ceilingColor": 11,
           "brightness": 12
         },
-        "115": {
+        "114": {
           "floorHeight": 9,
           "ceilingHeight": 13,
           "trigger": "none",
@@ -7206,6 +7222,18 @@
           "floorColor": 6,
           "ceilingColor": 11,
           "brightness": 16
+        },
+        "115": {
+          "floorHeight": 5,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 7
         },
         "116": {
           "floorHeight": 5,
@@ -7222,18 +7250,6 @@
         "117": {
           "floorHeight": 5,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 6,
-          "ceilingColor": 11,
-          "brightness": 7
-        },
-        "118": {
-          "floorHeight": 5,
-          "ceilingHeight": 20,
           "trigger": "switch",
           "singleShot": false,
           "action": "lower_floor_forever",
@@ -7243,7 +7259,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "119": {
+        "118": {
           "floorHeight": 8,
           "ceilingHeight": 8,
           "trigger": "none",
@@ -7251,11 +7267,11 @@
           "action": "open_door",
           "tag": "remote_door_1",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
+          "floorColor": 8,
+          "ceilingColor": 12,
           "brightness": 10
         },
-        "120": {
+        "119": {
           "floorHeight": 10,
           "ceilingHeight": 20,
           "trigger": "walk_into",
@@ -7267,7 +7283,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "121": {
+        "120": {
           "floorHeight": 9,
           "ceilingHeight": 20,
           "trigger": "walk_into",
@@ -7279,7 +7295,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "122": {
+        "121": {
           "floorHeight": 7,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7291,7 +7307,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "123": {
+        "122": {
           "floorHeight": 6,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7303,7 +7319,7 @@
           "ceilingColor": 11,
           "brightness": 7
         },
-        "124": {
+        "123": {
           "floorHeight": 10,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7315,7 +7331,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "125": {
+        "124": {
           "floorHeight": 11,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7327,7 +7343,7 @@
           "ceilingColor": 11,
           "brightness": 5
         },
-        "126": {
+        "125": {
           "floorHeight": 6,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7339,7 +7355,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "127": {
+        "126": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "use",
@@ -7351,7 +7367,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "128": {
+        "127": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7363,7 +7379,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "129": {
+        "128": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7375,7 +7391,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "130": {
+        "129": {
           "floorHeight": 8,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7387,7 +7403,7 @@
           "ceilingColor": 11,
           "brightness": 8
         },
-        "131": {
+        "130": {
           "floorHeight": 13,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7399,7 +7415,7 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "132": {
+        "131": {
           "floorHeight": 10,
           "ceilingHeight": 21,
           "trigger": "walk_into",
@@ -7411,7 +7427,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "133": {
+        "132": {
           "floorHeight": 11,
           "ceilingHeight": 21,
           "trigger": "none",
@@ -7423,7 +7439,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "134": {
+        "133": {
           "floorHeight": 12,
           "ceilingHeight": 21,
           "trigger": "none",
@@ -7434,6 +7450,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 9
+        },
+        "134": {
+          "floorHeight": 19,
+          "ceilingHeight": 24,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 12
         },
         "135": {
           "floorHeight": 19,
@@ -7448,18 +7476,6 @@
           "brightness": 12
         },
         "136": {
-          "floorHeight": 19,
-          "ceilingHeight": 24,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 12
-        },
-        "137": {
           "floorHeight": 16,
           "ceilingHeight": 16,
           "trigger": "use",
@@ -7471,7 +7487,7 @@
           "ceilingColor": 7,
           "brightness": 12
         },
-        "138": {
+        "137": {
           "floorHeight": 13,
           "ceilingHeight": 18,
           "trigger": "none",
@@ -7483,7 +7499,7 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "139": {
+        "138": {
           "floorHeight": 15,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7495,7 +7511,7 @@
           "ceilingColor": 11,
           "brightness": 12
         },
-        "140": {
+        "139": {
           "floorHeight": 17,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -7507,7 +7523,7 @@
           "ceilingColor": 11,
           "brightness": 12
         },
-        "141": {
+        "140": {
           "floorHeight": 18,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -7519,7 +7535,7 @@
           "ceilingColor": 11,
           "brightness": 12
         },
-        "142": {
+        "141": {
           "floorHeight": 19,
           "ceilingHeight": 28,
           "trigger": "none",
@@ -7531,7 +7547,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "143": {
+        "142": {
           "floorHeight": 13,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7543,12 +7559,24 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "144": {
+        "143": {
           "floorHeight": 8,
           "ceilingHeight": 8,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 12,
+          "brightness": 9
+        },
+        "144": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -7565,7 +7593,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 7
         },
         "146": {
           "floorHeight": 8,
@@ -7577,11 +7605,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 7
+          "brightness": 16
         },
         "147": {
           "floorHeight": 8,
-          "ceilingHeight": 13,
+          "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -7589,7 +7617,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 16
+          "brightness": 8
         },
         "148": {
           "floorHeight": 8,
@@ -7606,11 +7634,11 @@
         "149": {
           "floorHeight": 8,
           "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
+          "trigger": "walk_into",
+          "singleShot": true,
+          "action": "raise_stairs",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "stair1",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
@@ -7618,11 +7646,11 @@
         "150": {
           "floorHeight": 8,
           "ceilingHeight": 20,
-          "trigger": "walk_into",
-          "singleShot": true,
-          "action": "raise_stairs",
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
           "tag": "",
-          "targetTag": "stair1",
+          "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 8
@@ -7640,18 +7668,6 @@
           "brightness": 8
         },
         "152": {
-          "floorHeight": 8,
-          "ceilingHeight": 20,
-          "trigger": "none",
-          "singleShot": false,
-          "action": "none",
-          "tag": "",
-          "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
-          "brightness": 8
-        },
-        "153": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -7663,7 +7679,7 @@
           "ceilingColor": 11,
           "brightness": 5
         },
-        "154": {
+        "153": {
           "floorHeight": 11,
           "ceilingHeight": 16,
           "trigger": "none",
@@ -7675,7 +7691,7 @@
           "ceilingColor": 11,
           "brightness": 16
         },
-        "155": {
+        "154": {
           "floorHeight": 3,
           "ceilingHeight": 17,
           "trigger": "none",
@@ -7687,9 +7703,9 @@
           "ceilingColor": 11,
           "brightness": 14
         },
-        "156": {
+        "155": {
           "floorHeight": 11,
-          "ceilingHeight": 18,
+          "ceilingHeight": 16,
           "trigger": "switch",
           "singleShot": true,
           "action": "raise_floor",
@@ -7699,7 +7715,7 @@
           "ceilingColor": 11,
           "brightness": 15
         },
-        "157": {
+        "156": {
           "floorHeight": 11,
           "ceilingHeight": 11,
           "trigger": "use",
@@ -7707,11 +7723,11 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 8,
+          "floorColor": 9,
+          "ceilingColor": 11,
           "brightness": 15
         },
-        "158": {
+        "157": {
           "floorHeight": 8,
           "ceilingHeight": 24,
           "trigger": "walk_into",
@@ -7723,7 +7739,7 @@
           "ceilingColor": 11,
           "brightness": 10
         },
-        "159": {
+        "158": {
           "floorHeight": 8,
           "ceilingHeight": 16,
           "trigger": "walk_into",
@@ -7735,7 +7751,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "160": {
+        "159": {
           "floorHeight": 14,
           "ceilingHeight": 20,
           "trigger": "walk_into",
@@ -7747,7 +7763,7 @@
           "ceilingColor": 3,
           "brightness": 15
         },
-        "161": {
+        "160": {
           "floorHeight": 9,
           "ceilingHeight": 14,
           "trigger": "none",
@@ -7759,7 +7775,7 @@
           "ceilingColor": 11,
           "brightness": 12
         },
-        "162": {
+        "161": {
           "floorHeight": 3,
           "ceilingHeight": 20,
           "trigger": "none",
@@ -7771,7 +7787,7 @@
           "ceilingColor": 3,
           "brightness": 16
         },
-        "163": {
+        "162": {
           "floorHeight": 10,
           "ceilingHeight": 15,
           "trigger": "walk_into",
@@ -7783,7 +7799,7 @@
           "ceilingColor": 11,
           "brightness": 16
         },
-        "164": {
+        "163": {
           "floorHeight": 8,
           "ceilingHeight": 13,
           "trigger": "none",
@@ -7795,7 +7811,7 @@
           "ceilingColor": 11,
           "brightness": 13
         },
-        "165": {
+        "164": {
           "floorHeight": 8,
           "ceilingHeight": 8,
           "trigger": "none",
@@ -7807,7 +7823,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "166": {
+        "165": {
           "floorHeight": 14,
           "ceilingHeight": 20,
           "trigger": "walk_into",
@@ -7819,7 +7835,7 @@
           "ceilingColor": 3,
           "brightness": 15
         },
-        "167": {
+        "166": {
           "floorHeight": 8,
           "ceilingHeight": 24,
           "trigger": "walk_into",
@@ -7831,7 +7847,7 @@
           "ceilingColor": 11,
           "brightness": 9
         },
-        "168": {
+        "167": {
           "floorHeight": 8,
           "ceilingHeight": 24,
           "trigger": "none",
@@ -7842,6 +7858,102 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 9
+        },
+        "168": {
+          "floorHeight": 11,
+          "ceilingHeight": 18,
+          "trigger": "none",
+          "singleShot": true,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 15
+        },
+        "169": {
+          "floorHeight": 5,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "bonus_pillar",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "170": {
+          "floorHeight": 5,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "bonus_pillar",
+          "floorColor": 6,
+          "ceilingColor": 11,
+          "brightness": 7
+        },
+        "171": {
+          "floorHeight": 6,
+          "ceilingHeight": 17,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "172": {
+          "floorHeight": 13,
+          "ceilingHeight": 19,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
+        },
+        "173": {
+          "floorHeight": 8,
+          "ceilingHeight": 13,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 11
+        },
+        "174": {
+          "floorHeight": 6,
+          "ceilingHeight": 11,
+          "trigger": "switch",
+          "singleShot": false,
+          "action": "open_door_forever",
+          "tag": "",
+          "targetTag": "remote_door_1",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 15
+        },
+        "175": {
+          "floorHeight": 6,
+          "ceilingHeight": 17,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "remote_door_1",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 8
         }
       },
       "map": [
@@ -7898,270 +8010,302 @@
         0,
         0,
         0,
-        64,
-        153,
-        153,
-        153,
+        63,
+        152,
+        152,
+        152,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        25,
+        25,
+        25,
+        25,
+        25,
+        25,
+        0,
+        0,
+        0,
+        63,
+        0,
+        0,
+        0,
+        108,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        38,
+        38,
+        12,
+        12,
+        12,
+        12,
+        43,
+        43,
+        14,
+        14,
+        63,
+        0,
+        22,
+        0,
+        108,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        37,
+        37,
+        37,
+        37,
+        13,
+        13,
+        126,
+        40,
+        40,
+        15,
+        15,
+        15,
+        18,
+        0,
+        63,
+        0,
+        19,
+        20,
+        108,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        41,
+        24,
+        60,
+        0,
+        42,
+        42,
+        59,
+        59,
+        59,
+        59,
+        78,
+        78,
+        160,
+        160,
+        63,
+        0,
+        19,
+        20,
+        108,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        41,
+        24,
+        60,
+        0,
+        0,
+        161,
+        161,
+        161,
+        161,
+        161,
+        161,
+        0,
+        0,
+        0,
+        63,
+        0,
+        19,
+        162,
+        108,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        41,
+        24,
+        60,
+        0,
+        0,
+        0,
+        0,
+        0,
+        46,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        41,
+        24,
+        60,
+        0,
+        0,
+        0,
+        0,
+        0,
+        49,
+        165,
+        159,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         6,
         0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        26,
-        26,
-        26,
-        26,
-        26,
-        26,
-        0,
-        0,
-        0,
-        64,
-        0,
-        0,
-        0,
-        109,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
         39,
         39,
-        13,
-        13,
-        13,
-        13,
-        44,
-        44,
-        15,
-        15,
-        64,
-        0,
-        23,
-        0,
-        109,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        38,
-        38,
-        38,
-        38,
-        14,
-        14,
-        127,
-        41,
-        41,
-        16,
-        16,
-        16,
-        19,
-        0,
-        64,
-        0,
-        20,
-        21,
-        109,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        42,
-        25,
-        61,
-        0,
-        43,
-        43,
         60,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        54,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        73,
+        71,
+        71,
+        71,
+        130,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        156,
+        0,
+        0,
+        0,
         60,
-        60,
-        60,
-        79,
-        79,
-        161,
-        161,
-        64,
         0,
-        20,
-        21,
-        109,
         0,
         0,
         0,
         0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        42,
-        25,
-        61,
-        0,
-        0,
-        162,
-        162,
-        162,
-        162,
-        162,
-        162,
-        0,
-        0,
-        0,
-        64,
-        0,
-        20,
-        163,
-        109,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        42,
-        25,
-        61,
-        0,
-        0,
-        0,
-        0,
-        0,
-        47,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        42,
-        25,
-        61,
-        0,
-        0,
-        0,
-        0,
-        0,
-        50,
-        166,
-        160,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        40,
-        40,
-        61,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
+        56,
+        56,
         55,
         0,
         0,
         0,
         0,
-        0,
-        0,
         74,
-        72,
-        72,
-        72,
-        131,
+        74,
+        74,
+        74,
+        74,
+        74,
+        130,
         0,
         0,
         0,
@@ -8169,215 +8313,183 @@
         0,
         0,
         0,
+        168,
+        168,
+        155,
         0,
+        0,
+        23,
+        23,
+        23,
+        0,
+        0,
+        0,
+        173,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        77,
+        77,
+        0,
+        0,
+        0,
+        0,
+        130,
+        0,
+        172,
+        0,
+        0,
+        3,
+        3,
+        3,
+        16,
+        7,
         7,
         0,
         0,
         0,
-        61,
+        0,
+        110,
+        0,
+        163,
+        163,
+        163,
+        163,
+        163,
         0,
         0,
-        0,
-        0,
-        0,
-        56,
-        56,
-        56,
-        0,
-        0,
-        0,
-        0,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        131,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        157,
-        0,
-        0,
-        0,
-        24,
-        24,
-        24,
-        0,
-        0,
-        0,
-        57,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        78,
-        78,
-        0,
-        0,
-        0,
-        0,
-        131,
-        0,
-        103,
-        0,
-        0,
-        0,
-        0,
-        0,
-        156,
-        156,
-        156,
-        0,
-        0,
-        0,
-        0,
-        111,
-        0,
-        164,
-        164,
-        164,
-        164,
-        164,
-        0,
-        0,
-        63,
-        59,
-        148,
-        150,
+        62,
+        58,
+        147,
+        149,
+        128,
         129,
-        130,
-        82,
-        77,
-        138,
-        102,
-        103,
+        81,
+        76,
+        137,
+        101,
+        172,
         0,
         0,
-        3,
-        3,
-        3,
-        17,
-        8,
-        8,
-        0,
-        0,
-        0,
-        0,
-        36,
-        0,
-        165,
-        165,
-        165,
-        165,
-        165,
-        0,
-        0,
-        63,
-        0,
-        149,
-        149,
-        0,
-        0,
-        0,
-        0,
-        143,
-        0,
-        103,
-        0,
-        0,
-        5,
-        0,
-        0,
-        29,
-        29,
-        98,
-        27,
-        27,
-        27,
-        0,
-        36,
-        0,
-        69,
-        69,
-        69,
-        69,
-        69,
-        0,
-        0,
-        63,
-        0,
-        151,
-        151,
-        151,
-        151,
-        151,
-        151,
-        143,
-        0,
-        0,
-        0,
-        0,
-        5,
-        0,
-        0,
-        0,
-        0,
-        0,
+        4,
         0,
         0,
         28,
+        28,
+        97,
+        26,
+        26,
+        26,
         0,
-        36,
-        45,
-        69,
-        69,
-        69,
-        69,
-        69,
+        35,
         0,
-        0,
-        63,
-        0,
-        0,
-        0,
-        152,
-        83,
-        83,
-        83,
-        143,
+        164,
+        164,
+        164,
+        164,
+        164,
         0,
         0,
+        62,
+        0,
+        148,
+        148,
         0,
         0,
-        5,
+        0,
+        0,
+        142,
+        0,
+        102,
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27,
+        0,
+        35,
+        0,
+        68,
+        68,
+        68,
+        68,
+        68,
+        0,
+        0,
+        62,
+        0,
+        150,
+        150,
+        150,
+        150,
+        150,
+        150,
+        142,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        124,
+        124,
+        124,
+        0,
+        35,
+        44,
+        68,
+        68,
+        68,
+        68,
+        68,
+        0,
+        0,
+        62,
+        0,
+        0,
+        0,
+        151,
+        82,
+        82,
+        82,
+        142,
+        0,
+        0,
+        0,
+        0,
+        4,
+        98,
+        98,
+        98,
+        98,
+        0,
+        32,
+        32,
+        0,
+        0,
+        35,
+        0,
+        0,
         99,
-        99,
-        99,
-        99,
-        0,
-        125,
-        125,
-        125,
-        0,
-        36,
-        0,
-        0,
-        100,
+        166,
         167,
-        168,
         0,
         0,
         0,
-        63,
+        62,
         0,
         0,
         0,
@@ -8387,359 +8499,103 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
-        0,
-        10,
-        10,
-        10,
-        124,
-        0,
-        4,
-        4,
-        0,
-        0,
-        36,
-        0,
-        0,
-        0,
-        108,
-        0,
-        0,
-        65,
-        65,
-        65,
-        65,
-        85,
-        158,
-        80,
-        80,
-        90,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        10,
-        10,
-        10,
-        124,
-        0,
-        114,
-        33,
-        34,
-        35,
-        36,
-        0,
-        0,
-        0,
-        108,
-        0,
-        84,
-        84,
-        0,
-        0,
-        66,
-        0,
-        88,
-        80,
-        80,
-        90,
-        94,
-        139,
-        0,
-        0,
-        0,
-        0,
-        0,
-        10,
-        10,
-        10,
-        124,
-        0,
-        126,
-        0,
-        0,
-        35,
-        0,
-        0,
-        0,
-        0,
-        108,
-        0,
-        91,
-        68,
-        68,
-        0,
-        66,
-        0,
-        132,
-        0,
-        87,
-        90,
-        0,
-        95,
-        0,
-        0,
-        0,
-        0,
-        0,
-        106,
-        0,
-        0,
-        0,
-        0,
-        110,
-        110,
-        0,
-        35,
-        0,
-        0,
-        0,
-        0,
-        108,
-        0,
-        128,
-        128,
-        128,
-        128,
-        128,
-        0,
-        133,
-        134,
-        92,
-        92,
-        0,
-        137,
         0,
         0,
         0,
         0,
         9,
-        12,
-        12,
-        12,
-        54,
+        9,
+        9,
+        123,
+        0,
+        113,
+        33,
+        109,
+        34,
+        35,
+        0,
         0,
         0,
         107,
         0,
-        112,
         0,
-        0,
-        0,
-        0,
-        159,
-        0,
-        104,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        96,
-        0,
-        0,
-        0,
-        0,
-        9,
-        0,
-        0,
-        0,
-        54,
-        0,
-        0,
-        71,
-        71,
-        71,
-        0,
-        49,
-        49,
-        0,
-        144,
-        0,
-        51,
-        51,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        135,
-        135,
-        141,
-        140,
-        0,
-        0,
-        0,
-        0,
-        9,
-        37,
-        37,
-        0,
-        54,
-        0,
-        0,
-        0,
-        73,
-        73,
-        0,
-        52,
-        30,
-        18,
-        76,
-        155,
-        31,
-        58,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        136,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        9,
-        0,
-        154,
-        0,
-        54,
-        62,
-        70,
-        119,
-        73,
-        73,
-        46,
-        52,
-        30,
-        18,
-        76,
-        155,
-        31,
-        58,
-        0,
-        0,
-        0,
-        0,
-        0,
-        142,
-        142,
-        142,
-        0,
-        86,
-        86,
-        86,
-        0,
-        0,
-        9,
-        48,
-        48,
-        0,
-        54,
-        0,
-        0,
-        0,
-        73,
-        73,
-        0,
-        52,
-        30,
-        18,
-        76,
-        155,
-        31,
-        58,
-        0,
-        0,
-        0,
-        0,
-        0,
-        142,
-        142,
-        142,
-        81,
-        86,
-        86,
-        86,
-        0,
-        0,
-        9,
-        0,
-        0,
-        0,
-        54,
-        0,
-        0,
-        113,
-        113,
-        113,
-        0,
-        52,
-        32,
-        32,
-        76,
-        97,
-        97,
-        58,
-        0,
-        0,
-        0,
-        0,
-        0,
-        142,
-        142,
-        142,
-        0,
-        86,
-        86,
-        86,
-        0,
-        0,
-        9,
-        53,
-        53,
-        53,
-        54,
-        0,
-        0,
-        0,
+        64,
+        64,
+        64,
+        64,
+        84,
+        157,
+        79,
+        79,
         89,
         0,
         0,
-        67,
-        67,
-        67,
-        67,
-        67,
-        67,
-        67,
         0,
         0,
         0,
         0,
         0,
+        9,
+        9,
+        9,
+        123,
         0,
-        101,
+        125,
         0,
+        0,
+        34,
+        0,
+        0,
+        0,
+        0,
+        107,
+        0,
+        83,
+        83,
+        0,
+        0,
+        65,
+        0,
+        87,
+        79,
+        79,
+        89,
+        93,
+        138,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        9,
+        9,
+        123,
+        0,
+        171,
+        174,
+        0,
+        34,
+        0,
+        0,
+        0,
+        0,
+        107,
+        0,
+        90,
+        67,
+        67,
+        0,
+        65,
+        0,
+        131,
         0,
         86,
-        86,
-        86,
+        89,
+        0,
+        94,
+        0,
+        0,
         0,
         0,
         0,
@@ -8748,9 +8604,265 @@
         0,
         0,
         0,
-        22,
-        22,
-        22,
+        171,
+        175,
+        0,
+        34,
+        0,
+        0,
+        0,
+        0,
+        107,
+        0,
+        127,
+        127,
+        127,
+        127,
+        127,
+        0,
+        132,
+        133,
+        91,
+        91,
+        0,
+        136,
+        0,
+        0,
+        0,
+        0,
+        8,
+        11,
+        11,
+        11,
+        53,
+        0,
+        0,
+        106,
+        0,
+        111,
+        0,
+        0,
+        0,
+        0,
+        158,
+        0,
+        103,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        95,
+        0,
+        0,
+        0,
+        0,
+        8,
+        0,
+        0,
+        0,
+        53,
+        0,
+        0,
+        70,
+        70,
+        70,
+        0,
+        48,
+        48,
+        0,
+        143,
+        0,
+        50,
+        50,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        134,
+        134,
+        140,
+        139,
+        0,
+        0,
+        0,
+        0,
+        8,
+        36,
+        36,
+        0,
+        53,
+        0,
+        0,
+        0,
+        72,
+        72,
+        0,
+        51,
+        29,
+        17,
+        75,
+        154,
+        30,
+        57,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        135,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        8,
+        0,
+        153,
+        0,
+        53,
+        61,
+        69,
+        118,
+        72,
+        72,
+        45,
+        51,
+        29,
+        17,
+        75,
+        154,
+        30,
+        57,
+        0,
+        0,
+        0,
+        0,
+        0,
+        141,
+        141,
+        141,
+        0,
+        85,
+        85,
+        85,
+        0,
+        0,
+        8,
+        47,
+        47,
+        0,
+        53,
+        0,
+        0,
+        0,
+        72,
+        72,
+        0,
+        51,
+        29,
+        17,
+        75,
+        154,
+        30,
+        57,
+        0,
+        0,
+        0,
+        0,
+        0,
+        141,
+        141,
+        141,
+        80,
+        85,
+        85,
+        85,
+        0,
+        0,
+        8,
+        0,
+        0,
+        0,
+        53,
+        0,
+        0,
+        112,
+        112,
+        112,
+        0,
+        51,
+        31,
+        31,
+        75,
+        96,
+        96,
+        57,
+        0,
+        0,
+        0,
+        0,
+        0,
+        141,
+        141,
+        141,
+        0,
+        85,
+        85,
+        85,
+        0,
+        0,
+        8,
+        52,
+        52,
+        52,
+        53,
+        0,
+        0,
+        0,
+        88,
+        0,
+        0,
+        66,
+        66,
+        66,
+        66,
+        66,
+        66,
+        66,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        100,
+        0,
+        0,
+        85,
+        85,
+        85,
+        0,
+        0,
+        0,
+        104,
+        0,
+        0,
+        0,
+        0,
+        21,
+        21,
+        21,
         0,
         0,
         0,
@@ -8765,30 +8877,30 @@
         0,
         0,
         0,
-        93,
-        93,
-        93,
-        93,
-        93,
-        93,
-        93,
+        92,
+        92,
+        92,
+        92,
+        92,
+        92,
+        92,
         0,
         0,
         0,
+        119,
         120,
+        10,
         121,
-        11,
         122,
-        123,
-        116,
         115,
-        117,
+        114,
+        116,
         0,
         0,
         0,
         0,
-        145,
-        147,
+        144,
+        146,
         2,
         0,
         0,
@@ -8797,13 +8909,13 @@
         0,
         0,
         0,
-        93,
-        93,
-        93,
-        93,
-        93,
-        93,
-        93,
+        92,
+        92,
+        92,
+        92,
+        92,
+        92,
+        92,
         0,
         0,
         0,
@@ -8812,16 +8924,16 @@
         0,
         0,
         0,
-        118,
-        118,
-        118,
+        169,
+        117,
+        170,
         0,
         0,
         0,
         0,
-        146,
-        146,
-        146,
+        145,
+        145,
+        145,
         0,
         0,
         0,
@@ -8829,13 +8941,13 @@
         0,
         0,
         0,
-        93,
-        93,
-        93,
-        93,
-        93,
-        93,
-        93,
+        92,
+        92,
+        92,
+        92,
+        92,
+        92,
+        92,
         0,
         0,
         0,
@@ -8878,9 +8990,9 @@
       "items": [
         {
           "type": "camera",
-          "x": 84.7857172442729,
-          "y": 37.877196587997766,
-          "angle": 1.5854694981631585
+          "x": 168.38597629664392,
+          "y": 138.87167427837352,
+          "angle": 1.6441872721069162
         },
         {
           "type": "bluecard",
@@ -9033,24 +9145,14 @@
           }
         },
         {
-          "type": "switch",
-          "x": 68,
-          "y": 163
-        },
-        {
           "type": "backpack",
           "x": 49,
-          "y": 101,
+          "y": 93,
           "skills": {
             "easy": true,
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 244,
-          "y": 109
         },
         {
           "type": "chaingun",
@@ -9063,16 +9165,6 @@
           }
         },
         {
-          "type": "switch",
-          "x": 53,
-          "y": 100
-        },
-        {
-          "type": "switch",
-          "x": 68,
-          "y": 244
-        },
-        {
           "type": "imp",
           "x": 61,
           "y": 243,
@@ -9081,11 +9173,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 140,
-          "y": 85
         },
         {
           "type": "yellowcard",
@@ -9140,7 +9227,7 @@
         {
           "type": "chaingun",
           "x": 44,
-          "y": 84,
+          "y": 76,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9337,7 +9424,7 @@
         },
         "2": {
           "floorHeight": 18,
-          "ceilingHeight": 25,
+          "ceilingHeight": 23,
           "trigger": "switch",
           "singleShot": false,
           "action": "end_level",
@@ -9345,11 +9432,11 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 10
+          "brightness": 15
         },
         "3": {
           "floorHeight": 13,
-          "ceilingHeight": 20,
+          "ceilingHeight": 28,
           "trigger": "switch",
           "singleShot": true,
           "action": "raise_floor",
@@ -9608,7 +9695,7 @@
           "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 7
         },
         "25": {
@@ -9680,7 +9767,7 @@
           "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 7
         },
         "31": {
@@ -10244,7 +10331,7 @@
           "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 7
         },
         "78": {
@@ -10268,7 +10355,7 @@
           "tag": "central_doors",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 7
         },
         "80": {
@@ -10711,8 +10798,8 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 8,
+          "floorColor": 9,
+          "ceilingColor": 11,
           "brightness": 10
         },
         "117": {
@@ -10724,7 +10811,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 10
         },
         "118": {
@@ -10976,7 +11063,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 9
         },
         "139": {
@@ -11386,6 +11473,54 @@
           "floorColor": 5,
           "ceilingColor": 11,
           "brightness": 15
+        },
+        "173": {
+          "floorHeight": 13,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": true,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 15
+        },
+        "174": {
+          "floorHeight": 13,
+          "ceilingHeight": 20,
+          "trigger": "none",
+          "singleShot": true,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 15
+        },
+        "175": {
+          "floorHeight": 18,
+          "ceilingHeight": 25,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 10
+        },
+        "176": {
+          "floorHeight": 18,
+          "ceilingHeight": 25,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 10
         }
       },
       "map": [
@@ -11454,7 +11589,7 @@
         0,
         0,
         0,
-        2,
+        175,
         0,
         156,
         32,
@@ -11518,7 +11653,7 @@
         0,
         0,
         0,
-        2,
+        176,
         0,
         156,
         53,
@@ -11618,7 +11753,7 @@
         13,
         13,
         3,
-        3,
+        173,
         108,
         108,
         63,
@@ -11649,8 +11784,8 @@
         170,
         0,
         0,
-        3,
-        3,
+        174,
+        174,
         108,
         108,
         63,
@@ -12422,14 +12557,9 @@
       "items": [
         {
           "type": "camera",
-          "x": 105.93598431654466,
-          "y": 58.00925926855074,
-          "angle": 6.1559598795675186
-        },
-        {
-          "type": "switch",
-          "x": 12,
-          "y": 37
+          "x": 247.13619907626807,
+          "y": 74.07984717353764,
+          "angle": 4.05177549479431
         },
         {
           "type": "yellowcard",
@@ -12440,11 +12570,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 37,
-          "y": 59
         },
         {
           "type": "bluearmor",
@@ -13408,7 +13533,7 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 9,
           "ceilingColor": 11,
           "brightness": 8
         },
@@ -13439,7 +13564,7 @@
         "48": {
           "floorHeight": 10,
           "ceilingHeight": 15,
-          "trigger": "switch",
+          "trigger": "walk_into",
           "singleShot": false,
           "action": "lower_floor",
           "tag": "cargo",
@@ -13612,8 +13737,8 @@
           "action": "open_door",
           "tag": "nukage_door",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 11,
+          "floorColor": 8,
+          "ceilingColor": 12,
           "brightness": 9
         },
         "63": {
@@ -13702,7 +13827,7 @@
         },
         "70": {
           "floorHeight": 1,
-          "ceilingHeight": 14,
+          "ceilingHeight": 6,
           "trigger": "switch",
           "singleShot": false,
           "action": "open_door_forever",
@@ -13710,7 +13835,7 @@
           "targetTag": "nukage_door",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 13
+          "brightness": 15
         },
         "71": {
           "floorHeight": 0,
@@ -13913,7 +14038,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 15
         },
         "88": {
@@ -14153,7 +14278,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 15
         },
         "108": {
@@ -14453,7 +14578,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 8
         },
         "133": {
@@ -14464,8 +14589,8 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
-          "ceilingColor": 9,
+          "floorColor": 9,
+          "ceilingColor": 11,
           "brightness": 9
         },
         "134": {
@@ -14611,6 +14736,18 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 5
+        },
+        "146": {
+          "floorHeight": 10,
+          "ceilingHeight": 15,
+          "trigger": "switch",
+          "singleShot": false,
+          "action": "end_level",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 15
         }
       },
       "map": [
@@ -14661,7 +14798,7 @@
         0,
         0,
         0,
-        10,
+        146,
         10,
         10,
         0,
@@ -15647,9 +15784,9 @@
       "items": [
         {
           "type": "camera",
-          "x": 122.63463939046616,
-          "y": 162.63577597349962,
-          "angle": 5.872135801102399
+          "x": 67.53853419837522,
+          "y": 84.64490702463814,
+          "angle": 1.3799519132590552
         },
         {
           "type": "yellowcard",
@@ -15660,16 +15797,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 66,
-          "y": 124
-        },
-        {
-          "type": "switch",
-          "x": 54,
-          "y": 124
         },
         {
           "type": "imp",
@@ -15790,11 +15917,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 123,
-          "y": 12
         },
         {
           "type": "bluecard",
@@ -16168,7 +16290,7 @@
         },
         "13": {
           "floorHeight": 11,
-          "ceilingHeight": 23,
+          "ceilingHeight": 16,
           "trigger": "switch",
           "singleShot": false,
           "action": "end_level",
@@ -16176,7 +16298,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 15
         },
         "14": {
           "floorHeight": 11,
@@ -16632,7 +16754,7 @@
           "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 15
         },
         "52": {
           "floorHeight": 10,
@@ -16919,7 +17041,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 9
         },
         "76": {
@@ -17898,13 +18020,13 @@
           "floorHeight": 6,
           "ceilingHeight": 23,
           "trigger": "switch",
-          "singleShot": false,
+          "singleShot": true,
           "action": "open_door_forever",
           "tag": "",
           "targetTag": "door_to_secret",
           "floorColor": 11,
           "ceilingColor": 2,
-          "brightness": 10
+          "brightness": 15
         },
         "158": {
           "floorHeight": 0,
@@ -17938,7 +18060,7 @@
           "action": "open_door",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 8,
           "ceilingColor": 11,
           "brightness": 9
         },
@@ -18313,6 +18435,78 @@
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 12
+        },
+        "192": {
+          "floorHeight": 6,
+          "ceilingHeight": 23,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "door_to_secret",
+          "floorColor": 11,
+          "ceilingColor": 2,
+          "brightness": 10
+        },
+        "193": {
+          "floorHeight": 6,
+          "ceilingHeight": 11,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "194": {
+          "floorHeight": 6,
+          "ceilingHeight": 11,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "195": {
+          "floorHeight": 11,
+          "ceilingHeight": 23,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "196": {
+          "floorHeight": 11,
+          "ceilingHeight": 23,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
+        },
+        "197": {
+          "floorHeight": 11,
+          "ceilingHeight": 23,
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
+          "tag": "",
+          "targetTag": "",
+          "floorColor": 11,
+          "ceilingColor": 11,
+          "brightness": 9
         }
       },
       "map": [
@@ -18360,9 +18554,9 @@
         0,
         0,
         0,
+        195,
         13,
-        13,
-        13,
+        196,
         0,
         0,
         0,
@@ -18381,9 +18575,9 @@
         0,
         0,
         0,
+        193,
+        193,
         51,
-        51,
-        51,
         0,
         0,
         0,
@@ -18392,15 +18586,9 @@
         0,
         0,
         0,
-        13,
-        13,
-        13,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
+        197,
+        197,
+        197,
         0,
         0,
         0,
@@ -18413,9 +18601,15 @@
         0,
         0,
         0,
-        51,
-        51,
-        51,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        194,
+        194,
+        194,
         0,
         0,
         0,
@@ -18607,8 +18801,8 @@
         0,
         0,
         157,
-        157,
-        157,
+        192,
+        192,
         155,
         153,
         152,
@@ -19378,15 +19572,10 @@
           }
         },
         {
-          "type": "switch",
-          "x": 108,
-          "y": 11
-        },
-        {
           "type": "camera",
-          "x": 145.71689171980785,
-          "y": 212.18341992226044,
-          "angle": 1.712707470010601
+          "x": 90.75084486712267,
+          "y": 61.81190637864729,
+          "angle": 4.766218086583859
         },
         {
           "type": "redcard",
@@ -19407,11 +19596,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 29,
-          "y": 20
         },
         {
           "type": "pinky",
@@ -19625,8 +19809,8 @@
         },
         {
           "type": "health",
-          "x": 99,
-          "y": 20,
+          "x": 117,
+          "y": 19,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19782,11 +19966,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 20,
-          "y": 76
         }
       ]
     },
@@ -19851,7 +20030,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 9
         },
         "6": {
@@ -20403,7 +20582,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 7
         },
         "52": {
@@ -20588,7 +20767,7 @@
         },
         "67": {
           "floorHeight": 12,
-          "ceilingHeight": 18,
+          "ceilingHeight": 17,
           "trigger": "switch",
           "singleShot": true,
           "action": "open_door_forever",
@@ -21752,7 +21931,7 @@
         },
         "164": {
           "floorHeight": 9,
-          "ceilingHeight": 13,
+          "ceilingHeight": 14,
           "trigger": "switch",
           "singleShot": false,
           "action": "lower_floor_forever",
@@ -21760,7 +21939,7 @@
           "targetTag": "chainsaw_reveal",
           "floorColor": 11,
           "ceilingColor": 11,
-          "brightness": 9
+          "brightness": 15
         },
         "165": {
           "floorHeight": 17,
@@ -22910,8 +23089,8 @@
         0
       ],
       "spawn": {
-        "x": 119,
-        "y": 12,
+        "x": 44,
+        "y": 59,
         "angle": 3.141592653589793
       },
       "items": [
@@ -23156,11 +23335,6 @@
           }
         },
         {
-          "type": "switch",
-          "x": 82,
-          "y": 156
-        },
-        {
           "type": "chainsaw",
           "x": 28,
           "y": 236,
@@ -23169,11 +23343,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 242,
-          "y": 220
         },
         {
           "type": "greenarmor",
@@ -23224,11 +23393,6 @@
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "switch",
-          "x": 132,
-          "y": 179
         },
         {
           "type": "soldier",
@@ -23567,7 +23731,7 @@
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 11,
+          "ceilingColor": 12,
           "brightness": 8
         },
         "18": {
@@ -23962,7 +24126,7 @@
           "action": "open_door_forever",
           "tag": "",
           "targetTag": "",
-          "floorColor": 11,
+          "floorColor": 8,
           "ceilingColor": 11,
           "brightness": 8
         },
@@ -25161,9 +25325,9 @@
         },
         {
           "type": "camera",
-          "x": 123.97488297265801,
-          "y": 155.20685089031207,
-          "angle": 6.253824628174073
+          "x": 123.13877454638168,
+          "y": 214.55661633256676,
+          "angle": 1.105917714518533
         },
         {
           "type": "barrel",

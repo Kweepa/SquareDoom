@@ -3,6 +3,8 @@
 export const MAP_SIZE = 32;
 export const MAP_CELLS = MAP_SIZE * MAP_SIZE;
 export const MAX_SECTORS = 199;
+/** Cooked switch face table size (sector id + solid NESW face per entry). */
+export const MAX_SWITCH_FACES = 8;
 export const MAX_ITEMS = 48;
 /** Last two item slots reserved for enemy missile + player rocket. */
 export const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
@@ -174,6 +176,10 @@ export function isWindowSector(sector) {
   return normalizeAction(sector?.action) === 'window';
 }
 
+export function isSwitchSector(sector) {
+  return normalizeTrigger(sector?.trigger) === 'switch';
+}
+
 export function isElevatorSector(sector) {
   const a = normalizeAction(sector?.action);
   return a === 'lower_floor' || a === 'lower_floor_15s'
@@ -204,8 +210,8 @@ export const FIREBALL_TYPE = 'fireball';
 export const RUNTIME_ONLY_TYPES = new Set([
   'fireball', 'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'plasmaball', 'rocket', 'barexpl',
+  'switch', // sector trigger=switch; not a placeable prop
 ]);
-
 /** Legacy cook type ids that map to SWITCH_TYPE. */
 const LEGACY_SWITCH_COOK_TYPES = new Set([
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
@@ -221,7 +227,7 @@ export const EDITOR_ITEM_TYPES = [
 ];
 
 export function isGameItem(type) {
-  return type !== CAMERA_TYPE && type !== SPAWN_TYPE;
+  return type !== CAMERA_TYPE && type !== SPAWN_TYPE && !isSwitchCookType(type);
 }
 
 export function isCamera(item) {
@@ -471,6 +477,49 @@ export function cellIndex(tx, ty) {
 export function getCell(level, tx, ty) {
   if (tx < 0 || ty < 0 || tx >= MAP_SIZE || ty >= MAP_SIZE) return 0;
   return level.map[cellIndex(tx, ty)];
+}
+
+/**
+ * Cooked switch bindings: one { sec, dir } per trigger=switch sector.
+ * sec = switch sector id; dir = NESW face of the adjacent solid (0=N..3=W).
+ * Uses the first map cell of that sector with a solid neighbour:
+ *   1 solid → that wall; 3 → opposite the gap; 2/4 → first NESW.
+ */
+export function buildSwitchFaceBindings(level) {
+  const faces = [];
+  const done = new Set();
+  const dirs = [
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+  ];
+  for (let ty = 0; ty < MAP_SIZE; ty++) {
+    for (let tx = 0; tx < MAP_SIZE; tx++) {
+      const sec = getCell(level, tx, ty);
+      if (!sec || done.has(sec)) continue;
+      const s = level.sectors.get(sec);
+      if (!s || normalizeTrigger(s.trigger) !== 'switch') continue;
+      const solid = [];
+      for (let d = 0; d < 4; d++) {
+        const mx = tx + dirs[d].dx;
+        const my = ty + dirs[d].dy;
+        if (mx < 0 || my < 0 || mx >= MAP_SIZE || my >= MAP_SIZE) continue;
+        if (getCell(level, mx, my) === 0) solid.push(d);
+      }
+      if (solid.length === 0) continue;
+      done.add(sec);
+      let toward;
+      if (solid.length === 3) {
+        const open = [0, 1, 2, 3].find((d) => !solid.includes(d));
+        toward = (open + 2) & 3;
+      } else {
+        toward = solid[0];
+      }
+      faces.push({ sec, dir: (toward + 2) & 3 });
+    }
+  }
+  return faces;
 }
 
 export function setCell(level, tx, ty, sectorId) {

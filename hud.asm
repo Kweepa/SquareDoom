@@ -1,7 +1,7 @@
 ; Status bar — bottom row, 8 chars left + 8 chars right (VicDoom doomfont)
 ; Left:  ammo icon + 3 digits + health icon + 3 digits  (red)
 ; Right: armor icon + 3 digits + space + R/Y/B keyglyphs
-; Painted into FRAMEBUFFER/LIGHTFRAME row 24 when hud_dirty (pre-blit).
+; Painted into SCREENBUFFER/PATTERNBUFFER row 24 when hud_dirty (pre-blit).
 !zone hud
 
 HUD_ROW = 24
@@ -131,7 +131,7 @@ hud_put
 	lda colbasehi,x
 	sta col_base_h
 	clc
-	adc #4				; LIGHTFRAME = FRAMEBUFFER+$400
+	adc #4				; PATTERNBUFFER = SCREENBUFFER+$400
 	sta pat_base_h
 	ldy #HUD_ROW
 	lda tmp1

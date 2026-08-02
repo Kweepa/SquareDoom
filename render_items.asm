@@ -1,7 +1,7 @@
 !zone render_items
 
 ; ============================================================================
-; render_items.asm — billboard items into FRAMEBUFFER after column cast
+; render_items.asm — billboard items into SCREENBUFFER after column cast
 ; ============================================================================
 ; Collect items in seen sectors, depth-sort far→near, project, draw clipped
 ; against COL_CLIP_* stack (open=depth·$ff; occ=(depth·$ff)>>3).
@@ -67,6 +67,8 @@ render_items
 	beq .ri_nx
 	cmp #ITEM_TYPE_EMPTY
 	beq .ri_nx
+	cmp #ITEM_TYPE_SWITCH
+	beq .ri_nx			; wall-face texture in paint_switch_col
 	lda level_item_x,x
 	lsr
 	lsr
@@ -526,8 +528,6 @@ item_draw_one
 	lda wall_col
 	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_large
-	cmp #ITEM_TYPE_SWITCH
-	beq .id_large
 	; Items: pick mip from projected size, then draw 1:1 (never >8×8)
 	lda far_ceil
 	ldx #0
@@ -547,7 +547,7 @@ item_draw_one
 	sta last_near_ok			; screen W = mip W
 	jmp .id_feet
 .id_large
-	; explosion/switch: S = min(2*H, 16); mip from S; DDA stretch to S×S
+	; explosion: S = min(2*H, 16); mip from S; DDA stretch to S×S
 	lda far_ceil
 	asl					; 2H
 	cmp #17
@@ -712,6 +712,7 @@ item_draw_one
 	lda enemy_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 .id_clp_go
+item_draw_clp_go
 	; Enemies / stretch items need recip[W]/recip[H]; 1:1 items skip
 	lda far_floor
 	beq .id_clp_item
@@ -719,8 +720,6 @@ item_draw_one
 .id_clp_item
 	lda wall_col
 	cmp #ITEM_TYPE_EXPLOSION
-	beq .id_item_stretch_setup
-	cmp #ITEM_TYPE_SWITCH
 	beq .id_item_stretch_setup
 	jmp .id_clp_no_recip
 .id_item_stretch_setup
@@ -946,8 +945,6 @@ item_draw_one
 	lda wall_col
 	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_cnx_uadv
-	cmp #ITEM_TYPE_SWITCH
-	beq .id_cnx_uadv
 	bne .id_cnx_nou
 .id_cnx_uadv
 	clc
@@ -985,8 +982,6 @@ item_draw_one
 .id_draw_item
 	lda wall_col
 	cmp #ITEM_TYPE_EXPLOSION
-	beq .id_e_stretch
-	cmp #ITEM_TYPE_SWITCH
 	beq .id_e_stretch
 	jmp .id_e8
 

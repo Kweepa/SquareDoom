@@ -16,7 +16,7 @@ const CRAM = 0xd800;
 const SCREEN = 0x0400;
 
 let asm = `; Auto-generated — compact interleaved colour RAM + screen blit\n`;
-asm += `; Column loop; 25 rows unrolled. Source: col-major $c800 / $cc00\n`;
+asm += `; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400\n`;
 asm += `!zone blit_fb\n\n`;
 asm += `blit_fb\n`;
 asm += `\tldx #0\n`;

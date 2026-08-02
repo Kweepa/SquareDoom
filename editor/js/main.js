@@ -29,6 +29,7 @@ import {
   isCamera,
   isSpawn,
   isSwitch,
+  isSwitchCookType,
   itemStillOnLevel,
   monsterClosetHeights,
   moveItemsBy,
@@ -417,19 +418,18 @@ const itemEditor = new ItemEditor(document.getElementById('item-editor'), {
       if ('type' in patch) {
         if (isSpawn(item)) continue; // spawn type is fixed
         if (patch.type === SPAWN_TYPE) continue;
+        if (patch.type === SWITCH_TYPE || isSwitchCookType(patch.type)) {
+          continue; // switch is a sector trigger, not an item
+        }
         if (patch.type === CAMERA_TYPE && !isCamera(item)) {
           item.type = CAMERA_TYPE;
           item.angle = 0;
           delete item.skills;
-        } else if (patch.type === SWITCH_TYPE) {
-          item.type = SWITCH_TYPE;
-          delete item.skills;
-          delete item.angle;
         } else if (patch.type !== CAMERA_TYPE && isCamera(item)) {
           item.type = patch.type;
           item.skills = defaultSkills();
           delete item.angle;
-        } else if (isSwitch(item) && patch.type !== SWITCH_TYPE) {
+        } else if (isSwitch(item)) {
           item.type = patch.type;
           item.skills = defaultSkills();
         } else {

@@ -1,6 +1,6 @@
-; Controls help text - load address $c800 (the framebuffer)
+; Controls help text - load address $e000 (the SCREENBUFFER)
 !to "screens/help.prg", cbm
-* = $c800
+* = $e000
 	!scr "^controls^",0
 	!scr " ",0
 	!scr "     move forward      w",0

@@ -30,6 +30,8 @@ node tools\genshotgun.js
 if errorlevel 1 exit /b 1
 node tools\genitems.js
 if errorlevel 1 exit /b 1
+node tools\gen_wall_switch.js
+if errorlevel 1 exit /b 1
 node tools\genenemysprites.js
 if errorlevel 1 exit /b 1
 node tools\gensounds.js
@@ -50,15 +52,24 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 (
   echo.
   echo Assemble failed — check mem: warnings above for free bytes / overlaps.
-  echo Ceilings: low^<$2a00 fists  charset $3800..MID_BASE  mid^<$a000 level  high^<$c800 FB
-  echo Under-KERNAL BSS: $e000 SQTAB / COL_* / PROF  ^($01=$35^)
+  echo Ceilings: low^<$2940 minigunB  charset $3800..cock $3b80 mid^<$a000 level  high^<$c800 SQTAB
+  echo Under-KERNAL BSS: $e000 SQTAB / COL_* / PROF  ^($01=$35^); MENU.PRG at MENU_BASE
   exit /b 1
 )
 python tools\sort_lbl.py squaredoom.lbl
 if errorlevel 1 exit /b 1
+python tools\gen_menu_imports.py squaredoom.lbl menu_imports.asm
+if errorlevel 1 exit /b 1
+"%ACME%" -v3 screens\menu.asm
+if errorlevel 1 (
+  echo.
+  echo MENU.PRG assemble failed — overlay too large or missing imports.
+  exit /b 1
+)
 python tools\mkdisk.py --out squaredoom.d64 --prg squaredoom.prg --levels levels --screens screens
 if errorlevel 1 exit /b 1
 echo Built squaredoom.prg and squaredoom.d64
-echo Memory: see mem: TOTAL free warn above ^(low+mid+high+kernal-tail^)
+echo Memory: see mem: TOTAL free warn above ^(low+mid+high+menu-budget^)
 dir squaredoom.prg
 dir squaredoom.d64
+dir screens\menu.prg

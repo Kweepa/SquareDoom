@@ -1,5 +1,5 @@
 ; Auto-generated — compact interleaved colour RAM + screen blit
-; Column loop; 25 rows unrolled. Source: col-major $c800 / $cc00
+; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400
 !zone blit_fb
 
 blit_fb

@@ -1,26 +1,19 @@
 ; Load PRG from disk device 8 (SA=1 → file load address).
-; Levels → $A000 (E1M1..E1M9); UI screens → FRAMEBUFFER $C800 (logo/cred/…).
+; Levels → $A000 (E1M1..E1M9); MENU → MENU_BASE; UI screens via overlay LoadUiFile.
 !zone loader
 
 LEVEL_LFN = 15
 LEVEL_DEVICE = 8
 
-; UI file indices (LoadUiFile / ui_buf_id)
-UI_LOGO = 0
-UI_CRED = 1
-UI_HELP = 2
-UI_ORDR = 3
-UI_ENDG = 4
-
 level_dos_name
 	!text "E1M1"
 
-ui_dos_names
+menu_dos_name
+	!text "MENU"
+
+; 4-byte SETNAM scratch — must be outside under-KERNAL (LoadPrg banks $01=$36)
+ui_name_buf
 	!text "LOGO"
-	!text "CRED"
-	!text "HELP"
-	!text "ORDR"
-	!text "ENDG"
 
 ; FormatDosName — write "ENMM" into level_dos_name from episode + level_num
 FormatDosName
@@ -42,7 +35,6 @@ load_namelen	!byte 0
 load_name_l	!byte 0
 load_name_h	!byte 0
 load_jiffy0	!byte 0
-load_ui_pending	!byte 0
 load_do_pad	!byte 0			; nonzero → pad ENTER_MIN_JIFFIES after LOAD
 
 ENTER_MIN_JIFFIES = 120			; ~2s NTSC / 2.4s PAL
@@ -137,31 +129,11 @@ LoadLevel
 	ldy #>level_dos_name
 	jmp LoadPrg
 
-; LoadUiFile — A = UI_LOGO..UI_ENDG. Skip if ui_buf_id matches. C=0 ok, C=1 error.
-LoadUiFile
-	cmp ui_buf_id
-	beq .lui_ok
-	sta load_ui_pending
-	asl
-	asl					; index * 4
-	clc
-	adc #<ui_dos_names
-	tax
-	lda #0
-	adc #>ui_dos_names
-	tay
+; LoadMenu — MENU.PRG → MENU_BASE (play-buffer pack after UI_LOAD_MAX). C=0 ok, C=1 error.
+LoadMenu
 	lda #0
 	sta load_do_pad
 	lda #4
-	jsr LoadPrg
-	bcs .lui_fail
-	lda load_ui_pending
-	sta ui_buf_id
-.lui_ok
-	clc
-	rts
-.lui_fail
-	lda #$ff
-	sta ui_buf_id
-	sec
-	rts
+	ldx #<menu_dos_name
+	ldy #>menu_dos_name
+	jmp LoadPrg

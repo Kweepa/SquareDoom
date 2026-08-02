@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 LEVEL_LOAD_ADDR = 0xA000
-UI_LOAD_ADDR = 0xC800
+UI_LOAD_ADDR = 0xE000
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
 
 # (dos_name, relative path under screens/, kind: "bin" raw or "prg" with header)
@@ -23,6 +23,7 @@ UI_FILES = [
     ("help", "help.prg", "prg"),
     ("ordr", "ordr.prg", "prg"),
     ("endg", "endg.prg", "prg"),
+    ("menu", "menu.prg", "prg"),
 ]
 
 

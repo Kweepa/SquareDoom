@@ -4,7 +4,7 @@
 ; render.asm — frame driver + sector-edge orchestration
 ; ============================================================================
 ; TheKeep-style secant DDA with portal height clipping into transposed
-; colour ($C800→$D800) and lighting ($CC00→$0400) framebuffers.
+; colour ($e000→$D800) and pattern ($e400→$0400) buffers.
 ;
 ; Sources (PROFILE HUD letter when PROFILE=1):
 ;   render_setup.asm      S — player tile + ray cache
@@ -17,7 +17,7 @@
 ;
 ; Clip: open window is [ytop, ybot). Front-to-back: near flats then ledges
 ; then continue or stop. Bugfixes vs early TheKeep port: lookang−64 north
-; mapping; texstep = wallz>>2; s overflow ends ray; paint into FRAMEBUFFER.
+; mapping; texstep = wallz>>2; s overflow ends ray; paint into SCREENBUFFER.
 ;
 ; ============================================================================
 
@@ -56,7 +56,7 @@ render
 	lda #0
 	sta col
 .col_loop
-	jsr set_col_base		; FRAMEBUFFER column base for fills
+	jsr set_col_base		; SCREENBUFFER column base for fills
 	jsr set_sky_ptr			; sky_cols strip for cyan ceil/ledge
 	jsr cast_column
 	inc col
@@ -188,8 +188,14 @@ on_cell
 	bne .portal
 	; Solid wall (next_id=0): flood remaining clip, then force-close
 	jsr wall_colour_ns_ew
+	jsr switch_face_match
+	bcc .sw_tex
 	lda wall_col
 	jsr fill_col_span
+	jmp .sw_done
+.sw_tex
+	jsr paint_switch_col
+.sw_done
 	lda ybot
 	sta ytop			; prevent fill_open_remainder wipe
 	jsr clip_col_push		; closed aperture @ wallz — occludes sprites
@@ -234,5 +240,7 @@ on_cell
 !source "render_setup.asm"
 !source "render_dda.asm"
 !source "render_wallz.asm"
+!source "render_wallu.asm"
 !source "render_ledge.asm"
+!source "render_switch.asm"
 !source "render_items.asm"
