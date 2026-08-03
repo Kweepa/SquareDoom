@@ -1,5 +1,6 @@
 ; Auto-generated — compact interleaved colour RAM + screen blit
 ; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400
+; Row 24: always blit cols 8–31 (view); HUD cols 0–7/32–39 if hud_dirty
 !zone blit_fb
 
 blit_fb
@@ -134,8 +135,14 @@ blit_fb
 	lda (pat_base_l),y
 	sta $798,x
 	iny
+	cpx #8
+	bcc .hud_side
+	cpx #32
+	bcc .blit_r24
+.hud_side
 	lda hud_dirty
 	beq .hud_clean
+.blit_r24
 	lda (col_base_l),y
 	sta $dbc0,x
 	lda (pat_base_l),y

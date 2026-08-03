@@ -26,8 +26,9 @@ HUD_COL_YELLOW = 7
 HUD_COL_WHITE = 1
 
 ; ---------------------------------------------------------------------------
-; draw_hud — into FB row 24 if hud_dirty (DDA leaves those cells alone).
-; blit_fb clears hud_dirty after copying the changed row to screen/colour RAM.
+; draw_hud — into FB row 24 cols 0–7 / 32–39 if hud_dirty (DDA leaves those
+; alone; cols 8–31 are still 3D and always blitted). blit_fb clears hud_dirty
+; after copying dirty HUD side cells to screen/colour RAM.
 ; ---------------------------------------------------------------------------
 draw_hud
 	lda hud_dirty

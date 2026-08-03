@@ -3,7 +3,8 @@
  * → colour RAM ($D800) and screen ($0400).
  *
  * Column loop (X = col); 25 rows unrolled with (zp),y source and abs,x dest.
- * HUD row 24 is copied only when draw_hud leaves hud_dirty set.
+ * Row 24 is 3D view in cols 8–31 (always copy). HUD lives in cols 0–7 and
+ * 32–39 only; those cells are copied when draw_hud leaves hud_dirty set.
  */
 import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -14,9 +15,12 @@ const COLS = 40;
 const ROWS = 25;
 const CRAM = 0xd800;
 const SCREEN = 0x0400;
+const HUD_LEFT = 8; // cols 0..7
+const HUD_RIGHT = 32; // cols 32..39
 
 let asm = `; Auto-generated — compact interleaved colour RAM + screen blit\n`;
 asm += `; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400\n`;
+asm += `; Row 24: always blit cols 8–31 (view); HUD cols 0–7/32–39 if hud_dirty\n`;
 asm += `!zone blit_fb\n\n`;
 asm += `blit_fb\n`;
 asm += `\tldx #0\n`;
@@ -35,8 +39,15 @@ for (let row = 0; row < ROWS; row++) {
   const dstC = CRAM + row * COLS;
   const dstP = SCREEN + row * COLS;
   if (row === ROWS - 1) {
+    // View columns always update; HUD side columns only when dirty.
+    asm += `\tcpx #${HUD_LEFT}\n`;
+    asm += `\tbcc .hud_side\n`;
+    asm += `\tcpx #${HUD_RIGHT}\n`;
+    asm += `\tbcc .blit_r24\n`;
+    asm += `.hud_side\n`;
     asm += `\tlda hud_dirty\n`;
     asm += `\tbeq .hud_clean\n`;
+    asm += `.blit_r24\n`;
   }
   asm += `\tlda (col_base_l),y\n`;
   asm += `\tsta $${dstC.toString(16)},x\n`;
