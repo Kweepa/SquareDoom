@@ -75,11 +75,6 @@ dpsawful
 dpsawhit
 	!byte 25, 31, 26, 32, 26, 33, 26, 34, 26, 36, 27, 38, 27, 41, 29, 43
 	!byte 30, 45, 30, 47, 31, 49, 32, 51, 34, 52
-dppunch
-	!byte 59, 36, 53, 36, 52, 37, 52, 38, 52, 39, 52, 39, 52, 39, 52, 38
-	!byte 53, 35, 54, 35, 54, 34, 54, 33, 36, 33, 29, 32, 22, 31, 14, 30
-	!byte 7, 29, 0, 26, 0, 25, 0, 21, 0, 18, 0, 16, 0, 15, 0, 10
-	!byte 0, 8, 0, 7, 0, 6, 0, 5, 0, 5, 0, 5
 dpbarexp
 	!byte 79, 13, 24, 32, 14, 21, 34, 23, 14, 12, 3, 42, 13, 12, 3, 4
 	!byte 21, 35, 23, 45, 23, 43, 12, 5, 12, 3, 51, 23, 44, 12, 3, 41
@@ -87,7 +82,10 @@ dpbarexp
 	!byte 21, 3, 45, 23, 4, 12, 3, 52, 13, 4, 32, 1, 5, 32, 15, 23
 	!byte 14, 32, 1, 5, 21, 3, 45, 23, 4, 12, 3, 4, 32, 1, 52, 35
 
-; total sound payload 852 bytes (count + samples)
+; Byte-identical effects share one payload without changing table lookup cost.
+dppunch = dpclaw
+
+; unique sound payload 792 bytes (60 deduplicated)
 sound_table
 	!word dpclaw
 	!word dpdmpain

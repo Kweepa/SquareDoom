@@ -23,6 +23,22 @@ item_mip_base_lo
 item_mip_base_hi
 	!byte >item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_barrel_m0,>item_spr_barrel_m1,>item_spr_barrel_m2,>item_spr_barrel_m3,>item_spr_health_m0,>item_spr_health_m1,>item_spr_health_m2,>item_spr_health_m3,>item_spr_shells_m0,>item_spr_shells_m1,>item_spr_shells_m2,>item_spr_shells_m3,>item_spr_shotgun_m0,>item_spr_shotgun_m1,>item_spr_shotgun_m2,>item_spr_shotgun_m3,>item_spr_chaingun_m0,>item_spr_chaingun_m1,>item_spr_chaingun_m2,>item_spr_chaingun_m3,>item_spr_chainsaw_m0,>item_spr_chainsaw_m1,>item_spr_chainsaw_m2,>item_spr_chainsaw_m3,>item_spr_rocketlauncher_m0,>item_spr_rocketlauncher_m1,>item_spr_rocketlauncher_m2,>item_spr_rocketlauncher_m3,>item_spr_greenarmor_m0,>item_spr_greenarmor_m1,>item_spr_greenarmor_m2,>item_spr_greenarmor_m3,>item_spr_bluearmor_m0,>item_spr_bluearmor_m1,>item_spr_bluearmor_m2,>item_spr_bluearmor_m3,>item_spr_backpack_m0,>item_spr_backpack_m1,>item_spr_backpack_m2,>item_spr_backpack_m3,>item_spr_redcard_m0,>item_spr_redcard_m1,>item_spr_redcard_m2,>item_spr_redcard_m3,>item_spr_bluecard_m0,>item_spr_bluecard_m1,>item_spr_bluecard_m2,>item_spr_bluecard_m3,>item_spr_yellowcard_m0,>item_spr_yellowcard_m1,>item_spr_yellowcard_m2,>item_spr_yellowcard_m3,>item_spr_soulsphere_m0,>item_spr_soulsphere_m1,>item_spr_soulsphere_m2,>item_spr_soulsphere_m3,>item_spr_radsuit_m0,>item_spr_radsuit_m1,>item_spr_radsuit_m2,>item_spr_radsuit_m3,>item_spr_poscorpse_m0,>item_spr_poscorpse_m1,>item_spr_poscorpse_m2,>item_spr_poscorpse_m3,>item_spr_impcorpse_m0,>item_spr_impcorpse_m1,>item_spr_impcorpse_m2,>item_spr_impcorpse_m3,>item_spr_demoncorpse_m0,>item_spr_demoncorpse_m1,>item_spr_demoncorpse_m2,>item_spr_demoncorpse_m3,>item_spr_baroncorpse_m0,>item_spr_baroncorpse_m1,>item_spr_baroncorpse_m2,>item_spr_baroncorpse_m3,>item_spr_skullpile_m0,>item_spr_skullpile_m1,>item_spr_skullpile_m2,>item_spr_skullpile_m3,>item_spr_techcolumn_m0,>item_spr_techcolumn_m1,>item_spr_techcolumn_m2,>item_spr_techcolumn_m3,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_fireball_m0,>item_spr_fireball_m1,>item_spr_fireball_m2,>item_spr_fireball_m3,>item_spr_plasmaball_m0,>item_spr_plasmaball_m1,>item_spr_plasmaball_m2,>item_spr_plasmaball_m3,>item_spr_rocket_m0,>item_spr_rocket_m1,>item_spr_rocket_m2,>item_spr_rocket_m3,>item_spr_barexpl_m0,>item_spr_barexpl_m1,>item_spr_barexpl_m2,>item_spr_barexpl_m3
 
+; bmp_x * mip_height; index = vshift*16 + bmp_x
+mip_col_off_lo
+	!byte $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$0a,$0b,$0c,$0d,$0e,$0f
+	!byte $00,$02,$04,$06,$08,$0a,$0c,$0e,$10,$12,$14,$16,$18,$1a,$1c,$1e
+	!byte $00,$04,$08,$0c,$10,$14,$18,$1c,$20,$24,$28,$2c,$30,$34,$38,$3c
+	!byte $00,$08,$10,$18,$20,$28,$30,$38,$40,$48,$50,$58,$60,$68,$70,$78
+	!byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$a0,$b0,$c0,$d0,$e0,$f0
+	!byte $00,$20,$40,$60,$80,$a0,$c0,$e0,$00,$20,$40,$60,$80,$a0,$c0,$e0
+mip_col_off_hi
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	!byte $00,$00,$00,$00,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01,$01
+
 ; Transparent stub for spawn / enemy typeIds (never drawn as items)
 item_spr_nodraw
 	!byte $ff

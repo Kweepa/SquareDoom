@@ -64,6 +64,19 @@ setup_player_tile
 ; X = col, Y = secant index (mul_16x8 returns A=lo X=hi — reload col after).
 ; ---------------------------------------------------------------------------
 rebuild_col_rays
+	; Sky scroll depends on the same angle. Reduce its frame-wide base once;
+	; set_sky_ptr only adds the current column.
+	lda playera
+	sta tmp0
+	asl
+	asl
+	clc
+	adc tmp0			; playera * 5
+	lsr
+	lsr
+	lsr				; byte-wrapped /8 → 0..31, matching old per-column math
+	sta sky_col_base
+
 	; base = playera − 64 (north alignment); per-col angle = angtab[col] + base
 	lda playera
 	sec

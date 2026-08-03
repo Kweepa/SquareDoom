@@ -16,7 +16,22 @@
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
+; next_sector_seen — advance the per-frame visibility generation.
+; On wrap, clear stale generation 0 entries and restart at generation 1.
+; ---------------------------------------------------------------------------
+next_sector_seen
+	inc seen_gen
+	bne .nss_done
+	jsr clear_sector_seen
+	inc seen_gen
+.nss_done
+	lda seen_gen
+	sta mark_seen_gen + 1
+	rts
+
+; ---------------------------------------------------------------------------
 ; clear_sector_seen — clear SEC_SEEN[1..level_sector_max]
+; Also used by level setup while SEC_SEEN is flat-group scratch.
 ; ---------------------------------------------------------------------------
 clear_sector_seen
 	lda #0
@@ -44,13 +59,15 @@ clear_sector_visited
 	rts
 
 ; ---------------------------------------------------------------------------
-; mark_seen — X = sector id; mark visible this frame + ever-visited (id 0 ignored)
+; mark_seen — X = sector id; stamp visible this frame + ever-visited (id 0 ignored)
 ; ---------------------------------------------------------------------------
 mark_seen
 	txa
 	beq .ms_done
-	lda #$ff
+mark_seen_gen
+	lda #0				; self-modified once/frame by next_sector_seen
 	sta SEC_SEEN,x
+	lda #$ff
 	sta SEC_VISITED,x
 .ms_done
 	rts

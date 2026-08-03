@@ -44,7 +44,7 @@ render
 	lda #255
 	sta dbg_far_y
 }
-	jsr clear_sector_seen
+	jsr next_sector_seen
 	jsr setup_player_tile
 	; Ray cache depends only on look angle — rebuild when playera moves
 	lda playera

@@ -9,11 +9,14 @@ start_level
 	sta boss_floors_done
 	jsr find_spawn
 	jsr enemy_alloc_all
+	jsr item_sector_cache_init
 	jsr init_level_stats
 	jsr init_hud_state
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr build_sec_flatgrp
+	lda #$ff
+	sta seen_gen			; first frame wraps, clears flat-group scratch, then uses 1
 	jsr build_sec_wdark
 	jsr flash_lights_init
 	jsr clear_sector_visited		; automap fog starts cleared

@@ -134,13 +134,18 @@ blit_fb
 	lda (pat_base_l),y
 	sta $798,x
 	iny
+	lda hud_dirty
+	beq .hud_clean
 	lda (col_base_l),y
 	sta $dbc0,x
 	lda (pat_base_l),y
 	sta $7c0,x
+.hud_clean
 	inx
 	cpx #40
 	beq .done
 	jmp .col
 .done
+	lda #0
+	sta hud_dirty
 	rts

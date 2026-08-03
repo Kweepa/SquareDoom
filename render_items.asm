@@ -40,6 +40,45 @@ TEX_ANIMATE = 64
 item_slot	!byte 0
 
 ; ---------------------------------------------------------------------------
+; Persistent item-sector cache. ITEM_SORT_SEC is keyed by item slot, so it can
+; serve both collection culling and the existing draw restore without more RAM.
+; ---------------------------------------------------------------------------
+item_sector_cache_init
+	ldx #0
+.isci_loop
+	jsr item_refresh_sector
+	inx
+	cpx #MAX_ITEMS
+	bcc .isci_loop
+	rts
+
+; X = item slot. Restores X; clobbers A/Y, mapx/mapy and map pointer scratch.
+item_refresh_sector
+	stx item_slot
+	lda level_item_type,x
+	beq .irs_empty
+	cmp #ITEM_TYPE_EMPTY
+	beq .irs_empty
+	lda level_item_x,x
+	lsr
+	lsr
+	lsr
+	sta mapx
+	lda level_item_y,x
+	lsr
+	lsr
+	lsr
+	sta mapy
+	jsr map_sector_id
+	ldx item_slot
+	sta ITEM_SORT_SEC,x
+	rts
+.irs_empty
+	lda #0
+	sta ITEM_SORT_SEC,x
+	rts
+
+; ---------------------------------------------------------------------------
 ; render_items
 ; ---------------------------------------------------------------------------
 render_items
@@ -69,22 +108,13 @@ render_items
 	beq .ri_nx
 	cmp #ITEM_TYPE_SWITCH
 	beq .ri_nx			; wall-face texture in paint_switch_col
-	lda level_item_x,x
-	lsr
-	lsr
-	lsr
-	sta mapx
-	lda level_item_y,x
-	lsr
-	lsr
-	lsr
-	sta mapy
 	stx item_slot
-	jsr map_sector_id
+	lda ITEM_SORT_SEC,x
 	beq .ri_nx2
 	tay
 	lda SEC_SEEN,y
-	beq .ri_nx2
+	cmp seen_gen
+	bne .ri_nx2
 	sty near_ceil
 	ldx item_slot
 	jsr item_calc_depth
@@ -95,9 +125,7 @@ render_items
 	lda item_slot
 	sta ITEM_SORT_SLOT,y
 	tax
-	lda near_ceil
-	sta ITEM_SORT_SEC,x
-	lda fracy
+	lda item_dx
 	sta ITEM_SORT_DX,x
 	lda fracx
 	sta ITEM_SORT_DY,x
@@ -145,7 +173,7 @@ render_items
 ; item_calc_depth — X=slot, near_ceil=sector
 ; Exit: C=1 skip; C=0 A=depth (1..255)
 ; Also sets wall_col=typeId, near_floor=floor
-; Leaves fracy=dx, fracx=dy (signed 8-bit) for item_calc_screen
+; Leaves item_dx=dx, fracx=dy (signed 8-bit) for item_calc_screen
 ; ---------------------------------------------------------------------------
 item_calc_depth
 	lda level_item_type,x
@@ -174,7 +202,7 @@ item_calc_depth
 	cmp playerx
 	lda tmp0
 	sbc playerx_h
-	sta fracy			; dx (signed; |dx|≤120)
+	sta item_dx			; signed world dx (|dx|≤120)
 	jmp .icd_dy
 .icd_msl_dx
 	lda MOBJ_XFRAC + MOBJ_MISSILE
@@ -186,7 +214,7 @@ item_calc_depth
 	cmp playerx
 	lda tmp0
 	sbc playerx_h
-	sta fracy
+	sta item_dx
 .icd_dy
 	lda tmp1			; iy
 	sta tmp2
@@ -229,7 +257,7 @@ item_calc_depth
 	sta wallz_l
 	sta wallz_h
 	; depth = dx*sin - dy*cos
-	lda fracy
+	lda item_dx
 	ldy last_near_floor
 	jsr smul_wz_add
 	lda fracx
@@ -283,7 +311,7 @@ item_uabs8
 	rts
 
 ; ---------------------------------------------------------------------------
-; item_calc_screen — after item_calc_depth; uses fracy/x, sin/cos in last_near_*
+; item_calc_screen — after item_calc_depth; uses item_dx/fracx and cached sin/cos
 ; Exit: last_near_fcol = centre screen column (may be off 0..39)
 ; ---------------------------------------------------------------------------
 item_calc_screen
@@ -291,7 +319,7 @@ item_calc_screen
 	sta aux_l
 	sta aux_h
 	; lateral = dx*cos + dy*sin
-	lda fracy
+	lda item_dx
 	ldy last_near_ceil		; cos
 	jsr smul_aux_add
 	lda fracx
@@ -417,37 +445,35 @@ udiv16x8
 
 ; ---------------------------------------------------------------------------
 item_sort_depth
-	ldx span_a
-	dex
-	beq .is_done
-	stx tmp0
+	ldx #1
 .is_o
-	lda #0
-	sta tmp1
-	ldx #0
-.is_i
-	cpx tmp0
-	bcs .is_n
+	cpx span_a
+	bcs .is_done
 	lda ITEM_SORT_DEPTH,x
-	cmp ITEM_SORT_DEPTH+1,x
-	bcs .is_ok
-	ldy ITEM_SORT_DEPTH+1,x
-	sta ITEM_SORT_DEPTH+1,x
-	tya
-	sta ITEM_SORT_DEPTH,x
+	sta tmp0
 	lda ITEM_SORT_SLOT,x
-	ldy ITEM_SORT_SLOT+1,x
-	sta ITEM_SORT_SLOT+1,x
+	sta tmp1
+	txa
+	tay
+.is_i
+	dey
+	lda ITEM_SORT_DEPTH,y
+	cmp tmp0
+	bcs .is_after
+	sta ITEM_SORT_DEPTH+1,y
+	lda ITEM_SORT_SLOT,y
+	sta ITEM_SORT_SLOT+1,y
 	tya
-	sta ITEM_SORT_SLOT,x
-	inc tmp1
-.is_ok
-	inx
-	jmp .is_i
-.is_n
+	bne .is_i
+	beq .is_put
+.is_after
+	iny
+.is_put
+	lda tmp0
+	sta ITEM_SORT_DEPTH,y
 	lda tmp1
-	beq .is_done
-	dec tmp0
+	sta ITEM_SORT_SLOT,y
+	inx
 	bne .is_o
 .is_done
 	rts
@@ -470,7 +496,7 @@ item_draw_one
 	lda SEC_FLOOR,y
 	sta near_floor
 	lda ITEM_SORT_DX,x
-	sta fracy
+	sta item_dx
 	lda ITEM_SORT_DY,x
 	sta fracx
 	lda ITEM_SORT_WZ_L,x
@@ -541,7 +567,7 @@ item_draw_one
 	bcs .id_item_mip			; ≥2 → mip2 (2×2)
 	ldx #3				; else mip3 (1×1)
 .id_item_mip
-	stx fracy				; mip index (kept through feet/span)
+	stx item_mip				; selected mip index (kept through feet/span)
 	lda item_mip_w,x
 	sta far_ceil			; screen H = mip H
 	sta last_near_ok			; screen W = mip W
@@ -567,7 +593,7 @@ item_draw_one
 	bcs .id_large_mip			; ≥2 → mip2
 	ldx #3				; else mip3
 .id_large_mip
-	stx fracy
+	stx item_mip
 	; fall through — screen W/H stay S
 .id_feet
 	; Feet: missiles use flight Z (hitscan-style height); else sector floor
@@ -686,8 +712,8 @@ item_draw_one
 .id_vok
 	lda far_floor
 	bne .id_emip
-	; Item: mip already in fracy; last_near_ceil = mip_w (1:1 or stretch)
-	ldx fracy
+	; Item mip was selected above; last_near_ceil = mip_w (1:1 or stretch)
+	ldx item_mip
 	lda item_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 	bne .id_clp_go
@@ -708,7 +734,7 @@ item_draw_one
 	bcs .id_mip_got			; ≥ 2 → mip3
 	ldx #4				; else mip4
 .id_mip_got
-	stx fracy				; mip index
+	stx item_mip
 	lda enemy_mip_w,x
 	sta last_near_ceil			; mip_w (scratch for draw)
 .id_clp_go
@@ -718,6 +744,17 @@ item_draw_clp_go
 	beq .id_clp_item
 	jmp .id_enemy_setup
 .id_clp_item
+	; Hoist item mip base before the shared byte becomes item_vshift below.
+	lda wall_col
+	asl
+	asl
+	clc
+	adc item_mip
+	tax
+	lda item_mip_base_lo,x
+	sta item_mip_base_l
+	lda item_mip_base_hi,x
+	sta item_mip_base_h
 	lda wall_col
 	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_item_stretch_setup
@@ -773,17 +810,7 @@ item_draw_clp_go
 .id_is_uok
 	lda #0
 	sta item_mirror
-	lda wall_col
-	asl
-	asl
-	clc
-	adc fracy
-	tax
-	lda item_mip_base_lo,x
-	sta item_mip_base_l
-	lda item_mip_base_hi,x
-	sta item_mip_base_h
-	ldx fracy
+	ldx item_mip
 	lda item_mip_h,x
 	sta wallz_l
 	jsr item_vdda_texstep
@@ -859,18 +886,29 @@ item_draw_clp_go
 	clc
 	adc tmp0
 	clc
-	adc fracy
+	adc item_mip
 	tax
 	lda enemy_mip_base_lo,x
 	sta item_mip_base_l
 	lda enemy_mip_base_hi,x
 	sta item_mip_base_h
 	; V texstep once; mip_h kept in wallz_l (tmp5 dies across clip_col_find)
-	ldx fracy
+	ldx item_mip
 	lda enemy_mip_h,x
 	sta wallz_l
 	jsr item_vdda_texstep
 .id_clp_no_recip
+	; Column draw only needs log2(mip_h), not the mip index. Converting once
+	; lets every column use the shared offset table instead of a shift loop.
+	ldx item_mip
+	lda far_floor
+	beq .id_load_item_vshift
+	lda enemy_mip_vshift,x
+	bne .id_vshift_ready
+.id_load_item_vshift
+	lda item_mip_vshift,x
+.id_vshift_ready
+	sta item_vshift
 	; Live enemy or barrel: lock aim_item for COL_AIM stamps
 	ldx item_slot
 	lda wall_col
@@ -1000,20 +1038,23 @@ item_draw_clp_go
 	sta ptr_l
 	lda item_mip_base_h
 	sta ptr_h
-	lda last_near_floor
-	sta aux_l
-	lda #0
+	lda item_vshift
+	bne .ids_off_calc
+	sta aux_l			; 1-pixel mip: offset is always zero
 	sta aux_h
-	ldx fracy
-	lda item_mip_vshift,x
-	beq .ids_vx0
+	beq .ids_off_ready
+.ids_off_calc
+	asl
+	asl
+	asl
+	asl
+	ora last_near_floor
 	tax
-.ids_vxlp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .ids_vxlp
-.ids_vx0
+	lda mip_col_off_lo,x
+	sta aux_l
+	lda mip_col_off_hi,x
+	sta aux_h
+.ids_off_ready
 	clc
 	lda ptr_l
 	adc aux_l
@@ -1082,20 +1123,23 @@ item_draw_clp_go
 	sta ptr_l
 	lda item_mip_base_h
 	sta ptr_h
-	lda last_near_floor
+	lda item_vshift
+	bne .id32_off_calc
 	sta aux_l
-	lda #0
 	sta aux_h
-	ldx fracy
-	lda enemy_mip_vshift,x
-	beq .id32_vx0
+	beq .id32_off_ready
+.id32_off_calc
+	asl
+	asl
+	asl
+	asl
+	ora last_near_floor
 	tax
-.id32_vxlp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .id32_vxlp
-.id32_vx0
+	lda mip_col_off_lo,x
+	sta aux_l
+	lda mip_col_off_hi,x
+	sta aux_h
+.id32_off_ready
 	clc
 	lda ptr_l
 	adc aux_l
@@ -1156,30 +1200,27 @@ item_draw_clp_go
 	lda #0
 .id8_xok
 	sta last_near_floor			; bmp_x
-	lda wall_col
-	asl
-	asl
-	clc
-	adc fracy
-	tax
-	lda item_mip_base_lo,x
+	lda item_mip_base_l
 	sta ptr_l
-	lda item_mip_base_hi,x
+	lda item_mip_base_h
 	sta ptr_h
-	lda last_near_floor
-	sta aux_l
-	lda #0
+	lda item_vshift
+	bne .id8_off_calc
+	sta aux_l			; 1-pixel mip: offset is always zero
 	sta aux_h
-	ldx fracy
-	lda item_mip_vshift,x
-	beq .id8_vx0
+	beq .id8_off_ready
+.id8_off_calc
+	asl
+	asl
+	asl
+	asl
+	ora last_near_floor
 	tax
-.id8_vxlp
-	asl aux_l
-	rol aux_h
-	dex
-	bne .id8_vxlp
-.id8_vx0
+	lda mip_col_off_lo,x
+	sta aux_l
+	lda mip_col_off_hi,x
+	sta aux_h
+.id8_off_ready
 	clc
 	lda ptr_l
 	adc aux_l

@@ -3,7 +3,7 @@
  * → colour RAM ($D800) and screen ($0400).
  *
  * Column loop (X = col); 25 rows unrolled with (zp),y source and abs,x dest.
- * HUD is painted into the FB pre-blit, so all 1000 cells are copied.
+ * HUD row 24 is copied only when draw_hud leaves hud_dirty set.
  */
 import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -34,10 +34,17 @@ asm += `\tldy #0\n`;
 for (let row = 0; row < ROWS; row++) {
   const dstC = CRAM + row * COLS;
   const dstP = SCREEN + row * COLS;
+  if (row === ROWS - 1) {
+    asm += `\tlda hud_dirty\n`;
+    asm += `\tbeq .hud_clean\n`;
+  }
   asm += `\tlda (col_base_l),y\n`;
   asm += `\tsta $${dstC.toString(16)},x\n`;
   asm += `\tlda (pat_base_l),y\n`;
   asm += `\tsta $${dstP.toString(16)},x\n`;
+  if (row === ROWS - 1) {
+    asm += `.hud_clean\n`;
+  }
   if (row < ROWS - 1) {
     asm += `\tiny\n`;
   }
@@ -48,6 +55,8 @@ asm += `\tcpx #${COLS}\n`;
 asm += `\tbeq .done\n`;
 asm += `\tjmp .col\n`;
 asm += `.done\n`;
+asm += `\tlda #0\n`;
+asm += `\tsta hud_dirty\n`;
 asm += `\trts\n`;
 
 writeFileSync(join(root, 'blit.asm'), asm);

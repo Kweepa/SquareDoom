@@ -224,25 +224,3 @@ mul_recip_z
 	lda tmp0
 	rts
 
-; ---------------------------------------------------------------------------
-; udiv_aux_rec_w — aux_h:aux_l * recip[W] >> 16 → A (unsigned 8-bit quot)
-; Entry: wish_x_l/h hold recip_lo/hi for projected W (cached once per sprite).
-; Clobbers: tmp0..tmp3, X, Y
-; ---------------------------------------------------------------------------
-udiv_aux_rec_w
-	lda wish_x_l
-	jsr mul_16x8				; (aux * recip_lo) >> 8 → A:X
-	stx tmp0				; (aux * recip_lo) >> 16
-	lda wish_x_h
-	jsr mul_16x8				; (aux * recip_hi) >> 8 → A:X
-	clc
-	adc tmp0				; + (aux * recip_lo) >> 16
-	tay
-	txa
-	adc #0
-	beq .uar_ok
-	ldy #255
-.uar_ok
-	tya
-	rts
-

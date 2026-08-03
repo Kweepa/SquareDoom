@@ -337,6 +337,16 @@ asm += `\t!byte ${allLabels.map((l) => `<${l}`).join(',')}\n`;
 asm += `item_mip_base_hi\n`;
 asm += `\t!byte ${allLabels.map((l) => `>${l}`).join(',')}\n\n`;
 
+// Shared column offsets for item/enemy mip heights 1,2,4,8,16,32.
+// Index = log2(height)*16 + bmp_x; unused bmp_x entries are harmless.
+const mipColOffsets = [];
+for (let shift = 0; shift <= 5; shift++) {
+  for (let x = 0; x < 16; x++) mipColOffsets.push(x << shift);
+}
+asm += `; bmp_x * mip_height; index = vshift*16 + bmp_x\n`;
+asm += `mip_col_off_lo\n${fmtBytes(mipColOffsets.map((v) => v & 0xff))}\n`;
+asm += `mip_col_off_hi\n${fmtBytes(mipColOffsets.map((v) => v >> 8))}\n\n`;
+
 if (needNodrawStub) {
   asm += `; Transparent stub for spawn / enemy typeIds (never drawn as items)\n`;
   asm += `item_spr_nodraw\n`;

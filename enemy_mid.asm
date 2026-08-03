@@ -382,10 +382,23 @@ obj_xy
 ; write tmp0/tmp1 as x_h/y_h
 obj_set_xy
 	ldx enemy_obj
+	lda level_item_x,x
+	eor tmp0
+	and #$f8
+	sta mapx
+	lda level_item_y,x
+	eor tmp1
+	and #$f8
+	ora mapx
+	sta mapx			; nonzero only when the 8-unit map tile changed
 	lda tmp0
 	sta level_item_x,x
 	lda tmp1
 	sta level_item_y,x
+	lda mapx
+	beq .osx_done
+	jmp item_refresh_sector
+.osx_done
 	rts
 
 ; → A = sector id (0 if void)
@@ -463,7 +476,8 @@ enemy_think
 	beq .et_nx
 	tay
 	lda SEC_SEEN,y
-	beq .et_nx
+	cmp seen_gen
+	bne .et_nx
 .et_run
 	jsr enemy_single_think
 .et_nx
@@ -513,7 +527,8 @@ p_check_sight
 	beq .pcs_yes
 	tay
 	lda SEC_SEEN,y
-	bne .pcs_yes
+	cmp seen_gen
+	beq .pcs_yes
 	lda enemy_dist
 	cmp #3
 	bcc .pcs_yes

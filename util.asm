@@ -130,26 +130,16 @@ set_col_base
 	sta pat_base_h
 	rts
 
-; sky_ptr = sky_cols + ((playera*5/8)+col) mod 40 * 12
-; playera*5/8 = 160 cols / 360° → sky wraps 4× per turn.
+; sky_ptr = sky_cols + ((sky_col_base+col) mod 40) * 12
+; sky_col_base=(playera*5/8) mod 40 is hoisted into rebuild_col_rays.
 ; *12 is 16-bit (8-bit mul broke sky_col ≥ 22). Clobbers tmp0–tmp2.
 set_sky_ptr
-	lda playera
-	sta tmp0
-	asl
-	asl
-	clc
-	adc tmp0			; playera * 5
-	lsr
-	lsr
-	lsr				; /8 → 0..159
+	lda sky_col_base
 	clc
 	adc col
-.ssp_wrap
 	cmp #40
 	bcc .ssp_col
 	sbc #40
-	bcs .ssp_wrap
 .ssp_col
 	tax				; sky_col 0..39
 	lda #0

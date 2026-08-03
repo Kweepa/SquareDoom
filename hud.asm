@@ -26,16 +26,14 @@ HUD_COL_YELLOW = 7
 HUD_COL_WHITE = 1
 
 ; ---------------------------------------------------------------------------
-; draw_hud — into FB row 24 if hud_dirty (DDA leaves those cells alone)
+; draw_hud — into FB row 24 if hud_dirty (DDA leaves those cells alone).
+; blit_fb clears hud_dirty after copying the changed row to screen/colour RAM.
 ; ---------------------------------------------------------------------------
 draw_hud
 	lda hud_dirty
 	bne .dh_go
 	rts
 .dh_go
-	lda #0
-	sta hud_dirty
-
 	; --- left: ammo (icon + count for current weapon) ---
 	ldx cur_weapon
 	lda hud_ammo_icons,x

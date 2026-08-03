@@ -413,6 +413,8 @@ spawn_enemy_missile
 	sta level_item_x + ITEM_MISSILE
 	lda tmp1
 	sta level_item_y + ITEM_MISSILE
+	ldx #ITEM_MISSILE
+	jsr item_refresh_sector
 	ldx #MOBJ_MISSILE
 	lda #1
 	sta MOBJ_ALLOC,x
@@ -524,6 +526,8 @@ spawn_player_rocket
 	lda level_item_y + ITEM_PLAYER_ROCKET
 	adc tmp1
 	sta level_item_y + ITEM_PLAYER_ROCKET
+	ldx #ITEM_PLAYER_ROCKET
+	jsr item_refresh_sector
 	clc
 	rts
 

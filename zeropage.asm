@@ -80,6 +80,9 @@ rcr_abase	= $3d			; rebuild_col_rays: playera − 64 (north-aligned base)
 
 fracx		= $3e
 fracy		= $3f
+item_dx		= fracy			; render_items geometry phase: signed world dx
+item_mip	= fracy			; render_items setup phase: selected mip index
+item_vshift	= fracy			; render_items column phase: log2(mip height)
 span_a		= $40
 span_b		= $41
 fill_row	= $42
@@ -100,7 +103,7 @@ old_ceil	= $ae			; SEC_CEIL at move start (portal clearance)
 health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
-hud_dirty	= $a8			; nonzero → redraw HUD into FB before blit
+hud_dirty	= $a8			; redraw HUD into FB; blit clears after copying row 24
 key_use		= $7f			; 1 = K held (use / open door)
 key_fire	= $84			; 1 = I held (shoot)
 muzzle_ms_l	= $80			; muzzle flash ms remaining (16-bit)
@@ -127,6 +130,8 @@ in_fwd		= $8f			; W
 ; LoadPrg pre-clears $90–$98 (stray ST bit6/7 aborts LOAD; LDTND≥$0A kills OPEN).
 ; Do not place anything that must survive LOAD here. Survivors → $FB+.
 ; $99–$AE ok only under $01=$35 after load (re-inited / transient).
+sky_col_base	= $97			; (playera*5/8) mod 40; rebuilt with column rays
+seen_gen	= $98			; re-inited after level load; SEC_SEEN generation stamp
 in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b
@@ -298,7 +303,7 @@ PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
 PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
-; Per-frame sector visibility ($FF = seen this frame)
+; Per-frame sector visibility (entry == seen_gen means seen this frame)
 SEC_SEEN	= PROC_END		; SEC_TABLE_SIZE bytes, index = sector id
 SEC_SEEN_END	= SEC_SEEN + SEC_TABLE_SIZE
 
