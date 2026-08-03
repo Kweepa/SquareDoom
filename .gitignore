@@ -1,3 +1,4 @@
 tmp/
 setup-env.bat
+__pycache__/
 
