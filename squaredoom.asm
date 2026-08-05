@@ -298,6 +298,25 @@ KERNAL_BLOB_SIZE = kernal_blob_end - kernal_blob
 !if CASS_LEVELSTATS_END > CASS_BUF_END {
 	!error "cassette BSS overflow"
 }
+
+; Absolute indexed copy (lives in SQTAB slot; runs once, then init_sqtabs clobbers it).
+; One X loop: each pass copies one byte from every 256-byte slice; tail uses
+; base size−$100 so ,X still covers the final partial page (overlap is fine).
+copy_kernal_blob
+	ldx #0
+-
+!for .p, 0, (>KERNAL_BLOB_SIZE) - 1 {
+	lda kernal_blob + .p * $100,x
+	sta SEC_WDARK_END + .p * $100,x
+}
+!if (<KERNAL_BLOB_SIZE) != 0 {
+	lda kernal_blob + KERNAL_BLOB_SIZE - $100,x
+	sta SEC_WDARK_END + KERNAL_BLOB_SIZE - $100,x
+}
+	inx
+	bne -
+	rts
+
 free_kernal = $fffa - end_kernal	; bytes free before hardware vectors
 ; Play buffers $e000..COL_CLIP_END-1; MENU.PRG at MENU_BASE..MENU_LIMIT-1
 free_menu = MENU_LIMIT - MENU_BASE	; MENU.PRG size budget
