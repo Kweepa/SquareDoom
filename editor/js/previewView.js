@@ -14,17 +14,16 @@ import {
   colorHex,
 } from './model.js';
 
-const DEFAULT_RAYS = 40;
-const DEFAULT_COL_H = 25;
+/** Fixed C64 screen (40×25 chars → 320×200 with 8× dither cells). */
+const RAYS = 40;
+const COL_H = 25;
 const FOV = Math.PI / 2.1;
 const MAX_DEPTH = 128;
 /** Projection scale so default height ≈ previous 70px feel. */
 const PROJ_SCALE = 70 / 69;
 const ITEM_WORLD_HEIGHT = 4;
 const TAN_HALF_FOV = Math.tan(FOV / 2);
-const CELL_MAX = 8;
-/** Soft cap on dither framebuffer pixels (default 40×25×8² = 64k). */
-const DITHER_PIX_BUDGET = 320 * 200;
+const CELL = 8;
 
 // side 0 = north/south wall (orange), side 1 = east/west wall (brown)
 const WALL_NS = 8;
@@ -74,9 +73,6 @@ const FLOOR_GLYPHS = [
   [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
 ];
 
-const WALL_LIT = WALL_GLYPHS.map(glyphLitFraction);
-const FLOOR_LIT = FLOOR_GLYPHS.map(glyphLitFraction);
-
 /** Cache of images with pure black (#000) keyed to transparent. */
 const transparentCache = new Map();
 
@@ -112,8 +108,6 @@ export class PreviewView {
    *   onMove: (x: number, y: number) => void,
    *   onEditEnd?: () => void,
    *   images: Record<string, HTMLImageElement>,
-   *   getRaycasts?: () => number,
-   *   getColumnHeight?: () => number,
    * }} opts
    */
   constructor(canvas, opts) {
@@ -126,8 +120,8 @@ export class PreviewView {
     this.dragging = false;
     this.lastX = 0;
     this.lastY = 0;
-    this.buffer.width = DEFAULT_RAYS * CELL_MAX;
-    this.buffer.height = DEFAULT_COL_H * CELL_MAX;
+    this.buffer.width = RAYS * CELL;
+    this.buffer.height = COL_H * CELL;
     this.ctx.imageSmoothingEnabled = false;
     disableSmoothing(this.dctx);
 
@@ -166,8 +160,8 @@ export class PreviewView {
       this.lastX = e.clientX;
       this.lastY = e.clientY;
       const rect = this.display.getBoundingClientRect();
-      const w = rect.width || DEFAULT_RAYS;
-      const h = rect.height || DEFAULT_COL_H;
+      const w = rect.width || RAYS * CELL;
+      const h = rect.height || COL_H * CELL;
 
       if (dx) {
         const turnSens = Math.PI / w;
@@ -189,14 +183,9 @@ export class PreviewView {
     const ctx = this.ctx;
     const level = this.opts.getLevel();
     const cam = this.opts.getCamera();
-    const view = viewParams(
-      this.opts.getRaycasts?.() ?? DEFAULT_RAYS,
-      this.opts.getColumnHeight?.() ?? DEFAULT_COL_H,
-    );
-    const cell = cellSizeForView(view);
-    view.cell = cell;
-    const bw = view.w * cell;
-    const bh = view.h * cell;
+    const view = viewParams();
+    const bw = view.w * CELL;
+    const bh = view.h * CELL;
 
     if (this.buffer.width !== bw || this.buffer.height !== bh) {
       this.buffer.width = bw;
@@ -223,17 +212,19 @@ export class PreviewView {
 
       const switchFaces = buildSwitchFaceBindings(level);
       const switchImg = this.opts.images?.switch ?? null;
-      const fb = { pix, stride: bw, cell };
+      const fb = { pix, stride: bw };
+      /** @type {{top:number,bot:number,z:number}[][]} Per-column portal clip stacks (game COL_CLIP). */
+      const clipStacks = Array.from({ length: view.w }, () => []);
 
       for (let col = 0; col < view.w; col++) {
         const cameraX = (2 * col + 1) / view.w - 1;
         const rayDirX = dirX + planeX * cameraX;
         const rayDirY = dirY + planeY * cameraX;
-        castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg);
+        castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg, clipStacks[col]);
       }
 
       ctx.putImageData(img, 0, 0);
-      this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view);
+      this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view, clipStacks);
     } else {
       ctx.putImageData(img, 0, 0);
     }
@@ -260,8 +251,8 @@ export class PreviewView {
       this.buffer,
       0,
       0,
-      view.w * view.cell,
-      view.h * view.cell,
+      view.w * CELL,
+      view.h * CELL,
       0,
       0,
       outW,
@@ -269,11 +260,10 @@ export class PreviewView {
     );
   }
 
-  #drawItems(ctx, level, cam, ox, oy, eyeZ, view) {
+  #drawItems(ctx, level, cam, ox, oy, eyeZ, view, clipStacks) {
     const sin = Math.sin(cam.angle);
     const cos = Math.cos(cam.angle);
     const sprites = [];
-    const cell = view.cell;
 
     for (const it of level.items) {
       if (isCamera(it) || isSwitch(it)) continue; // wall-face in castColumn
@@ -288,6 +278,7 @@ export class PreviewView {
     }
 
     sprites.sort((a, b) => b.depth - a.depth);
+    disableSmoothing(ctx);
 
     for (const { it, depth, lateral } of sprites) {
       const sector = getSectorAtWorld(level, it.x, it.y);
@@ -302,42 +293,54 @@ export class PreviewView {
       if (sprite) {
         spriteW = spriteH * (sprite.width / sprite.height);
       }
-      const left = Math.round(screenX - spriteW / 2) * cell;
-      const top = Math.round(screenFloorY - spriteH) * cell;
-      const w = Math.max(cell, Math.round(spriteW) * cell);
-      const h = Math.max(cell, Math.round(spriteH) * cell);
+      const left = Math.round(screenX - spriteW / 2);
+      const top = Math.round(screenFloorY - spriteH);
+      const w = Math.max(1, Math.round(spriteW));
+      const h = Math.max(1, Math.round(spriteH));
+      // Same scale as clip stack Z (perp tiles); game want16 ≈ 255·tiles.
+      const wantZ = depth / WORLD_PER_TILE;
 
-      if (left + w < 0 || left > view.w * cell || top + h < 0 || top > view.h * cell) continue;
+      if (left + w < 0 || left >= view.w || top + h < 0 || top >= view.h) continue;
 
-      if (sprite) {
-        disableSmoothing(ctx);
-        ctx.drawImage(sprite, left, top, w, h);
-      } else {
-        ctx.fillStyle = '#c84';
-        ctx.fillRect(left, top, w, h);
+      const sw = sprite?.width ?? 1;
+      const sh = sprite?.height ?? 1;
+
+      for (let c = 0; c < w; c++) {
+        const col = left + c;
+        if (col < 0 || col >= view.w) continue;
+        const ap = clipFind(clipStacks[col], wantZ);
+        if (!ap) continue;
+        const y0 = Math.max(top, ap.top);
+        const y1 = Math.min(top + h, ap.bot);
+        if (y1 <= y0) continue;
+
+        const dx = col * CELL;
+        const dy = y0 * CELL;
+        const dw = CELL;
+        const dh = (y1 - y0) * CELL;
+
+        if (sprite) {
+          const sx = (c * sw) / w;
+          const sy = ((y0 - top) * sh) / h;
+          const swStrip = sw / w;
+          const shStrip = ((y1 - y0) * sh) / h;
+          ctx.drawImage(sprite, sx, sy, swStrip, shStrip, dx, dy, dw, dh);
+        } else {
+          ctx.fillStyle = '#c84';
+          ctx.fillRect(dx, dy, dw, dh);
+        }
       }
     }
   }
 }
 
-function viewParams(raycasts, columnHeight) {
-  const w = Math.max(8, Math.min(320, Math.round(Number(raycasts) || DEFAULT_RAYS)));
-  const h = Math.max(8, Math.min(240, Math.round(Number(columnHeight) || DEFAULT_COL_H)));
+function viewParams() {
   return {
-    w,
-    h,
-    horizon: h / 2,
-    proj: h * PROJ_SCALE,
-    cell: CELL_MAX,
+    w: RAYS,
+    h: COL_H,
+    horizon: COL_H / 2,
+    proj: COL_H * PROJ_SCALE,
   };
-}
-
-function cellSizeForView(view) {
-  const cells = view.w * view.h;
-  for (let cell = CELL_MAX; cell >= 1; cell >>= 1) {
-    if (cells * cell * cell <= DITHER_PIX_BUDGET * 2) return cell;
-  }
-  return 1;
 }
 
 function disableSmoothing(ctx) {
@@ -351,14 +354,6 @@ function sectorAtTile(level, tx, ty) {
   const id = getCell(level, tx, ty);
   if (!id || !level.sectors.has(id)) return null;
   return { id, sector: level.sectors.get(id) };
-}
-
-function glyphLitFraction(glyph) {
-  let n = 0;
-  for (const byte of glyph) {
-    for (let i = 0; i < 8; i++) n += (byte >> i) & 1;
-  }
-  return n / 64;
 }
 
 /** Match util.asm bright_to_wdark: 0..15 → 15..0; 16 → full-bright sentinel. */
@@ -401,33 +396,18 @@ function parseHex(hex) {
   ];
 }
 
-function fillDitherSpan(fb, col, y0, y1, hex, glyph, litFrac) {
+function fillDitherSpan(fb, col, y0, y1, hex, glyph) {
   if (y1 <= y0) return;
-  const { pix, stride, cell } = fb;
+  const { pix, stride } = fb;
   const rgb = parseHex(hex);
-  if (cell <= 1) {
-    const r = Math.round(rgb[0] * litFrac);
-    const g = Math.round(rgb[1] * litFrac);
-    const b = Math.round(rgb[2] * litFrac);
-    for (let y = y0; y < y1; y++) {
-      const i = (y * stride + col) * 4;
-      pix[i] = r;
-      pix[i + 1] = g;
-      pix[i + 2] = b;
-      pix[i + 3] = 255;
-    }
-    return;
-  }
-
-  const step = CELL_MAX / cell;
-  const x0 = col * cell;
+  const x0 = col * CELL;
   for (let y = y0; y < y1; y++) {
-    const y0p = y * cell;
-    for (let py = 0; py < cell; py++) {
-      const bits = glyph[(py * step) | 0];
+    const y0p = y * CELL;
+    for (let py = 0; py < CELL; py++) {
+      const bits = glyph[py];
       const row = (y0p + py) * stride + x0;
-      for (let px = 0; px < cell; px++) {
-        const lit = (bits >> (7 - ((px * step) | 0))) & 1;
+      for (let px = 0; px < CELL; px++) {
+        const lit = (bits >> (7 - px)) & 1;
         const i = (row + px) * 4;
         if (lit) {
           pix[i] = rgb[0];
@@ -446,24 +426,14 @@ function fillDitherSpan(fb, col, y0, y1, hex, glyph, litFrac) {
 
 function fillSolidSpan(fb, col, y0, y1, hexOrRgb) {
   if (y1 <= y0) return;
-  const { pix, stride, cell } = fb;
+  const { pix, stride } = fb;
   const rgb = Array.isArray(hexOrRgb) ? hexOrRgb : parseHex(hexOrRgb);
-  if (cell <= 1) {
-    for (let y = y0; y < y1; y++) {
-      const i = (y * stride + col) * 4;
-      pix[i] = rgb[0];
-      pix[i + 1] = rgb[1];
-      pix[i + 2] = rgb[2];
-      pix[i + 3] = 255;
-    }
-    return;
-  }
-  const x0 = col * cell;
+  const x0 = col * CELL;
   for (let y = y0; y < y1; y++) {
-    const y0p = y * cell;
-    for (let py = 0; py < cell; py++) {
+    const y0p = y * CELL;
+    for (let py = 0; py < CELL; py++) {
       const row = (y0p + py) * stride + x0;
-      for (let px = 0; px < cell; px++) {
+      for (let px = 0; px < CELL; px++) {
         const i = (row + px) * 4;
         pix[i] = rgb[0];
         pix[i + 1] = rgb[1];
@@ -475,21 +445,21 @@ function fillSolidSpan(fb, col, y0, y1, hexOrRgb) {
 }
 
 function fillWallSpan(fb, col, y0, y1, hex, pat) {
-  const p = pat & 15;
-  fillDitherSpan(fb, col, y0, y1, hex, WALL_GLYPHS[p], WALL_LIT[p]);
+  fillDitherSpan(fb, col, y0, y1, hex, WALL_GLYPHS[pat & 15]);
 }
 
 function fillFloorSpan(fb, col, y0, y1, hex, pat) {
-  const p = pat & 15;
-  fillDitherSpan(fb, col, y0, y1, hex, FLOOR_GLYPHS[p], FLOOR_LIT[p]);
+  fillDitherSpan(fb, col, y0, y1, hex, FLOOR_GLYPHS[pat & 15]);
 }
 
 /**
  * Multi-sector column cast: at each portal, paint near-sector floor/ceiling
  * into the open clip, draw upper/lower walls if heights change, then narrow
  * the clip. Farther sectors only paint into what's still open.
+ * `clips` receives {top,bot,z} entries (near→far) for item Z-clip — matches
+ * game clip_col_push / clip_col_find.
  */
-function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg) {
+function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg, clips) {
   const posX = ox / WORLD_PER_TILE;
   const posY = oy / WORLD_PER_TILE;
 
@@ -524,6 +494,9 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
   let cur = sectorAtTile(level, mapX, mapY);
   let side = 0;
 
+  // Entry 0 = player aperture at Z=0 (clip_col_reset + push in render_dda).
+  clipPush(clips, yTop, yBot, 0);
+
   for (let step = 0; step < MAX_DEPTH && yTop < yBot; step++) {
     if (sideDistX < sideDistY) {
       sideDistX += deltaDistX;
@@ -542,7 +515,8 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
     } else {
       perpTiles = (mapY - posY + (1 - stepY) / 2) / rayDirY;
     }
-    const perpDist = Math.max(0.05, Math.abs(perpTiles)) * WORLD_PER_TILE;
+    const z = Math.abs(perpTiles);
+    const perpDist = Math.max(0.05, z) * WORLD_PER_TILE;
     const wallU = faceU(posX, posY, perpTiles, rayDirX, rayDirY, side, mapX, mapY, stepX, stepY);
     const outOfBounds = mapX < 0 || mapY < 0 || mapX >= MAP_SIZE || mapY >= MAP_SIZE;
     const next = outOfBounds ? null : sectorAtTile(level, mapX, mapY);
@@ -553,6 +527,7 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
     // Entering geometry from void
     if (!cur && next) {
       cur = next;
+      clipPush(clips, yTop, yBot, z);
       continue;
     }
 
@@ -592,7 +567,10 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
       }
     }
 
-    if (yTop >= yBot) break;
+    if (yTop >= yBot) {
+      clipPush(clips, yTop, yBot, z); // closed — occludes sprites behind
+      break;
+    }
 
     // Solid wall — fill remaining portal and stop (nothing farther may draw)
     if (!next) {
@@ -606,6 +584,8 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
           fillWallSpan(fb, col, yTop, yBot, grey, wpat);
         }
       }
+      // Force-close like .sw_done (ytop = ybot) then push occluder.
+      clipPush(clips, yBot, yBot, z);
       break;
     }
 
@@ -638,7 +618,10 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
       yTop = Math.max(yTop, wallBot);
     }
 
-    if (yTop >= yBot) break;
+    if (yTop >= yBot) {
+      clipPush(clips, yTop, yBot, z);
+      break;
+    }
 
     // Lower wall
     if (farFloor > nearFloor) {
@@ -655,9 +638,52 @@ function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switch
       yBot = Math.min(yBot, wallTop);
     }
 
-    if (yTop >= yBot) break;
+    if (yTop >= yBot) {
+      clipPush(clips, yTop, yBot, z);
+      break;
+    }
 
+    // Open portal — push post-ledge aperture at this edge depth (.cont).
+    clipPush(clips, yTop, yBot, z);
     cur = next;
+  }
+}
+
+/** Push clip aperture; closed when top >= bot (solid / fully filled). */
+function clipPush(clips, top, bot, z) {
+  clips.push({ top, bot, z });
+}
+
+/**
+ * clip_col_find — last entry with Z <= want. Open → aperture; closed with
+ * Z < want → occluded; Z == want tie → previous open entry.
+ * @returns {{top:number,bot:number}|null}
+ */
+function clipFind(clips, wantZ) {
+  if (!clips.length) return null;
+  let best = -1;
+  let equal = false;
+  for (let i = 0; i < clips.length; i++) {
+    const z = clips[i].z;
+    if (z < wantZ - 1e-4) {
+      best = i;
+      equal = false;
+    } else if (z <= wantZ + 1e-4) {
+      best = i;
+      equal = true;
+    } else {
+      break;
+    }
+  }
+  if (best < 0) return null;
+  for (;;) {
+    const e = clips[best];
+    if (e.top < e.bot) return { top: e.top, bot: e.bot };
+    // empty (closed): terminal occluder
+    if (!equal) return null;
+    if (best === 0) return null;
+    best -= 1;
+    equal = false;
   }
 }
 

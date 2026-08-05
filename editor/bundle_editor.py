@@ -125,16 +125,6 @@ def main() -> None:
         <div class="preview-frame">
           <canvas id="preview-canvas" tabindex="0"></canvas>
         </div>
-        <div class="preview-res">
-          <label>
-            Rays
-            <input type="number" id="preview-rays" min="8" max="320" value="40" />
-          </label>
-          <label>
-            Col H
-            <input type="number" id="preview-col-h" min="8" max="240" value="25" />
-          </label>
-        </div>
         <p class="muted" id="preview-hint">Place or select a camera</p>
       </div>
       <div id="shift-controls"></div>

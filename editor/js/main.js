@@ -55,7 +55,7 @@ import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
 import { TileEditor } from './tileEditor.js?v=27';
 import { ItemEditor } from './itemEditor.js?v=26';
-import { PreviewView } from './previewView.js?v=30';
+import { PreviewView } from './previewView.js?v=32';
 import { initShiftControls } from './shiftControls.js?v=24';
 import {
   allowStoredEpisodeFile,
@@ -477,14 +477,6 @@ initShiftControls(
 );
 
 const previewHint = document.getElementById('preview-hint');
-const previewRays = document.getElementById('preview-rays');
-const previewColH = document.getElementById('preview-col-h');
-
-function previewInt(el, fallback, lo, hi) {
-  const n = Number(el.value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(lo, Math.min(hi, Math.round(n)));
-}
 
 const previewView = new PreviewView(document.getElementById('preview-canvas'), {
   getLevel: () => activeLevel(episode),
@@ -492,8 +484,6 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
     return findPreviewCamera(activeLevel(episode), selected ?? null);
   },
-  getRaycasts: () => previewInt(previewRays, 40, 8, 320),
-  getColumnHeight: () => previewInt(previewColH, 25, 8, 240),
   images,
   onRotate: (angle) => {
     const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
@@ -523,15 +513,6 @@ const previewView = new PreviewView(document.getElementById('preview-canvas'), {
     endUndoGesture();
   },
 });
-
-function redrawPreview() {
-  previewView.draw();
-}
-
-previewRays.addEventListener('change', redrawPreview);
-previewColH.addEventListener('change', redrawPreview);
-previewRays.addEventListener('input', redrawPreview);
-previewColH.addEventListener('input', redrawPreview);
 
 function updatePreviewHint() {
   const selected = [...selection.items].find((it) => isCamera(it) || isSpawn(it));
