@@ -12,6 +12,7 @@ Recommended versions (what this repo is developed with). Nearby versions usually
 | [Python 3](https://www.python.org/) | 3.14.6 | Disk image (`tools/mkdisk.py`), label sort, editor bundle |
 | [ACME](https://sourceforge.net/projects/acme-crossass/) | 0.97 ("Zem", 4 Jul 2020) | Assemble the game and UI screens |
 | [VICE](https://vice-emu.sourceforge.io/) | 3.10 | `c1541` builds `squaredoom.d64`; `x64sc` runs the game |
+| [sidreloc](https://csdb.dk/release/?id=109000) | 1.0 Win32 | Relocate level SIDs from `$1000` → `$9000` for the disk image |
 
 Add each tool’s install folder to your PATH if you can. Otherwise use a local env file (next section).
 
@@ -30,12 +31,14 @@ set ACME=C:\path\to\acme.exe
 set VICE=C:\path\to\x64sc.exe
 set VICE_BIN=C:\path\to\vice\bin
 set VICE_CHARGEN=C:\path\to\vice\C64\chargen-901225-01.bin
+set SIDRELOC=C:\app\sidreloc\Release\sidreloc.exe
 ```
 
 - `ACME` — full path to `acme.exe` (or leave unset if `acme` is on PATH)
 - `VICE` — full path to `x64sc.exe` (or leave unset and use `VICE_BIN` / PATH)
 - `VICE_BIN` — VICE `bin` folder containing `c1541` and usually `x64sc`
 - `VICE_CHARGEN` — optional; C64 CHARROM dump for logo PETSCII glyphs. If unset, the build uses an embedded fallback.
+- `SIDRELOC` — full path to `sidreloc.exe` (or leave unset if `sidreloc` is on PATH). Win32 build: [CSDb Sidreloc V1.0](https://csdb.dk/release/?id=109000).
 
 `setup-env.bat` is gitignored — do not commit your personal paths.
 
@@ -67,4 +70,5 @@ python --version
 acme --version
 c1541 -help
 x64sc -help
+sidreloc -V
 ```

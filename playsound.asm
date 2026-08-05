@@ -2,9 +2,22 @@
 ; Data/freq table: dpsounds.asm (from pcsounds/DP*.lmp via tools/gensounds.js).
 ;
 ; PC speaker Doom: each byte is a musical pitch 0..95 (0 = silence) held 1/140 s.
-; Full resolution via pcsfreq_* into SID voice 1 noise. CIA1 Timer B steps @ ~140 Hz.
+; Full resolution via pcsfreq_* into SID voice 3 noise (music keeps voices 1–2).
+; CIA1 Timer B steps @ ~140 Hz.
+;
+; Music prepare redirects STA $D417/$D418 → sid_filt_shadow / sid_vol_shadow
+; for SidTracker tunes only (flag at MUSIC_SIDTRACKER_FLAG = $9FFF).
+; After MUSIC_PLAY, music_apply_sid_shadows merges filter modes + game volume
+; onto the real SID (never voice3-off; drop voice3-from-filter while SFX).
 
 !zone playsound
+
+; Readable scrap mirrors (tools/prepare_music.py SID_*_SHADOW).
+; Not $0314–$0333 — that page is KERNAL soft vectors (NMI = $0318/$0319).
+sid_filt_shadow	= $02f8			; music wanted $D417
+sid_vol_shadow	= $02f9			; music wanted $D418
+; Last byte of 4K SID window — 1 if prepare_music patched SidTracker
+MUSIC_SIDTRACKER_FLAG = SID_BASE + SID_SIZE - 1	; $9FFF
 
 ; Sound indices (VicDoom ESound / playSound.h)
 SOUND_CLAW = 0
@@ -41,9 +54,10 @@ sound_count		!byte 0
 sound_max		!byte 0
 ps_save_x		!byte 0
 ps_save_y		!byte 0
+sid_merge_tmp		!byte 0			; IRQ-safe merge scratch
 
 ; ------------------------------------------------------------------
-; play_sound_init — clear SID; noise voice ready; idle vol = music_vol
+; play_sound_init — clear SID; voice 3 noise ready; idle vol = music_vol
 ; ------------------------------------------------------------------
 play_sound_init
 	lda #$ff
@@ -52,6 +66,8 @@ play_sound_init
 	sta sound_priority
 	sta sound_count
 	sta sound_max
+	sta sid_filt_shadow
+	sta sid_vol_shadow
 	; turn off all channels
 	ldx #$18
 	lda #0
@@ -59,21 +75,73 @@ play_sound_init
 	sta $d400,x
 	dex
 	bpl .psi_clr
-	; Voice 1 ADSR: instant attack/decay, full sustain (gated noise)
+	jsr sfx_voice3_adsr
+	jmp music_apply_sid_shadows
+
+; Voice 3 ADSR for gated noise
+sfx_voice3_adsr
 	lda #$00
-	sta $d405
+	sta $d413				; AD: instant
 	lda #$f0
-	sta $d406
-	; set to music volume
+	sta $d414				; SR: full sustain, fast release
+	rts
+
+; ------------------------------------------------------------------
+; music_apply_sid_shadows — after MUSIC_PLAY (or any vol change).
+; SidTracker: merge shadowed D417/D418. Else: volume only (music owns filter).
+; ------------------------------------------------------------------
+music_apply_sid_shadows
+	lda MUSIC_SIDTRACKER_FLAG
+	beq .mas_plain
+
+	lda sid_filt_shadow
+	ldx sound_index
+	bmi .mas_filt
+	and #$fb				; voice 3 not into filter during SFX
+.mas_filt
+	sta $d417
+
+	; volume → sid_merge_tmp
+	ldx sound_index
+	bmi .mas_mvol
+	lda effects_vol
+	cpx #14				; sawidl
+	bne .mas_havev
+	lsr
+	lsr
+	jmp .mas_havev
+.mas_mvol
 	lda music_vol
+.mas_havev
+	sta sid_merge_tmp
+	lda sid_vol_shadow
+	and #$70				; keep LP/BP/HP only
+	ora sid_merge_tmp
+	sta $d418
+	rts
+
+; Non-SidTracker: do not touch $D417; set master volume only
+.mas_plain
+	ldx sound_index
+	bmi .mas_p_mvol
+	lda effects_vol
+	cpx #14
+	bne .mas_p_store
+	lsr
+	lsr
+	jmp .mas_p_store
+.mas_p_mvol
+	lda music_vol
+.mas_p_store
 	sta $d418
 	rts
 
 ; ------------------------------------------------------------------
 ; play_sound — A = sound index; higher-or-equal priority preempts
-; Preserves X,Y; A clobbered
+; Preserves X,Y and caller's I flag; A clobbered
 ; ------------------------------------------------------------------
 play_sound
+	php				; keep caller's I (summary holds SEI)
 	sei
 	stx ps_save_x
 	sty ps_save_y
@@ -87,12 +155,10 @@ play_sound
 	txa
 	asl
 	tay
-	; then set up the pointer to the data
 	lda sound_table,y
 	sta sound_ptr_l
 	lda sound_table+1,y
 	sta sound_ptr_h
-	; then the counters
 	ldy #0
 	lda (sound_ptr_l),y
 	tay
@@ -101,67 +167,53 @@ play_sound
 	lda #0
 	sta sound_count
 
-	; start the new sound playing
 	stx sound_index
-	; volume once at start (sawidl at 1/4)
-	ldx effects_vol
-	lda sound_index
-	cmp #14				; sawidl
-	bne .ps_vol
-	txa
-	lsr
-	lsr
-	tax
-.ps_vol
-	stx $d418
+	jsr sfx_voice3_adsr
+	jsr music_apply_sid_shadows
 .ps_skip
 	ldx ps_save_x
 	ldy ps_save_y
-	cli
+	plp
 	rts
 
 ; ------------------------------------------------------------------
 ; update_sfx — one PC speaker sample per call (CIA1 Timer B @ ~140 Hz)
-; Must not touch tmp0–tmp5 / other main-thread ZP.
+; Must not touch tmp0–tmp5 / other main-thread ZP. Voice 3 only.
 ; ------------------------------------------------------------------
 update_sfx
-	; check we're playing a sound
 	lda sound_index
 	bmi .sfx_idle
 
-	; play next sample (held until next ~7 ms tick — PC speaker timing)
 	inc sound_count
 	ldy sound_count
 	cpy sound_max
 	beq .sfx_stop
 	lda (sound_ptr_l),y
-	; pitch 0 = silence; else SID freq from pcsfreq_* (full 0..95 scale)
 	beq .sfx_silent
 	tax
+	jsr sfx_voice3_adsr
 	lda pcsfreq_lo,x
-	sta $d400
+	sta $d40e
 	lda pcsfreq_hi,x
-	sta $d401
+	sta $d40f
 	lda #$81			; noise + gate
-	sta $d404
+	sta $d412
 	rts
 
 .sfx_silent
 	lda #0
-	sta $d404			; gate off
+	sta $d412
 	rts
 
 .sfx_stop
 	lda #0
-	sta $d404
+	sta $d412
 
 	lda #$ff
 	sta sound_index
 	lda #0
 	sta sound_priority
+	jmp music_apply_sid_shadows
 
-	; set to music volume
-	lda music_vol
-	sta $d418
 .sfx_idle
 	rts

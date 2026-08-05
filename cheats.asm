@@ -329,7 +329,6 @@ cheat_show_msg
 	lda #0
 	sta sound_count
 	stx sound_index
-	lda effects_vol
-	sta $d418
+	jsr music_apply_sid_shadows
 .csm_rts
 	rts

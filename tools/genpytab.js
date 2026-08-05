@@ -12,7 +12,7 @@ const DH_MAX = 12;
 const CLAMP = 13;
 
 let asm = `; Auto-generated — project_y screen-row offsets (see tools/genpytab.js)\n`;
-asm += `; Placed at PY_TAB ($9400) by squaredoom.asm — page-aligned, flush to $a000\n`;
+asm += `; Placed at PY_TAB ($bc00) by squaredoom.asm — page-aligned, flush to SQTAB $c800\n`;
 asm += `py_tab\n`;
 for (let dh = 1; dh <= DH_MAX; dh++) {
   asm += `; dh = ${dh}\n`;

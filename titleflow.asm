@@ -45,6 +45,8 @@ game_start
 	sta god_mode
 
 next_level
+	lda #0
+	sta music_enabled		; stop play while disk overwrites $9000
 	jsr hide_weapon
 	jsr show_entering
 	jsr FormatDosName
@@ -52,10 +54,22 @@ next_level
 	bcs .nl_fail
 	lda #0
 	sta end_level
+	jsr music_init			; SID @ $9000 from level PRG; restore CIA timers
 	jsr start_level
 	jmp gameloop
 .nl_fail
 	jmp game_start
+
+; music_init — A=0 song; SidTracker may poke CIA TA — re-init IRQ after
+music_init
+	lda #0
+	sta music_enabled
+	jsr MUSIC_INIT			; writes filter/vol to $02f8/$02f9 shadows
+	cld				; SidTracker uses SED; keep binary for game math
+	jsr music_apply_sid_shadows
+	lda #1
+	sta music_enabled
+	jmp input_irq_init		; restore 50 Hz TA / 140 Hz TB after init
 
 ; clear + "entering" / level title
 show_entering
@@ -157,6 +171,7 @@ gameloop_check_map
 
 ; 1000 column drips at max speed; no raster waits
 melt_screen
+	cld				; GetRandom16 mod-40 uses SBC (must be binary)
 	lda #<1000
 	sta melt_count
 	lda #>1000
@@ -343,9 +358,13 @@ ascii_to_scr
 	cmp #' '
 	beq .a2
 	cmp #'0'
-	bcc .a2a
+	bcc .a2_lt0
 	cmp #'9'+1
 	bcs .a2a
+	rts				; '0'..'9'
+.a2_lt0
+	cmp #'%'			; keep $25 — doomfont '%' (logo pack uses slots 22–28/$16–$1C)
+	bne .a2a
 	rts
 .a2a
 	cmp #'A'

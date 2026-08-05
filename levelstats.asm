@@ -1,21 +1,11 @@
-; Level stats counters + summary roll-in (lives in high for mid headroom)
+; Level stats counters + summary roll-in (kernal scrap; copied from $c800 blob)
+; BSS counters live in cassette buffer (zeropage.asm) — not in this PRG image.
 !zone levelstats
 
 ; Summary columns (VicDoom 22-col +9)
 STAT_SUM_LAB = 13
 STAT_SUM_PCT = 23
 STAT_SUM_TIME = 22
-
-; BSS — runtime counters only (totals live in level blob)
-num_kills		!byte 0
-num_items_got		!byte 0
-num_secrets_got		!byte 0
-map_time_ms		!byte 0, 0
-map_time_sec		!byte 0, 0
-roll_target		!byte 0
-roll_cur		!byte 0, 0
-roll_time_l		!byte 0
-roll_time_h		!byte 0
 
 ; ---------------------------------------------------------------------------
 ; init_level_stats — zero got/kills/time (totals are level_num_*)
@@ -102,12 +92,25 @@ summary_tick
 	ldx #2
 	jmp wait_frames_x
 
+; KERNAL default I/O vector table lives at $FD30 in ROM. LoadPrg's RESTOR
+; path stomps underlay $FD30–$FD4F (MEMUSS=$FD30; watch hit put_pct @ $FD46).
+; Leave that window empty so menu/level LOAD cannot trash roll-in code.
+!if * > $fd30 {
+	!error "levelstats crossed $FD30 before vector hole; *=", *
+}
+!fill $fd30 - *, 0
+kernal_vec_hole
+	!fill $20, 0			; $FD30..$FD4F
+!if * != $fd50 {
+	!error "kernal_vec_hole end != $FD50; *=", *
+}
+
 ; ---------------------------------------------------------------------------
 ; roll_in_percentage — A = target 0..100, X = row; VicDoom step +4
 ; ---------------------------------------------------------------------------
 roll_in_percentage
 	sta roll_target
-	stx pr_row
+	stx roll_row
 	lda #0
 	sta roll_cur
 .rip_lp
@@ -134,7 +137,7 @@ put_pct_val
 	lda roll_cur
 	sta tmp2
 	lda #STAT_SUM_PCT
-	ldx pr_row
+	ldx roll_row			; private row (not shared pr_row)
 	jsr cell_addr
 	lda #0
 	sta tmp0
@@ -296,6 +299,11 @@ put_sucks
 ; summary_screen — intermission (in high; mid is tight)
 ; ---------------------------------------------------------------------------
 summary_screen
+	cld				; binary math in put_pct / roll_in (music uses SED)
+	lda music_enabled
+	pha
+	lda #0
+	sta music_enabled		; no MUSIC_PLAY during UI (Timer B SFX ok)
 	cli
 	lda #1
 	sta input_paused		; Timer A skips $dc00; Timer B still ticks SFX
@@ -413,9 +421,18 @@ summary_screen
 	jsr print_centered
 	jsr wait_key
 	lda #0
+	sta input_paused
+	pla
+	sta music_enabled
+	; Re-assert CIA1 timers + IRQs for next level / menu
+	lda #$83
+	sta $dc0d
+	lda #$11
+	sta $dc0e
+	sta $dc0f
+	cli
+	lda #0
 	sta sound_priority
 	lda #SOUND_PISTOL
 	jsr play_sound
-	lda #0
-	sta input_paused
 	jmp clear_screen

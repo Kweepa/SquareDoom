@@ -29,4 +29,9 @@ if not exist "%~dp0squaredoom.d64" (
 )
 
 rem Attach full d64 (autostart alone can leave a temp disk with only SQUAREDOOM)
-start "" "%VICE%" -silent -autostartprgmode 0 -8 "%~dp0squaredoom.d64" -autostart "%~dp0squaredoom.d64"
+rem -moncommands loads squaredoom.lbl (tmp\vice.mon)
+if not exist "%~dp0tmp\vice.mon" (
+  echo tmp\vice.mon missing — run build.bat first
+  exit /b 1
+)
+start "" "%VICE%" -silent -autostartprgmode 0 -moncommands "%~dp0tmp\vice.mon" -8 "%~dp0squaredoom.d64" -autostart "%~dp0squaredoom.d64"

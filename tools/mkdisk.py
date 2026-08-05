@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build squaredoom.d64 from squaredoom.prg, levels/e1m*.bin, and UI screens."""
+"""Build squaredoom.d64 from squaredoom.prg, levels/e1m*.bin (+ music), and UI screens.
+
+Each level PRG loads at $9000: 4K relocated SID + level blob (level at $A000).
+"""
 
 import argparse
 import os
@@ -12,136 +15,211 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-LEVEL_LOAD_ADDR = 0xA000
+# Local imports (same directory)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from prepare_music import (  # noqa: E402
+	SID_LOAD_ADDR,
+	SID_SIZE,
+	find_sidreloc,
+	pad_sid_window,
+	relocate_sid,
+	resolve_level_sid,
+)
+
+LEVEL_BYTES = 2641
 UI_LOAD_ADDR = 0xE000
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
 
 # (dos_name, relative path under screens/, kind: "bin" raw or "prg" with header)
 UI_FILES = [
-    ("logo", "logo.bin", "bin"),
-    ("cred", "cred.prg", "prg"),
-    ("help", "help.prg", "prg"),
-    ("ordr", "ordr.prg", "prg"),
-    ("endg", "endg.prg", "prg"),
-    ("menu", "menu.prg", "prg"),
+	("logo", "logo.bin", "bin"),
+	("cred", "cred.prg", "prg"),
+	("help", "help.prg", "prg"),
+	("ordr", "ordr.prg", "prg"),
+	("endg", "endg.prg", "prg"),
+	("menu", "menu.prg", "prg"),
 ]
 
 
 def find_c1541(explicit: Optional[Path] = None) -> Optional[Path]:
-    if explicit is not None:
-        p = explicit
-        return p if p.is_file() else None
-    env = os.environ.get("VICE_BIN")
-    if env:
-        for name in ("c1541.exe", "c1541"):
-            p = Path(env) / name
-            if p.is_file():
-                return p
-    w = shutil.which("c1541")
-    return Path(w) if w else None
+	if explicit is not None:
+		p = explicit
+		return p if p.is_file() else None
+	env = os.environ.get("VICE_BIN")
+	if env:
+		for name in ("c1541.exe", "c1541"):
+			p = Path(env) / name
+			if p.is_file():
+				return p
+	w = shutil.which("c1541")
+	return Path(w) if w else None
 
 
 def collect_levels(level_dir: Path) -> List[Tuple[str, Path]]:
-    levels: List[Tuple[str, Path]] = []
-    for p in sorted(level_dir.iterdir()):
-        if not p.is_file():
-            continue
-        m = LEVEL_NAME_RE.match(p.name)
-        if m:
-            # Lowercase for c1541 cmdline → PETSCII letters (same as JSW r00).
-            # Uppercase ASCII becomes shifted PETSCII and shows as junk (-1\1).
-            levels.append((m.group(1).lower(), p))
-    return levels
+	levels: List[Tuple[str, Path]] = []
+	for p in sorted(level_dir.iterdir()):
+		if not p.is_file():
+			continue
+		m = LEVEL_NAME_RE.match(p.name)
+		if m:
+			# Lowercase for c1541 cmdline → PETSCII letters (same as JSW r00).
+			# Uppercase ASCII becomes shifted PETSCII and shows as junk (-1\1).
+			levels.append((m.group(1).lower(), p))
+	return levels
 
 
 def stage_ui(screens_dir: Path, tmp_dir: Path) -> List[Tuple[str, Path]]:
-    staged: List[Tuple[str, Path]] = []
-    for dos_name, rel, kind in UI_FILES:
-        src = screens_dir / rel
-        if not src.is_file():
-            print(f"missing UI screen: {src}", file=sys.stderr)
-            sys.exit(1)
-        out = tmp_dir / dos_name
-        if kind == "bin":
-            out.write_bytes(struct.pack("<H", UI_LOAD_ADDR) + src.read_bytes())
-        else:
-            # ACME cbm PRG already has load address
-            out.write_bytes(src.read_bytes())
-        staged.append((dos_name, out))
-    return staged
+	staged: List[Tuple[str, Path]] = []
+	for dos_name, rel, kind in UI_FILES:
+		src = screens_dir / rel
+		if not src.is_file():
+			print(f"missing UI screen: {src}", file=sys.stderr)
+			sys.exit(1)
+		out = tmp_dir / dos_name
+		if kind == "bin":
+			out.write_bytes(struct.pack("<H", UI_LOAD_ADDR) + src.read_bytes())
+		else:
+			# ACME cbm PRG already has load address
+			out.write_bytes(src.read_bytes())
+		staged.append((dos_name, out))
+	return staged
+
+
+def stage_level_with_music(
+	dos_name: str,
+	bin_path: Path,
+	music_dir: Path,
+	sidreloc: Path,
+	tmp_dir: Path,
+	sid_cache: dict,
+) -> Tuple[str, Path]:
+	"""PRG @ $9000 = SID window (4K) + level blob."""
+	level = bin_path.read_bytes()
+	if len(level) != LEVEL_BYTES:
+		print(
+			f"warning: {bin_path.name} is {len(level)} bytes (expected {LEVEL_BYTES})",
+			file=sys.stderr,
+		)
+
+	sid_src = resolve_level_sid(music_dir, dos_name)
+	cache_key = str(sid_src.resolve())
+	if cache_key not in sid_cache:
+		try:
+			raw, sidtracker = relocate_sid(sid_src, sidreloc)
+			sid_cache[cache_key] = pad_sid_window(raw, sidtracker=sidtracker)
+		except (ValueError, RuntimeError, FileNotFoundError) as e:
+			print(str(e), file=sys.stderr)
+			sys.exit(1)
+		src_note = sid_src.name
+		if sid_src.stem != dos_name:
+			src_note = f"{sid_src.name} (fallback)"
+		print(f"  music {dos_name}: {src_note} -> ${SID_LOAD_ADDR:04x}")
+
+	sid_payload = sid_cache[cache_key]
+	assert len(sid_payload) == SID_SIZE
+	out = tmp_dir / dos_name
+	out.write_bytes(struct.pack("<H", SID_LOAD_ADDR) + sid_payload + level)
+	return dos_name, out
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Build squaredoom.d64 via c1541")
-    ap.add_argument("--out", default="squaredoom.d64")
-    ap.add_argument("--prg", default="squaredoom.prg")
-    ap.add_argument("--levels", default="levels", help="directory with e1mN.bin files")
-    ap.add_argument(
-        "--screens",
-        default="screens",
-        help="directory with logo.bin and cred/help/ordr/endg.prg",
-    )
-    ap.add_argument(
-        "--c1541",
-        type=Path,
-        default=None,
-        help="path to c1541 (default: VICE_BIN env or PATH)",
-    )
-    args = ap.parse_args()
+	ap = argparse.ArgumentParser(description="Build squaredoom.d64 via c1541")
+	ap.add_argument("--out", default="squaredoom.d64")
+	ap.add_argument("--prg", default="squaredoom.prg")
+	ap.add_argument("--levels", default="levels", help="directory with e1mN.bin files")
+	ap.add_argument(
+		"--music",
+		default="music",
+		help="directory with e1mN.sid (fallback e1m1.sid)",
+	)
+	ap.add_argument(
+		"--screens",
+		default="screens",
+		help="directory with logo.bin and cred/help/ordr/endg.prg",
+	)
+	ap.add_argument(
+		"--c1541",
+		type=Path,
+		default=None,
+		help="path to c1541 (default: VICE_BIN env or PATH)",
+	)
+	ap.add_argument(
+		"--sidreloc",
+		type=Path,
+		default=None,
+		help="path to sidreloc (default: SIDRELOC env or PATH)",
+	)
+	args = ap.parse_args()
 
-    c1541 = find_c1541(args.c1541)
-    if not c1541:
-        print(
-            "c1541 not found. Install VICE or set VICE_BIN in setup-env.bat / --c1541.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+	c1541 = find_c1541(args.c1541)
+	if not c1541:
+		print(
+			"c1541 not found. Install VICE or set VICE_BIN in setup-env.bat / --c1541.",
+			file=sys.stderr,
+		)
+		sys.exit(1)
 
-    prg = Path(args.prg)
-    if not prg.is_file():
-        print(f"missing PRG: {prg}", file=sys.stderr)
-        sys.exit(1)
+	sidreloc = find_sidreloc(args.sidreloc)
+	if not sidreloc:
+		print(
+			"sidreloc not found. Install sidreloc or set SIDRELOC in setup-env.bat "
+			"(see SETUP.md).",
+			file=sys.stderr,
+		)
+		sys.exit(1)
 
-    levels = collect_levels(Path(args.levels))
-    if not levels:
-        print(f"no eNmN.bin files in {args.levels}", file=sys.stderr)
-        sys.exit(1)
+	prg = Path(args.prg)
+	if not prg.is_file():
+		print(f"missing PRG: {prg}", file=sys.stderr)
+		sys.exit(1)
 
-    d64 = Path(args.out)
+	music_dir = Path(args.music)
+	if not music_dir.is_dir():
+		print(f"missing music directory: {music_dir}", file=sys.stderr)
+		sys.exit(1)
 
-    with tempfile.TemporaryDirectory(prefix="sd_disk_") as tmp:
-        tmp_dir = Path(tmp)
-        staged: List[Tuple[str, Path]] = []
-        for dos_name, bin_path in levels:
-            payload = bin_path.read_bytes()
-            prg_path = tmp_dir / dos_name
-            prg_path.write_bytes(struct.pack("<H", LEVEL_LOAD_ADDR) + payload)
-            staged.append((dos_name, prg_path))
+	levels = collect_levels(Path(args.levels))
+	if not levels:
+		print(f"no eNmN.bin files in {args.levels}", file=sys.stderr)
+		sys.exit(1)
 
-        ui_staged = stage_ui(Path(args.screens), tmp_dir)
-        staged.extend(ui_staged)
+	d64 = Path(args.out)
 
-        # Format creates/overwrites the image (no prior unlink — VICE may hold the file)
-        cmd = [
-            str(c1541),
-            "-format",
-            "squaredoom,01",
-            "d64",
-            str(d64),
-            "-attach",
-            str(d64),
-            "-write",
-            str(prg),
-            "squaredoom",
-        ]
-        for dos_name, path in staged:
-            cmd.extend(["-write", str(path), f"{dos_name},p"])
-        subprocess.check_call(cmd)
+	with tempfile.TemporaryDirectory(prefix="sd_disk_") as tmp:
+		tmp_dir = Path(tmp)
+		staged: List[Tuple[str, Path]] = []
+		sid_cache: dict = {}
+		for dos_name, bin_path in levels:
+			staged.append(
+				stage_level_with_music(
+					dos_name, bin_path, music_dir, sidreloc, tmp_dir, sid_cache
+				)
+			)
 
-    print(
-        f"Wrote {d64} via {c1541} ({len(levels)} levels, {len(ui_staged)} UI screens)"
-    )
+		ui_staged = stage_ui(Path(args.screens), tmp_dir)
+		staged.extend(ui_staged)
+
+		# Format creates/overwrites the image (no prior unlink — VICE may hold the file)
+		cmd = [
+			str(c1541),
+			"-format",
+			"squaredoom,01",
+			"d64",
+			str(d64),
+			"-attach",
+			str(d64),
+			"-write",
+			str(prg),
+			"squaredoom",
+		]
+		for dos_name, path in staged:
+			cmd.extend(["-write", str(path), f"{dos_name},p"])
+		subprocess.check_call(cmd)
+
+	print(
+		f"Wrote {d64} via {c1541} ({len(levels)} levels + music, {len(ui_staged)} UI screens)"
+	)
 
 
 if __name__ == "__main__":
-    main()
+	main()

@@ -1,5 +1,6 @@
 ; Load PRG from disk device 8 (SA=1 → file load address).
-; Levels → $A000 (E1M1..E1M9); MENU → MENU_BASE; UI screens via overlay LoadUiFile.
+; Levels → $9000 (4K SID + level at $A000, E1M1..E1M9); MENU → MENU_BASE;
+; UI screens via overlay LoadUiFile.
 !zone loader
 
 LEVEL_LFN = 15

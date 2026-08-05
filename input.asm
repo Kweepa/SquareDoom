@@ -28,18 +28,24 @@
 ; Use/fire/map: OR-latch if held on any sample this frame.
 ;
 ; CIA1 Timer B runs separately at ~140 Hz for PC speaker SFX (update_sfx).
+; Music play (MUSIC_PLAY) every other Timer A tick ≈ 25 Hz until 50 Hz SIDs.
 
-SAMPLE_MS = 25
-; Timer A load = SAMPLE_MS * 1024 - 1 (binary-ms, φ2 ticks)
-SAMPLE_TA_LO = <$63FF
-SAMPLE_TA_HI = >$63FF
+SAMPLE_MS = 20
+; Timer A load = SAMPLE_MS * 1024 - 1 (binary-ms, φ2 ticks) → 50 Hz
+SAMPLE_TA_LO = <$4FFF
+SAMPLE_TA_HI = >$4FFF
 ; Timer B: ~140 Hz PC speaker step (7 binary-ms)
 SFX_TB_LO = <$1BFF
 SFX_TB_HI = >$1BFF
 
-; Menus set this so Timer A skips $dc00 (ui_read_keys); Timer B still runs SFX
+MUSIC_INIT = SID_BASE			; relocated SidTracker init
+MUSIC_PLAY = SID_BASE + 3		; relocated SidTracker play
+
+; Menus set this so Timer A skips $dc00 (ui_read_keys); music + TB SFX still run
 input_paused	!byte 0
 irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
+music_tick	!byte 0			; toggled each TA; play when non-zero
+music_enabled	!byte 0			; 1 after music_init (SID window valid)
 in_map		!byte 0			; OR-latch: F1 held any IRQ sample this frame
 key_map		!byte 0			; snapshot from read_input
 key_map_was	!byte 0			; previous-frame key_map for rising-edge map toggle
@@ -51,7 +57,7 @@ key_wpn_minigun	!byte 0
 key_wpn_rocket	!byte 0
 
 ; ------------------------------------------------------------------
-; input_irq_init — CIA1 TA @ SAMPLE_MS (keys), TB @ ~140 Hz (SFX)
+; input_irq_init — CIA1 TA @ SAMPLE_MS (keys+music), TB @ ~140 Hz (SFX)
 ; ------------------------------------------------------------------
 input_irq_init
 	lda #0
@@ -71,6 +77,8 @@ input_irq_init
 	sta in_wpn_rocket
 	sta input_paused
 	sta key_map_was
+	sta music_tick
+	; music_enabled preserved across re-init (LoadPrg path)
 	sta $d01a				; no VIC IRQs
 
 	lda #$7f
@@ -88,6 +96,15 @@ input_irq_init
 	sta $fffe
 	lda #>input_irq
 	sta $ffff
+	; KERNAL out ($01=$35): own NMI in RAM (do not JMP into ROM $FE43).
+	; Also fill soft NMI ($0318) so a stray JMP ($0318) is safe — music
+	; shadows live at $02f8/$02f9, not on the vector page.
+	lda #<nmi_stub
+	sta $fffa
+	sta $0318
+	lda #>nmi_stub
+	sta $fffb
+	sta $0319
 	lda #$83				; set + enable Timer A + Timer B IRQ
 	sta $dc0d
 	lda #$11				; start + force load, continuous φ2
@@ -95,8 +112,16 @@ input_irq_init
 	sta $dc0f				; Timer B
 	rts
 
+; Minimal KERNAL-NMI equivalent with KERNAL banked out: ack CIA2 (RESTORE/FLAG)
+; and return. (ROM $FE43 is SEI / JMP ($0318) into more ROM — unusable here.)
+nmi_stub
+	pha
+	lda $dd0d				; read ICR → ack CIA2 NMI source
+	pla
+	rti
+
 ; ------------------------------------------------------------------
-; input_irq — TB → SFX; TA → key sample (unless input_paused) + check_cheats.
+; input_irq — TB → SFX; TA → music (every other) + sfx_restore_voice3 + keys.
 ; No main-thread tmp* (IRQ scratch only).
 ; ------------------------------------------------------------------
 input_irq
@@ -114,8 +139,19 @@ input_irq
 .irq_check_ta
 	lda irq_ifr
 	and #$01
-	bne .irq_try_keys
+	bne .irq_ta
 	jmp .irq_rti
+.irq_ta
+	; Music every other 50 Hz tick ≈ 25 Hz (SidTracker CIA rate for now)
+	lda music_enabled
+	beq .irq_try_keys
+	lda music_tick
+	eor #1
+	sta music_tick
+	beq .irq_try_keys
+	jsr MUSIC_PLAY
+	cld				; player may leave D set; game math is binary
+	jsr music_apply_sid_shadows	; merge shadowed D417/D418 → real SID
 .irq_try_keys
 	lda input_paused
 	beq .irq_keys

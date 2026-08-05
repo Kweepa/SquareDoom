@@ -6,3 +6,4 @@ rem set ACME=C:\path\to\acme.exe
 rem set VICE=C:\path\to\x64sc.exe
 rem set VICE_BIN=C:\path\to\vice\bin
 rem set VICE_CHARGEN=C:\path\to\vice\C64\chargen-901225-01.bin
+rem set SIDRELOC=C:\app\sidreloc\Release\sidreloc.exe

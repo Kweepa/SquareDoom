@@ -30,6 +30,8 @@ IMPORT_LABELS = [
     "load_do_pad",
     "ui_name_buf",
     "play_sound",
+    "music_apply_sid_shadows",
+    "sound_index",
     "ui_read_keys",
     "ui_wait_esc_up",
     "difficulty",

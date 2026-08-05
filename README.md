@@ -67,7 +67,7 @@ The limit here is the content, not the tech.
 ## Music
 
 Try recruiting @Nordischsound?
-Probably still need a SID player.
+Probably still need a better SID player tempo story (50 Hz tunes).
 At least need a budget. 2k mem, 3% CPU?
 
 ## Pickups

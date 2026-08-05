@@ -103,7 +103,7 @@ old_ceil	= $ae			; SEC_CEIL at move start (portal clearance)
 health		= $7c
 armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
-hud_dirty	= $a8			; redraw HUD into FB; blit clears after copying row 24
+hud_dirty	= $a8			; redraw HUD sides into FB; blit clears after HUD cols
 key_use		= $7f			; 1 = K held (use / open door)
 key_fire	= $84			; 1 = I held (shoot)
 muzzle_ms_l	= $80			; muzzle flash ms remaining (16-bit)
@@ -122,7 +122,7 @@ info_name_l	= $8a			; ptr to name/raw string (screen codes, 0-term)
 info_name_h	= $8b
 has_backpack	= $8c			; 1 after backpack pickup
 
-; CIA1 Timer A input sampler (~25 binary-ms); IRQ bumps, main snapshots under SEI
+; CIA1 Timer A input sampler (~20 binary-ms @ 50 Hz); IRQ bumps, main snapshots under SEI
 in_turn_l	= $8d			; J held ms this frame
 in_turn_r	= $8e			; L held ms
 in_fwd		= $8f			; W
@@ -244,9 +244,12 @@ turn_acc_h	= $75
 
 ; ------------------------------------------------------------------
 ; Under-KERNAL / always-RAM play BSS ($01=$35 for $E000+)
-; Judd SQTAB at $c800 (always RAM; former screen-buffer slot)
+; Judd SQTAB at $c800 (always RAM; former screen-buffer slot).
+; SID music window at $9000–$9fff (4K), flush against level at $a000.
+; SidTracker player ZP (kept via sidreloc -k): $f0–$f7.
 ; Contiguous play buffers at $e000 (menu overlay = buffers after UI_LOAD_MAX):
 ;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
+; dpsounds/levelstats run from SEC_WDARK_END (copied from $c800 load image).
 ; ------------------------------------------------------------------
 SQTAB1		= $c800
 SQTAB2		= $c800 + $200
@@ -352,6 +355,19 @@ SEC_FLATGRP_END	= SEC_FLATGRP + SEC_TABLE_SIZE
 SEC_VISITED	= SEC_FLATGRP_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_VISITED_END	= SEC_VISITED + SEC_TABLE_SIZE
 
+; SidTracker music player ZP (sidreloc -k keeps these; do not reuse)
+music_zp0	= $f0
+music_zp1	= $f1
+music_zp2	= $f2
+music_zp3	= $f3
+music_zp4	= $f4
+music_zp5	= $f5
+music_zp6	= $f6
+music_zp7	= $f7
+; Music filter/volume shadows (prepare_music redirects STA $D417/$D418 here)
+; Defined in playsound.asm: sid_filt_shadow=$02f8 sid_vol_shadow=$02f9
+; (kept off $0314–$0333 KERNAL soft-vector page)
+
 sg_cock_ms_l	= $b0			; shotgun cock animation ms remaining (lo)
 sg_cock_ms_h	= $b1			; shotgun cock animation ms remaining (hi)
 
@@ -359,3 +375,28 @@ sg_cock_ms_h	= $b1			; shotgun cock animation ms remaining (hi)
 SEC_WDARK	= SEC_VISITED_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_WDARK_END	= SEC_WDARK + SEC_TABLE_SIZE
 ; Switch faces are cooked into level_data (level_switch_*) — not BSS.
+
+; ---------------------------------------------------------------------------
+; Uninitialized scrap (not in PRG). Stack keeps $01A0..$01FF (~96 bytes).
+; Cassette buffer is free while KERNAL is out ($01=$35).
+; ---------------------------------------------------------------------------
+UNDER_STACK	= $0100
+UNDER_STACK_END	= $01a0
+CASS_BUF	= $033c
+CASS_BUF_END	= $03fc
+
+; Level-stats counters / roll-in temps (zeroed by init_level_stats)
+num_kills	= CASS_BUF
+num_items_got	= CASS_BUF + 1
+num_secrets_got	= CASS_BUF + 2
+map_time_ms	= CASS_BUF + 3		; 2 bytes
+map_time_sec	= CASS_BUF + 5		; 2 bytes
+roll_target	= CASS_BUF + 7
+roll_cur	= CASS_BUF + 8		; 2 bytes
+roll_time_l	= CASS_BUF + 10
+roll_time_h	= CASS_BUF + 11
+roll_row	= CASS_BUF + 12		; row for active roll_in (not shared pr_row)
+CASS_LEVELSTATS_END = CASS_BUF + 13
+!if CASS_LEVELSTATS_END > CASS_BUF_END {
+	!error "levelstats BSS past cassette buffer"
+}

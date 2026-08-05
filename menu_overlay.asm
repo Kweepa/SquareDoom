@@ -407,12 +407,11 @@ vol_mus_dec
 	and #15
 	sta music_vol
 sync_redraw
-	; Apply music volume immediately when no SFX is playing
+	; Apply volume + music filter modes (shadows) when no SFX
 	lda sound_index
 	cmp #$ff
 	bne .sr_ui
-	lda music_vol
-	sta $d418
+	jsr music_apply_sid_shadows
 .sr_ui
 	lda #SOUND_STNMOV
 	jsr play_sound

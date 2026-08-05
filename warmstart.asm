@@ -31,8 +31,44 @@ warmstart
 	inx
 	bne .fill_col
 
+	; dpsounds/levelstats load at $c800 (SQTAB slot); relocate before SQTAB build
+	jsr copy_kernal_blob
 	jsr init_sqtabs
 	jsr prof_init
 	jsr play_sound_init
 	jsr input_irq_init
 	jmp game_start
+
+; Copy kernal_blob → SEC_WDARK_END (size KERNAL_BLOB_SIZE). Uses $fb–$fe.
+copy_kernal_blob
+	lda #<kernal_blob
+	sta $fb
+	lda #>kernal_blob
+	sta $fc
+	lda #<SEC_WDARK_END
+	sta $fd
+	lda #>SEC_WDARK_END
+	sta $fe
+	ldy #0
+	ldx #>KERNAL_BLOB_SIZE
+	beq .last
+.pages
+	lda ($fb),y
+	sta ($fd),y
+	iny
+	bne .pages
+	inc $fc
+	inc $fe
+	dex
+	bne .pages
+.last
+	ldx #<KERNAL_BLOB_SIZE
+	beq .done
+.tail
+	lda ($fb),y
+	sta ($fd),y
+	iny
+	dex
+	bne .tail
+.done
+	rts

@@ -52,8 +52,8 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 (
   echo.
   echo Assemble failed — check mem: warnings above for free bytes / overlaps.
-  echo Ceilings: low^<$2940 minigunB  charset $3800..cock $3b80 mid^<$a000 level  high^<$c800 SQTAB
-  echo Under-KERNAL BSS: $e000 SQTAB / COL_* / PROF  ^($01=$35^); MENU.PRG at MENU_BASE
+  echo Ceilings: low^<$2940 minigunB  charset $3800..cock $3b80 mid^<$9000 SID  high^<$bc00 py_tab  SQTAB $c800
+  echo Under-KERNAL BSS: $e000 COL_* / PROF  ^($01=$35^); MENU.PRG at MENU_BASE; kernal scrap after SEC_WDARK_END
   exit /b 1
 )
 python tools\sort_lbl.py squaredoom.lbl
@@ -68,6 +68,10 @@ if errorlevel 1 (
 )
 python tools\mkdisk.py --out squaredoom.d64 --prg squaredoom.prg --levels levels --screens screens
 if errorlevel 1 exit /b 1
+
+python tools\gen_vice_mon.py
+if errorlevel 1 exit /b 1
+
 echo Built squaredoom.prg and squaredoom.d64
 echo Memory: see mem: TOTAL free warn above ^(low+mid+high+menu-budget^)
 dir squaredoom.prg

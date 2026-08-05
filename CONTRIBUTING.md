@@ -21,7 +21,7 @@ Use [GitHub Desktop](https://desktop.github.com/) for clone, commit, push, and p
 
 ## 4. Tooling
 
-Follow [SETUP.md](SETUP.md): install Node, Python, ACME, and VICE; copy and edit `setup-env.bat` if needed; confirm `make.bat` builds and runs.
+Follow [SETUP.md](SETUP.md): install Node, Python, ACME, VICE, and sidreloc; copy and edit `setup-env.bat` if needed; confirm `make.bat` builds and runs.
 
 ## 5. Day-to-day workflow
 
