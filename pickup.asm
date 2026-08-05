@@ -22,16 +22,7 @@ ARMOR_BLUE = 200
 INFO_COLOR = 7				; yellow
 
 ; 0 = "picked up the "+name+"."; 1 = full string at info_name
-info_kind		!byte 0
-
-; Ammo reserves (BSS — fire/HUD/pickup only; not ZP)
-ammo_bullets		!byte 0
-ammo_shells		!byte 0
-ammo_rockets		!byte 0
-combat_armor		!byte 0		; 0 = green (1/3), 1 = blue (1/2); VicDoom
-
-; bit0=chainsaw bit1=pistol bit2=shotgun bit3=minigun bit4=rocket
-owned_weapons		!byte 0
+; info_kind / ammo_* / combat_armor / owned_weapons — under-stack scrap (zeropage.asm)
 
 ; Weapon id → ammo reserve index (0=bullets, 1=shells, 2=rockets)
 ; fist/chainsaw unused by fire path; pistol=2 … rocket=5

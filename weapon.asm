@@ -33,15 +33,9 @@ PUNCH_MS = 350				; fist punch pose duration
 ; VIC: low sprite # = front — body first, muzzle flash last (under gun/hand).
 
 ; $00 until first blit, then $ff — AND with spr_en before writing $d015
-wpn_visible	!byte 0
-; Gun highlight while muzzle flash is up (picked per shot)
-muzzle_hi_col	!byte 1
-muzzle_hi_cycle !byte 0
-muzzle_flash_var !byte 0		; bit0: 0=flash A, 1=flash B (shared pistol/sg/mg)
-saw_blade_frame	!byte 0			; 0=hi, 1=hi2
-saw_blade_div	!byte 0			; IRQ tick; toggle every 4th (100 ms)
-saw_running	!byte 0			; 1 = fire held: Y+4 + blade anim
-mg_frame	!byte 0			; 0=minigun A, 1=B (upper+grey L/R)
+; wpn_visible / muzzle_hi_cycle / muzzle_flash_var / saw_* / mg_frame
+; → under-stack scrap (zeropage.asm)
+muzzle_hi_col	!byte 1			; gun highlight while muzzle flash is up
 muzzle_hi_cols
 	!byte 1, 7, 1, 10		; some bright colours
 

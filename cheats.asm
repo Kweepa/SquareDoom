@@ -7,19 +7,7 @@ CHEAT_IDLE = 0
 CHEAT_GOT_I = 1
 CHEAT_AFTER_ID = 2
 
-god_mode		!byte 0
-clev			!byte 0
-cheat_phase		!byte 0
-cheat_dqd		!byte 0		; byte index into seq
-cheat_kfa		!byte 0
-cheat_clev		!byte 0		; 0..3 letters, 4=ep digit, 5=map digit
-cheat_ep_dig		!byte 0		; 1..9
-cheat_map_dig		!byte 0
-cheat_was		!byte 0, 0, 0, 0	; prev down slots 0..3
-cheat_dig_prev		!byte 0		; last held digit 0=none, 1..9
-cheat_a			!byte 0		; IRQ scratch
-cheat_b			!byte 0
-cheat_c			!byte 0
+; god_mode…cheat_c — cassette scrap BSS (zeropage.asm)
 
 ; col, row (active-low). 0,0 = end.
 cheat_seq_dqd

@@ -12,27 +12,7 @@ HS_CLEAR = 2
 HS_BLOCKED = 3
 HS_MAX_STEPS = 32
 
-hs_status		!byte 0
-hs_actor		!byte 0
-hs_claimed		!byte 0		; 1 = someone already requested this think frame
-hs_x0			!byte 0
-hs_y0			!byte 0
-hs_x1			!byte 0
-hs_y1			!byte 0
-hs_z0			!byte 0
-hs_z1			!byte 0
-
-; Process scratch (after render; may clobber DDA ZP)
-hs_endx			!byte 0
-hs_endy			!byte 0
-hs_absx			!byte 0
-hs_absy			!byte 0
-hs_steps		!byte 0		; |tdx|+|tdy| edge crossings for Z
-hs_z			!byte 0
-hs_zd			!byte 0
-hs_zs			!byte 0
-hs_zerr			!byte 0
-hs_count		!byte 0
+; hs_* BSS — under-stack scrap (zeropage.asm)
 
 ; ---------------------------------------------------------------------------
 ; hitscan_reset — idle slot (enemy_reset)

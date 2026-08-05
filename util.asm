@@ -266,12 +266,7 @@ DAMAGE_PER_TICK = 5
 RADSUIT_MS = 60000
 RADSUIT_WARN_MS = 5000
 
-flash_sec	!byte 0, 0		; sector ids (0 = empty)
-flash_base	!byte 0, 0		; authored SEC_BRIGHT
-flash_lit	!byte 0			; 0 = base, 1 = bright 16
-flash_ms	!word 0
-dmg_ms		!word 0
-radsuit_ms	!word 0			; remaining protection (0 = off)
+; flash_* / dmg_ms / radsuit_ms — under-stack scrap (zeropage.asm)
 
 ; Scan sectors for ACT_FLASH_LIGHTS → flash_sec/base (max 2). Call at level start.
 flash_lights_init

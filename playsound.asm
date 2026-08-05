@@ -48,13 +48,7 @@ sound_priorities
 ; shotgn, stnmov, sawidl, sawful, sawhit, punch, barexp
 	!byte 2,0,0,1,2,2,2
 
-sound_index		!byte $ff
-sound_priority		!byte 0
-sound_count		!byte 0
-sound_max		!byte 0
-ps_save_x		!byte 0
-ps_save_y		!byte 0
-sid_merge_tmp		!byte 0			; IRQ-safe merge scratch
+; sound_index / sound_priority…sid_merge_tmp — under-stack scrap (zeropage.asm)
 
 ; ------------------------------------------------------------------
 ; play_sound_init — clear SID; voice 3 noise ready; idle vol = music_vol

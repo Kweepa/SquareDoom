@@ -9,9 +9,7 @@ BARREL_FUSE = $83			; bit7 lit + 3-frame countdown
 EXPLOSION_SPLASH = 8			; world units (1 tile)
 MAX_PLACEABLE_ITEMS = 46		; slots 0..45 (46/47 reserved)
 
-boss_floors_done	!byte 0
-boss_scan_sec	!byte 0
-barrel_events	!byte 0			; active EXPLOSION + fused barrels
+; boss_* / barrel_events — cassette scrap BSS (zeropage.asm)
 
 ; e1m8_baron_kill_hook — after any kill; if last baron on E1M8, lower floors
 e1m8_baron_kill_hook

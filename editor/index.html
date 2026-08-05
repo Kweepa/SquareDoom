@@ -3546,10 +3546,60 @@ const MAX_DEPTH = 128;
 const PROJ_SCALE = 70 / 69;
 const ITEM_WORLD_HEIGHT = 4;
 const TAN_HALF_FOV = Math.tan(FOV / 2);
+const CELL_MAX = 8;
+/** Soft cap on dither framebuffer pixels (default 40×25×8² = 64k). */
+const DITHER_PIX_BUDGET = 320 * 200;
 
 // side 0 = north/south wall (orange), side 1 = east/west wall (brown)
 const WALL_NS = 8;
 const WALL_EW = 9;
+const SKY_COLOR = 3;
+
+/**
+ * Wall dither UDGs $00–$0F from ditherchars.asm / lightingdither.png.
+ * Index 0 = brightest/closest; 15 = empty (black).
+ */
+const WALL_GLYPHS = [
+  [0xff, 0xef, 0xfe, 0xff, 0xff, 0xbf, 0xfb, 0xff],
+  [0xef, 0xee, 0xfe, 0xff, 0xbf, 0xbb, 0xfb, 0xff],
+  [0xef, 0xee, 0xee, 0xfe, 0xbf, 0xbb, 0xbb, 0xfb],
+  [0xef, 0xee, 0xee, 0xae, 0xba, 0xbb, 0xbb, 0xfb],
+  [0xeb, 0xee, 0xee, 0xae, 0xaa, 0xba, 0xbb, 0xbb],
+  [0xaa, 0xea, 0xee, 0xae, 0xaa, 0xba, 0xbb, 0xab],
+  [0xaa, 0xea, 0xae, 0xaa, 0xaa, 0xba, 0xab, 0xaa],
+  [0xa2, 0xea, 0xae, 0xaa, 0x28, 0xba, 0xab, 0x8a],
+  [0xaa, 0xaa, 0xa2, 0xaa, 0x2a, 0xa8, 0x8a, 0xaa],
+  [0xa8, 0x88, 0x8a, 0xaa, 0xa2, 0x22, 0x2a, 0xaa],
+  [0xa8, 0x88, 0x88, 0x8a, 0xa2, 0x22, 0x22, 0x2a],
+  [0x28, 0x88, 0x88, 0x88, 0x82, 0x22, 0x22, 0x22],
+  [0x08, 0x88, 0x88, 0x80, 0x02, 0x22, 0x22, 0x20],
+  [0x00, 0x08, 0x88, 0x80, 0x00, 0x02, 0x22, 0x20],
+  [0x00, 0x08, 0x80, 0x00, 0x00, 0x02, 0x20, 0x00],
+  [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+];
+
+/** Floor glyphs = walls rotated 90° CW (ditherchars.asm). */
+const FLOOR_GLYPHS = [
+  [0xff, 0xdf, 0xff, 0xfd, 0xff, 0xbf, 0xff, 0xfb],
+  [0xff, 0xcf, 0xff, 0xfc, 0xff, 0x9f, 0xff, 0xf9],
+  [0xff, 0x8f, 0xff, 0xf8, 0xff, 0x1f, 0xff, 0xf1],
+  [0xff, 0x87, 0xff, 0xf0, 0xff, 0x0f, 0xff, 0xe1],
+  [0xff, 0x07, 0xff, 0xe0, 0xff, 0x0e, 0xff, 0xc1],
+  [0xff, 0x06, 0xff, 0x60, 0xff, 0x0c, 0xff, 0xc0],
+  [0xff, 0x02, 0xff, 0x20, 0xff, 0x04, 0xff, 0x40],
+  [0xef, 0x02, 0x7f, 0x20, 0xfe, 0x04, 0xef, 0x40],
+  [0xef, 0x00, 0xbf, 0x00, 0xfb, 0x00, 0xdf, 0x00],
+  [0x9f, 0x00, 0xf9, 0x00, 0xcf, 0x00, 0xfc, 0x00],
+  [0x1f, 0x00, 0xf1, 0x00, 0x8f, 0x00, 0xf8, 0x00],
+  [0x1e, 0x00, 0xe1, 0x00, 0x0f, 0x00, 0xf0, 0x00],
+  [0x0e, 0x00, 0xe0, 0x00, 0x07, 0x00, 0x70, 0x00],
+  [0x0c, 0x00, 0xc0, 0x00, 0x06, 0x00, 0x60, 0x00],
+  [0x04, 0x00, 0x40, 0x00, 0x02, 0x00, 0x20, 0x00],
+  [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+];
+
+const WALL_LIT = WALL_GLYPHS.map(glyphLitFraction);
+const FLOOR_LIT = FLOOR_GLYPHS.map(glyphLitFraction);
 
 /** Cache of images with pure black (#000) keyed to transparent. */
 const transparentCache = new Map();
@@ -3600,8 +3650,8 @@ class PreviewView {
     this.dragging = false;
     this.lastX = 0;
     this.lastY = 0;
-    this.buffer.width = DEFAULT_RAYS;
-    this.buffer.height = DEFAULT_COL_H;
+    this.buffer.width = DEFAULT_RAYS * CELL_MAX;
+    this.buffer.height = DEFAULT_COL_H * CELL_MAX;
     this.ctx.imageSmoothingEnabled = false;
     disableSmoothing(this.dctx);
 
@@ -3667,15 +3717,22 @@ class PreviewView {
       this.opts.getRaycasts?.() ?? DEFAULT_RAYS,
       this.opts.getColumnHeight?.() ?? DEFAULT_COL_H,
     );
+    const cell = cellSizeForView(view);
+    view.cell = cell;
+    const bw = view.w * cell;
+    const bh = view.h * cell;
 
-    if (this.buffer.width !== view.w || this.buffer.height !== view.h) {
-      this.buffer.width = view.w;
-      this.buffer.height = view.h;
+    if (this.buffer.width !== bw || this.buffer.height !== bh) {
+      this.buffer.width = bw;
+      this.buffer.height = bh;
     }
     disableSmoothing(ctx);
 
-    ctx.fillStyle = '#0a0a0c';
-    ctx.fillRect(0, 0, view.w, view.h);
+    const img = ctx.createImageData(bw, bh);
+    const pix = img.data;
+    // Black matches VIC background behind unset dither bits.
+    pix.fill(0);
+    for (let i = 3; i < pix.length; i += 4) pix[i] = 255;
 
     if (cam) {
       const ox = cam.x + 0.5;
@@ -3690,15 +3747,19 @@ class PreviewView {
 
       const switchFaces = buildSwitchFaceBindings(level);
       const switchImg = this.opts.images?.switch ?? null;
+      const fb = { pix, stride: bw, cell };
 
       for (let col = 0; col < view.w; col++) {
         const cameraX = (2 * col + 1) / view.w - 1;
         const rayDirX = dirX + planeX * cameraX;
         const rayDirY = dirY + planeY * cameraX;
-        castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg);
+        castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg);
       }
 
+      ctx.putImageData(img, 0, 0);
       this.#drawItems(ctx, level, cam, ox, oy, eyeZ, view);
+    } else {
+      ctx.putImageData(img, 0, 0);
     }
 
     this.#present(view);
@@ -3717,15 +3778,26 @@ class PreviewView {
     }
     const dctx = this.dctx;
     disableSmoothing(dctx);
-    dctx.fillStyle = '#0a0a0c';
+    dctx.fillStyle = '#000';
     dctx.fillRect(0, 0, outW, outH);
-    dctx.drawImage(this.buffer, 0, 0, view.w, view.h, 0, 0, outW, outH);
+    dctx.drawImage(
+      this.buffer,
+      0,
+      0,
+      view.w * view.cell,
+      view.h * view.cell,
+      0,
+      0,
+      outW,
+      outH,
+    );
   }
 
   #drawItems(ctx, level, cam, ox, oy, eyeZ, view) {
     const sin = Math.sin(cam.angle);
     const cos = Math.cos(cam.angle);
     const sprites = [];
+    const cell = view.cell;
 
     for (const it of level.items) {
       if (isCamera(it) || isSwitch(it)) continue; // wall-face in castColumn
@@ -3754,12 +3826,12 @@ class PreviewView {
       if (sprite) {
         spriteW = spriteH * (sprite.width / sprite.height);
       }
-      const left = Math.round(screenX - spriteW / 2);
-      const top = Math.round(screenFloorY - spriteH);
-      const w = Math.max(1, Math.round(spriteW));
-      const h = Math.max(1, Math.round(spriteH));
+      const left = Math.round(screenX - spriteW / 2) * cell;
+      const top = Math.round(screenFloorY - spriteH) * cell;
+      const w = Math.max(cell, Math.round(spriteW) * cell);
+      const h = Math.max(cell, Math.round(spriteH) * cell);
 
-      if (left + w < 0 || left > view.w || top + h < 0 || top > view.h) continue;
+      if (left + w < 0 || left > view.w * cell || top + h < 0 || top > view.h * cell) continue;
 
       if (sprite) {
         disableSmoothing(ctx);
@@ -3780,7 +3852,16 @@ function viewParams(raycasts, columnHeight) {
     h,
     horizon: h / 2,
     proj: h * PROJ_SCALE,
+    cell: CELL_MAX,
   };
+}
+
+function cellSizeForView(view) {
+  const cells = view.w * view.h;
+  for (let cell = CELL_MAX; cell >= 1; cell >>= 1) {
+    if (cells * cell * cell <= DITHER_PIX_BUDGET * 2) return cell;
+  }
+  return 1;
 }
 
 function disableSmoothing(ctx) {
@@ -3796,12 +3877,143 @@ function sectorAtTile(level, tx, ty) {
   return { id, sector: level.sectors.get(id) };
 }
 
+function glyphLitFraction(glyph) {
+  let n = 0;
+  for (const byte of glyph) {
+    for (let i = 0; i < 8; i++) n += (byte >> i) & 1;
+  }
+  return n / 64;
+}
+
+/** Match util.asm bright_to_wdark: 0..15 → 15..0; 16 → full-bright sentinel. */
+function brightToWdark(brightness) {
+  const b = brightness | 0;
+  if (b >= 16) return -1;
+  return 15 - Math.max(0, Math.min(15, b));
+}
+
+/**
+ * Wall pattern index — SEC_WDARK[cur] + min(15, wallz_h), clamped.
+ * wallz_h ≈ perpendicular tile depth (fish-scaled mid-product hi).
+ */
+function wallPatIndex(brightness, perpTiles) {
+  const wdark = brightToWdark(brightness);
+  if (wdark < 0) return 0;
+  const z = Math.min(15, Math.max(0, Math.floor(Math.abs(perpTiles))));
+  return Math.min(15, wdark + z);
+}
+
+/** Floor/ceil pattern — brightness only (no distance), util.asm bright_to_fpat. */
+function floorPatIndex(brightness) {
+  const wdark = brightToWdark(brightness);
+  return wdark < 0 ? 0 : wdark;
+}
+
+function parseHex(hex) {
+  const h = hex[0] === '#' ? hex.slice(1) : hex;
+  if (h.length === 3) {
+    return [
+      parseInt(h[0] + h[0], 16),
+      parseInt(h[1] + h[1], 16),
+      parseInt(h[2] + h[2], 16),
+    ];
+  }
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+function fillDitherSpan(fb, col, y0, y1, hex, glyph, litFrac) {
+  if (y1 <= y0) return;
+  const { pix, stride, cell } = fb;
+  const rgb = parseHex(hex);
+  if (cell <= 1) {
+    const r = Math.round(rgb[0] * litFrac);
+    const g = Math.round(rgb[1] * litFrac);
+    const b = Math.round(rgb[2] * litFrac);
+    for (let y = y0; y < y1; y++) {
+      const i = (y * stride + col) * 4;
+      pix[i] = r;
+      pix[i + 1] = g;
+      pix[i + 2] = b;
+      pix[i + 3] = 255;
+    }
+    return;
+  }
+
+  const step = CELL_MAX / cell;
+  const x0 = col * cell;
+  for (let y = y0; y < y1; y++) {
+    const y0p = y * cell;
+    for (let py = 0; py < cell; py++) {
+      const bits = glyph[(py * step) | 0];
+      const row = (y0p + py) * stride + x0;
+      for (let px = 0; px < cell; px++) {
+        const lit = (bits >> (7 - ((px * step) | 0))) & 1;
+        const i = (row + px) * 4;
+        if (lit) {
+          pix[i] = rgb[0];
+          pix[i + 1] = rgb[1];
+          pix[i + 2] = rgb[2];
+        } else {
+          pix[i] = 0;
+          pix[i + 1] = 0;
+          pix[i + 2] = 0;
+        }
+        pix[i + 3] = 255;
+      }
+    }
+  }
+}
+
+function fillSolidSpan(fb, col, y0, y1, hexOrRgb) {
+  if (y1 <= y0) return;
+  const { pix, stride, cell } = fb;
+  const rgb = Array.isArray(hexOrRgb) ? hexOrRgb : parseHex(hexOrRgb);
+  if (cell <= 1) {
+    for (let y = y0; y < y1; y++) {
+      const i = (y * stride + col) * 4;
+      pix[i] = rgb[0];
+      pix[i + 1] = rgb[1];
+      pix[i + 2] = rgb[2];
+      pix[i + 3] = 255;
+    }
+    return;
+  }
+  const x0 = col * cell;
+  for (let y = y0; y < y1; y++) {
+    const y0p = y * cell;
+    for (let py = 0; py < cell; py++) {
+      const row = (y0p + py) * stride + x0;
+      for (let px = 0; px < cell; px++) {
+        const i = (row + px) * 4;
+        pix[i] = rgb[0];
+        pix[i + 1] = rgb[1];
+        pix[i + 2] = rgb[2];
+        pix[i + 3] = 255;
+      }
+    }
+  }
+}
+
+function fillWallSpan(fb, col, y0, y1, hex, pat) {
+  const p = pat & 15;
+  fillDitherSpan(fb, col, y0, y1, hex, WALL_GLYPHS[p], WALL_LIT[p]);
+}
+
+function fillFloorSpan(fb, col, y0, y1, hex, pat) {
+  const p = pat & 15;
+  fillDitherSpan(fb, col, y0, y1, hex, FLOOR_GLYPHS[p], FLOOR_LIT[p]);
+}
+
 /**
  * Multi-sector column cast: at each portal, paint near-sector floor/ceiling
  * into the open clip, draw upper/lower walls if heights change, then narrow
  * the clip. Farther sectors only paint into what's still open.
  */
-function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg) {
+function castColumn(fb, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switchFaces, switchImg) {
   const posX = ox / WORLD_PER_TILE;
   const posY = oy / WORLD_PER_TILE;
 
@@ -3872,6 +4084,10 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switc
     const nearCeil = cur?.sector.ceilingHeight ?? 31;
     const nearCeilY = projectY(nearCeil, eyeZ, perpDist, view);
     const nearFloorY = projectY(nearFloor, eyeZ, perpDist, view);
+    const nearBright = cur?.sector.brightness ?? 15;
+    const fpat = floorPatIndex(nearBright);
+    // Wall dither from near sector + tile depth (≈ wallz_h).
+    const wpat = wallPatIndex(nearBright, perpTiles);
 
     // Near-sector ceiling strip above the portal (front-to-back; only open clip).
     // When nearCeilY clamps to yBot, still fill and close — leaves no false
@@ -3879,8 +4095,13 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switc
     if (cur) {
       const ceilEnd = clampSpan(yTop, yBot, nearCeilY);
       if (ceilEnd > yTop) {
-        ctx.fillStyle = colorHex(cur.sector.ceilingColor);
-        ctx.fillRect(col, yTop, 1, ceilEnd - yTop);
+        const ccol = cur.sector.ceilingColor & 15;
+        if (ccol === SKY_COLOR) {
+          // Sky: brightest floor UDG (game sky_put); solid cyan stand-in for sky strip.
+          fillFloorSpan(fb, col, yTop, ceilEnd, colorHex(SKY_COLOR), 0);
+        } else {
+          fillFloorSpan(fb, col, yTop, ceilEnd, colorHex(ccol), fpat);
+        }
         yTop = ceilEnd;
       }
     }
@@ -3890,8 +4111,7 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switc
     if (cur && nearFloorY >= view.horizon) {
       const floorStart = clampSpan(yTop, yBot, nearFloorY);
       if (floorStart < yBot) {
-        ctx.fillStyle = colorHex(cur.sector.floorColor);
-        ctx.fillRect(col, floorStart, 1, yBot - floorStart);
+        fillFloorSpan(fb, col, floorStart, yBot, colorHex(cur.sector.floorColor), fpat);
         yBot = floorStart;
       }
     }
@@ -3905,10 +4125,9 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switc
         const hitFace = hitFaceNESW(side, stepX, stepY);
         const isSw = isCookedSwitchFace(level, switchFaces, mapX, mapY, hitFace);
         if (isSw && switchImg) {
-          paintSwitchColumn(ctx, col, yTop, yBot, wallU, switchImg, grey, nearCeilY, nearFloorY);
+          paintSwitchColumn(fb, col, yTop, yBot, wallU, switchImg, grey, wpat, nearCeilY, nearFloorY);
         } else {
-          ctx.fillStyle = grey;
-          ctx.fillRect(col, yTop, 1, yBot - yTop);
+          fillWallSpan(fb, col, yTop, yBot, grey, wpat);
         }
       }
       break;
@@ -3930,13 +4149,15 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switc
         // Door: left/right = ceil colour, centre = floor colour (secret doors)
         if (isDoorSector(next.sector)) {
           const jamb = wallU < 1 / 8 || wallU >= 7 / 8;
-          ctx.fillStyle = colorHex(
-            jamb ? next.sector.ceilingColor : next.sector.floorColor,
-          );
+          const colIdx = jamb ? next.sector.ceilingColor : next.sector.floorColor;
+          if ((colIdx & 15) === SKY_COLOR) {
+            fillFloorSpan(fb, col, wallTop, wallBot, colorHex(SKY_COLOR), 0);
+          } else {
+            fillWallSpan(fb, col, wallTop, wallBot, colorHex(colIdx), wpat);
+          }
         } else {
-          ctx.fillStyle = grey;
+          fillWallSpan(fb, col, wallTop, wallBot, grey, wpat);
         }
-        ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
       }
       yTop = Math.max(yTop, wallBot);
     }
@@ -3948,8 +4169,10 @@ function castColumn(ctx, level, ox, oy, eyeZ, rayDirX, rayDirY, col, view, switc
       const wallTop = clampSpan(yTop, yBot, farFloorY);
       const wallBot = clampSpan(yTop, yBot, nearFloorY);
       if (wallBot > wallTop) {
-        ctx.fillStyle = isElevatorSector(next.sector) ? colorHex(next.sector.floorColor) : grey;
-        ctx.fillRect(col, wallTop, 1, wallBot - wallTop);
+        const hex = isElevatorSector(next.sector)
+          ? colorHex(next.sector.floorColor)
+          : grey;
+        fillWallSpan(fb, col, wallTop, wallBot, hex, wpat);
       }
       // Portal opening is [yTop, farFloorY) even when the raised floor
       // projects above the horizon (looking up stairs).
@@ -4004,7 +4227,7 @@ function isCookedSwitchFace(level, faces, mapX, mapY, hitFace) {
 }
 
 /** Sample 16×16 switch over unclamped wall [wallTopY, wallBotY); V=0 at floor. */
-function paintSwitchColumn(ctx, col, yTop, yBot, wallU, img, grey, wallTopY, wallBotY) {
+function paintSwitchColumn(fb, col, yTop, yBot, wallU, img, grey, wpat, wallTopY, wallBotY) {
   if (yBot <= yTop) return;
   const wallH = wallBotY - wallTopY;
   if (wallH <= 0) return;
@@ -4022,11 +4245,10 @@ function paintSwitchColumn(ctx, col, yTop, yBot, wallU, img, grey, wallTopY, wal
       rgba[3] < 128 ||
       (rgba[0] === 255 && rgba[1] === 0 && rgba[2] === 255);
     if (!clear) {
-      ctx.fillStyle = `rgb(${rgba[0]},${rgba[1]},${rgba[2]})`;
+      fillSolidSpan(fb, col, y, y + 1, rgba);
     } else {
-      ctx.fillStyle = grey;
+      fillWallSpan(fb, col, y, y + 1, grey, wpat);
     }
-    ctx.fillRect(col, y, 1, 1);
   }
 }
 

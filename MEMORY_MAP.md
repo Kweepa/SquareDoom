@@ -23,7 +23,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 
 | KB | Range | Contents |
 |----|-------|----------|
-| 0 | `$0000`–`$03FF` | **`$0000`–`$0001`** (2): CPU port / DDR. **`$0002`–`$00FF`** (254): game zero page (see `zeropage.asm`). **`$0100`–`$019F`**: `UNDER_STACK` scrap (reserved; stack keeps `$01A0`–`$01FF`). **`$0200`–`$03FF`**: scrap; **`$02F8`/`$02F9`** = music `$D417`/`$D418` shadows (SidTracker). **`$0314`–`$0333`**: KERNAL soft-vector page (rewritten when KERNAL is in). **`$033C`–`$03FC`**: cassette buffer — **levelstats BSS** (`num_kills`…`roll_row`; not in the PRG kernal blob). |
+| 0 | `$0000`–`$03FF` | **`$0000`–`$0001`** (2): CPU port / DDR. **`$0002`–`$00FF`** (254): game zero page (see `zeropage.asm`). **`$0100`–`$016E`**: under-stack play BSS (`missile_*`…`map_pl_*`; `SCRAP_UNDER_END` `$016F`). **`$016F`–`$019F`** (**49**): free under-stack. Stack keeps `$01A0`–`$01FF`. **`$0200`–`$03FF`**: scrap; **`$02F8`/`$02F9`** = music `$D417`/`$D418` shadows (SidTracker). **`$0314`–`$0333`**: KERNAL soft-vector page (rewritten when KERNAL is in). **`$033C`–`$0348`**: levelstats BSS. **`$0349`–`$0383`**: cassette scrap BSS (input/cheats/menu/load/`item_slot`; `SCRAP_CASS_END` `$0384`). **`$0384`–`$03FB`** (**120**): free cassette. |
 | 1 | `$0400`–`$07FF` | **`$0400`–`$07E7`** (1000): VIC screen RAM (blit target). **`$07E8`–`$07F7`** (16): unused under screen. **`$07F8`–`$07FF`** (8): sprite pointers. |
 | 2 | `$0800`–`$0BFF` | BASIC stub (`$0801` SYS `$080D` → `warmstart` `$0810`), `copy_kernal_blob`, `init_sqtabs`, maths helpers. |
 | 3 | `$0C00`–`$0FFF` | Low code: util / messages; `input_irq_init` `$0D82`, `nmi_stub` `$0DF4`, `input_irq` `$0DFA`. |
@@ -33,7 +33,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | 7 | `$1C00`–`$1FFF` | Low code: item collect/sort/draw. |
 | 8 | `$2000`–`$23FF` | Low code: item draw / VDDA. |
 | 9 | `$2400`–`$27FF` | Low code: `blit_fb` `$248B`, enemy_low, mapscreen. |
-| 10 | `$2800`–`$2BFF` | Low code through `end_low` `$28F6`. **`$28F6`–`$293F`** (**74**): free scrap. **`$2940`–`$29FF`** (192): minigun B sprites (3×64). **`$2A00`–`$2BFF`** (512): fist right-hand sprites (8×64). |
+| 10 | `$2800`–`$2BFF` | Low code through `end_low` `$28B3`. **`$28B3`–`$293F`** (**141**): free scrap. **`$2940`–`$29FF`** (192): minigun B sprites (3×64). **`$2A00`–`$2BFF`** (512): fist right-hand sprites (8×64). |
 | 11 | `$2C00`–`$2FFF` | **`$2C00`–`$2DBF`**: fist punch sprites. **`$2DC0`–`$2DFF`** (64): chainsaw blade hi2 (overwrites punch pad). **`$2E00`–`$2FFF`** (512): chainsaw body layers (8×64). |
 | 12 | `$3000`–`$33FF` | **`$3000`–`$317F`** (384): minigun A/shared (6×64). **`$3180`–`$337F`** (512): rocket + pink flash (8×64). **`$3380`–`$33FF`**: start of shotgun body sprites. |
 | 13 | `$3400`–`$37FF` | Shotgun body through `$34FF`. **`$3500`–`$367F`** (384): pistol body (6×64). **`$3680`–`$377F`** (256): shared muzzle flash A/B (4×64). **`$3780`–`$37FF`** (128): gap before charset. |
@@ -44,7 +44,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | 27 | `$6C00`–`$6FFF` | Mid code: title/print helpers (`cell_addr` `$6C8D`), render_near / project_y / clip. |
 | 28 | `$7000`–`$73FF` | Mid code tail + **enemy mip headers** (`enemy_mip_*` ~`$712E`). Soft-sprite atlas follows. |
 | 29–34 | `$7400`–`$8BFF` | Enemy soft-sprite mip atlas. |
-| 35 | `$8C00`–`$8FFF` | Enemy atlas end. **`wall_switch_tex`** `$8EFE` (**256**) through `$8FFD`. **`end_mid`** `$8FFE`; **`$8FFE`–`$8FFF`** (**2**): free mid scrap. |
+| 35 | `$8C00`–`$8FFF` | Enemy atlas end. **`wall_switch_tex`** through `$8F48`. **`end_mid`** `$8F49`; **`$8F49`–`$8FFF`** (**183**): free mid scrap. |
 | 36–39 | `$9000`–`$9FFF` | **SID music window** (4K) — level PRG prefix (relocated SidTracker + pad); init `$9000`, play `$9003`. **`$9FFF`**: SidTracker flag (1 = shadow merge). |
 | 40 | `$A000`–`$A3FF` | **Level data** (disk): `level_map` 32×32 = **1024** bytes. |
 | 41 | `$A400`–`$A7FF` | Level sector tables: `SEC_FLOOR`/`CEIL`/`TYPE`/`TARGET`/`FCOL`/`CCOL` (200 each); into `SEC_BRIGHT`. |
@@ -70,15 +70,17 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | Range | Size | Role |
 |-------|------|------|
 | `$0002`–`$00FF` | 254 | Zero page |
-| `$0100`–`$019F` | 160 | Under-stack scrap (reserved) |
-| `$033C`–`$03FC` | 192 | Cassette scrap; levelstats BSS first 13 bytes |
+| `$0100`–`$016E` | 111 | Under-stack play BSS (`SCRAP_UNDER`) |
+| `$016F`–`$019F` | 49 | Free under-stack |
+| `$033C`–`$0348` | 13 | Levelstats BSS |
+| `$0349`–`$0383` | 59 | Cassette scrap BSS (`SCRAP_CASS`) |
+| `$0384`–`$03FB` | 120 | Free cassette |
 | `$0400`–`$07FF` | 1K | VIC screen + sprite pointers |
-| `$0801`–`$28F5` | ~8.4K | Low code |
-| `$28F6`–`$293F` | 74 | Free low |
+| `$0801`–`$28B2` | ~8.3K | Low code |
+| `$28B3`–`$293F` | 141 | Free low |
 | `$2940`–`$3CFF` | ~3.3K | Weapon VIC sprites (+ charset `$3800`–`$3B4F`, cock `$3B80`) |
-| `$3D00`–`$8EFD` | ~20.4K | Mid code + enemy mip atlas |
-| `$8EFE`–`$8FFD` | 256 | Wall-switch atlas |
-| `$8FFE`–`$8FFF` | 2 | Free mid |
+| `$3D00`–`$8F48` | ~20.6K | Mid code + enemy mip atlas |
+| `$8F49`–`$8FFF` | 183 | Free mid |
 | `$9000`–`$9FFF` | 4K | SID music (level PRG prefix; init `$9000` / play `$9003`) |
 | `$A000`–`$AA50` | 2641 | Level blob (disk) |
 | `$AA51`–`$BBF1` | ~4.4K | High tables / sky / recip / item bitmaps / pcsfreq |
@@ -161,8 +163,10 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 
 | Region | Bytes | Notes |
 |--------|------:|-------|
-| Low (`$28F6`–`$293F`) | 74 | Before minigun B |
-| Mid (`$8FFE`–`$8FFF`) | 2 | Before SID |
+| Under-stack (`$016F`–`$019F`) | 49 | After play BSS |
+| Cassette (`$0384`–`$03FB`) | 120 | After scrap BSS |
+| Low (`$28B3`–`$293F`) | 141 | Before minigun B |
+| Mid (`$8F49`–`$8FFF`) | 183 | Before SID |
 | High (`$BBF2`–`$BBFF`) | 14 | Before `py_tab` |
 | Kernal scrap (`$FFD9`–`$FFF9`) | 33 | After levelstats; before `$FFFA` |
 | Menu budget (`$E250`–`$F0E7`) | 3736 | When MENU.PRG loaded |

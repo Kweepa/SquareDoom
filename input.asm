@@ -42,19 +42,7 @@ MUSIC_INIT = SID_BASE			; relocated SidTracker init
 MUSIC_PLAY = SID_BASE + 3		; relocated SidTracker play
 
 ; Menus set this so Timer A skips $dc00 (ui_read_keys); music + TB SFX still run
-input_paused	!byte 0
-irq_ifr		!byte 0			; CIA1 IFR snapshot in IRQ
-music_tick	!byte 0			; toggled each TA; play when non-zero
-music_enabled	!byte 0			; 1 after music_init (SID window valid)
-in_map		!byte 0			; OR-latch: F1 held any IRQ sample this frame
-key_map		!byte 0			; snapshot from read_input
-key_map_was	!byte 0			; previous-frame key_map for rising-edge map toggle
-in_wpn_fist	!byte 0			; OR-latch: 1 held (fist/chainsaw toggle)
-in_wpn_minigun	!byte 0			; OR-latch: 4 held
-in_wpn_rocket	!byte 0			; OR-latch: 5 held
-key_wpn_fist	!byte 0
-key_wpn_minigun	!byte 0
-key_wpn_rocket	!byte 0
+; input_paused…key_wpn_* — cassette scrap BSS (zeropage.asm)
 
 ; ------------------------------------------------------------------
 ; input_irq_init — CIA1 TA @ SAMPLE_MS (keys+music), TB @ ~140 Hz (SFX)
@@ -860,9 +848,7 @@ UI_SELECT = 16
 UI_ESC = 32
 UI_MAP = 64
 
-ui_keys		!byte 0
-ui_old		!byte 0
-ui_pressed	!byte 0
+; ui_keys / ui_old / ui_pressed — cassette scrap BSS (zeropage.asm)
 
 ; ui_read_keys — set ui_keys / ui_pressed (new presses this call)
 ui_read_keys

@@ -4,8 +4,7 @@
 ; player.asm — player damage / feedback (more player logic moves here later)
 ; ============================================================================
 
-hurt_flash		!byte 0		; frames of red border left (incl. next render)
-death_ms		!byte 0, 0		; death-cam timer (ms); armed on killing blow
+; hurt_flash / death_ms — under-stack scrap (zeropage.asm)
 DEATH_PAUSE_MS = 2000
 
 ; ---------------------------------------------------------------------------

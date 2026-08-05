@@ -37,7 +37,7 @@ TEX_ANIMATE = 64
 ;   item_u / wish_x(ustep) / item_mip_base / item_mirror — enemy column DDA
 
 ; Current item index during collect/draw (keep off ZP; turn $32 is player yaw)
-item_slot	!byte 0
+; item_slot — cassette scrap BSS (zeropage.asm)
 
 ; ---------------------------------------------------------------------------
 ; Persistent item-sector cache. ITEM_SORT_SEC is keyed by item slot, so it can

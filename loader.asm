@@ -32,11 +32,7 @@ FormatDosName
 	sta level_dos_name + 3
 	rts
 
-load_namelen	!byte 0
-load_name_l	!byte 0
-load_name_h	!byte 0
-load_jiffy0	!byte 0
-load_do_pad	!byte 0			; nonzero → pad ENTER_MIN_JIFFIES after LOAD
+; load_namelen…load_do_pad — cassette scrap BSS (zeropage.asm)
 
 ENTER_MIN_JIFFIES = 120			; ~2s NTSC / 2.4s PAL
 

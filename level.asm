@@ -59,6 +59,9 @@ init_hud_state
 	sta key_use_was
 	sta radsuit_ms
 	sta radsuit_ms + 1
+	sta hurt_flash
+	sta death_ms
+	sta death_ms + 1
 	lda #1
 	sta hud_dirty
 	rts

@@ -400,3 +400,177 @@ CASS_LEVELSTATS_END = CASS_BUF + 13
 !if CASS_LEVELSTATS_END > CASS_BUF_END {
 	!error "levelstats BSS past cassette buffer"
 }
+
+; ---------------------------------------------------------------------------
+; Play/hot BSS in under-stack scrap (uninitialized; not in PRG)
+; ---------------------------------------------------------------------------
+SCRAP_UNDER		= UNDER_STACK
+missile_momx_l		= SCRAP_UNDER
+missile_momx_h		= SCRAP_UNDER + 1
+missile_momy_l		= SCRAP_UNDER + 2
+missile_momy_h		= SCRAP_UNDER + 3
+missile_momz_l		= SCRAP_UNDER + 4
+missile_momz_h		= SCRAP_UNDER + 5
+missile_z		= SCRAP_UNDER + 6
+missile_zfrac		= SCRAP_UNDER + 7
+missile_life_l		= SCRAP_UNDER + 8
+missile_life_h		= SCRAP_UNDER + 9
+procket_momx_l		= SCRAP_UNDER + 10
+procket_momx_h		= SCRAP_UNDER + 11
+procket_momy_l		= SCRAP_UNDER + 12
+procket_momy_h		= SCRAP_UNDER + 13
+procket_momz_l		= SCRAP_UNDER + 14
+procket_momz_h		= SCRAP_UNDER + 15
+procket_z		= SCRAP_UNDER + 16
+procket_zfrac		= SCRAP_UNDER + 17
+procket_life_l		= SCRAP_UNDER + 18
+procket_life_h		= SCRAP_UNDER + 19
+proj_mode		= SCRAP_UNDER + 20
+proj_rem_dt		= SCRAP_UNDER + 21
+proj_step_ms		= SCRAP_UNDER + 22
+hs_status		= SCRAP_UNDER + 23
+hs_actor		= SCRAP_UNDER + 24
+hs_claimed		= SCRAP_UNDER + 25
+hs_x0			= SCRAP_UNDER + 26
+hs_y0			= SCRAP_UNDER + 27
+hs_x1			= SCRAP_UNDER + 28
+hs_y1			= SCRAP_UNDER + 29
+hs_z0			= SCRAP_UNDER + 30
+hs_z1			= SCRAP_UNDER + 31
+hs_endx			= SCRAP_UNDER + 32
+hs_endy			= SCRAP_UNDER + 33
+hs_absx			= SCRAP_UNDER + 34
+hs_absy			= SCRAP_UNDER + 35
+hs_steps		= SCRAP_UNDER + 36
+hs_z			= SCRAP_UNDER + 37
+hs_zd			= SCRAP_UNDER + 38
+hs_zs			= SCRAP_UNDER + 39
+hs_zerr			= SCRAP_UNDER + 40
+hs_count		= SCRAP_UNDER + 41
+enemy_actor		= SCRAP_UNDER + 42
+enemy_obj		= SCRAP_UNDER + 43
+enemy_dist		= SCRAP_UNDER + 44
+enemy_info		= SCRAP_UNDER + 45
+alloc_item_slot		= SCRAP_UNDER + 46
+unlink_mobj_idx		= SCRAP_UNDER + 47
+mobj_lookup_slot	= SCRAP_UNDER + 48
+damage_amount		= SCRAP_UNDER + 49
+pain_boost		= SCRAP_UNDER + 50
+tde_best_z		= SCRAP_UNDER + 51
+tde_best_slot		= SCRAP_UNDER + 52
+tde_max_z		= SCRAP_UNDER + 53
+new_chase_dir_frame	= SCRAP_UNDER + 54
+anim_frame		= SCRAP_UNDER + 55
+player_sector		= SCRAP_UNDER + 56
+enemy_sector		= SCRAP_UNDER + 57
+wpn_visible		= SCRAP_UNDER + 58
+muzzle_hi_cycle		= SCRAP_UNDER + 59
+muzzle_flash_var	= SCRAP_UNDER + 60
+saw_blade_frame		= SCRAP_UNDER + 61
+saw_blade_div		= SCRAP_UNDER + 62
+saw_running		= SCRAP_UNDER + 63
+mg_frame		= SCRAP_UNDER + 64
+player_prev_sec		= SCRAP_UNDER + 65
+elev_mode		= SCRAP_UNDER + 66
+elev_reclose		= SCRAP_UNDER + 67
+elev_found		= SCRAP_UNDER + 68
+elev_home		= SCRAP_UNDER + 69
+elev_cell_x		= SCRAP_UNDER + 70
+elev_cell_y		= SCRAP_UNDER + 71
+elev_chain		= SCRAP_UNDER + 72
+elev_dest		= SCRAP_UNDER + 73
+elev_fcol		= SCRAP_UNDER + 74
+elev_faction		= SCRAP_UNDER + 75
+trig_sec		= SCRAP_UNDER + 76
+trig_chain		= SCRAP_UNDER + 77
+key_use_was		= SCRAP_UNDER + 78
+info_kind		= SCRAP_UNDER + 79
+ammo_bullets		= SCRAP_UNDER + 80		; +shells +rockets contiguous for ,y
+ammo_shells		= SCRAP_UNDER + 81
+ammo_rockets		= SCRAP_UNDER + 82
+combat_armor		= SCRAP_UNDER + 83
+owned_weapons		= SCRAP_UNDER + 84
+hurt_flash		= SCRAP_UNDER + 85
+death_ms		= SCRAP_UNDER + 86		; 2 bytes
+flash_sec		= SCRAP_UNDER + 88		; 2 bytes
+flash_base		= SCRAP_UNDER + 90		; 2 bytes
+flash_lit		= SCRAP_UNDER + 92
+flash_ms		= SCRAP_UNDER + 93		; 2 bytes
+dmg_ms			= SCRAP_UNDER + 95		; 2 bytes
+radsuit_ms		= SCRAP_UNDER + 97		; 2 bytes
+sound_index		= SCRAP_UNDER + 99
+sound_priority		= SCRAP_UNDER + 100
+sound_count		= SCRAP_UNDER + 101
+sound_max		= SCRAP_UNDER + 102
+ps_save_x		= SCRAP_UNDER + 103
+ps_save_y		= SCRAP_UNDER + 104
+sid_merge_tmp		= SCRAP_UNDER + 105
+map_scroll		= SCRAP_UNDER + 106
+map_row			= SCRAP_UNDER + 107
+map_pl_on		= SCRAP_UNDER + 108
+map_pl_row		= SCRAP_UNDER + 109
+map_pl_col		= SCRAP_UNDER + 110
+SCRAP_UNDER_END		= SCRAP_UNDER + 111
+!if SCRAP_UNDER_END > UNDER_STACK_END {
+	!error "under-stack BSS past UNDER_STACK_END"
+}
+
+; ---------------------------------------------------------------------------
+; UI / IRQ / load BSS in cassette after levelstats (uninitialized; not in PRG)
+; ---------------------------------------------------------------------------
+SCRAP_CASS		= CASS_LEVELSTATS_END
+input_paused		= SCRAP_CASS
+irq_ifr			= SCRAP_CASS + 1
+music_tick		= SCRAP_CASS + 2
+music_enabled		= SCRAP_CASS + 3
+in_map			= SCRAP_CASS + 4
+key_map			= SCRAP_CASS + 5
+key_map_was		= SCRAP_CASS + 6
+in_wpn_fist		= SCRAP_CASS + 7
+in_wpn_minigun		= SCRAP_CASS + 8
+in_wpn_rocket		= SCRAP_CASS + 9
+key_wpn_fist		= SCRAP_CASS + 10
+key_wpn_minigun		= SCRAP_CASS + 11
+key_wpn_rocket		= SCRAP_CASS + 12
+ui_keys			= SCRAP_CASS + 13
+ui_old			= SCRAP_CASS + 14
+ui_pressed		= SCRAP_CASS + 15
+god_mode		= SCRAP_CASS + 16
+clev			= SCRAP_CASS + 17
+cheat_phase		= SCRAP_CASS + 18
+cheat_dqd		= SCRAP_CASS + 19
+cheat_kfa		= SCRAP_CASS + 20
+cheat_clev		= SCRAP_CASS + 21
+cheat_ep_dig		= SCRAP_CASS + 22
+cheat_map_dig		= SCRAP_CASS + 23
+cheat_was		= SCRAP_CASS + 24		; 4 bytes
+cheat_dig_prev		= SCRAP_CASS + 28
+cheat_a			= SCRAP_CASS + 29
+cheat_b			= SCRAP_CASS + 30
+cheat_c			= SCRAP_CASS + 31
+episode			= SCRAP_CASS + 32
+end_level		= SCRAP_CASS + 33
+menu_can_ret		= SCRAP_CASS + 34
+menu_id			= SCRAP_CASS + 35
+menu_item		= SCRAP_CASS + 36
+menu_stack_d		= SCRAP_CASS + 37
+menu_stk_m		= SCRAP_CASS + 38		; 3 bytes
+menu_stk_i		= SCRAP_CASS + 41		; 3 bytes
+pr_row			= SCRAP_CASS + 44
+pr_col			= SCRAP_CASS + 45
+pr_len			= SCRAP_CASS + 46
+melt_count		= SCRAP_CASS + 47		; 2 bytes
+melt_col		= SCRAP_CASS + 49
+load_namelen		= SCRAP_CASS + 50
+load_name_l		= SCRAP_CASS + 51
+load_name_h		= SCRAP_CASS + 52
+load_jiffy0		= SCRAP_CASS + 53
+load_do_pad		= SCRAP_CASS + 54
+boss_floors_done	= SCRAP_CASS + 55
+boss_scan_sec		= SCRAP_CASS + 56
+barrel_events		= SCRAP_CASS + 57
+item_slot		= SCRAP_CASS + 58
+SCRAP_CASS_END		= SCRAP_CASS + 59
+!if SCRAP_CASS_END > CASS_BUF_END {
+	!error "cassette scrap BSS past CASS_BUF_END"
+}

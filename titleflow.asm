@@ -7,24 +7,12 @@ HILITE_COL = 7
 UI_COL = 1
 
 difficulty	!byte 2
-episode		!byte 0
+; episode / end_level / menu_* / pr_* / melt_* — cassette scrap (zeropage.asm)
 level_num	!byte 1
-end_level	!byte 0
 effects_vol	!byte 15
 music_vol	!byte 10
-menu_can_ret	!byte 0
-menu_id		!byte 0
-menu_item	!byte 0
 menu_size	!byte 4
-menu_stack_d	!byte 0
-menu_stk_m	!byte 0, 0, 0
-menu_stk_i	!byte 0, 0, 0
 ui_text_col	!byte TEXT_COL
-pr_row		!byte 0
-pr_col		!byte 0
-pr_len		!byte 0
-melt_count	!byte 0, 0			; 16-bit melt loop counter
-melt_col	!byte 0
 
 ; ==================================================================
 game_start

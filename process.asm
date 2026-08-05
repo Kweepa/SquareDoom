@@ -18,20 +18,7 @@ DOOR_MODE_10S = 2
 DOOR_MODE_30S = 3
 MOTION_STEP_MS = 128			; 1 height unit per 128 ms
 
-player_prev_sec	!byte 0			; last player sector (walk trigger)
-elev_mode	!byte 0			; floor: 0=lower/1=raise; door: DOOR_MODE_*
-elev_reclose	!byte 0			; 0 = 5s, 1 = 15s (ACT_LOWER_FLOOR*)
-elev_found	!byte 0
-elev_home	!byte 0			; elevator return floor (scratch)
-elev_cell_x	!byte 0
-elev_cell_y	!byte 0
-elev_chain	!byte 0			; same-tag chain head (find_dest sibling skip)
-elev_dest	!byte 0			; shared floor dest for tag chain
-elev_fcol	!byte 0			; SEC_FCOL of winning neighbour (forever floors)
-elev_faction	!byte 0			; ACT_MASK of winning neighbour (forever floors)
-trig_sec	!byte 0			; sector that provided the trigger
-trig_chain	!byte 0			; remote SEC_TARGET walk cursor
-key_use_was	!byte 0			; previous-frame key_use (rising edge)
+; player_prev_sec / elev_* / trig_* / key_use_was — under-stack scrap (zeropage.asm)
 
 ELEV_RECLOSE_5S_MS = 5000
 ELEV_RECLOSE_15S_MS = 15000

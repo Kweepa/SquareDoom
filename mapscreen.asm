@@ -6,11 +6,7 @@ MAP_OX = 4				; center 32 cols in 40
 MAP_SCROLL_MAX = 7			; 32 - 25
 ; MAP_SOLID / MAP_ARROW0 — see squaredoom.asm charset map
 
-map_scroll	!byte 0
-map_row		!byte 0
-map_pl_on	!byte 0			; 1 = pointer currently drawn
-map_pl_row	!byte 0			; screen row of pointer
-map_pl_col	!byte 0			; screen col of pointer
+; map_* BSS — under-stack scrap (zeropage.asm)
 
 ; NESW (0..3) → TheKeep arrow (L=0 U=1 R=2 D=3); 180° from prior table
 map_arrow_dir

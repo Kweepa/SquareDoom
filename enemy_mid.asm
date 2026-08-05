@@ -148,25 +148,8 @@ trydy_hi
 	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff
 
 ; ---------------------------------------------------------------------------
-; Vars
+; Vars — under-stack scrap (zeropage.asm); missile/procket there too
 ; ---------------------------------------------------------------------------
-enemy_actor		!byte 0
-enemy_obj		!byte 0
-enemy_dist		!byte 0
-enemy_info		!byte 0
-alloc_item_slot		!byte 0		; item slot for alloc_mobj (not tmp*)
-unlink_mobj_idx		!byte 0		; mobj idx for mobj_unlink
-mobj_lookup_slot	!byte 0		; item slot for mobj_for_slot
-damage_amount		!byte 0		; enemy_damage / TryDamageEnemy payload
-pain_boost		!byte 0		; added to damage for pain-chance check (chainsaw)
-tde_best_z		!byte 0		; TryDamageEnemy scan
-tde_best_slot		!byte 0
-tde_max_z		!byte 0		; exclusive max COL_AIM_Z ($ff = any range)
-new_chase_dir_frame	!byte 0
-anim_frame		!byte 0
-player_sector		!byte 0
-enemy_sector		!byte 0			; sector of current enemy_actor this think
-; missile/procket BSS lives in missile.asm
 
 ; ---------------------------------------------------------------------------
 ; P_ApproxDistance — |dx|+|dy|/2 on signed 8-bit world deltas in tmp0/tmp1 → A

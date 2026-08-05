@@ -298,6 +298,12 @@ KERNAL_BLOB_SIZE = kernal_blob_end - kernal_blob
 !if CASS_LEVELSTATS_END > CASS_BUF_END {
 	!error "cassette BSS overflow"
 }
+!if SCRAP_UNDER_END > UNDER_STACK_END {
+	!error "under-stack scrap BSS overflow; end=$", SCRAP_UNDER_END
+}
+!if SCRAP_CASS_END > CASS_BUF_END {
+	!error "cassette scrap BSS overflow; end=$", SCRAP_CASS_END
+}
 
 ; Absolute indexed copy (lives in SQTAB slot; runs once, then init_sqtabs clobbers it).
 ; One X loop: each pass copies one byte from every 256-byte slice; tail uses

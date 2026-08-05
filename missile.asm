@@ -10,33 +10,8 @@ PROJ_LIFE_MS = 16000		; ~32 tiles of flight at 2 tiles/sec
 PROJ_NUDGE_MS = 25		; spawn look-ahead (clears player center)
 
 ; ---------------------------------------------------------------------------
-; BSS
+; BSS — under-stack scrap (zeropage.asm)
 ; ---------------------------------------------------------------------------
-missile_momx_l		!byte 0
-missile_momx_h		!byte 0		; signed sintab-amp direction (-64..64)
-missile_momy_l		!byte 0
-missile_momy_h		!byte 0
-missile_momz_l		!byte 0
-missile_momz_h		!byte 0
-missile_z		!byte 0		; world Z (hitscan-style)
-missile_zfrac		!byte 0
-missile_life_l		!byte 0
-missile_life_h		!byte 0
-
-procket_momx_l		!byte 0
-procket_momx_h		!byte 0
-procket_momy_l		!byte 0
-procket_momy_h		!byte 0
-procket_momz_l		!byte 0
-procket_momz_h		!byte 0
-procket_z		!byte 0
-procket_zfrac		!byte 0
-procket_life_l		!byte 0
-procket_life_h		!byte 0
-
-proj_mode		!byte 0		; 0 = enemy missile, 1 = player rocket
-proj_rem_dt		!byte 0
-proj_step_ms		!byte 0
 
 ; ---------------------------------------------------------------------------
 ; proj_scale_vel — A = sintab amp; vel_ms set → tmp0/tmp1 at 2 tiles/sec
