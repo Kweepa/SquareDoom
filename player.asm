@@ -5,7 +5,6 @@
 ; ============================================================================
 
 ; hurt_flash / death_ms — under-stack scrap (zeropage.asm)
-DEATH_PAUSE_MS = 2000
 
 ; ---------------------------------------------------------------------------
 ; player_frame — once per gameloop; keep hurt border through one full frame
@@ -87,8 +86,6 @@ damage_player
 	sbc tmp0
 	bcs .dp_ok
 	lda #0
-	sta death_ms			; start death-cam pause
-	sta death_ms + 1
 	jsr hide_weapon
 .dp_ok
 	sta health
@@ -98,28 +95,25 @@ damage_player
 	rts
 
 ; ---------------------------------------------------------------------------
-; player_death_frame — dead-player preamble (replaces input/move in gameloop)
+; player_death_frame — dead-player preamble (replaces move in gameloop)
 ;
-; Red border, frame dt, death timer → next_level after DEATH_PAUSE_MS.
+; Red border; K-use rising edge → next_level (reload / reset).
+; read_input runs first so key_use is current; key_use_was avoids a held K
+; at death instantly restarting.
 ; ---------------------------------------------------------------------------
 player_death_frame
 	lda #2				; keep hurt border
 	sta $d020
 	jsr calc_frame_dt
-	clc
-	lda death_ms
-	adc dt_ms
-	sta death_ms
-	lda death_ms + 1
-	adc #0
-	sta death_ms + 1
-	cmp #>DEATH_PAUSE_MS
-	bcc .pdf_go
-	bne .pdf_restart
-	lda death_ms
-	cmp #<DEATH_PAUSE_MS
-	bcc .pdf_go
-.pdf_restart
+	lda key_use
+	bne .pdf_down
+	sta key_use_was			; A = 0; arm for next press
+	jmp update_map_time
+.pdf_down
+	lda key_use_was
+	bne .pdf_go			; still held from before death / last press
+	lda #1
+	sta key_use_was
 	jmp next_level
 .pdf_go
 	jmp update_map_time

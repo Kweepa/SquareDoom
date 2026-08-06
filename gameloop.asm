@@ -25,6 +25,7 @@ gameloop
 	jsr try_switch
 	jmp .gl_world
 .gl_dead
+	jsr read_input			; need key_use for death confirm
 	jsr player_death_frame		; may jmp next_level
 .gl_world
 	jsr proc_update
