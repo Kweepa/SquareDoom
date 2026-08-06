@@ -331,7 +331,7 @@ ITEM_MISSILE	= 47			; reserved last item slot (= MAX_ITEMS-1)
 MOBJ_ALLOC	= ITEM_SORT_END		; 21
 MOBJ_MOVEDIR	= MOBJ_ALLOC + MAX_MOBJ
 MOBJ_FLAGS	= MOBJ_MOVEDIR + MAX_MOBJ
-MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ
+MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ	; attack cooldown in ms/16
 MOBJ_MOVECNT	= MOBJ_REACT + MAX_MOBJ
 MOBJ_HEALTH	= MOBJ_MOVECNT + MAX_MOBJ
 MOBJ_INFO	= MOBJ_HEALTH + MAX_MOBJ	; 0=pos..4=baron, 5=impshot
@@ -510,7 +510,9 @@ map_row			= SCRAP_UNDER + 107
 map_pl_on		= SCRAP_UNDER + 108
 map_pl_row		= SCRAP_UNDER + 109
 map_pl_col		= SCRAP_UNDER + 110
-SCRAP_UNDER_END		= SCRAP_UNDER + 111
+react_dt_rem		= SCRAP_UNDER + 111	; leftover ms for MOBJ_REACT (ms/16)
+react_dt_units		= SCRAP_UNDER + 112	; ms/16 elapsed this enemy_think
+SCRAP_UNDER_END		= SCRAP_UNDER + 113
 !if SCRAP_UNDER_END > UNDER_STACK_END {
 	!error "under-stack BSS past UNDER_STACK_END"
 }

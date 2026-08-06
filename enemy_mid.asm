@@ -328,7 +328,7 @@ alloc_mobj
 	lda #$80			; half-unit centers (n+0.5)
 	sta MOBJ_XFRAC,x
 	sta MOBJ_YFRAC,x
-	lda #2
+	lda #4				; wake ~64 ms (MOBJ_REACT is ms/16)
 	sta MOBJ_REACT,x
 	; info = typeId - 1
 	ldy alloc_item_slot
@@ -435,6 +435,19 @@ enemy_think
 	inc anim_frame
 	lda #0
 	sta new_chase_dir_frame
+	; MOBJ_REACT is ms/16 — fold dt_ms into units for this frame
+	lda react_dt_rem
+	clc
+	adc dt_ms
+	sta tmp0
+	lsr
+	lsr
+	lsr
+	lsr
+	sta react_dt_units
+	lda tmp0
+	and #15
+	sta react_dt_rem
 	jsr hitscan_frame
 	jsr cache_player_sector
 	ldx #0
@@ -1035,12 +1048,27 @@ p_new_chase_dir
 ; ---------------------------------------------------------------------------
 ; Actions
 ; ---------------------------------------------------------------------------
+; Post-attack cooldown: ~496–992 ms stored as ms/16 (31..62)
+set_mobj_react
+	jsr GetRandom8
+	and #31
+	clc
+	adc #31
+	ldx enemy_actor
+	sta MOBJ_REACT,x
+	rts
+
 a_chase
 	jsr calc_enemy_dist
 	ldx enemy_actor
 	lda MOBJ_REACT,x
 	beq .ac_nort
-	dec MOBJ_REACT,x
+	sec
+	sbc react_dt_units
+	bcs .ac_react_ok
+	lda #0
+.ac_react_ok
+	sta MOBJ_REACT,x
 .ac_nort
 	lda MOBJ_FLAGS,x
 	and #MF_JUSTATTACKED
@@ -1050,6 +1078,10 @@ a_chase
 	sta MOBJ_FLAGS,x
 	jmp p_new_chase_dir
 .ac_melee
+	lda MOBJ_REACT,x
+	beq .ac_melee_ok
+	jmp .ac_move			; cooldown — walk, don't claw
+.ac_melee_ok
 	ldy enemy_info
 	lda mobj_melee_state,y
 	bmi .ac_missile
@@ -1061,6 +1093,9 @@ a_chase
 	ldy enemy_info
 	lda mobj_melee_state,y
 	sta MOBJ_STATE,x
+	lda MOBJ_FLAGS,x
+	ora #MF_JUSTATTACKED
+	sta MOBJ_FLAGS,x
 	rts
 .ac_missile
 	ldy enemy_info
@@ -1104,10 +1139,7 @@ a_chase
 	rts
 .ac_hs_miss
 	jsr hitscan_release
-	jsr GetRandom8
-	and #7
-	ldx enemy_actor
-	sta MOBJ_REACT,x
+	jsr set_mobj_react
 	jmp .ac_move
 .ac_missile_direct
 	jsr p_check_missile_range_fixed
@@ -1185,10 +1217,7 @@ a_shoot
 	jsr damage_player
 .as_miss
 	jsr hitscan_release
-	jsr GetRandom8
-	and #7
-	ldx enemy_actor
-	sta MOBJ_REACT,x
+	jsr set_mobj_react
 	jmp goto_chase_state
 
 a_melee
@@ -1206,6 +1235,7 @@ a_melee
 	clc
 	adc tmp0
 	jsr damage_player
+	jsr set_mobj_react
 	ldx enemy_actor
 	inc MOBJ_MOVECNT,x
 	rts
@@ -1217,10 +1247,7 @@ a_missile
 	bne .ami_react
 	jsr spawn_enemy_missile
 .ami_react
-	jsr GetRandom8
-	and #7
-	ldx enemy_actor
-	sta MOBJ_REACT,x
+	jsr set_mobj_react
 	jmp goto_chase_state
 
 a_fall
