@@ -7,7 +7,6 @@
 ; Projectile flight → missile.asm.
 ; ============================================================================
 
-MF_JUSTATTACKED = 1
 MELEERANGE = 4
 DI_NODIR = 8
 TEX_ANIMATE = 64
@@ -184,7 +183,7 @@ p_approx_distance
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_reset — clear all mobjs + item maps
+; enemy_reset — clear all mobjs + FX overlay
 ; ---------------------------------------------------------------------------
 enemy_reset
 	ldx #0
@@ -196,108 +195,56 @@ enemy_reset
 	bne .er_m
 	ldx #0
 	lda #$ff
-.er_i
-	sta MOBJ_FOR_ITEM,x
+.er_t
 	sta ITEM_CORPSE_TEX,x
 	inx
-	cpx #48				; MAX_ITEMS (literal — defined later in root)
-	bne .er_i
-	; Reserve missile item slots
-	lda #ITEM_TYPE_EMPTY_E
-	sta level_item_type + ITEM_MISSILE
-	sta level_item_type + ITEM_PLAYER_ROCKET
+	cpx #MAX_MOBJ
+	bne .er_t
 	lda #0
 	sta anim_frame
 	sta new_chase_dir_frame
 	sta pain_boost
 	sta barrel_events
+	jsr fx_clear
 	jsr hitscan_reset
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_alloc_all — bind mobjs to item types 1..5 (soldier…baron)
+; enemy_alloc_all — copy layer types 1..5 to mobj at tile center; clear cells
 ; ---------------------------------------------------------------------------
 enemy_alloc_all
 	jsr enemy_reset
-	ldx #0
-.eaa_lp
-	lda level_item_type,x
+	lda #0
+	sta mapy
+.eaa_row
+	lda #0
+	sta mapx
+.eaa_col
+	jsr item_layer_id
 	cmp #ITEM_TYPE_ENEMY_FIRST
 	bcc .eaa_nx
 	cmp #ITEM_TYPE_ENEMY_LAST+1
 	bcs .eaa_nx
-	stx alloc_item_slot
-	txa
-	pha				; alloc_mobj clobbers X
+	sta alloc_item_slot		; type 1..5
 	jsr alloc_mobj
-	pla
-	tax
-.eaa_nx
-	inx
-	cpx #ITEM_MISSILE		; skip reserved missile slot
-	bcc .eaa_lp
-	rts
-
-; ---------------------------------------------------------------------------
-; mobj_unlink — A = mobj idx; clear every FOR_ITEM[i] that pointed at A
-; ---------------------------------------------------------------------------
-mobj_unlink
-	sta unlink_mobj_idx
-	ldx #0
-.mu_lp
-	lda MOBJ_FOR_ITEM,x
-	cmp unlink_mobj_idx
-	bne .mu_nx
-	lda #$ff
-	sta MOBJ_FOR_ITEM,x
-.mu_nx
-	inx
-	cpx #48
-	bne .mu_lp
-	rts
-
-; ---------------------------------------------------------------------------
-; mobj_for_slot — X = item slot → C=0 Y=A=mobj / C=1 none
-; Fast path via MOBJ_FOR_ITEM; falls back to scan + repair if stale.
-; ---------------------------------------------------------------------------
-mobj_for_slot
-	stx mobj_lookup_slot
-	ldy MOBJ_FOR_ITEM,x
-	bmi .mfs_scan			; $ff = no cached owner
-	lda MOBJ_ALLOC,y
-	beq .mfs_scan
-	lda MOBJ_OBJ,y
-	cmp mobj_lookup_slot
-	bne .mfs_scan
-	tya
-	clc
-	rts
-.mfs_scan
-	ldx #0
-.mfs_lp
-	lda MOBJ_ALLOC,x
-	beq .mfs_nx
-	lda MOBJ_OBJ,x
-	cmp mobj_lookup_slot
-	bne .mfs_nx
-	txa
-	ldy mobj_lookup_slot
-	sta MOBJ_FOR_ITEM,y		; keep forward map in sync
+	bcs .eaa_nx			; full — leave the cell
+	jsr item_layer_ptr
+	lda #0
 	tay
-	clc
-	rts
-.mfs_nx
-	inx
-	cpx #MAX_MOBJ
-	bcc .mfs_lp
-	lda #$ff
-	ldx mobj_lookup_slot
-	sta MOBJ_FOR_ITEM,x		; drop stale forward
-	sec
+	sta (ptr_l),y
+.eaa_nx
+	inc mapx
+	lda mapx
+	cmp #MAP_SIZE
+	bcc .eaa_col
+	inc mapy
+	lda mapy
+	cmp #MAP_SIZE
+	bcc .eaa_row
 	rts
 
 ; ---------------------------------------------------------------------------
-; alloc_mobj — alloc_item_slot = item → C=0 ok / C=1 fail
+; alloc_mobj — alloc_item_slot = type 1..5; XY from mapx/mapy. C=0 ok / C=1 fail
 ; ---------------------------------------------------------------------------
 alloc_mobj
 	ldx #0
@@ -311,16 +258,8 @@ alloc_mobj
 	rts
 .am_got
 	stx enemy_actor
-	txa
-	jsr mobj_unlink			; drop any stale FOR_ITEM → this index
-	ldx enemy_actor
 	lda #1
 	sta MOBJ_ALLOC,x
-	lda alloc_item_slot
-	sta MOBJ_OBJ,x
-	tay
-	txa
-	sta MOBJ_FOR_ITEM,y
 	lda #0
 	sta MOBJ_MOVEDIR,x
 	sta MOBJ_FLAGS,x
@@ -328,11 +267,16 @@ alloc_mobj
 	lda #$80			; half-unit centers (n+0.5)
 	sta MOBJ_XFRAC,x
 	sta MOBJ_YFRAC,x
+	jsr item_tile_xy
+	ldx enemy_actor
+	lda tmp0
+	sta MOBJ_X,x
+	lda tmp1
+	sta MOBJ_Y,x
 	lda #4				; wake ~64 ms (MOBJ_REACT is ms/16)
 	sta MOBJ_REACT,x
 	; info = typeId - 1
-	ldy alloc_item_slot
-	lda level_item_type,y
+	lda alloc_item_slot
 	sec
 	sbc #1
 	sta MOBJ_INFO,x
@@ -344,44 +288,30 @@ alloc_mobj
 	ldy enemy_info
 	lda mobj_chase_state,y
 	sta MOBJ_STATE,x
-	ldy alloc_item_slot
 	lda #$ff
-	sta ITEM_CORPSE_TEX,y
+	sta ITEM_CORPSE_TEX,x
 	clc
 	rts
 
 ; ---------------------------------------------------------------------------
-; Helpers: item XY / sector from enemy_obj
+; Helpers: XY / sector from enemy_actor (enemy_obj aliases the mobj index)
 ; ---------------------------------------------------------------------------
 ; → tmp0=x_h tmp1=y_h
 obj_xy
-	ldx enemy_obj
-	lda level_item_x,x
+	ldx enemy_actor
+	lda MOBJ_X,x
 	sta tmp0
-	lda level_item_y,x
+	lda MOBJ_Y,x
 	sta tmp1
 	rts
 
 ; write tmp0/tmp1 as x_h/y_h
 obj_set_xy
-	ldx enemy_obj
-	lda level_item_x,x
-	eor tmp0
-	and #$f8
-	sta mapx
-	lda level_item_y,x
-	eor tmp1
-	and #$f8
-	ora mapx
-	sta mapx			; nonzero only when the 8-unit map tile changed
+	ldx enemy_actor
 	lda tmp0
-	sta level_item_x,x
+	sta MOBJ_X,x
 	lda tmp1
-	sta level_item_y,x
-	lda mapx
-	beq .osx_done
-	jmp item_refresh_sector
-.osx_done
+	sta MOBJ_Y,x
 	rts
 
 ; → A = sector id (0 if void)
@@ -455,13 +385,21 @@ enemy_think
 	lda MOBJ_ALLOC,x
 	beq .et_skip
 	stx enemy_actor			; loop index (actions may clobber X)
-	lda MOBJ_OBJ,x
-	sta enemy_obj
+	stx enemy_obj
 	lda MOBJ_INFO,x
 	sta enemy_info
 	; missile always thinks while allocated
 	cmp #MOBJINFO_IMPSHOT
 	beq .et_run
+	; corpses: no AI once fall has finished
+	lda MOBJ_HEALTH,x
+	bne .et_live
+	ldy MOBJ_STATE,x
+	lda state_action,y
+	cmp #ACTION_FALL
+	bne .et_skip
+	beq .et_run
+.et_live
 	; dying must finish even if sector not in view this frame
 	ldy MOBJ_STATE,x
 	lda state_action,y
@@ -1258,70 +1196,59 @@ a_fall
 	beq .af_corpse
 	jmp .af_done
 .af_corpse
-	; pos/imp/demon → 20–22; baron → 23; caco → ITEM_CORPSE_TEX stub
+	; Keep the mobj. pos/imp/demon/baron → item-atlas corpse tex;
+	; caco → 16×32 stub in ITEM_CORPSE_TEX.
 	lda MOBJ_INFO,x
 	cmp #MOBJINFO_BARON
 	beq .af_baron
 	cmp #MOBJINFO_CACO
 	bcs .af_stub			; caco / missile
-	ldy MOBJ_OBJ,x
 	clc
-	adc #ITEM_TYPE_POSCORPSE	; 0→20, 1→21, 2→22
-	sta level_item_type,y
-	jmp .af_free
+	adc #ITEM_TYPE_POSCORPSE	; 0→21, 1→22, 2→23
+	sta ITEM_CORPSE_TEX,x
+	rts
 .af_baron
-	ldy MOBJ_OBJ,x
 	lda #ITEM_TYPE_BARONCORPSE
-	sta level_item_type,y
-	jmp .af_free
+	sta ITEM_CORPSE_TEX,x
+	rts
 .af_stub
 	lda MOBJ_STATE,x
 	tay
 	lda state_texture,y
 	and #$bf				; clear TEX_ANIMATE
-	ldy MOBJ_OBJ,x
-	sta ITEM_CORPSE_TEX,y
-.af_free
-	txa				; mobj idx
-	jsr mobj_unlink
-	ldx enemy_actor
-	lda #0
-	sta MOBJ_ALLOC,x
+	sta ITEM_CORPSE_TEX,x
 .af_done
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_damage — X = item slot, A = damage
+; enemy_damage — X = mobj index, A = damage
 ; ---------------------------------------------------------------------------
 enemy_damage
 	sta damage_amount
-	jsr mobj_for_slot
-	bcc .ed_got
-	rts
-.ed_got
-	lda MOBJ_HEALTH,y
+	lda MOBJ_ALLOC,x
+	beq .ed_rts
+	lda MOBJ_HEALTH,x
 	bne .ed_alive
 	rts
 .ed_alive
-	sty enemy_actor
-	lda MOBJ_OBJ,y
-	sta enemy_obj
-	lda MOBJ_INFO,y
+	stx enemy_actor
+	stx enemy_obj
+	lda MOBJ_INFO,x
 	sta enemy_info
 	cmp #MOBJINFO_IMPSHOT
 	bcc .ed_dmg
 	rts
 .ed_dmg
 	; P_DamageMobj
-	lda MOBJ_HEALTH,y
+	lda MOBJ_HEALTH,x
 	sec
 	sbc damage_amount
-	sta MOBJ_HEALTH,y
+	sta MOBJ_HEALTH,x
 	beq .ed_kill
 	bcc .ed_kill
-	lda MOBJ_FLAGS,y
+	lda MOBJ_FLAGS,x
 	ora #MF_JUSTATTACKED
-	sta MOBJ_FLAGS,y
+	sta MOBJ_FLAGS,x
 	lda damage_amount
 	clc
 	adc pain_boost			; chainsaw: bias toward flinch
@@ -1358,34 +1285,32 @@ enemy_damage
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_get_texture — X = item slot → A = tex (bit6=animate), C=1 if 16×32
-; Live enemies (types 1–5) use enemy_sprites; pos/imp/demon/baron corpses are
-; item types 24–27. Caco still uses ITEM_CORPSE_TEX until art exists.
+; enemy_get_texture — X = mobj → A = tex (bit6=animate), C=1 if 16×32
+; Live enemies use enemy_sprites. Dead pos/imp/demon/baron use item atlas
+; (ITEM_CORPSE_TEX = 21..24). Caco stub is a 16×32 frame index.
 ; ---------------------------------------------------------------------------
 enemy_get_texture
-	lda level_item_type,x
-	cmp #ITEM_TYPE_ENEMY_FIRST
-	bcc .egt_item8
-	cmp #ITEM_TYPE_ENEMY_LAST+1
-	bcs .egt_item8
 	lda ITEM_CORPSE_TEX,x
-	bmi .egt_live
-	sec
-	rts				; A = corpse tex stub (caco)
-.egt_live
-	jsr mobj_for_slot		; X = item slot
-	bcs .egt_item8
-	lda MOBJ_INFO,y
-	cmp #MOBJINFO_IMPSHOT		; missile uses fireball item atlas
-	bcs .egt_item8
-	lda MOBJ_STATE,y
-	tay
-	lda state_texture,y
-	sec
-	rts
+	cmp #$ff
+	beq .egt_live
+	cmp #ITEM_TYPE_POSCORPSE
+	bcc .egt_stub			; caco / other 16×32 corpse
+	; item-atlas corpse (21..24)
 .egt_item8
 	lda #0
 	clc
+	rts
+.egt_stub
+	sec
+	rts				; A = corpse tex stub
+.egt_live
+	lda MOBJ_INFO,x
+	cmp #MOBJINFO_IMPSHOT		; missile uses fireball item atlas
+	bcs .egt_item8
+	lda MOBJ_STATE,x
+	tay
+	lda state_texture,y
+	sec
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -1393,6 +1318,7 @@ enemy_get_texture
 ; via COL_AIM_* (per-column stamp; pick lowest COL_AIM_Z in the cone).
 ; TryDamageMelee — same, but only if COL_AIM_Z < MELEERANGE.
 ; TryDamageAtCol — A = damage, X = column; hit that column's aim target only.
+; COL_AIM_SLOT is a vis-list index.
 ; ---------------------------------------------------------------------------
 TryDamageMelee
 	sta damage_amount
@@ -1430,23 +1356,29 @@ TryDamageEnemy
 	cmp tde_max_z
 	bcs .tde_rts			; too far for melee
 .tde_slot
-	ldx tde_best_slot
-	jsr mobj_for_slot
-	bcs .tde_barrel
-	lda MOBJ_HEALTH,y
+	ldx tde_best_slot		; vis index
+	lda ITEM_SORT_SLOT,x
+	bmi .tde_layer
+	tax				; mobj
+	lda MOBJ_HEALTH,x
 	beq .tde_rts
-	lda MOBJ_INFO,y
+	lda MOBJ_INFO,x
 	cmp #MOBJINFO_IMPSHOT
 	bcs .tde_rts
-	ldx tde_best_slot
 	lda damage_amount
 	jmp enemy_damage
-.tde_barrel
-	ldx tde_best_slot
-	lda level_item_type,x
+.tde_layer
+	and #$40
+	bne .tde_rts			; FX overlay — not a barrel
+	lda ITEM_SORT_SLOT,x
+	and #31
+	sta mapx
+	lda ITEM_SORT_SEC,x
+	sta mapy
+	jsr item_layer_id
 	cmp #ITEM_TYPE_BARREL
 	bne .tde_rts
-	jmp explode
+	jmp explode_tile
 .tde_rts
 	rts
 

@@ -17,9 +17,10 @@ player_frame
 	lda hurt_flash
 	beq .pf_suit
 	dec hurt_flash
+	jsr io_push
 	lda #2				; red overrides green
 	sta $d020
-	rts
+	jmp io_pop
 .pf_suit
 	jmp radsuit_set_border
 
@@ -40,8 +41,10 @@ damage_player
 	jsr play_sound
 	lda #1
 	sta hurt_flash
+	jsr io_push
 	lda #2
 	sta $d020
+	jsr io_pop
 
 	lda armor
 	beq .dp_health

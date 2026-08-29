@@ -1,27 +1,17 @@
 /**
- * Cooked binary layout (no header), per level — structure-of-arrays:
- *   1. Map: 1024 bytes sector ids (first so runtime level_map is $a000 / 32-aligned)
- *   2. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
- *      order: floor, ceil, special (packed trigger|oneshot|action), targetSector,
- *      floorColor, ceilingColor, brightness
- *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
- *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
- *      Same-tag sectors are linked into a sibling chain via targetSector (head ← triggers;
- *      each member points at the next). Runtime walks the chain for remote door/floor actions.
- *      editor tag strings are not stored in the binary
- *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
- *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
- *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
- *      unused item slots: typeId=0xFF
- *      spawn is not an item (typeId 0 unused in table)
+ * Cooked binary layout (no header), per level:
+ *   1. Map: 1024 bytes sector ids (first so runtime level_map is $9000 / 32-aligned)
+ *   2. Item layer: 1024 bytes, one cell per tile: 0 or type | skillBits<<5
+ *      skillBits: bit0=easy, bit1=normal, bit2=hard (bits 5–7 of the byte)
+ *   3. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
+ *      order: floor, ceil, special, targetSector, floorColor, ceilingColor, brightness
+ *   4. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   5. switch faces: 17 bytes — count, sec[8], dir[8]
- *      (switch sector id + NESW face of the solid; see buildSwitchFaceBindings)
- *   6. sector_max: 1 byte — max sector id used in map or sector table
+ *   6. sector_max: 1 byte
  *   7. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
-
- * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
+ * typeId: index into ITEM_TYPES (1–31 in the layer; 0 = empty)
  */
 
 import {
@@ -29,6 +19,8 @@ import {
   CAMERA_TYPE,
   SPAWN_TYPE,
   WORLD_PER_TILE,
+  snapToTileCenter,
+  snapLevelItems,
   isGameItem,
   isSwitch,
   coerceSwitchItem,
@@ -39,12 +31,9 @@ import {
   normalizeAction,
   LEVEL_NAMES,
   MAP_CELLS,
-  MAX_ITEMS,
-  MAX_PLACEABLE_ITEMS,
   MAX_ENEMIES,
   MAX_SECTORS,
   MAX_SWITCH_FACES,
-  ENEMY_TYPES,
   enemyCount,
   statItemCount,
   secretCount,
@@ -58,7 +47,6 @@ import {
   defaultSpawn,
   findSectorIdByTag,
   findAllSectorIdsByTag,
-  gameItemCount,
   normalizeColor,
   enforceSectorShapes,
   validateVoidBorder,
@@ -73,10 +61,8 @@ import {
 
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
 const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
-const ITEM_BYTES = 4;
 const SPAWN_BYTES = 3;
 const SWITCH_FACE_BYTES = 1 + MAX_SWITCH_FACES * 2;
-const EMPTY_ITEM_TYPE = 0xff;
 
 export function levelToJSON(level) {
   const sectorObj = {};
@@ -174,10 +160,11 @@ export function levelFromJSON(data, opts = {}) {
   if (Array.isArray(data.items)) {
     for (const it of data.items) {
       if (it.type === CAMERA_TYPE) {
+        const s = snapToTileCenter(it.x ?? 0, it.y ?? 0);
         level.items.push({
           type: CAMERA_TYPE,
-          x: clamp(it.x ?? 0, 0, 255),
-          y: clamp(it.y ?? 0, 0, 255),
+          x: s.x,
+          y: s.y,
           angle: normalizeAngle(it.angle),
         });
         continue;
@@ -200,11 +187,11 @@ export function levelFromJSON(data, opts = {}) {
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
-      if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
+      const s = snapToTileCenter(it.x ?? 0, it.y ?? 0);
       level.items.push({
         type: it.type,
-        x: clamp(it.x ?? 0, 0, 255),
-        y: clamp(it.y ?? 0, 0, 255),
+        x: s.x,
+        y: s.y,
         skills: {
           easy: it.skills?.easy !== false,
           normal: it.skills?.normal !== false,
@@ -232,22 +219,21 @@ export function levelFromJSON(data, opts = {}) {
   }
 
   if (data.spawn) {
-    setSpawn(
-      level,
-      data.spawn.x ?? 0,
-      data.spawn.y ?? 0,
-      data.spawn.angle ?? 0,
-    );
+    const s = snapToTileCenter(data.spawn.x ?? 0, data.spawn.y ?? 0);
+    setSpawn(level, s.x, s.y, data.spawn.angle ?? 0);
   } else if (legacySpawn) {
     // Legacy: use spawn item xy; angle from item if present, else old hardcoded playera=250
     const ang =
       legacySpawn.angle != null
         ? Number(legacySpawn.angle) || 0
         : byteToAngle(250);
-    setSpawn(level, legacySpawn.x ?? 0, legacySpawn.y ?? 0, ang);
+    const s = snapToTileCenter(legacySpawn.x ?? 0, legacySpawn.y ?? 0);
+    setSpawn(level, s.x, s.y, ang);
   } else {
     level.spawn = defaultSpawn();
   }
+
+  snapLevelItems(level);
 
   compactSectorIds(level);
   /** @type {string[]} */
@@ -376,37 +362,29 @@ export function cookLevel(level) {
 
   chainSameTagTargets(level, targets, warnings);
 
+  snapLevelItems(level);
   const mapBytes = new Uint8Array(level.map);
 
-  const gameItems = level.items.filter((it) => isGameItem(it.type));
   const nEnemies = enemyCount(level);
   if (nEnemies > MAX_ENEMIES) {
     errors.push(`Too many enemies (${nEnemies}/${MAX_ENEMIES})`);
   }
 
-  const typesArr = new Uint8Array(MAX_ITEMS);
-  const xs = new Uint8Array(MAX_ITEMS);
-  const ys = new Uint8Array(MAX_ITEMS);
-  const metas = new Uint8Array(MAX_ITEMS);
-  typesArr.fill(EMPTY_ITEM_TYPE);
-  for (let i = 0; i < MAX_ITEMS; i++) {
-    const it = gameItems[i];
-    if (!it) continue;
+  const layer = new Uint8Array(MAP_CELLS);
+  for (const it of level.items.filter((it) => isGameItem(it.type))) {
+    const s = snapToTileCenter(it.x, it.y);
     const typeId = ITEM_TYPES.indexOf(it.type);
-    typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-    xs[i] = it.x & 0xff;
-    ys[i] = it.y & 0xff;
+    if (typeId < 1 || typeId > 31) continue;
     let bits = 0;
-    if (it.skills.easy) bits |= 1;
-    if (it.skills.normal) bits |= 2;
-    if (it.skills.hard) bits |= 4;
-    metas[i] = bits;
+    if (it.skills?.easy) bits |= 1;
+    if (it.skills?.normal) bits |= 2;
+    if (it.skills?.hard) bits |= 4;
+    const idx = s.ty * 32 + s.tx;
+    if (layer[idx]) {
+      warnings.push(`Tile ${s.tx},${s.ty}: last-wins (${it.type} overwrites)`);
+    }
+    layer[idx] = (typeId & 0x1f) | ((bits & 7) << 5);
   }
-  const itemTable = new Uint8Array(MAX_ITEMS * ITEM_BYTES);
-  itemTable.set(typesArr, 0);
-  itemTable.set(xs, MAX_ITEMS);
-  itemTable.set(ys, MAX_ITEMS * 2);
-  itemTable.set(metas, MAX_ITEMS * 3);
 
   const spawn = level.spawn ?? defaultSpawn();
   const spawnBytes = new Uint8Array([
@@ -444,14 +422,15 @@ export function cookLevel(level) {
   const nSecrets = secretCount(level);
   const out = new Uint8Array(
     mapBytes.length +
+      MAP_CELLS +
       sectorBytes +
       SPAWN_BYTES +
-      itemTable.length +
       SWITCH_FACE_BYTES +
       5,
   );
   let o = 0;
   out.set(mapBytes, o); o += mapBytes.length;
+  out.set(layer, o); o += MAP_CELLS;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
   out.set(ceils, o); o += SECTOR_TABLE_SIZE;
   out.set(types, o); o += SECTOR_TABLE_SIZE;
@@ -460,7 +439,6 @@ export function cookLevel(level) {
   out.set(ccols, o); o += SECTOR_TABLE_SIZE;
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
-  out.set(itemTable, o); o += itemTable.length;
   out.set(switchTable, o); o += SWITCH_FACE_BYTES;
   out[o++] = sectorMax & 0xff;
   out[o++] = nEnemies & 0xff;

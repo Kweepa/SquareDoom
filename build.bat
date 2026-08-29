@@ -40,6 +40,9 @@ node tools\genlogo.js
 if errorlevel 1 exit /b 1
 node tools\gensky.js
 if errorlevel 1 exit /b 1
+if not exist tmp mkdir tmp
+"%ACME%" sprites_bank3.asm
+if errorlevel 1 exit /b 1
 "%ACME%" screens\cred.asm
 if errorlevel 1 exit /b 1
 "%ACME%" screens\help.asm
@@ -52,8 +55,8 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 (
   echo.
   echo Assemble failed — check mem: warnings above for free bytes / overlaps.
-  echo Ceilings: low^<$2940 minigunB  charset $3800..cock $3b80 mid^<$9000 SID  high^<$bc00 py_tab  SQTAB $c800
-  echo Under-KERNAL BSS: $e000 COL_* / PROF  ^($01=$35^); MENU.PRG at MENU_BASE; kernal scrap after SEC_WDARK_END
+  echo Ceilings: code^<$9000 map  py_tab $B000  SQTAB $BC00  screen $C400  sprites $C800-$D7BF  charset $D800
+  echo Play default $01=$34; I/O windows $35. Under-KERNAL BSS $e000; MENU.PRG at MENU_BASE; kernal scrap after SEC_WDARK_END
   exit /b 1
 )
 python tools\sort_lbl.py squaredoom.lbl
@@ -73,7 +76,7 @@ python tools\gen_vice_mon.py
 if errorlevel 1 exit /b 1
 
 echo Built squaredoom.prg and squaredoom.d64
-echo Memory: see mem: TOTAL free warn above ^(low+mid+high+menu-budget^)
+echo Memory: see mem: TOTAL free warn above ^(code+high+kernal-scrap^)
 dir squaredoom.prg
 dir squaredoom.d64
 dir screens\menu.prg

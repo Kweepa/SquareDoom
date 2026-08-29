@@ -28,7 +28,7 @@
 ; Use/fire/map: OR-latch if held on any sample this frame.
 ;
 ; CIA1 Timer B runs separately at ~140 Hz for PC speaker SFX (update_sfx).
-; Music play (MUSIC_PLAY) every other Timer A tick ≈ 25 Hz until 50 Hz SIDs.
+; Music play skipped (no SID on level PRG).
 
 SAMPLE_MS = 20
 ; Timer A load = SAMPLE_MS * 1024 - 1 (binary-ms, φ2 ticks) → 50 Hz
@@ -38,8 +38,10 @@ SAMPLE_TA_HI = >$4FFF
 SFX_TB_LO = <$1BFF
 SFX_TB_HI = >$1BFF
 
-MUSIC_INIT = SID_BASE			; relocated SidTracker init
-MUSIC_PLAY = SID_BASE + 3		; relocated SidTracker play
+; No SID on the level PRG (map owns $9000)
+MUSIC_INIT
+MUSIC_PLAY
+	rts
 
 ; Menus set this so Timer A skips $dc00 (ui_read_keys); music + TB SFX still run
 ; input_paused…key_wpn_* — cassette scrap BSS (zeropage.asm)
@@ -84,7 +86,7 @@ input_irq_init
 	sta $fffe
 	lda #>input_irq
 	sta $ffff
-	; KERNAL out ($01=$35): own NMI in RAM (do not JMP into ROM $FE43).
+	; KERNAL out ($01=$34/$35): own NMI in RAM (do not JMP into ROM $FE43).
 	; Also fill soft NMI ($0318) so a stray JMP ($0318) is safe — music
 	; shadows live at $02f8/$02f9, not on the vector page.
 	lda #<nmi_stub
@@ -100,11 +102,37 @@ input_irq_init
 	sta $dc0f				; Timer B
 	rts
 
-; Minimal KERNAL-NMI equivalent with KERNAL banked out: ack CIA2 (RESTORE/FLAG)
-; and return. (ROM $FE43 is SEI / JMP ($0318) into more ROM — unusable here.)
+; Minimal KERNAL-NMI equivalent with KERNAL banked out. Disable then ack:
+; FLAG held low re-latches on ICR read if the enable bit is still set, which
+; storms NMI and never returns from init_weapon. (ROM $FE43 JMPs into ROM.)
 nmi_stub
 	pha
-	lda $dd0d				; read ICR → ack CIA2 NMI source
+	lda $01
+	pha
+	lda #$35
+	sta $01
+	lda #$7f
+	sta $dd0d
+	sta $dc0d
+	lda $dd0d				; ack CIA2
+	lda $dc0d
+	pla
+	sta $01
+	pla
+	rti
+
+; Until input_irq_init writes $FFFE. SEI should mask IRQ; this is if I is clear.
+irq_rti_stub
+	pha
+	lda $01
+	pha
+	lda #$35
+	sta $01
+	lda $dc0d
+	lda #$ff
+	sta $d019
+	pla
+	sta $01
 	pla
 	rti
 
@@ -118,6 +146,10 @@ input_irq
 	pha
 	tya
 	pha
+	lda $01
+	pha
+	lda #$35
+	sta $01
 
 	lda $dc0d				; ack + source (bit0=TA, bit1=TB)
 	sta irq_ifr
@@ -130,16 +162,7 @@ input_irq
 	bne .irq_ta
 	jmp .irq_rti
 .irq_ta
-	; Music every other 50 Hz tick ≈ 25 Hz (SidTracker CIA rate for now)
-	lda music_enabled
-	beq .irq_try_keys
-	lda music_tick
-	eor #1
-	sta music_tick
-	beq .irq_try_keys
-	jsr MUSIC_PLAY
-	cld				; player may leave D set; game math is binary
-	jsr music_apply_sid_shadows	; merge shadowed D417/D418 → real SID
+	; MUSIC_PLAY skipped — no SID on the level PRG
 .irq_try_keys
 	lda input_paused
 	beq .irq_keys
@@ -270,6 +293,8 @@ input_irq
 	jsr check_cheats
 
 .irq_rti
+	pla
+	sta $01
 	pla
 	tay
 	pla
@@ -853,6 +878,7 @@ UI_MAP = 64
 ; ui_read_keys — set ui_keys / ui_pressed (new presses this call)
 ui_read_keys
 	sei
+	jsr io_push
 	lda ui_keys
 	sta ui_old
 	lda #0
@@ -929,6 +955,7 @@ ui_read_keys
 	eor #$ff
 	and ui_keys
 	sta ui_pressed
+	jsr io_pop
 	cli
 	rts
 

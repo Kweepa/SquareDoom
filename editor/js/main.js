@@ -4,8 +4,6 @@ import {
   SPAWN_TYPE,
   SWITCH_TYPE,
   MAP_SIZE,
-  MAX_ITEMS,
-  MAX_PLACEABLE_ITEMS,
   MAX_ENEMIES,
   ENEMY_TYPES,
   LEVEL_NAMES,
@@ -49,11 +47,11 @@ import {
   itemsInTiles,
   normalizeAngle,
   validateVoidBorder,
-} from './model.js?v=30';
+} from './model.js?v=31';
 import { MapView } from './mapView.js?v=25';
 import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
-import { TileEditor } from './tileEditor.js?v=27';
+import { TileEditor } from './tileEditor.js?v=28';
 import { ItemEditor } from './itemEditor.js?v=26';
 import { PreviewView } from './previewView.js?v=32';
 import { initShiftControls } from './shiftControls.js?v=24';
@@ -69,7 +67,7 @@ import {
   loadEpisodeJSON,
   saveEpisodeJSON,
   tryRestoreEpisodeFile,
-} from './io.js?v=26';
+} from './io.js?v=27';
 
 const statusEl = document.getElementById('status');
 const titleEl = document.querySelector('.toolbar h1');
@@ -591,10 +589,6 @@ refreshAfterPack = refreshAll;
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
-  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_PLACEABLE_ITEMS) {
-    setStatus(`Max ${MAX_PLACEABLE_ITEMS} items`, true);
-    return;
-  }
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) {
     setStatus(`Max ${MAX_ENEMIES} enemies (mobj limit)`, true);
     return;
@@ -840,12 +834,14 @@ function handlePointer(e, info) {
       }
 
       if (drag.mode === 'items') {
-        const dx = info.wx - drag.lastWx;
-        const dy = info.wy - drag.lastWy;
-        if (dx || dy) {
+        const dtx = info.tx - drag.lastTx;
+        const dty = info.ty - drag.lastTy;
+        if (dtx || dty) {
           beginUndoGesture();
-          const kept = moveItemsBy(level, [...selection.items], dx, dy);
+          const kept = moveItemsBy(level, [...selection.items], dtx * WORLD_PER_TILE, dty * WORLD_PER_TILE);
           selection.items = new Set(kept);
+          drag.lastTx = info.tx;
+          drag.lastTy = info.ty;
           drag.lastWx = info.wx;
           drag.lastWy = info.wy;
           markDirty();

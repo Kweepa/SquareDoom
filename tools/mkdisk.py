@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build squaredoom.d64 from squaredoom.prg, levels/e1m*.bin (+ music), and UI screens.
+"""Build squaredoom.d64 from squaredoom.prg, levels/e1m*.bin, and UI screens.
 
-Each level PRG loads at $9000: 4K relocated SID + level blob (level at $A000).
+Each level PRG loads at $9000: cooked blob only (no SID prefix).
 """
 
 import argparse
@@ -15,18 +15,8 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-# Local imports (same directory)
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from prepare_music import (  # noqa: E402
-	SID_LOAD_ADDR,
-	SID_SIZE,
-	find_sidreloc,
-	pad_sid_window,
-	relocate_sid,
-	resolve_level_sid,
-)
-
-LEVEL_BYTES = 2641
+LEVEL_LOAD_ADDR = 0x9000
+LEVEL_BYTES = 3473
 UI_LOAD_ADDR = 0xE000
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
 
@@ -85,40 +75,16 @@ def stage_ui(screens_dir: Path, tmp_dir: Path) -> List[Tuple[str, Path]]:
 	return staged
 
 
-def stage_level_with_music(
-	dos_name: str,
-	bin_path: Path,
-	music_dir: Path,
-	sidreloc: Path,
-	tmp_dir: Path,
-	sid_cache: dict,
-) -> Tuple[str, Path]:
-	"""PRG @ $9000 = SID window (4K) + level blob."""
+def stage_level(dos_name: str, bin_path: Path, tmp_dir: Path) -> Tuple[str, Path]:
+	"""PRG @ $9000 = cooked level blob only."""
 	level = bin_path.read_bytes()
 	if len(level) != LEVEL_BYTES:
 		print(
 			f"warning: {bin_path.name} is {len(level)} bytes (expected {LEVEL_BYTES})",
 			file=sys.stderr,
 		)
-
-	sid_src = resolve_level_sid(music_dir, dos_name)
-	cache_key = str(sid_src.resolve())
-	if cache_key not in sid_cache:
-		try:
-			raw, sidtracker = relocate_sid(sid_src, sidreloc)
-			sid_cache[cache_key] = pad_sid_window(raw, sidtracker=sidtracker)
-		except (ValueError, RuntimeError, FileNotFoundError) as e:
-			print(str(e), file=sys.stderr)
-			sys.exit(1)
-		src_note = sid_src.name
-		if sid_src.stem != dos_name:
-			src_note = f"{sid_src.name} (fallback)"
-		print(f"  music {dos_name}: {src_note} -> ${SID_LOAD_ADDR:04x}")
-
-	sid_payload = sid_cache[cache_key]
-	assert len(sid_payload) == SID_SIZE
 	out = tmp_dir / dos_name
-	out.write_bytes(struct.pack("<H", SID_LOAD_ADDR) + sid_payload + level)
+	out.write_bytes(struct.pack("<H", LEVEL_LOAD_ADDR) + level)
 	return dos_name, out
 
 
@@ -127,11 +93,6 @@ def main() -> None:
 	ap.add_argument("--out", default="squaredoom.d64")
 	ap.add_argument("--prg", default="squaredoom.prg")
 	ap.add_argument("--levels", default="levels", help="directory with e1mN.bin files")
-	ap.add_argument(
-		"--music",
-		default="music",
-		help="directory with e1mN.sid (fallback e1m1.sid)",
-	)
 	ap.add_argument(
 		"--screens",
 		default="screens",
@@ -143,12 +104,6 @@ def main() -> None:
 		default=None,
 		help="path to c1541 (default: VICE_BIN env or PATH)",
 	)
-	ap.add_argument(
-		"--sidreloc",
-		type=Path,
-		default=None,
-		help="path to sidreloc (default: SIDRELOC env or PATH)",
-	)
 	args = ap.parse_args()
 
 	c1541 = find_c1541(args.c1541)
@@ -159,23 +114,9 @@ def main() -> None:
 		)
 		sys.exit(1)
 
-	sidreloc = find_sidreloc(args.sidreloc)
-	if not sidreloc:
-		print(
-			"sidreloc not found. Install sidreloc or set SIDRELOC in setup-env.bat "
-			"(see SETUP.md).",
-			file=sys.stderr,
-		)
-		sys.exit(1)
-
 	prg = Path(args.prg)
 	if not prg.is_file():
 		print(f"missing PRG: {prg}", file=sys.stderr)
-		sys.exit(1)
-
-	music_dir = Path(args.music)
-	if not music_dir.is_dir():
-		print(f"missing music directory: {music_dir}", file=sys.stderr)
 		sys.exit(1)
 
 	levels = collect_levels(Path(args.levels))
@@ -188,13 +129,8 @@ def main() -> None:
 	with tempfile.TemporaryDirectory(prefix="sd_disk_") as tmp:
 		tmp_dir = Path(tmp)
 		staged: List[Tuple[str, Path]] = []
-		sid_cache: dict = {}
 		for dos_name, bin_path in levels:
-			staged.append(
-				stage_level_with_music(
-					dos_name, bin_path, music_dir, sidreloc, tmp_dir, sid_cache
-				)
-			)
+			staged.append(stage_level(dos_name, bin_path, tmp_dir))
 
 		ui_staged = stage_ui(Path(args.screens), tmp_dir)
 		staged.extend(ui_staged)
@@ -217,7 +153,7 @@ def main() -> None:
 		subprocess.check_call(cmd)
 
 	print(
-		f"Wrote {d64} via {c1541} ({len(levels)} levels + music, {len(ui_staged)} UI screens)"
+		f"Wrote {d64} via {c1541} ({len(levels)} levels, {len(ui_staged)} UI screens)"
 	)
 
 

@@ -375,28 +375,13 @@ spawn_enemy_missile
 	lda wish_x_h
 	sta missile_momz_h
 	jsr obj_xy
-	lda enemy_info
-	cmp #MOBJINFO_BARON
-	bne .sem_fb
-	lda #ITEM_TYPE_PLASMABALL
-	bne .sem_type
-.sem_fb
-	lda #ITEM_TYPE_FIREBALL
-.sem_type
-	sta level_item_type + ITEM_MISSILE
-	lda tmp0
-	sta level_item_x + ITEM_MISSILE
-	lda tmp1
-	sta level_item_y + ITEM_MISSILE
-	ldx #ITEM_MISSILE
-	jsr item_refresh_sector
 	ldx #MOBJ_MISSILE
+	lda tmp0
+	sta MOBJ_X,x
+	lda tmp1
+	sta MOBJ_Y,x
 	lda #1
 	sta MOBJ_ALLOC,x
-	lda #ITEM_MISSILE
-	sta MOBJ_OBJ,x
-	txa
-	sta MOBJ_FOR_ITEM + ITEM_MISSILE
 	lda #MOBJINFO_IMPSHOT
 	sta MOBJ_INFO,x
 	lda #STATE_IMPSHOTFLY
@@ -405,6 +390,12 @@ spawn_enemy_missile
 	sta MOBJ_XFRAC,x
 	sta MOBJ_YFRAC,x
 	sta MOBJ_FLAGS,x
+	lda enemy_info
+	cmp #MOBJINFO_BARON
+	bne .sem_npl
+	lda #MF_PLASMA
+	sta MOBJ_FLAGS,x
+.sem_npl
 	lda #<PROJ_LIFE_MS
 	sta missile_life_l
 	lda #>PROJ_LIFE_MS
@@ -425,20 +416,15 @@ spawn_enemy_missile
 ; ---------------------------------------------------------------------------
 spawn_player_rocket
 	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
-	bne .spr_busy
-	lda level_item_type + ITEM_PLAYER_ROCKET
-	cmp #ITEM_TYPE_EMPTY_E
 	beq .spr_ok
-.spr_busy
 	sec
 	rts
 .spr_ok
+	ldx #MOBJ_PLAYER_ROCKET
 	lda playerx_h
-	sta level_item_x + ITEM_PLAYER_ROCKET
+	sta MOBJ_X,x
 	lda playery_h
-	sta level_item_y + ITEM_PLAYER_ROCKET
-	lda #ITEM_TYPE_ROCKET
-	sta level_item_type + ITEM_PLAYER_ROCKET
+	sta MOBJ_Y,x
 	lda eyeheight
 	sec
 	sbc #1
@@ -457,13 +443,8 @@ spawn_player_rocket
 	lda costab,y
 	jsr neg_a
 	sta procket_momy_h
-	ldx #MOBJ_PLAYER_ROCKET
 	lda #1
 	sta MOBJ_ALLOC,x
-	lda #ITEM_PLAYER_ROCKET
-	sta MOBJ_OBJ,x
-	txa
-	sta MOBJ_FOR_ITEM + ITEM_PLAYER_ROCKET
 	lda #MOBJINFO_IMPSHOT
 	sta MOBJ_INFO,x
 	lda #STATE_IMPSHOTFLY
@@ -488,9 +469,9 @@ spawn_player_rocket
 	lda MOBJ_XFRAC,x
 	adc tmp0
 	sta MOBJ_XFRAC,x
-	lda level_item_x + ITEM_PLAYER_ROCKET
+	lda MOBJ_X,x
 	adc tmp1
-	sta level_item_x + ITEM_PLAYER_ROCKET
+	sta MOBJ_X,x
 	lda procket_momy_h
 	jsr proj_scale_vel
 	ldx #MOBJ_PLAYER_ROCKET
@@ -498,11 +479,9 @@ spawn_player_rocket
 	lda MOBJ_YFRAC,x
 	adc tmp0
 	sta MOBJ_YFRAC,x
-	lda level_item_y + ITEM_PLAYER_ROCKET
+	lda MOBJ_Y,x
 	adc tmp1
-	sta level_item_y + ITEM_PLAYER_ROCKET
-	ldx #ITEM_PLAYER_ROCKET
-	jsr item_refresh_sector
+	sta MOBJ_Y,x
 	clc
 	rts
 
@@ -714,23 +693,26 @@ proj_fly
 	jsr damage_player
 	; fall through
 missile_despawn
-	lda #ITEM_TYPE_EMPTY_E
-	sta level_item_type + ITEM_MISSILE
-	lda #$ff
-	sta MOBJ_FOR_ITEM + ITEM_MISSILE
 	ldx #MOBJ_MISSILE
 	lda #0
 	sta MOBJ_ALLOC,x
 	rts
 
 .pf_rok_boom
-	lda #$ff
-	sta MOBJ_FOR_ITEM + ITEM_PLAYER_ROCKET
 	ldx #MOBJ_PLAYER_ROCKET
+	lda MOBJ_X,x
+	lsr
+	lsr
+	lsr
+	sta mapx
+	lda MOBJ_Y,x
+	lsr
+	lsr
+	lsr
+	sta mapy
 	lda #0
 	sta MOBJ_ALLOC,x
-	ldx #ITEM_PLAYER_ROCKET
-	jmp explode
+	jmp explode_tile
 
 ; ---------------------------------------------------------------------------
 ; missile_try_hit_player — C=1 if enemy missile near player (XY+Z)
@@ -759,9 +741,9 @@ missile_try_hit_player
 ; procket_try_hit — C=1 if rocket near an enemy (XY + Z vs floor+2)
 ; ---------------------------------------------------------------------------
 procket_try_hit
-	lda level_item_x + ITEM_PLAYER_ROCKET
+	lda MOBJ_X + MOBJ_PLAYER_ROCKET
 	sta save_xh
-	lda level_item_y + ITEM_PLAYER_ROCKET
+	lda MOBJ_Y + MOBJ_PLAYER_ROCKET
 	sta save_yh
 	ldx #0
 .pth_lp
@@ -770,12 +752,11 @@ procket_try_hit
 	lda MOBJ_INFO,x
 	cmp #MOBJINFO_IMPSHOT
 	bcs .pth_nx
-	ldy MOBJ_OBJ,x
-	lda level_item_x,y
+	lda MOBJ_X,x
 	sec
 	sbc save_xh
 	sta tmp0
-	lda level_item_y,y
+	lda MOBJ_Y,x
 	sec
 	sbc save_yh
 	sta tmp1
@@ -783,15 +764,14 @@ procket_try_hit
 	jsr p_approx_distance
 	cmp #3
 	bcs .pth_rest
-	; Z: |procket_z - (SEC_FLOOR+2)| < 3 (reload item; p_approx clobbers tmp*)
+	; Z: |procket_z - (SEC_FLOOR+2)| < 3
 	ldx tmp5
-	ldy MOBJ_OBJ,x
-	lda level_item_x,y
+	lda MOBJ_X,x
 	lsr
 	lsr
 	lsr
 	sta mapx
-	lda level_item_y,y
+	lda MOBJ_Y,x
 	lsr
 	lsr
 	lsr

@@ -1,6 +1,6 @@
 ; Auto-generated from itemgraphics/multicolour/shotgun_cock.png - do not edit
 ; Six body layers (low VIC # = front): black hi, black lo, dark grey, highlight, brown, orange.
-; Placed at SHOTGUN_COCK_SPRITES ($3b80) in VIC bank 0; setup_shotgun_cock redirects $07f8.
+; Placed at SHOTGUN_COCK_SPRITES ($D640) in VIC bank 3; setup_shotgun_cock redirects SPR_PTR.
 ; 24x42: blacks 0-20@166 / 21-41@208; grey top; highlight bot;; hand brown rows 10-30 @ Y=186; orange rows 9-29 @ Y=184.
 !zone shotgun_cock_sprites
 

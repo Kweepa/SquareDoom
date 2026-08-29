@@ -83,65 +83,72 @@ add_ammo
 	rts
 
 ; ---------------------------------------------------------------------------
-; try_pickups — after apply_move; one item per frame if within radius
+; try_pickups — after apply_move; player-tile layer, then guts from corpses
 ; ---------------------------------------------------------------------------
 try_pickups
-	ldx #0
-.tp_loop
-	lda level_item_type,x
-	bmi .tp_next
+	jsr player_tile
+	jsr item_layer_id
+	beq .tp_guts
 	cmp #ITEM_TYPE_HEALTH
-	bcc .tp_next
-	cmp #ITEM_TYPE_POSCORPSE + 1
-	bcs .tp_next
-.tp_cand
+	bcc .tp_guts
+	cmp #ITEM_TYPE_RADSUIT + 1
+	bcs .tp_guts
 	sta tmp4			; typeId
-	lda level_item_x,x
-	sta tmp0			; item x
-	lda level_item_y,x
-	sta tmp1			; item y
-
-	; |ix - playerx_h|
+	jsr pickup_apply
+	bcc .tp_guts			; not taken
+	inc num_items_got
+	jsr item_layer_ptr
+	lda #0
+	tay
+	sta (ptr_l),y
+	rts
+.tp_guts
+	ldx #0
+.tp_gl
+	lda MOBJ_ALLOC,x
+	beq .tp_gn
+	lda MOBJ_INFO,x
+	cmp #MOBJINFO_POS
+	bne .tp_gn
+	lda MOBJ_HEALTH,x
+	bne .tp_gn
+	lda MOBJ_FLAGS,x
+	and #MF_GUTS_TAKEN
+	bne .tp_gn
+	lda MOBJ_X,x
+	sta tmp0
+	lda MOBJ_Y,x
+	sta tmp1
 	lda tmp0
 	sec
 	sbc playerx_h
-	bcs .tp_dx
+	bcs .tp_gdx
 	eor #$ff
 	adc #1
-.tp_dx
+.tp_gdx
 	cmp #PICKUP_RADIUS
-	bcs .tp_next
-	; |iy - playery_h|
+	bcs .tp_gn
 	lda tmp1
 	sec
 	sbc playery_h
-	bcs .tp_dy
+	bcs .tp_gdy
 	eor #$ff
 	adc #1
-.tp_dy
+.tp_gdy
 	cmp #PICKUP_RADIUS
-	bcs .tp_next
-
-	stx tmp5			; slot
-	lda tmp4
+	bcs .tp_gn
+	stx tmp5
+	lda MOBJ_FLAGS,x
+	ora #MF_GUTS_TAKEN
+	sta MOBJ_FLAGS,x
+	lda #ITEM_TYPE_POSCORPSE
+	sta tmp4
 	jsr pickup_apply
-	bcc .tp_done			; not taken
-	; countable pickup (not poscorpse) → stats
-	lda tmp4
-	cmp #ITEM_TYPE_RADSUIT + 1
-	bcs .tp_consume
-	inc num_items_got
-.tp_consume
-	; consume item
-	ldx tmp5
-	lda #ITEM_TYPE_EMPTY
-	sta level_item_type,x
-.tp_done
 	rts
-.tp_next
+.tp_gn
 	inx
-	cpx #MAX_ITEMS
-	bcc .tp_loop
+	cpx #MOBJ_PLAYER_ROCKET
+	bcc .tp_gl
 	rts
 
 ; ---------------------------------------------------------------------------

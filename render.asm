@@ -4,7 +4,7 @@
 ; render.asm — frame driver + sector-edge orchestration
 ; ============================================================================
 ; TheKeep-style secant DDA with portal height clipping into transposed
-; colour ($e000→$D800) and pattern ($e400→$0400) buffers.
+; colour ($e000→$D800) and pattern ($e400→$C400) buffers.
 ;
 ; Sources (PROFILE HUD letter when PROFILE=1):
 ;   render_setup.asm      S — player tile + ray cache

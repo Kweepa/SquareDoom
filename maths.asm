@@ -1,6 +1,6 @@
 !zone multiply
 
-; Judd/Arndt square tables at SQTAB* (under KERNAL, zeropage.asm)
+; Judd/Arndt square tables at SQTAB* ($BC00, always RAM)
 
 ; Build square tables and set ZP pointer highs.
 ; From https://6502.org/source/integers/fastmult.htm (Martin Arndt / Stephen Judd)

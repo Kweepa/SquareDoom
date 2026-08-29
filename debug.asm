@@ -102,7 +102,7 @@ dbg_portal_flush
 .dpf_done
 	rts
 
-; A = screen row 0..24 → ptr = $0400+40*A
+; A = screen row 0..24 → ptr = VIC_SCREEN+40*A
 .dpf_row_ptr
 	sta tmp0
 	lda #0
@@ -124,10 +124,10 @@ dbg_portal_flush
 .dpf_r1
 	clc
 	lda ptr_l
-	adc #<$0400
+	adc #<VIC_SCREEN
 	sta ptr_l
 	lda ptr_h
-	adc #>$0400
+	adc #>VIC_SCREEN
 	sta ptr_h
 	lda #0
 	sta fill_row			; column within row

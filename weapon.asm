@@ -1,23 +1,20 @@
 ; Weapon HUD sprites — table-driven layers + muzzle flash; switch via SMC
 !zone weapon
 
-; Contiguous banks in VIC bank 0 (see squaredoom.asm):
-;   minigun B $2940: 3 alt (upper+grey L/R); fist right $2a00 / punch $2c00
-;   chainsaw hi2 $2dc0 (punch pad); body $2e00: 8 sprites (no flash)
-;   minigun  $3000: 6 A/shared body; rocket $3180: 8; shotgun $3380: 6
-;   pistol   $3500: 6 body; shared muzzle $3680: flash A/B white+red (sprites 6–7)
-;   cock     $3b80: 6 layers (after charset pad; mid at $3d00)
-FIST_RIGHT_SPR_PTR0 = FIST_RIGHT_SPRITES / 64
-FIST_PUNCH_SPR_PTR0 = FIST_PUNCH_SPRITES / 64
-CHAINSAW_BLADE_HI2_PTR = CHAINSAW_BLADE_HI2_SPRITES / 64
-CHAINSAW_SPR_PTR0 = CHAINSAW_SPRITES / 64
-MINIGUN_B_SPR_PTR0 = MINIGUN_B_SPRITES / 64
-MINIGUN_SPR_PTR0 = MINIGUN_SPRITES / 64
-ROCKET_SPR_PTR0 = ROCKET_SPRITES / 64
-SHOTGUN_SPR_PTR0 = SHOTGUN_SPRITES / 64
-SHOTGUN_COCK_SPR_PTR0 = SHOTGUN_COCK_SPRITES / 64
-PISTOL_SPR_PTR0 = PISTOL_SPRITES / 64
-MUZZLE_FLASH_PTR0 = MUZZLE_FLASH_SPRITES / 64
+; Contiguous banks in VIC bank 3 (see mem_vic.asm):
+;   minigun B $C800: 3 alt; fist right / punch; chainsaw; minigun A;
+;   rocket / shotgun / pistol / muzzle; cock. Sprite pointers at SPR_PTR ($C7F8).
+FIST_RIGHT_SPR_PTR0 = <(FIST_RIGHT_SPRITES / 64)
+FIST_PUNCH_SPR_PTR0 = <(FIST_PUNCH_SPRITES / 64)
+CHAINSAW_BLADE_HI2_PTR = <(CHAINSAW_BLADE_HI2_SPRITES / 64)
+CHAINSAW_SPR_PTR0 = <(CHAINSAW_SPRITES / 64)
+MINIGUN_B_SPR_PTR0 = <(MINIGUN_B_SPRITES / 64)
+MINIGUN_SPR_PTR0 = <(MINIGUN_SPRITES / 64)
+ROCKET_SPR_PTR0 = <(ROCKET_SPRITES / 64)
+SHOTGUN_SPR_PTR0 = <(SHOTGUN_SPRITES / 64)
+SHOTGUN_COCK_SPR_PTR0 = <(SHOTGUN_COCK_SPRITES / 64)
+PISTOL_SPR_PTR0 = <(PISTOL_SPRITES / 64)
+MUZZLE_FLASH_PTR0 = <(MUZZLE_FLASH_SPRITES / 64)
 SG_COCK_MS = 600			; cock pose duration after muzzle expires (ms)
 EIGHT_ENABLE_IDLE = $3f		; sprites 0–5 (body; flash 6–7 off)
 EIGHT_ENABLE_ALL = $ff		; all eight (chainsaw)
@@ -238,8 +235,10 @@ init_weapon
 hide_weapon
 	lda #0
 	sta wpn_visible
+	jsr io_push
+	lda #0
 	sta $d015
-	rts
+	jmp io_pop
 
 ; After first blit — allow $d015 writes and enable current spr_en.
 ; Also refresh weapon highlight colour from player sector brightness.
@@ -248,12 +247,15 @@ show_weapon
 	beq hide_weapon			; death / pre-start: keep sprites off
 	lda #$ff
 	sta wpn_visible
+	jsr io_push
 	lda spr_en
 	sta $d015
-	; fall through
+	jsr io_pop
+	jmp .wpn_hi_bright
 ; Highlight colour: random muzzle tint while flash is up, else SEC_BRIGHT mapping.
 ; Skip while shotgun cock pose is up (sprite 0 is black base, not highlight).
 .wpn_hi_bright
+	jsr io_push
 	lda sg_cock_ms_l
 	ora sg_cock_ms_h
 	bne .wh_rts
@@ -278,7 +280,7 @@ show_weapon
 	bne .wh_rts
 	sta $d028
 .wh_rts
-	rts
+	jmp io_pop
 
 ; SEC_BRIGHT 0..16 → weapon highlight C64 colour
 bright_to_wpn_hi
@@ -290,9 +292,11 @@ bright_to_wpn_hi
 ; A = enable mask → spr_en; $d015 only if wpn_visible.
 .wpn_en
 	sta spr_en
+	jsr io_push
+	lda spr_en
 	and wpn_visible
 	sta $d015
-	rts
+	jmp io_pop
 
 ; ------------------------------------------------------------------
 ; Shared 8-sprite setup: A = ptr0, col/x/y tables via (ptr)
@@ -308,6 +312,7 @@ setup_fist_punch
 	ldx #1				; punch X table (further left)
 	; fall through
 .fist_apply
+	jsr io_push
 	sta tmp0			; sprite pointer base
 	stx tmp1			; 0=idle X, 1=punch X
 	lda #FIST_ENABLE
@@ -326,7 +331,7 @@ setup_fist_punch
 	sta $d027,x
 	txa
 	adc tmp0
-	sta $07f8,x
+	sta SPR_PTR,x
 	lda tmp1
 	bne .sf_punch_x
 	lda fist_spr_x,x
@@ -342,9 +347,10 @@ setup_fist_punch
 	inx
 	cpx #8
 	bcc .sf_set
-	rts
+	jmp io_pop
 
 setup_chainsaw
+	jsr io_push
 	lda #0
 	sta saw_running
 	sta saw_blade_frame
@@ -365,7 +371,7 @@ setup_chainsaw
 	sta $d027,x
 	txa
 	adc #CHAINSAW_SPR_PTR0
-	sta $07f8,x
+	sta SPR_PTR,x
 	lda chainsaw_spr_x,x
 	sta $d000,y
 	lda chainsaw_spr_y,x
@@ -375,9 +381,10 @@ setup_chainsaw
 	inx
 	cpx #8
 	bcc .sc_set
-	rts
+	jmp io_pop
 
 setup_pistol
+	jsr io_push
 	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
 	lda #$ff			; XY expand all eight
@@ -396,7 +403,7 @@ setup_pistol
 	bcs .sp_xy			; flash ptrs via .set_muzzle_ptrs
 	txa
 	adc #PISTOL_SPR_PTR0
-	sta $07f8,x
+	sta SPR_PTR,x
 .sp_xy
 	lda pistol_spr_x,x
 	sta $d000,y
@@ -407,9 +414,11 @@ setup_pistol
 	inx
 	cpx #8
 	bcc .sp_set
-	jmp .set_muzzle_ptrs
+	jsr .set_muzzle_ptrs
+	jmp io_pop
 
 setup_shotgun
+	jsr io_push
 	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
 	lda #$ff			; XY expand all eight
@@ -428,7 +437,7 @@ setup_shotgun
 	bcs .ss_xy
 	txa
 	adc #SHOTGUN_SPR_PTR0
-	sta $07f8,x
+	sta SPR_PTR,x
 .ss_xy
 	lda shotgun_spr_x,x
 	sta $d000,y
@@ -439,11 +448,13 @@ setup_shotgun
 	inx
 	cpx #8
 	bcc .ss_set
-	jmp .set_muzzle_ptrs
+	jsr .set_muzzle_ptrs
+	jmp io_pop
 
 ; Show shotgun cock pose — sprites 0–5 from SHOTGUN_COCK area, flash off.
 ; Called after muzzle expires on a shotgun shot; sg_cock_ms must be pre-set.
 setup_shotgun_cock
+	jsr io_push
 	lda #EIGHT_ENABLE_IDLE		; sprites 0–5 on, 6–7 off
 	jsr .wpn_en
 	lda #$ff
@@ -460,7 +471,7 @@ setup_shotgun_cock
 	sta $d027,x
 	txa
 	adc #SHOTGUN_COCK_SPR_PTR0
-	sta $07f8,x
+	sta SPR_PTR,x
 	lda shotgun_cock_x,x
 	sta $d000,y
 	lda shotgun_cock_y,x
@@ -470,9 +481,10 @@ setup_shotgun_cock
 	inx
 	cpx #6
 	bcc .ssc_set
-	rts
+	jmp io_pop
 
 setup_minigun
+	jsr io_push
 	lda #0
 	sta mg_frame
 	lda #EIGHT_ENABLE_IDLE
@@ -493,7 +505,7 @@ setup_minigun
 	bcs .sm_xy
 	txa
 	adc #MINIGUN_SPR_PTR0
-	sta $07f8,x
+	sta SPR_PTR,x
 .sm_xy
 	lda minigun_spr_x,x
 	sta $d000,y
@@ -504,7 +516,8 @@ setup_minigun
 	inx
 	cpx #8
 	bcc .sm_set
-	jmp .set_muzzle_ptrs
+	jsr .set_muzzle_ptrs
+	jmp io_pop
 
 ; Shared muzzle A/B → VIC sprites 6–7 (pistol / shotgun / minigun).
 ; muzzle_flash_var bit0: 0 → A (ptr0+0/+1), 1 → B (ptr0+2/+3).
@@ -513,9 +526,9 @@ setup_minigun
 	and #1
 	asl				; ×2 → 0 or 2
 	adc #MUZZLE_FLASH_PTR0
-	sta $07fe			; sprite 6 white
+	sta SPR_PTR+6			; sprite 6 white
 	adc #1
-	sta $07ff			; sprite 7 red
+	sta SPR_PTR+7			; sprite 7 red
 	rts
 
 ; Minigun body A/B → VIC 0 (upper), 2–3 (grey L/R). Shared 1/4/5 unchanged.
@@ -523,22 +536,23 @@ setup_minigun
 	lda mg_frame
 	bne .smfp_b
 	lda #MINIGUN_SPR_PTR0		; A upper
-	sta $07f8
+	sta SPR_PTR
 	lda #MINIGUN_SPR_PTR0 + 2	; A grey L
-	sta $07fa
+	sta SPR_PTR+2
 	lda #MINIGUN_SPR_PTR0 + 3	; A grey R
-	sta $07fb
+	sta SPR_PTR+3
 	rts
 .smfp_b
 	lda #MINIGUN_B_SPR_PTR0		; B upper
-	sta $07f8
+	sta SPR_PTR
 	lda #MINIGUN_B_SPR_PTR0 + 1	; B grey L
-	sta $07fa
+	sta SPR_PTR+2
 	lda #MINIGUN_B_SPR_PTR0 + 2	; B grey R
-	sta $07fb
+	sta SPR_PTR+3
 	rts
 
 setup_rocket
+	jsr io_push
 	lda #EIGHT_ENABLE_IDLE
 	jsr .wpn_en
 	lda #$ff
@@ -555,7 +569,7 @@ setup_rocket
 	sta $d027,x
 	txa
 	adc #ROCKET_SPR_PTR0
-	sta $07f8,x
+	sta SPR_PTR,x
 	lda rocket_spr_x,x
 	sta $d000,y
 	lda rocket_spr_y,x
@@ -565,7 +579,7 @@ setup_rocket
 	inx
 	cpx #8
 	bcc .sr_set
-	rts
+	jmp io_pop
 
 ; Fist / chainsaw: pistol-scale damage, but only in MELEERANGE (COL_AIM_Z).
 ; Chainsaw adds pain_boost so hits flinch more often (same dmg, faster fire).
@@ -639,9 +653,6 @@ damage_shotgun
 	cpx #5				; rocket — need free projectile slot
 	bne .fs_ammo
 	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
-	bne .fs_to_empty
-	lda level_item_type + ITEM_PLAYER_ROCKET
-	cmp #ITEM_TYPE_EMPTY_E		; also wait out explosion sprite
 	bne .fs_to_empty
 .fs_ammo
 	ldx cur_weapon
@@ -862,11 +873,11 @@ update_saw_blade
 	sta saw_blade_frame
 	beq .usb_hi
 	lda #CHAINSAW_BLADE_HI2_PTR
-	sta $07f8
+	sta SPR_PTR
 	rts
 .usb_hi
 	lda #CHAINSAW_SPR_PTR0
-	sta $07f8
+	sta SPR_PTR
 .usb_rts
 	rts
 .usb_idle
@@ -881,7 +892,7 @@ update_saw_blade
 	cmp #1
 	bne .usb_rts
 	lda #CHAINSAW_SPR_PTR0
-	sta $07f8
+	sta SPR_PTR
 	rts
 
 ; Y = chainsaw_spr_y[i] (+ SAW_RUN_DY if run)

@@ -93,10 +93,10 @@ map_fill_chars
 	ldx #0
 	lda #32
 .mfc_sp
-	sta $0400,x
-	sta $0500,x
-	sta $0600,x
-	sta $06e8,x
+	sta VIC_SCREEN,x
+	sta VIC_SCREEN+$100,x
+	sta VIC_SCREEN+$200,x
+	sta VIC_SCREEN+$2e8,x
 	inx
 	bne .mfc_sp
 
@@ -164,10 +164,10 @@ map_build_colours
 	jsr cell_addr
 	lda ptr_l
 	sec
-	sbc #<$0400
+	sbc #<VIC_SCREEN
 	sta aux_l
 	lda ptr_h
-	sbc #>$0400
+	sbc #>VIC_SCREEN
 	clc
 	adc #>SCREENBUFFER
 	sta aux_h
@@ -202,6 +202,7 @@ map_build_colours
 ; map_blit_colours — SCREENBUFFER → $d800 (call during / after vsync)
 ; ------------------------------------------------------------------
 map_blit_colours
+	jsr io_push
 	ldx #0
 .mbl
 	lda SCREENBUFFER,x
@@ -214,7 +215,7 @@ map_blit_colours
 	sta $dae8,x
 	inx
 	bne .mbl
-	rts
+	jmp io_pop
 
 ; ------------------------------------------------------------------
 ; map_erase_player — restore solid block under previous pointer
@@ -269,10 +270,13 @@ map_draw_player
 	ldy #0
 	sta (ptr_l),y
 	lda #1				; white
+	pha
+	jsr io_push
+	pla
 	sta (aux_l),y
 	lda #1
 	sta map_pl_on
-	rts
+	jmp io_pop
 .mdp_off
 	lda #0
 	sta map_pl_on

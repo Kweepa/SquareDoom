@@ -9,6 +9,7 @@
 ; for SidTracker tunes only (flag at MUSIC_SIDTRACKER_FLAG = $9FFF).
 ; After MUSIC_PLAY, music_apply_sid_shadows merges filter modes + game volume
 ; onto the real SID (never voice3-off; drop voice3-from-filter while SFX).
+; MUSIC_SIDTRACKER_FLAG is a stub (no SID on the level PRG).
 
 !zone playsound
 
@@ -16,8 +17,9 @@
 ; Not $0314–$0333 — that page is KERNAL soft vectors (NMI = $0318/$0319).
 sid_filt_shadow	= $02f8			; music wanted $D417
 sid_vol_shadow	= $02f9			; music wanted $D418
-; Last byte of 4K SID window — 1 if prepare_music patched SidTracker
-MUSIC_SIDTRACKER_FLAG = SID_BASE + SID_SIZE - 1	; $9FFF
+music_sidtracker_flag
+	!byte 0				; no SidTracker on level PRG
+MUSIC_SIDTRACKER_FLAG = music_sidtracker_flag
 
 ; Sound indices (VicDoom ESound / playSound.h)
 SOUND_CLAW = 0
@@ -54,6 +56,7 @@ sound_priorities
 ; play_sound_init — clear SID; voice 3 noise ready; idle vol = music_vol
 ; ------------------------------------------------------------------
 play_sound_init
+	jsr io_push
 	lda #$ff
 	sta sound_index
 	lda #0
@@ -70,21 +73,25 @@ play_sound_init
 	dex
 	bpl .psi_clr
 	jsr sfx_voice3_adsr
-	jmp music_apply_sid_shadows
+	jsr music_apply_sid_shadows
+	jmp io_pop
 
-; Voice 3 ADSR for gated noise
+; Voice 3 ADSR for gated noise. io_push: play_sound runs at $01=$34,
+; and pistol_mid lives at $D400 (SID window).
 sfx_voice3_adsr
+	jsr io_push
 	lda #$00
 	sta $d413				; AD: instant
 	lda #$f0
 	sta $d414				; SR: full sustain, fast release
-	rts
+	jmp io_pop
 
 ; ------------------------------------------------------------------
 ; music_apply_sid_shadows — after MUSIC_PLAY (or any vol change).
 ; SidTracker: merge shadowed D417/D418. Else: volume only (music owns filter).
 ; ------------------------------------------------------------------
 music_apply_sid_shadows
+	jsr io_push
 	lda MUSIC_SIDTRACKER_FLAG
 	beq .mas_plain
 
@@ -112,7 +119,7 @@ music_apply_sid_shadows
 	and #$70				; keep LP/BP/HP only
 	ora sid_merge_tmp
 	sta $d418
-	rts
+	jmp io_pop
 
 ; Non-SidTracker: do not touch $D417; set master volume only
 .mas_plain
@@ -128,7 +135,7 @@ music_apply_sid_shadows
 	lda music_vol
 .mas_p_store
 	sta $d418
-	rts
+	jmp io_pop
 
 ; ------------------------------------------------------------------
 ; play_sound — A = sound index; higher-or-equal priority preempts
@@ -186,22 +193,26 @@ update_sfx
 	beq .sfx_silent
 	tax
 	jsr sfx_voice3_adsr
+	jsr io_push
 	lda pcsfreq_lo,x
 	sta $d40e
 	lda pcsfreq_hi,x
 	sta $d40f
 	lda #$81			; noise + gate
 	sta $d412
-	rts
+	jmp io_pop
 
 .sfx_silent
+	jsr io_push
 	lda #0
 	sta $d412
-	rts
+	jmp io_pop
 
 .sfx_stop
+	jsr io_push
 	lda #0
 	sta $d412
+	jsr io_pop
 
 	lda #$ff
 	sta sound_index

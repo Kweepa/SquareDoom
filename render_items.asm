@@ -11,6 +11,7 @@
 
 ITEM_DEPTH_MIN = 1			; editor uses ~0.8 world units
 ITEM_AXIS_MAX = 120			; cull if |dx| or |dy| > 15 tiles (8-bit safe)
+ITEM_GATHER_HALF = 8			; 16×16 AABB
 ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
@@ -21,6 +22,7 @@ ITEM_TYPE_FIREBALL = 28
 ITEM_TYPE_PLASMABALL = 29
 ITEM_TYPE_ROCKET = 30
 ITEM_TYPE_EXPLOSION = 31
+ITEM_TYPE_POSCORPSE = 21
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -36,47 +38,8 @@ TEX_ANIMATE = 64
 ;   item_sin/cos = playera trig (once/frame); ITEM_SORT_* cache per visible
 ;   item_u / wish_x(ustep) / item_mip_base / item_mirror — enemy column DDA
 
-; Current item index during collect/draw (keep off ZP; turn $32 is player yaw)
+; Current vis index during collect/draw (keep off ZP; turn $32 is player yaw)
 ; item_slot — cassette scrap BSS (zeropage.asm)
-
-; ---------------------------------------------------------------------------
-; Persistent item-sector cache. ITEM_SORT_SEC is keyed by item slot, so it can
-; serve both collection culling and the existing draw restore without more RAM.
-; ---------------------------------------------------------------------------
-item_sector_cache_init
-	ldx #0
-.isci_loop
-	jsr item_refresh_sector
-	inx
-	cpx #MAX_ITEMS
-	bcc .isci_loop
-	rts
-
-; X = item slot. Restores X; clobbers A/Y, mapx/mapy and map pointer scratch.
-item_refresh_sector
-	stx item_slot
-	lda level_item_type,x
-	beq .irs_empty
-	cmp #ITEM_TYPE_EMPTY
-	beq .irs_empty
-	lda level_item_x,x
-	lsr
-	lsr
-	lsr
-	sta mapx
-	lda level_item_y,x
-	lsr
-	lsr
-	lsr
-	sta mapy
-	jsr map_sector_id
-	ldx item_slot
-	sta ITEM_SORT_SEC,x
-	rts
-.irs_empty
-	lda #0
-	sta ITEM_SORT_SEC,x
-	rts
 
 ; ---------------------------------------------------------------------------
 ; render_items
@@ -100,50 +63,9 @@ render_items
 	bpl .ri_clr_aim
 	lda #0
 	sta span_a
-	ldx #0
-.ri_col
-	lda level_item_type,x
-	beq .ri_nx
-	cmp #ITEM_TYPE_EMPTY
-	beq .ri_nx
-	cmp #ITEM_TYPE_SWITCH
-	beq .ri_nx			; wall-face texture in paint_switch_col
-	stx item_slot
-	lda ITEM_SORT_SEC,x
-	beq .ri_nx2
-	tay
-	lda SEC_SEEN,y
-	cmp seen_gen
-	bne .ri_nx2
-	sty near_ceil
-	ldx item_slot
-	jsr item_calc_depth
-	bcs .ri_nx2
-	; A = depth; cache by item slot (sort only swaps DEPTH/SLOT)
-	ldy span_a
-	sta ITEM_SORT_DEPTH,y
-	lda item_slot
-	sta ITEM_SORT_SLOT,y
-	tax
-	lda item_dx
-	sta ITEM_SORT_DX,x
-	lda fracx
-	sta ITEM_SORT_DY,x
-	lda wz_y_l
-	sta ITEM_SORT_WZ_L,x
-	lda wz_y_h
-	sta ITEM_SORT_WZ_H,x
-	iny
-	sty span_a
-	cpy #MAX_ITEMS
-	bcs .ri_go
-.ri_nx2
-	ldx item_slot
-.ri_nx
-	inx
-	cpx #MAX_ITEMS
-	bcc .ri_col
-.ri_go
+	jsr items_cull_near
+	jsr items_cull_mobjs
+	jsr items_cull_fx
 	lda span_a
 	beq .ri_done
 	sta fill_row			; preserve count (item_draw_one reuses span_*)
@@ -154,11 +76,6 @@ render_items
 	lda last_near_ccol
 	cmp fill_row
 	bcs .ri_done
-	tax
-	lda ITEM_SORT_SLOT,x
-	sta item_slot
-	lda ITEM_SORT_DEPTH,x
-	sta wallz_h
 	jsr item_draw_one
 	inc last_near_ccol
 	jmp .ri_dlp
@@ -169,19 +86,270 @@ render_items
 }
 	rts
 
+; A = signed sintab/costab (−64..64) → (A*7)>>6 tile steps (−7..7)
+item_dir_tiles
+	sta tmp2
+	bpl .idt_pos
+	eor #$ff
+	clc
+	adc #1
+.idt_pos
+	sta tmp3
+	lda #0
+	sta tmp1
+	lda tmp3
+	sta tmp0
+	asl tmp0
+	rol tmp1
+	asl tmp0
+	rol tmp1
+	asl tmp0
+	rol tmp1			; *8
+	sec
+	lda tmp0
+	sbc tmp3
+	sta tmp0
+	lda tmp1
+	sbc #0
+	sta tmp1			; *7
+	ldx #6
+.idt_lsr
+	lsr tmp1
+	ror tmp0
+	dex
+	bne .idt_lsr
+	lda tmp0
+	bit tmp2
+	bpl .idt_out
+	eor #$ff
+	clc
+	adc #1
+.idt_out
+	rts
+
+item_clamp31
+	bmi .ic31_0
+	cmp #MAP_SIZE
+	bcc .ic31_ok
+	lda #MAP_SIZE-1
+.ic31_ok
+	rts
+.ic31_0
+	lda #0
+	rts
+
+; AABB around player + 7 tiles forward (fwd = sin, −cos)
+items_cull_near
+	lda playerx_h
+	lsr
+	lsr
+	lsr
+	sta tmp4
+	ldy playera
+	lda sintab,y
+	jsr item_dir_tiles
+	clc
+	adc tmp4
+	jsr item_clamp31
+	sta tmp4				; cx
+	lda playery_h
+	lsr
+	lsr
+	lsr
+	sta tmp5
+	ldy playera
+	lda costab,y
+	jsr neg_a
+	jsr item_dir_tiles
+	clc
+	adc tmp5
+	jsr item_clamp31
+	sta tmp5				; cy
+	lda tmp4
+	sec
+	sbc #ITEM_GATHER_HALF
+	jsr item_clamp31
+	sta last_near_ok			; x0
+	lda tmp4
+	clc
+	adc #ITEM_GATHER_HALF - 1
+	jsr item_clamp31
+	sta far_ceil				; x1
+	lda tmp5
+	sec
+	sbc #ITEM_GATHER_HALF
+	jsr item_clamp31
+	sta last_near_fcol			; y0
+	lda tmp5
+	clc
+	adc #ITEM_GATHER_HALF - 1
+	jsr item_clamp31
+	sta last_near_ccol			; y1
+	lda last_near_fcol
+	sta mapy
+.icn_y
+	lda last_near_ok
+	sta mapx
+.icn_x
+	jsr item_layer_id
+	beq .icn_nx
+	sta wall_col
+	jsr item_tile_xy
+	jsr map_sector_id
+	sta near_ceil
+	lda mapx
+	ora #VIS_LAYER
+	sta item_slot
+	lda mapy
+	sta span_b				; ty for ITEM_SORT_SEC
+	jsr item_vis_push
+.icn_nx
+	lda span_a
+	cmp #MAX_ITEMS
+	bcs .icn_done
+	lda mapx
+	cmp far_ceil
+	bcs .icn_yn
+	inc mapx
+	jmp .icn_x
+.icn_yn
+	lda mapy
+	cmp last_near_ccol
+	bcs .icn_done
+	inc mapy
+	jmp .icn_y
+.icn_done
+	rts
+
+items_cull_mobjs
+	ldx #0
+.icm_lp
+	lda MOBJ_ALLOC,x
+	beq .icm_nx
+	stx item_slot
+	lda MOBJ_X,x
+	sta tmp0
+	lda MOBJ_Y,x
+	sta tmp1
+	jsr vis_mobj_type
+	lda tmp0
+	lsr
+	lsr
+	lsr
+	sta mapx
+	lda tmp1
+	lsr
+	lsr
+	lsr
+	sta mapy
+	stx fill_y0
+	jsr map_sector_id
+	sta near_ceil
+	sta span_b
+	jsr item_vis_push
+	ldx fill_y0
+.icm_nx
+	inx
+	cpx #MAX_MOBJ
+	bcc .icm_lp
+	rts
+
+; X = mobj → wall_col
+vis_mobj_type
+	lda MOBJ_INFO,x
+	cmp #MOBJINFO_IMPSHOT
+	bcs .vmt_proj
+	clc
+	adc #1
+	sta wall_col
+	lda ITEM_CORPSE_TEX,x
+	cmp #$ff
+	beq .vmt_rts
+	cmp #ITEM_TYPE_POSCORPSE		; 21 — defined in pickup? use 21
+	bcc .vmt_rts
+	sta wall_col
+.vmt_rts
+	rts
+.vmt_proj
+	cpx #MOBJ_PLAYER_ROCKET
+	beq .vmt_rok
+	lda MOBJ_FLAGS,x
+	and #MF_PLASMA
+	bne .vmt_pl
+	lda #ITEM_TYPE_FIREBALL
+	sta wall_col
+	rts
+.vmt_pl
+	lda #ITEM_TYPE_PLASMABALL
+	sta wall_col
+	rts
+.vmt_rok
+	lda #ITEM_TYPE_ROCKET
+	sta wall_col
+	rts
+
+items_cull_fx
+	ldx #0
+.icf_lp
+	lda FX_KIND,x
+	cmp #FX_EXPL
+	bne .icf_nx
+	lda FX_TX,x
+	sta mapx
+	lda FX_TY,x
+	sta mapy
+	txa
+	ora #VIS_FX
+	sta item_slot
+	jsr item_tile_xy
+	lda #ITEM_TYPE_EXPLOSION
+	sta wall_col
+	stx fill_y0
+	jsr map_sector_id
+	sta near_ceil
+	lda mapy
+	sta span_b
+	jsr item_vis_push
+	ldx fill_y0
+.icf_nx
+	inx
+	cpx #FX_MAX
+	bcc .icf_lp
+	rts
+
+; wall_col, tmp0/tmp1, near_ceil, item_slot, span_b=SEC ready
+item_vis_push
+	lda span_a
+	cmp #MAX_ITEMS
+	bcs .ivp_full
+	jsr item_calc_depth
+	bcs .ivp_full
+	ldy span_a
+	sta ITEM_SORT_DEPTH,y
+	lda item_slot
+	sta ITEM_SORT_SLOT,y
+	lda span_b
+	sta ITEM_SORT_SEC,y
+	lda item_dx
+	sta ITEM_SORT_DX,y
+	lda fracx
+	sta ITEM_SORT_DY,y
+	lda wz_y_l
+	sta ITEM_SORT_WZ_L,y
+	lda wz_y_h
+	sta ITEM_SORT_WZ_H,y
+	iny
+	sty span_a
+.ivp_full
+	rts
+
 ; ---------------------------------------------------------------------------
-; item_calc_depth — X=slot, near_ceil=sector
+; item_calc_depth — wall_col, tmp0=ix, tmp1=iy, near_ceil=sector
 ; Exit: C=1 skip; C=0 A=depth (1..255)
-; Also sets wall_col=typeId, near_floor=floor
+; Also sets near_floor=floor
 ; Leaves item_dx=dx, fracx=dy (signed 8-bit) for item_calc_screen
 ; ---------------------------------------------------------------------------
 item_calc_depth
-	lda level_item_type,x
-	sta wall_col
-	lda level_item_x,x
-	sta tmp0			; ix
-	lda level_item_y,x
-	sta tmp1			; iy
 	lda tmp0			; ix
 	sta tmp2
 	lda playerx_h
@@ -448,11 +616,23 @@ item_sort_depth
 	ldx #1
 .is_o
 	cpx span_a
-	bcs .is_done
+	bcc .is_go
+	rts
+.is_go
 	lda ITEM_SORT_DEPTH,x
 	sta tmp0
 	lda ITEM_SORT_SLOT,x
 	sta tmp1
+	lda ITEM_SORT_SEC,x
+	sta tmp2
+	lda ITEM_SORT_DX,x
+	sta tmp3
+	lda ITEM_SORT_DY,x
+	sta tmp4
+	lda ITEM_SORT_WZ_L,x
+	sta tmp5
+	lda ITEM_SORT_WZ_H,x
+	sta aux_l
 	txa
 	tay
 .is_i
@@ -463,6 +643,16 @@ item_sort_depth
 	sta ITEM_SORT_DEPTH+1,y
 	lda ITEM_SORT_SLOT,y
 	sta ITEM_SORT_SLOT+1,y
+	lda ITEM_SORT_SEC,y
+	sta ITEM_SORT_SEC+1,y
+	lda ITEM_SORT_DX,y
+	sta ITEM_SORT_DX+1,y
+	lda ITEM_SORT_DY,y
+	sta ITEM_SORT_DY+1,y
+	lda ITEM_SORT_WZ_L,y
+	sta ITEM_SORT_WZ_L+1,y
+	lda ITEM_SORT_WZ_H,y
+	sta ITEM_SORT_WZ_H+1,y
 	tya
 	bne .is_i
 	beq .is_put
@@ -473,28 +663,31 @@ item_sort_depth
 	sta ITEM_SORT_DEPTH,y
 	lda tmp1
 	sta ITEM_SORT_SLOT,y
+	lda tmp2
+	sta ITEM_SORT_SEC,y
+	lda tmp3
+	sta ITEM_SORT_DX,y
+	lda tmp4
+	sta ITEM_SORT_DY,y
+	lda tmp5
+	sta ITEM_SORT_WZ_L,y
+	lda aux_l
+	sta ITEM_SORT_WZ_H,y
 	inx
-	bne .is_o
-.is_done
-	rts
+	jmp .is_o
 
 ; ---------------------------------------------------------------------------
-; item_draw_one — item_slot set, wallz_h=depth (from sort)
-; Uses ITEM_SORT_* cache at last_near_ccol (collect already validated).
+; item_draw_one — last_near_ccol = vis index
+; Uses ITEM_SORT_* cache keyed by vis (collect already validated).
 ; ---------------------------------------------------------------------------
 item_draw_one
 	lda #$ff
 	sta aim_item
-	ldx item_slot
-	lda level_item_type,x
-	sta wall_col
-	; Restore collect-pass results by item_slot (skip map + depth recompute)
-	ldx item_slot
-	lda ITEM_SORT_SEC,x
-	sta near_ceil
-	tay
-	lda SEC_FLOOR,y
-	sta near_floor
+	ldx last_near_ccol
+	lda ITEM_SORT_DEPTH,x
+	sta wallz_h
+	lda ITEM_SORT_SLOT,x
+	sta item_slot
 	lda ITEM_SORT_DX,x
 	sta item_dx
 	lda ITEM_SORT_DY,x
@@ -503,6 +696,44 @@ item_draw_one
 	sta wz_y_l
 	lda ITEM_SORT_WZ_H,x
 	sta wz_y_h
+	lda item_slot
+	bmi .id_hi
+	tax
+	jsr vis_mobj_type
+	ldx last_near_ccol
+	lda ITEM_SORT_SEC,x
+	sta near_ceil
+	jmp .id_gotsec
+.id_hi
+	and #$40
+	bne .id_fx
+	lda item_slot
+	and #31
+	sta mapx
+	ldx last_near_ccol
+	lda ITEM_SORT_SEC,x
+	sta mapy
+	jsr item_layer_id
+	sta wall_col
+	jsr map_sector_id
+	sta near_ceil
+	jmp .id_gotsec
+.id_fx
+	lda item_slot
+	and #15
+	tax
+	lda FX_TX,x
+	sta mapx
+	lda FX_TY,x
+	sta mapy
+	lda #ITEM_TYPE_EXPLOSION
+	sta wall_col
+	jsr map_sector_id
+	sta near_ceil
+.id_gotsec
+	ldx near_ceil
+	lda SEC_FLOOR,x
+	sta near_floor
 	; sin/cos for item_calc_screen (same as collect; last_near_* reused)
 	lda item_sin
 	sta last_near_floor
@@ -537,7 +768,9 @@ item_draw_one
 	lda #127
 .id_h2
 	sta far_ceil			; screen H (enemies; items overwrite below)
-	ldx item_slot
+	lda item_slot
+	bmi .id_w_sq
+	tax
 	jsr enemy_get_texture
 	bcc .id_w_sq
 	sta far_floor			; tex (+ TEX_ANIMATE); mip path
@@ -909,26 +1142,27 @@ item_draw_clp_go
 	lda item_mip_vshift,x
 .id_vshift_ready
 	sta item_vshift
-	; Live enemy or barrel: lock aim_item for COL_AIM stamps
-	ldx item_slot
+	; Live enemy or barrel: lock aim_item (vis index) for COL_AIM stamps
 	lda wall_col
 	cmp #ITEM_TYPE_BARREL
 	bne .id_aim_en
-	stx aim_item
-	beq .id_clp_start
+	lda last_near_ccol
+	sta aim_item
+	jmp .id_clp_start
 .id_aim_en
 	cmp #ITEM_TYPE_ENEMY_LO
 	bcc .id_clp_start
 	cmp #ITEM_TYPE_ENEMY_HI+1
 	bcs .id_clp_start
-	jsr mobj_for_slot
-	bcs .id_clp_start
-	lda MOBJ_HEALTH,y
+	lda item_slot
+	bmi .id_clp_start
+	tax
+	lda MOBJ_HEALTH,x
 	beq .id_clp_start
-	lda MOBJ_INFO,y
+	lda MOBJ_INFO,x
 	cmp #MOBJINFO_IMPSHOT		; exclude missiles (baron = 4 is damageable)
 	bcs .id_clp_start
-	lda item_slot
+	lda last_near_ccol
 	sta aim_item
 .id_clp_start
 	; want16 = depth16 · 255/512 into wz_x — stack Z ≈ 255·perp tiles,

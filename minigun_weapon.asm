@@ -1,5 +1,5 @@
 ; Auto-generated from minigun_* layer PNGs - do not edit
-; Nine blobs: B upper+grey L/R @ MINIGUN_B_SPRITES ($2940), then
+; Nine blobs: B upper+grey L/R @ MINIGUN_B_SPRITES, then
 ;   *= MINIGUN_SPRITES: A upper, lower hi, A grey L/R, black L/R.
 ;   VIC 0/2/3 swap A↔B on fire; 1/4/5 shared. Muzzle: sprites 6–7.
 !zone minigun

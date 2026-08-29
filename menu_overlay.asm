@@ -26,7 +26,7 @@ run_menu_body
 	jsr clear_screen
 	jsr draw_title_banner
 	lda #MENU_BORDER		; after LoadUiFile (LoadPrg clears $d020)
-	sta $d020
+	jsr set_border
 	jsr sync_vol_strings
 	lda #0
 	sta menu_id
@@ -73,7 +73,7 @@ menu_exit
 	lda #0
 	sta input_paused
 	lda #0				; black border for play / other UI
-	sta $d020
+	jsr set_border
 	lda #1
 	sta hud_dirty
 	lda #$ff
@@ -228,7 +228,7 @@ menu_select
 	jsr clear_screen
 	jsr draw_title_banner
 	lda #MENU_BORDER
-	sta $d020
+	jsr set_border
 	jsr draw_menu
 .ms_st
 	clc
@@ -248,6 +248,7 @@ draw_logo
 	lda #UI_LOGO
 	jsr LoadUiFile
 	bcs .dl_fail
+	jsr io_push
 	lda #0
 	sta tmp2			; RLE stream index
 	lda #LOGO_ROW
@@ -301,6 +302,7 @@ draw_logo
 	inc pr_row
 	dec tmp3
 	bne .dl_row
+	jmp io_pop
 .dl_fail
 	rts
 
@@ -368,8 +370,10 @@ draw_menu_item
 	lda #MENU_CURSOR			; skull (@)
 	ldy #0
 	sta (ptr_l),y
+	jsr io_push
 	lda #HILITE_COL
 	sta (aux_l),y
+	jsr io_pop
 .di_g
 	lda menu_id
 	asl
@@ -470,7 +474,7 @@ show_text_screen_body
 	jsr LoadUiFile
 	bcs .st_fail
 	lda #MENU_BORDER		; LoadPrg cleared border
-	sta $d020
+	jsr set_border
 	jsr clear_screen
 	jsr wait_frames_30
 	lda #<SCREENBUFFER
@@ -517,6 +521,7 @@ print_at_typed
 	sta pr_col
 	stx pr_row
 	jsr cell_addr
+	jsr io_push
 	ldy #0
 .pt
 	lda (ui_str_l),y
@@ -561,7 +566,7 @@ print_at_typed
 	iny
 	bne .pt
 .pt_d
-	rts
+	jmp io_pop
 .pt_tog
 	lda #TEXT_COL + HILITE_COL
 	sec

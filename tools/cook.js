@@ -1,5 +1,5 @@
 /**
- * Cook episode1.json → levels/e1m1.bin … e1m9.bin (SoA sector tables).
+ * Cook episode1.json → levels/e1m1.bin … e1m9.bin (map + item layer + sectors).
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';

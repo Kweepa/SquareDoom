@@ -58,7 +58,7 @@ is_orange = lambda r, g, b, a: a >= 128 and r >= 150 and b < 80
 lines = [
 	'; Auto-generated from itemgraphics/multicolour/shotgun_cock.png - do not edit',
 	'; Six body layers (low VIC # = front): black hi, black lo, dark grey, highlight, brown, orange.',
-	'; Placed at SHOTGUN_COCK_SPRITES ($3b80) in VIC bank 0; setup_shotgun_cock redirects $07f8.',
+	'; Placed at SHOTGUN_COCK_SPRITES ($D640) in VIC bank 3; setup_shotgun_cock redirects SPR_PTR.',
 	'; 24x42: blacks 0-20@166 / 21-41@208; grey top; highlight bot;'
 	'; hand brown rows %d-%d @ Y=%d; orange rows %d-%d @ Y=%d.'
 	% (BROWN_ROW0, BROWN_ROW0 + 20, BROWN_Y, ORANGE_ROW0, ORANGE_ROW0 + 20, ORANGE_Y),

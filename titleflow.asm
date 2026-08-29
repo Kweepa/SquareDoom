@@ -1,5 +1,5 @@
 ; Resident title / level flow / print / melt (menu UI loads from disk → MENU_BASE)
-; Screen ptrs: scr_ptr = $0400 cell, col_ptr = $d800 cell, ui_str_l/h = string
+; Screen ptrs: scr_ptr = VIC_SCREEN cell, col_ptr = $d800 cell, ui_str_l/h = string
 !zone titleflow
 
 TEXT_COL = 2
@@ -16,7 +16,6 @@ ui_text_col	!byte TEXT_COL
 
 ; ==================================================================
 game_start
-	cli
 	lda #$ff
 	sta ui_buf_id
 	jsr hide_weapon
@@ -34,7 +33,7 @@ game_start
 
 next_level
 	lda #0
-	sta music_enabled		; stop play while disk overwrites $9000
+	sta music_enabled		; stay off (no SID on level PRG)
 	jsr hide_weapon
 	jsr show_entering
 	jsr FormatDosName
@@ -42,7 +41,6 @@ next_level
 	bcs .nl_fail
 	lda #0
 	sta end_level
-	jsr music_init			; SID @ $9000 from level PRG; restore CIA timers
 	jsr start_level
 	jmp gameloop
 .nl_fail
@@ -52,12 +50,14 @@ next_level
 music_init
 	lda #0
 	sta music_enabled
+	jsr io_push
 	jsr MUSIC_INIT			; writes filter/vol to $02f8/$02f9 shadows
 	cld				; SidTracker uses SED; keep binary for game math
 	jsr music_apply_sid_shadows
 	lda #1
 	sta music_enabled
-	jmp input_irq_init		; restore 50 Hz TA / 140 Hz TB after init
+	jsr input_irq_init		; restore 50 Hz TA / 140 Hz TB after init
+	jmp io_pop
 
 ; clear + "entering" / level title
 show_entering
@@ -178,6 +178,7 @@ melt_screen
 
 ; Slide one random column down one row (all 25 rows); +40 addressing
 melt_one_col
+	jsr io_push
 	jsr GetRandom16
 	lda random
 .ms_mod
@@ -187,13 +188,13 @@ melt_one_col
 	jmp .ms_mod
 .ms_got
 	sta melt_col
-	; scr_ptr = $0400 + col + 23*40 (start at row 23)
+	; scr_ptr = VIC_SCREEN + col + 23*40 (start at row 23)
 	lda melt_col
 	clc
-	adc #<$0400
+	adc #<VIC_SCREEN
 	sta scr_ptr
 	lda #0
-	adc #>$0400
+	adc #>VIC_SCREEN
 	sta scr_ptr + 1
 	lda scr_ptr
 	clc
@@ -207,7 +208,7 @@ melt_one_col
 	sta col_ptr
 	lda scr_ptr + 1
 	clc
-	adc #($d800 - $0400) >> 8
+	adc #($d800 - VIC_SCREEN) >> 8
 	sta col_ptr + 1
 	; 24 copies: row23→24 … row0→1
 	ldx #24
@@ -250,23 +251,23 @@ melt_one_col
 	; clear top cell (black)
 	lda melt_col
 	clc
-	adc #<$0400
+	adc #<VIC_SCREEN
 	sta scr_ptr
 	lda #0
-	adc #>$0400
+	adc #>VIC_SCREEN
 	sta scr_ptr + 1
 	lda scr_ptr
 	sta col_ptr
 	lda scr_ptr + 1
 	clc
-	adc #($d800 - $0400) >> 8
+	adc #($d800 - VIC_SCREEN) >> 8
 	sta col_ptr + 1
 	lda #32
 	ldy #0
 	sta (scr_ptr),y
 	lda #0
 	sta (col_ptr),y
-	rts
+	jmp io_pop
 
 ; ==================================================================
 ; A/Y=string X=row → centered
@@ -289,6 +290,7 @@ print_centered
 print_at
 	sta pr_col
 	stx pr_row
+	jsr io_push
 	jsr cell_addr
 	ldy #0
 .pa
@@ -315,7 +317,7 @@ print_at
 	iny
 	bne .pa
 .pa_d
-	rts
+	jmp io_pop
 .pa_tog
 	; toggle TEXT_COL(2) ↔ HILITE_COL(7): c = 9 - c
 	lda #TEXT_COL + HILITE_COL
@@ -388,10 +390,13 @@ ascii_to_scr
 store_asc
 	sta tmp0
 	jsr ascii_to_scr
+	pha
+	jsr io_push
+	pla
 	sta (ptr_l),y
 	lda ui_text_col
 	sta (aux_l),y
-	rts
+	jmp io_pop
 
 ; A=col X=row → ptr=screen aux=colour
 cell_addr
@@ -430,16 +435,16 @@ cell_addr
 .ca2
 	lda ptr_l
 	clc
-	adc #<$0400
+	adc #<VIC_SCREEN
 	sta ptr_l
 	lda ptr_h
-	adc #>$0400
+	adc #>VIC_SCREEN
 	sta ptr_h
 	lda ptr_l
 	sta aux_l
 	lda ptr_h
 	clc
-	adc #($d800-$0400)>>8
+	adc #($d800-VIC_SCREEN)>>8
 	sta aux_h
 	rts
 
@@ -447,12 +452,13 @@ clear_screen
 	ldx #0
 	lda #32
 .cs1
-	sta $0400,x
-	sta $0500,x
-	sta $0600,x
-	sta $06e8,x
+	sta VIC_SCREEN,x
+	sta VIC_SCREEN+$100,x
+	sta VIC_SCREEN+$200,x
+	sta VIC_SCREEN+$2e8,x
 	inx
 	bne .cs1
+	jsr io_push
 	ldx #0
 	lda #TEXT_COL
 .cs2
@@ -462,13 +468,14 @@ clear_screen
 	sta $dae8,x
 	inx
 	bne .cs2
-	rts
+	jmp io_pop
 
 clear_row
 	txa
 	pha
 	lda #0
 	jsr cell_addr
+	jsr io_push
 	ldy #39
 .cr
 	lda #32
@@ -477,26 +484,29 @@ clear_row
 	sta (aux_l),y
 	dey
 	bpl .cr
+	jsr io_pop
 	pla
 	tax
 	rts
 
 wait_raster
+	jsr io_push
 	lda $d012
 .wr
 	cmp $d012
 	beq .wr
-	rts
+	jmp io_pop
 
 ; Wait one full video frame (vsync)
 wait_frame
+	jsr io_push
 .wf_hi
 	lda $d011
 	bpl .wf_hi			; wait until raster ≥ 256
 .wf_lo
 	lda $d011
 	bmi .wf_lo			; wait until raster < 256
-	rts
+	jmp io_pop
 
 wait_frames_30
 	ldx #30

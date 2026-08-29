@@ -1,5 +1,68 @@
 !zone util
 
+; Map I/O in ($35), saving previous $01. Nested-safe with io_pop.
+; Do not PHA $01: a subroutine RTS would pull that byte as the return PCL
+; (setup_pistol's first jsr io_push returned to $6936 BRK in sprite data).
+io_depth	!byte 0
+io_stk		!byte 0, 0, 0, 0
+io_tmp_a	!byte 0
+io_tmp_x	!byte 0
+
+io_push
+	sta io_tmp_a
+	stx io_tmp_x
+	ldx io_depth
+	lda $01
+	sta io_stk,x
+	inx
+	stx io_depth
+	lda #$35
+	sta $01
+	ldx io_tmp_x
+	lda io_tmp_a
+	rts
+
+io_pop
+	sta io_tmp_a
+	stx io_tmp_x
+	ldx io_depth
+	dex
+	stx io_depth
+	lda io_stk,x
+	sta $01
+	ldx io_tmp_x
+	lda io_tmp_a
+	rts
+
+; A = border colour
+set_border
+	tax
+	jsr io_push
+	txa
+	sta $d020
+	jmp io_pop
+
+; VIC bank 3, screen $C400 / charset $D800. Caller must have I/O in.
+set_vic_bank3
+	lda $dd00
+	and #$fc
+	sta $dd00
+	lda #D018_VIC
+	sta $d018
+	rts
+
+; A = colour. I/O must be in. Fills $d800–$dbe7.
+fill_color_ram
+	ldx #0
+.fcr
+	sta $d800,x
+	sta $d900,x
+	sta $da00,x
+	sta $dae8,x
+	inx
+	bne .fcr
+	rts
+
 ; mapx/mapy → A = sector id
 ; Uses maprowlo/hi = level_map + y*32
 ; Leaves ptr_l/h at the cell (setup_player_tile caches it as plr_tile).
@@ -14,6 +77,42 @@ map_sector_id
 	sta ptr_h
 	ldy #0
 	lda (ptr_l),y
+	rts
+
+; mapx/mapy → A = item layer byte; ptr_l/h at the cell (map hi + 4)
+item_layer_id
+	jsr item_layer_ptr
+	ldy #0
+	lda (ptr_l),y
+	rts
+
+item_layer_ptr
+	ldy mapy
+	lda maprowlo,y
+	clc
+	adc mapx
+	sta ptr_l
+	lda maprowhi,y
+	adc #4				; $90..$93 → $94..$97
+	sta ptr_h
+	rts
+
+; mapx/mapy → tmp0/tmp1 = tile-center world XY
+item_tile_xy
+	lda mapx
+	asl
+	asl
+	asl
+	clc
+	adc #4
+	sta tmp0
+	lda mapy
+	asl
+	asl
+	asl
+	clc
+	adc #4
+	sta tmp1
 	rts
 
 player_tile
@@ -477,20 +576,23 @@ radsuit_set_border
 	cmp #<RADSUIT_WARN_MS
 	bcc .rsb_flash
 .rsb_green
+	jsr io_push
 	lda #5				; green
 	sta $d020
-	rts
+	jmp io_pop
 .rsb_flash
 	lda radsuit_ms + 1
 	lsr				; ~512 ms phase
 	bcc .rsb_black
+	jsr io_push
 	lda #5
 	sta $d020
-	rts
+	jmp io_pop
 .rsb_black
+	jsr io_push
 	lda #0
 	sta $d020
-	rts
+	jmp io_pop
 
 ; Locked-door key messages (moved from pickup — mid headroom)
 door_msg_lo

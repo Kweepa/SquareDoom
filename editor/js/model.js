@@ -6,8 +6,6 @@ export const MAX_SECTORS = 199;
 /** Cooked switch face table size (sector id + solid NESW face per entry). */
 export const MAX_SWITCH_FACES = 8;
 export const MAX_ITEMS = 48;
-/** Last two item slots reserved for enemy missile + player rocket. */
-export const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
 /** Live enemy mobjs; last two mobj slots reserved for missiles (matches game MAX_MOBJ). */
 export const MAX_MOBJ = 32;
 export const MAX_ENEMIES = MAX_MOBJ - 2;
@@ -16,6 +14,55 @@ export const MAX_ENEMIES = MAX_MOBJ - 2;
 export const LEVEL_NAME_LEN = 20;
 export const WORLD_PER_TILE = 8;
 export const WORLD_MAX = MAP_SIZE * WORLD_PER_TILE - 1; // 255
+
+export function worldToTile(x, y) {
+  const tx = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(Number(x) / WORLD_PER_TILE)));
+  const ty = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(Number(y) / WORLD_PER_TILE)));
+  return { tx, ty };
+}
+
+export function tileCenter(tx, ty) {
+  return {
+    x: tx * WORLD_PER_TILE + WORLD_PER_TILE / 2,
+    y: ty * WORLD_PER_TILE + WORLD_PER_TILE / 2,
+  };
+}
+
+export function snapToTileCenter(x, y) {
+  const { tx, ty } = worldToTile(x, y);
+  return { ...tileCenter(tx, ty), tx, ty };
+}
+
+/** First game item occupying a map cell, or null. */
+export function gameItemAtTile(level, tx, ty) {
+  return (
+    level.items.find((it) => {
+      if (!isGameItem(it.type)) return false;
+      const t = worldToTile(it.x, it.y);
+      return t.tx === tx && t.ty === ty;
+    }) ?? null
+  );
+}
+
+/** Snap game items to tile centers; last-wins on a cell. Cameras stay as-is except snap. */
+export function snapLevelItems(level) {
+  const cameras = level.items.filter((it) => it.type === CAMERA_TYPE).map((it) => {
+    const s = snapToTileCenter(it.x, it.y);
+    return { ...it, x: s.x, y: s.y };
+  });
+  const byTile = new Map();
+  for (const it of level.items) {
+    if (!isGameItem(it.type)) continue;
+    const s = snapToTileCenter(it.x, it.y);
+    byTile.set(tileKey(s.tx, s.ty), { ...it, x: s.x, y: s.y });
+  }
+  level.items = [...cameras, ...byTile.values()];
+  if (level.spawn) {
+    const s = snapToTileCenter(level.spawn.x, level.spawn.y);
+    level.spawn.x = s.x;
+    level.spawn.y = s.y;
+  }
+}
 /** Max tile span on either axis so item billboards can use signed 8-bit world deltas. */
 export const MAX_SECTOR_SPAN = 15;
 
@@ -526,13 +573,6 @@ export function setCell(level, tx, ty, sectorId) {
   level.map[cellIndex(tx, ty)] = sectorId;
 }
 
-export function worldToTile(wx, wy) {
-  return {
-    tx: Math.max(0, Math.min(MAP_SIZE - 1, wx >> 3)),
-    ty: Math.max(0, Math.min(MAP_SIZE - 1, wy >> 3)),
-  };
-}
-
 export function clampWorld(v) {
   return Math.max(0, Math.min(WORLD_MAX, v | 0));
 }
@@ -680,20 +720,23 @@ export function shiftLevel(level, dx, dy) {
     const nx = it.x + dx * WORLD_PER_TILE;
     const ny = it.y + dy * WORLD_PER_TILE;
     if (nx >= 0 && nx <= WORLD_MAX && ny >= 0 && ny <= WORLD_MAX) {
-      it.x = nx;
-      it.y = ny;
+      const s = snapToTileCenter(nx, ny);
+      it.x = s.x;
+      it.y = s.y;
       kept.push(it);
     }
   }
   level.items.length = 0;
   level.items.push(...kept);
+  snapLevelItems(level);
 
   if (level.spawn) {
     const sx = level.spawn.x + dx * WORLD_PER_TILE;
     const sy = level.spawn.y + dy * WORLD_PER_TILE;
     if (sx >= 0 && sx <= WORLD_MAX && sy >= 0 && sy <= WORLD_MAX) {
-      level.spawn.x = sx;
-      level.spawn.y = sy;
+      const s = snapToTileCenter(sx, sy);
+      level.spawn.x = s.x;
+      level.spawn.y = s.y;
     }
   }
 }
@@ -1696,16 +1739,22 @@ export function moveItemsBy(level, items, dx, dy) {
     const ny = it.y + dy;
     if (nx < 0 || nx > WORLD_MAX || ny < 0 || ny > WORLD_MAX) {
       if (isSpawn(it)) {
-        it.x = clampWorld(nx);
-        it.y = clampWorld(ny);
+        const s = snapToTileCenter(nx, ny);
+        it.x = s.x;
+        it.y = s.y;
         kept.push(it);
       } else {
         removeItem(level, it);
       }
       continue;
     }
-    it.x = nx;
-    it.y = ny;
+    const s = snapToTileCenter(nx, ny);
+    if (isGameItem(it.type)) {
+      const other = gameItemAtTile(level, s.tx, s.ty);
+      if (other && other !== it) removeItem(level, other);
+    }
+    it.x = s.x;
+    it.y = s.y;
     kept.push(it);
   }
   return kept;
@@ -1747,43 +1796,47 @@ export function hasSpawn(level) {
 /** Place or move the level spawn (always exactly one). */
 export function setSpawn(level, x, y, angle) {
   if (!level.spawn) level.spawn = defaultSpawn();
+  const s = snapToTileCenter(x, y);
   level.spawn.type = SPAWN_TYPE;
-  level.spawn.x = clampWorld(x);
-  level.spawn.y = clampWorld(y);
+  level.spawn.x = s.x;
+  level.spawn.y = s.y;
   if (angle !== undefined) level.spawn.angle = normalizeAngle(angle);
   return level.spawn;
 }
 
 export function addItem(level, type, x, y, skills = defaultSkills()) {
+  const snapped = snapToTileCenter(x, y);
+  x = snapped.x;
+  y = snapped.y;
   if (type === SPAWN_TYPE) {
     return setSpawn(level, x, y);
   }
   if (type === CAMERA_TYPE) {
     const item = {
       type: CAMERA_TYPE,
-      x: clampWorld(x),
-      y: clampWorld(y),
+      x,
+      y,
       angle: 0,
     };
     level.items.push(item);
     return item;
   }
   if (type === SWITCH_TYPE || isSwitchCookType(type)) {
-    if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
     const item = {
       type: SWITCH_TYPE,
-      x: clampWorld(x),
-      y: clampWorld(y),
+      x,
+      y,
     };
     level.items.push(item);
     return item;
   }
-  if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) return null;
+  const occupant = gameItemAtTile(level, snapped.tx, snapped.ty);
+  if (occupant) removeItem(level, occupant);
   const item = {
     type,
-    x: clampWorld(x),
-    y: clampWorld(y),
+    x,
+    y,
     skills: { ...skills },
   };
   level.items.push(item);
@@ -1797,8 +1850,13 @@ export function removeItem(level, item) {
 }
 
 export function moveItem(level, item, x, y) {
-  item.x = clampWorld(x);
-  item.y = clampWorld(y);
+  const s = snapToTileCenter(x, y);
+  if (isGameItem(item.type)) {
+    const other = gameItemAtTile(level, s.tx, s.ty);
+    if (other && other !== item) removeItem(level, other);
+  }
+  item.x = s.x;
+  item.y = s.y;
 }
 
 /** True if selection ref is still on the level (spawn or items). */

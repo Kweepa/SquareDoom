@@ -52,7 +52,7 @@ tmp4		= $27
 tmp5		= $28
 ptr_l		= $29
 ptr_h		= $2a
-scr_ptr		= ptr_l			; Deathchase-style alias ($0400 cell)
+scr_ptr		= ptr_l			; Deathchase-style alias (VIC_SCREEN cell)
 
 near_floor	= $2b
 near_ceil	= $2c
@@ -129,7 +129,7 @@ in_fwd		= $8f			; W
 ; $90–$AF / $B7–$BC — KERNAL-owned during OPEN/LOAD (ST…EAL, SETNAM/SETLFS).
 ; LoadPrg pre-clears $90–$98 (stray ST bit6/7 aborts LOAD; LDTND≥$0A kills OPEN).
 ; Do not place anything that must survive LOAD here. Survivors → $FB+.
-; $99–$AE ok only under $01=$35 after load (re-inited / transient).
+; $99–$AE ok only under $01=$34/$35 after load (re-inited / transient).
 sky_col_base	= $97			; (playera*5/8) mod 40; rebuilt with column rays
 seen_gen	= $98			; re-inited after level load; SEC_SEEN generation stamp
 in_wpn_pistol	= $99			; OR-latch: 2 held
@@ -243,18 +243,16 @@ turn_acc_l	= $74			; angle×1024 remainder
 turn_acc_h	= $75
 
 ; ------------------------------------------------------------------
-; Under-KERNAL / always-RAM play BSS ($01=$35 for $E000+)
-; Judd SQTAB at $c800 (always RAM; former screen-buffer slot).
-; SID music window at $9000–$9fff (4K), flush against level at $a000.
+; Under-KERNAL / always-RAM play BSS ($E000+); SQTAB at $BC00; level at $9000.
 ; SidTracker player ZP (kept via sidreloc -k): $f0–$f7.
 ; Contiguous play buffers at $e000 (menu overlay = buffers after UI_LOAD_MAX):
 ;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
-; dpsounds/levelstats run from SEC_WDARK_END (copied from $c800 load image).
+; dpsounds/levelstats run from SEC_WDARK_END (copied from $9000 load image).
 ; ------------------------------------------------------------------
-SQTAB1		= $c800
-SQTAB2		= $c800 + $200
-SQTAB3		= $c800 + $400
-SQTAB4		= $c800 + $600
+SQTAB1		= SQTAB_BASE
+SQTAB2		= SQTAB_BASE + $200
+SQTAB3		= SQTAB_BASE + $400
+SQTAB4		= SQTAB_BASE + $600
 
 ; Per-column portal clip stack — packed after PATTERNBUFFER
 CLIP_MAX	= 14				; measured peak through E1; push silently drops when full
@@ -310,11 +308,11 @@ PROC_END	= PROC_E + PROC_NUM
 SEC_SEEN	= PROC_END		; SEC_TABLE_SIZE bytes, index = sector id
 SEC_SEEN_END	= SEC_SEEN + SEC_TABLE_SIZE
 
-; Item render sort + collect cache (index = sort slot 0..n-1)
-; Cache avoids redoing map_sector_id + item_calc_depth in item_draw_one.
+; Item render sort + collect cache (index = vis 0..n-1)
+; SLOT bit7 = layer (tx in 0..31, SEC = ty); else mobj index, SEC = sector
 ITEM_SORT_DEPTH	= SEC_SEEN_END		; 48 bytes depth (8-bit)
 ITEM_SORT_SLOT	= ITEM_SORT_DEPTH + 48
-ITEM_SORT_SEC	= ITEM_SORT_SLOT + 48	; sector id
+ITEM_SORT_SEC	= ITEM_SORT_SLOT + 48	; sector id (mobj) or ty (layer)
 ITEM_SORT_DX	= ITEM_SORT_SEC + 48	; fracy = dx (signed)
 ITEM_SORT_DY	= ITEM_SORT_DX + 48	; fracx = dy (signed)
 ITEM_SORT_WZ_L	= ITEM_SORT_DY + 48	; depth16 lo (512/tile)
@@ -325,10 +323,13 @@ ITEM_SORT_END	= ITEM_SORT_WZ_H + 48
 MAX_MOBJ		= 32
 MOBJ_PLAYER_ROCKET = MAX_MOBJ - 2
 MOBJ_MISSILE	= MAX_MOBJ - 1
-ITEM_PLAYER_ROCKET = 46		; reserved (= MAX_ITEMS-2)
-ITEM_MISSILE	= 47			; reserved last item slot (= MAX_ITEMS-1)
+VIS_LAYER	= $80			; ITEM_SORT_SLOT bit7 = layer tile (tx in 0..31)
+VIS_FX		= $c0			; bit7+bit6 = FX overlay (index in 0..15)
+MF_JUSTATTACKED	= 1
+MF_GUTS_TAKEN	= 2
+MF_PLASMA	= $10			; enemy missile draws as plasmaball
 
-MOBJ_ALLOC	= ITEM_SORT_END		; 21
+MOBJ_ALLOC	= ITEM_SORT_END
 MOBJ_MOVEDIR	= MOBJ_ALLOC + MAX_MOBJ
 MOBJ_FLAGS	= MOBJ_MOVEDIR + MAX_MOBJ
 MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ	; attack cooldown in ms/16
@@ -338,13 +339,13 @@ MOBJ_INFO	= MOBJ_HEALTH + MAX_MOBJ	; 0=pos..4=baron, 5=impshot
 MOBJ_STATE	= MOBJ_INFO + MAX_MOBJ
 MOBJ_XFRAC	= MOBJ_STATE + MAX_MOBJ
 MOBJ_YFRAC	= MOBJ_XFRAC + MAX_MOBJ
-MOBJ_OBJ	= MOBJ_YFRAC + MAX_MOBJ	; item slot for this mobj
-MOBJ_FOR_ITEM	= MOBJ_OBJ + MAX_MOBJ	; 48: mobj idx or $FF
-ITEM_CORPSE_TEX	= MOBJ_FOR_ITEM + 48	; 48: $FF live, else enemy spr idx
+MOBJ_X		= MOBJ_YFRAC + MAX_MOBJ	; world X integer
+MOBJ_Y		= MOBJ_X + MAX_MOBJ
+ITEM_CORPSE_TEX	= MOBJ_Y + MAX_MOBJ	; $FF live, else enemy spr idx / unused
 ; Per-column aim (filled far→near during item draw; nearer overwrites)
-COL_AIM_SLOT	= ITEM_CORPSE_TEX + 48	; 40: item slot or $FF empty
+COL_AIM_SLOT	= ITEM_CORPSE_TEX + MAX_MOBJ	; 40: vis index or $FF empty
 COL_AIM_Z	= COL_AIM_SLOT + COL_NUM	; 40: depth (wallz_h) for melee range
-aim_item	= COL_AIM_Z + COL_NUM	; current billboard slot for aim ($FF none)
+aim_item	= COL_AIM_Z + COL_NUM	; current vis index for aim ($FF none)
 MOBJ_END	= aim_item + 1
 
 ; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
@@ -378,7 +379,7 @@ SEC_WDARK_END	= SEC_WDARK + SEC_TABLE_SIZE
 
 ; ---------------------------------------------------------------------------
 ; Uninitialized scrap (not in PRG). Stack keeps $01A0..$01FF (~96 bytes).
-; Cassette buffer is free while KERNAL is out ($01=$35).
+; Cassette buffer is free while KERNAL is out ($01=$34/$35).
 ; ---------------------------------------------------------------------------
 UNDER_STACK	= $0100
 UNDER_STACK_END	= $01a0
@@ -575,4 +576,17 @@ item_slot		= SCRAP_CASS + 58
 SCRAP_CASS_END		= SCRAP_CASS + 59
 !if SCRAP_CASS_END > CASS_BUF_END {
 	!error "cassette scrap BSS past CASS_BUF_END"
+}
+
+; Barrel fuse / explosion overlay (tile + timer; not the item layer)
+FX_MAX		= 16
+FX_KIND		= SCRAP_CASS_END		; 0=free, 1=fuse, 2=explosion
+FX_TX		= FX_KIND + FX_MAX
+FX_TY		= FX_TX + FX_MAX
+FX_TIME		= FX_TY + FX_MAX
+FX_END		= FX_TIME + FX_MAX
+FX_FUSE		= 1
+FX_EXPL		= 2
+!if FX_END > CASS_BUF_END {
+	!error "FX overlay past cassette buffer"
 }

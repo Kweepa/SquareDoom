@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M1",
+  "activeLevel": "E1M3",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -2277,6 +2277,12 @@
       },
       "items": [
         {
+          "type": "camera",
+          "x": 212,
+          "y": 108,
+          "angle": 6.278081610720889
+        },
+        {
           "type": "greenarmor",
           "x": 20,
           "y": 76,
@@ -2288,8 +2294,8 @@
         },
         {
           "type": "barrel",
-          "x": 98,
-          "y": 59,
+          "x": 100,
+          "y": 60,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2298,8 +2304,8 @@
         },
         {
           "type": "soldier",
-          "x": 163,
-          "y": 27,
+          "x": 164,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2309,7 +2315,7 @@
         {
           "type": "soldier",
           "x": 180,
-          "y": 22,
+          "y": 20,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2328,8 +2334,8 @@
         },
         {
           "type": "soldier",
-          "x": 53,
-          "y": 93,
+          "x": 52,
+          "y": 92,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2339,7 +2345,7 @@
         {
           "type": "soldier",
           "x": 28,
-          "y": 72,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2368,8 +2374,8 @@
         },
         {
           "type": "barrel",
-          "x": 197,
-          "y": 149,
+          "x": 196,
+          "y": 148,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2378,8 +2384,8 @@
         },
         {
           "type": "barrel",
-          "x": 227,
-          "y": 149,
+          "x": 228,
+          "y": 148,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2388,8 +2394,8 @@
         },
         {
           "type": "bluearmor",
-          "x": 150,
-          "y": 74,
+          "x": 148,
+          "y": 76,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2398,8 +2404,8 @@
         },
         {
           "type": "shells",
-          "x": 229,
-          "y": 123,
+          "x": 228,
+          "y": 124,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2408,19 +2414,13 @@
         },
         {
           "type": "barrel",
-          "x": 105,
-          "y": 82,
+          "x": 108,
+          "y": 84,
           "skills": {
             "easy": true,
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "camera",
-          "x": 213.7839623473819,
-          "y": 120.63006372767484,
-          "angle": 4.286653758703819
         },
         {
           "type": "soldier",
@@ -2464,7 +2464,7 @@
         },
         {
           "type": "shotgun",
-          "x": 233,
+          "x": 236,
           "y": 68,
           "skills": {
             "easy": true,
@@ -2495,7 +2495,7 @@
         {
           "type": "health",
           "x": 244,
-          "y": 96,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5409,10 +5409,16 @@
       ],
       "spawn": {
         "x": 156,
-        "y": 173,
+        "y": 172,
         "angle": 0
       },
       "items": [
+        {
+          "type": "camera",
+          "x": 140,
+          "y": 36,
+          "angle": 1.0080475898110732
+        },
         {
           "type": "redcard",
           "x": 212,
@@ -5456,7 +5462,7 @@
         {
           "type": "imp",
           "x": 52,
-          "y": 37,
+          "y": 36,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5476,7 +5482,7 @@
         {
           "type": "soldier",
           "x": 156,
-          "y": 117,
+          "y": 116,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5486,7 +5492,7 @@
         {
           "type": "imp",
           "x": 140,
-          "y": 132,
+          "y": 140,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5496,7 +5502,7 @@
         {
           "type": "soldier",
           "x": 196,
-          "y": 194,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5506,7 +5512,7 @@
         {
           "type": "soldier",
           "x": 172,
-          "y": 226,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5535,8 +5541,8 @@
         },
         {
           "type": "barrel",
-          "x": 160,
-          "y": 165,
+          "x": 164,
+          "y": 164,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5545,8 +5551,8 @@
         },
         {
           "type": "barrel",
-          "x": 150,
-          "y": 153,
+          "x": 148,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5555,8 +5561,8 @@
         },
         {
           "type": "shotgun",
-          "x": 142,
-          "y": 130,
+          "x": 140,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5566,7 +5572,7 @@
         {
           "type": "greenarmor",
           "x": 156,
-          "y": 94,
+          "y": 92,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5575,7 +5581,7 @@
         },
         {
           "type": "health",
-          "x": 245,
+          "x": 244,
           "y": 132,
           "skills": {
             "easy": true,
@@ -5585,19 +5591,13 @@
         },
         {
           "type": "soldier",
-          "x": 219,
+          "x": 220,
           "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
             "hard": true
           }
-        },
-        {
-          "type": "camera",
-          "x": 156.48313583830694,
-          "y": 38.41929044126575,
-          "angle": 1.0080475898110732
         },
         {
           "type": "imp",
@@ -5611,8 +5611,8 @@
         },
         {
           "type": "barrel",
-          "x": 190,
-          "y": 129,
+          "x": 188,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5621,8 +5621,8 @@
         },
         {
           "type": "soldier",
-          "x": 194,
-          "y": 122,
+          "x": 196,
+          "y": 124,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5642,7 +5642,7 @@
         {
           "type": "health",
           "x": 68,
-          "y": 50,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5651,7 +5651,7 @@
         },
         {
           "type": "soldier",
-          "x": 152,
+          "x": 156,
           "y": 28,
           "skills": {
             "easy": true,
@@ -5661,8 +5661,8 @@
         },
         {
           "type": "soldier",
-          "x": 152,
-          "y": 45,
+          "x": 148,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5681,8 +5681,8 @@
         },
         {
           "type": "soldier",
-          "x": 29,
-          "y": 79,
+          "x": 28,
+          "y": 76,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5711,7 +5711,7 @@
         },
         {
           "type": "soldier",
-          "x": 121,
+          "x": 124,
           "y": 124,
           "skills": {
             "easy": true,
@@ -5721,8 +5721,8 @@
         },
         {
           "type": "soldier",
-          "x": 62,
-          "y": 31,
+          "x": 60,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5731,8 +5731,8 @@
         },
         {
           "type": "soldier",
-          "x": 74,
-          "y": 35,
+          "x": 76,
+          "y": 36,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5752,7 +5752,7 @@
         {
           "type": "soldier",
           "x": 84,
-          "y": 189,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5762,7 +5762,7 @@
         {
           "type": "barrel",
           "x": 36,
-          "y": 219,
+          "y": 220,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5792,7 +5792,7 @@
         {
           "type": "imp",
           "x": 100,
-          "y": 227,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -5842,7 +5842,7 @@
         {
           "type": "soulsphere",
           "x": 196,
-          "y": 49,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -8990,8 +8990,8 @@
       "items": [
         {
           "type": "camera",
-          "x": 168.38597629664392,
-          "y": 138.87167427837352,
+          "x": 172,
+          "y": 140,
           "angle": 1.6441872721069162
         },
         {
@@ -9007,7 +9007,7 @@
         {
           "type": "imp",
           "x": 188,
-          "y": 29,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9016,8 +9016,8 @@
         },
         {
           "type": "barrel",
-          "x": 170,
-          "y": 53,
+          "x": 172,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9026,8 +9026,8 @@
         },
         {
           "type": "soldier",
-          "x": 173,
-          "y": 53,
+          "x": 172,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9036,8 +9036,8 @@
         },
         {
           "type": "soldier",
-          "x": 203,
-          "y": 53,
+          "x": 204,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9047,7 +9047,7 @@
         {
           "type": "pinky",
           "x": 100,
-          "y": 201,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9057,7 +9057,7 @@
         {
           "type": "shotgun",
           "x": 124,
-          "y": 234,
+          "y": 236,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9067,7 +9067,7 @@
         {
           "type": "soldier",
           "x": 148,
-          "y": 184,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9077,7 +9077,7 @@
         {
           "type": "soldier",
           "x": 148,
-          "y": 216,
+          "y": 220,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9086,8 +9086,8 @@
         },
         {
           "type": "barrel",
-          "x": 110,
-          "y": 221,
+          "x": 108,
+          "y": 220,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9096,7 +9096,7 @@
         },
         {
           "type": "barrel",
-          "x": 147,
+          "x": 148,
           "y": 204,
           "skills": {
             "easy": true,
@@ -9106,7 +9106,7 @@
         },
         {
           "type": "soldier",
-          "x": 117,
+          "x": 116,
           "y": 28,
           "skills": {
             "easy": true,
@@ -9116,7 +9116,7 @@
         },
         {
           "type": "soldier",
-          "x": 130,
+          "x": 132,
           "y": 44,
           "skills": {
             "easy": true,
@@ -9126,8 +9126,8 @@
         },
         {
           "type": "pinky",
-          "x": 171,
-          "y": 21,
+          "x": 172,
+          "y": 20,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9136,8 +9136,8 @@
         },
         {
           "type": "soldier",
-          "x": 174,
-          "y": 16,
+          "x": 172,
+          "y": 12,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9146,8 +9146,8 @@
         },
         {
           "type": "backpack",
-          "x": 49,
-          "y": 93,
+          "x": 52,
+          "y": 92,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9157,7 +9157,7 @@
         {
           "type": "chaingun",
           "x": 204,
-          "y": 203,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9166,8 +9166,8 @@
         },
         {
           "type": "imp",
-          "x": 61,
-          "y": 243,
+          "x": 60,
+          "y": 244,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9186,7 +9186,7 @@
         },
         {
           "type": "chainsaw",
-          "x": 207,
+          "x": 204,
           "y": 164,
           "skills": {
             "easy": true,
@@ -9206,8 +9206,8 @@
         },
         {
           "type": "imp",
-          "x": 37,
-          "y": 144,
+          "x": 36,
+          "y": 140,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9256,8 +9256,8 @@
         },
         {
           "type": "soldier",
-          "x": 78,
-          "y": 205,
+          "x": 76,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9266,8 +9266,8 @@
         },
         {
           "type": "soldier",
-          "x": 78,
-          "y": 185,
+          "x": 76,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9276,8 +9276,8 @@
         },
         {
           "type": "soldier",
-          "x": 75,
-          "y": 71,
+          "x": 76,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9286,7 +9286,7 @@
         },
         {
           "type": "soldier",
-          "x": 69,
+          "x": 68,
           "y": 44,
           "skills": {
             "easy": true,
@@ -9307,7 +9307,7 @@
         {
           "type": "pinky",
           "x": 12,
-          "y": 207,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9316,7 +9316,7 @@
         },
         {
           "type": "soldier",
-          "x": 115,
+          "x": 116,
           "y": 100,
           "skills": {
             "easy": true,
@@ -9326,18 +9326,8 @@
         },
         {
           "type": "soldier",
-          "x": 131,
+          "x": 132,
           "y": 100,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "imp",
-          "x": 226,
-          "y": 83,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9347,17 +9337,7 @@
         {
           "type": "imp",
           "x": 228,
-          "y": 115,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "soldier",
-          "x": 207,
-          "y": 83,
+          "y": 84,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9366,7 +9346,27 @@
         },
         {
           "type": "imp",
-          "x": 227,
+          "x": 228,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 204,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "imp",
+          "x": 228,
           "y": 148,
           "skills": {
             "easy": true,
@@ -9376,8 +9376,8 @@
         },
         {
           "type": "soldier",
-          "x": 149,
-          "y": 146,
+          "x": 148,
+          "y": 148,
           "skills": {
             "easy": true,
             "normal": true,
@@ -9386,8 +9386,8 @@
         },
         {
           "type": "soldier",
-          "x": 169,
-          "y": 163,
+          "x": 172,
+          "y": 164,
           "skills": {
             "easy": true,
             "normal": true,
@@ -11938,7 +11938,7 @@
         126,
         128,
         0,
-        0,
+        123,
         0,
         0,
         22,
@@ -12550,20 +12550,20 @@
         0
       ],
       "spawn": {
-        "x": 243,
+        "x": 244,
         "y": 76,
         "angle": 4.653667622373675
       },
       "items": [
         {
           "type": "camera",
-          "x": 247.13619907626807,
-          "y": 74.07984717353764,
+          "x": 244,
+          "y": 76,
           "angle": 4.05177549479431
         },
         {
           "type": "yellowcard",
-          "x": 25,
+          "x": 28,
           "y": 84,
           "skills": {
             "easy": true,
@@ -12573,8 +12573,8 @@
         },
         {
           "type": "bluearmor",
-          "x": 200,
-          "y": 27,
+          "x": 204,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12583,8 +12583,8 @@
         },
         {
           "type": "bluecard",
-          "x": 134,
-          "y": 122,
+          "x": 132,
+          "y": 124,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12594,17 +12594,7 @@
         {
           "type": "chaingun",
           "x": 132,
-          "y": 134,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "barrel",
-          "x": 127,
-          "y": 130,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12613,8 +12603,8 @@
         },
         {
           "type": "imp",
-          "x": 125,
-          "y": 121,
+          "x": 124,
+          "y": 124,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12623,7 +12613,7 @@
         },
         {
           "type": "imp",
-          "x": 122,
+          "x": 124,
           "y": 132,
           "skills": {
             "easy": true,
@@ -12634,7 +12624,7 @@
         {
           "type": "pinky",
           "x": 52,
-          "y": 163,
+          "y": 164,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12653,8 +12643,8 @@
         },
         {
           "type": "barrel",
-          "x": 189,
-          "y": 193,
+          "x": 188,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12664,7 +12654,7 @@
         {
           "type": "barrel",
           "x": 180,
-          "y": 189,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12673,7 +12663,7 @@
         },
         {
           "type": "soldier",
-          "x": 190,
+          "x": 188,
           "y": 220,
           "skills": {
             "easy": true,
@@ -12683,8 +12673,8 @@
         },
         {
           "type": "backpack",
-          "x": 242,
-          "y": 91,
+          "x": 244,
+          "y": 92,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12693,8 +12683,8 @@
         },
         {
           "type": "health",
-          "x": 245,
-          "y": 93,
+          "x": 244,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12703,7 +12693,7 @@
         },
         {
           "type": "soldier",
-          "x": 199,
+          "x": 196,
           "y": 84,
           "skills": {
             "easy": true,
@@ -12713,8 +12703,8 @@
         },
         {
           "type": "barrel",
-          "x": 206,
-          "y": 82,
+          "x": 204,
+          "y": 84,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12723,8 +12713,8 @@
         },
         {
           "type": "barrel",
-          "x": 206,
-          "y": 133,
+          "x": 204,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12733,7 +12723,7 @@
         },
         {
           "type": "soldier",
-          "x": 200,
+          "x": 196,
           "y": 132,
           "skills": {
             "easy": true,
@@ -12753,7 +12743,7 @@
         },
         {
           "type": "health",
-          "x": 224,
+          "x": 228,
           "y": 180,
           "skills": {
             "easy": true,
@@ -12763,7 +12753,7 @@
         },
         {
           "type": "soldier",
-          "x": 243,
+          "x": 244,
           "y": 52,
           "skills": {
             "easy": true,
@@ -12783,8 +12773,8 @@
         },
         {
           "type": "soldier",
-          "x": 209,
-          "y": 37,
+          "x": 212,
+          "y": 36,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12793,8 +12783,8 @@
         },
         {
           "type": "soldier",
-          "x": 187,
-          "y": 27,
+          "x": 188,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12813,8 +12803,8 @@
         },
         {
           "type": "soldier",
-          "x": 133,
-          "y": 50,
+          "x": 132,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12833,7 +12823,7 @@
         },
         {
           "type": "soldier",
-          "x": 95,
+          "x": 92,
           "y": 196,
           "skills": {
             "easy": true,
@@ -12843,8 +12833,8 @@
         },
         {
           "type": "health",
-          "x": 101,
-          "y": 197,
+          "x": 100,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12853,8 +12843,8 @@
         },
         {
           "type": "imp",
-          "x": 43,
-          "y": 65,
+          "x": 44,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12864,7 +12854,7 @@
         {
           "type": "imp",
           "x": 180,
-          "y": 199,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12873,8 +12863,8 @@
         },
         {
           "type": "soldier",
-          "x": 175,
-          "y": 179,
+          "x": 172,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12883,8 +12873,8 @@
         },
         {
           "type": "imp",
-          "x": 21,
-          "y": 189,
+          "x": 20,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12893,7 +12883,7 @@
         },
         {
           "type": "imp",
-          "x": 29,
+          "x": 28,
           "y": 132,
           "skills": {
             "easy": true,
@@ -12903,7 +12893,7 @@
         },
         {
           "type": "imp",
-          "x": 85,
+          "x": 84,
           "y": 36,
           "skills": {
             "easy": true,
@@ -12923,8 +12913,8 @@
         },
         {
           "type": "soldier",
-          "x": 74,
-          "y": 109,
+          "x": 76,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12943,8 +12933,8 @@
         },
         {
           "type": "rocketlauncher",
-          "x": 218,
-          "y": 175,
+          "x": 220,
+          "y": 172,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12963,8 +12953,8 @@
         },
         {
           "type": "soldier",
-          "x": 187,
-          "y": 110,
+          "x": 188,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -12973,8 +12963,8 @@
         },
         {
           "type": "soldier",
-          "x": 165,
-          "y": 69,
+          "x": 164,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15463,7 +15453,7 @@
         79,
         79,
         0,
-        0,
+        118,
         0,
         0,
         0,
@@ -15777,15 +15767,15 @@
         0
       ],
       "spawn": {
-        "x": 112,
-        "y": 245,
+        "x": 116,
+        "y": 244,
         "angle": 0
       },
       "items": [
         {
           "type": "camera",
-          "x": 67.53853419837522,
-          "y": 84.64490702463814,
+          "x": 68,
+          "y": 84,
           "angle": 1.3799519132590552
         },
         {
@@ -15800,8 +15790,8 @@
         },
         {
           "type": "imp",
-          "x": 43,
-          "y": 107,
+          "x": 44,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15811,7 +15801,7 @@
         {
           "type": "imp",
           "x": 44,
-          "y": 141,
+          "y": 140,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15820,8 +15810,8 @@
         },
         {
           "type": "pinky",
-          "x": 50,
-          "y": 66,
+          "x": 52,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15830,8 +15820,8 @@
         },
         {
           "type": "pinky",
-          "x": 49,
-          "y": 183,
+          "x": 52,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15841,7 +15831,7 @@
         {
           "type": "soldier",
           "x": 28,
-          "y": 112,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15851,7 +15841,7 @@
         {
           "type": "soldier",
           "x": 28,
-          "y": 134,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15861,7 +15851,7 @@
         {
           "type": "soldier",
           "x": 84,
-          "y": 128,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15871,7 +15861,7 @@
         {
           "type": "soldier",
           "x": 84,
-          "y": 155,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15880,7 +15870,7 @@
         },
         {
           "type": "soldier",
-          "x": 127,
+          "x": 124,
           "y": 196,
           "skills": {
             "easy": true,
@@ -15890,8 +15880,8 @@
         },
         {
           "type": "imp",
-          "x": 213,
-          "y": 129,
+          "x": 212,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15901,7 +15891,7 @@
         {
           "type": "health",
           "x": 68,
-          "y": 174,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15910,7 +15900,7 @@
         },
         {
           "type": "imp",
-          "x": 67,
+          "x": 68,
           "y": 172,
           "skills": {
             "easy": true,
@@ -15921,7 +15911,7 @@
         {
           "type": "bluecard",
           "x": 148,
-          "y": 106,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15930,7 +15920,7 @@
         },
         {
           "type": "chaingun",
-          "x": 243,
+          "x": 244,
           "y": 140,
           "skills": {
             "easy": true,
@@ -15940,7 +15930,7 @@
         },
         {
           "type": "backpack",
-          "x": 245,
+          "x": 244,
           "y": 132,
           "skills": {
             "easy": true,
@@ -15951,7 +15941,7 @@
         {
           "type": "barrel",
           "x": 116,
-          "y": 86,
+          "y": 84,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15960,8 +15950,8 @@
         },
         {
           "type": "barrel",
-          "x": 91,
-          "y": 162,
+          "x": 92,
+          "y": 164,
           "skills": {
             "easy": true,
             "normal": true,
@@ -15970,7 +15960,7 @@
         },
         {
           "type": "soldier",
-          "x": 105,
+          "x": 108,
           "y": 84,
           "skills": {
             "easy": true,
@@ -16000,7 +15990,7 @@
         },
         {
           "type": "barrel",
-          "x": 158,
+          "x": 156,
           "y": 100,
           "skills": {
             "easy": true,
@@ -16010,8 +16000,8 @@
         },
         {
           "type": "soldier",
-          "x": 150,
-          "y": 97,
+          "x": 148,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16020,7 +16010,7 @@
         },
         {
           "type": "soldier",
-          "x": 142,
+          "x": 140,
           "y": 100,
           "skills": {
             "easy": true,
@@ -16050,8 +16040,8 @@
         },
         {
           "type": "soldier",
-          "x": 109,
-          "y": 50,
+          "x": 108,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16061,7 +16051,7 @@
         {
           "type": "soldier",
           "x": 140,
-          "y": 27,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16070,8 +16060,8 @@
         },
         {
           "type": "soldier",
-          "x": 176,
-          "y": 47,
+          "x": 180,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16090,8 +16080,8 @@
         },
         {
           "type": "pinky",
-          "x": 227,
-          "y": 95,
+          "x": 228,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16101,7 +16091,7 @@
         {
           "type": "soldier",
           "x": 220,
-          "y": 90,
+          "y": 92,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16110,7 +16100,7 @@
         },
         {
           "type": "soldier",
-          "x": 144,
+          "x": 148,
           "y": 124,
           "skills": {
             "easy": true,
@@ -16120,8 +16110,8 @@
         },
         {
           "type": "soldier",
-          "x": 152,
-          "y": 144,
+          "x": 148,
+          "y": 140,
           "skills": {
             "easy": true,
             "normal": true,
@@ -16130,7 +16120,7 @@
         },
         {
           "type": "imp",
-          "x": 191,
+          "x": 188,
           "y": 68,
           "skills": {
             "easy": true,
@@ -19537,10 +19527,16 @@
       ],
       "spawn": {
         "x": 108,
-        "y": 245,
+        "y": 244,
         "angle": 0
       },
       "items": [
+        {
+          "type": "camera",
+          "x": 92,
+          "y": 60,
+          "angle": 4.766218086583859
+        },
         {
           "type": "bluecard",
           "x": 44,
@@ -19553,8 +19549,8 @@
         },
         {
           "type": "soulsphere",
-          "x": 43,
-          "y": 99,
+          "x": 44,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19572,12 +19568,6 @@
           }
         },
         {
-          "type": "camera",
-          "x": 90.75084486712267,
-          "y": 61.81190637864729,
-          "angle": 4.766218086583859
-        },
-        {
           "type": "redcard",
           "x": 180,
           "y": 220,
@@ -19589,8 +19579,8 @@
         },
         {
           "type": "yellowcard",
-          "x": 173,
-          "y": 155,
+          "x": 172,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19599,7 +19589,7 @@
         },
         {
           "type": "pinky",
-          "x": 155,
+          "x": 156,
           "y": 244,
           "skills": {
             "easy": true,
@@ -19609,7 +19599,7 @@
         },
         {
           "type": "soldier",
-          "x": 171,
+          "x": 172,
           "y": 188,
           "skills": {
             "easy": true,
@@ -19620,7 +19610,7 @@
         {
           "type": "imp",
           "x": 188,
-          "y": 235,
+          "y": 236,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19630,7 +19620,7 @@
         {
           "type": "soldier",
           "x": 44,
-          "y": 153,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19639,8 +19629,8 @@
         },
         {
           "type": "barrel",
-          "x": 166,
-          "y": 237,
+          "x": 164,
+          "y": 236,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19689,8 +19679,8 @@
         },
         {
           "type": "soldier",
-          "x": 83,
-          "y": 211,
+          "x": 84,
+          "y": 212,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19700,7 +19690,7 @@
         {
           "type": "soldier",
           "x": 36,
-          "y": 171,
+          "y": 172,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19709,7 +19699,7 @@
         },
         {
           "type": "soldier",
-          "x": 51,
+          "x": 52,
           "y": 172,
           "skills": {
             "easy": true,
@@ -19730,7 +19720,7 @@
         {
           "type": "rocketlauncher",
           "x": 12,
-          "y": 197,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19740,7 +19730,7 @@
         {
           "type": "chaingun",
           "x": 12,
-          "y": 189,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19750,7 +19740,7 @@
         {
           "type": "soldier",
           "x": 76,
-          "y": 93,
+          "y": 92,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19789,7 +19779,7 @@
         },
         {
           "type": "soldier",
-          "x": 115,
+          "x": 116,
           "y": 156,
           "skills": {
             "easy": true,
@@ -19800,7 +19790,7 @@
         {
           "type": "imp",
           "x": 108,
-          "y": 16,
+          "y": 20,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19809,8 +19799,8 @@
         },
         {
           "type": "health",
-          "x": 117,
-          "y": 19,
+          "x": 116,
+          "y": 20,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19820,7 +19810,7 @@
         {
           "type": "soldier",
           "x": 92,
-          "y": 43,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19849,7 +19839,7 @@
         },
         {
           "type": "soldier",
-          "x": 223,
+          "x": 220,
           "y": 228,
           "skills": {
             "easy": true,
@@ -19859,7 +19849,7 @@
         },
         {
           "type": "soldier",
-          "x": 233,
+          "x": 236,
           "y": 228,
           "skills": {
             "easy": true,
@@ -19870,7 +19860,7 @@
         {
           "type": "imp",
           "x": 220,
-          "y": 203,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19880,7 +19870,7 @@
         {
           "type": "imp",
           "x": 244,
-          "y": 178,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19889,7 +19879,7 @@
         },
         {
           "type": "imp",
-          "x": 209,
+          "x": 212,
           "y": 108,
           "skills": {
             "easy": true,
@@ -19910,7 +19900,7 @@
         {
           "type": "soldier",
           "x": 164,
-          "y": 201,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19919,8 +19909,8 @@
         },
         {
           "type": "soldier",
-          "x": 165,
-          "y": 226,
+          "x": 164,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -19929,8 +19919,8 @@
         },
         {
           "type": "soldier",
-          "x": 29,
-          "y": 49,
+          "x": 28,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -22267,7 +22257,7 @@
         15,
         17,
         105,
-        0,
+        105,
         0,
         34,
         32,
@@ -22683,7 +22673,7 @@
         163,
         164,
         0,
-        0,
+        140,
         140,
         60,
         0,
@@ -23089,8 +23079,8 @@
         0
       ],
       "spawn": {
-        "x": 44,
-        "y": 59,
+        "x": 124,
+        "y": 12,
         "angle": 3.141592653589793
       },
       "items": [
@@ -23116,7 +23106,7 @@
         },
         {
           "type": "bluecard",
-          "x": 42,
+          "x": 44,
           "y": 20,
           "skills": {
             "easy": true,
@@ -23126,7 +23116,7 @@
         },
         {
           "type": "redcard",
-          "x": 13,
+          "x": 12,
           "y": 20,
           "skills": {
             "easy": true,
@@ -23136,8 +23126,8 @@
         },
         {
           "type": "barrel",
-          "x": 119,
-          "y": 35,
+          "x": 116,
+          "y": 36,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23146,8 +23136,8 @@
         },
         {
           "type": "barrel",
-          "x": 128,
-          "y": 35,
+          "x": 132,
+          "y": 36,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23156,8 +23146,8 @@
         },
         {
           "type": "shotgun",
-          "x": 119,
-          "y": 21,
+          "x": 116,
+          "y": 20,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23166,8 +23156,8 @@
         },
         {
           "type": "pinky",
-          "x": 122,
-          "y": 43,
+          "x": 124,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23177,7 +23167,7 @@
         {
           "type": "greenarmor",
           "x": 124,
-          "y": 67,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23187,7 +23177,7 @@
         {
           "type": "imp",
           "x": 196,
-          "y": 61,
+          "y": 60,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23196,7 +23186,7 @@
         },
         {
           "type": "imp",
-          "x": 197,
+          "x": 196,
           "y": 100,
           "skills": {
             "easy": true,
@@ -23226,8 +23216,8 @@
         },
         {
           "type": "soldier",
-          "x": 167,
-          "y": 41,
+          "x": 164,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23256,7 +23246,7 @@
         },
         {
           "type": "imp",
-          "x": 48,
+          "x": 52,
           "y": 20,
           "skills": {
             "easy": true,
@@ -23266,8 +23256,8 @@
         },
         {
           "type": "health",
-          "x": 11,
-          "y": 24,
+          "x": 20,
+          "y": 20,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23277,7 +23267,7 @@
         {
           "type": "pinky",
           "x": 12,
-          "y": 40,
+          "y": 36,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23296,8 +23286,8 @@
         },
         {
           "type": "soldier",
-          "x": 111,
-          "y": 209,
+          "x": 108,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23307,7 +23297,7 @@
         {
           "type": "soldier",
           "x": 12,
-          "y": 30,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23326,8 +23316,8 @@
         },
         {
           "type": "imp",
-          "x": 17,
-          "y": 242,
+          "x": 20,
+          "y": 244,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23366,7 +23356,7 @@
         },
         {
           "type": "soldier",
-          "x": 94,
+          "x": 92,
           "y": 52,
           "skills": {
             "easy": true,
@@ -23376,8 +23366,8 @@
         },
         {
           "type": "soldier",
-          "x": 109,
-          "y": 157,
+          "x": 108,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23386,8 +23376,8 @@
         },
         {
           "type": "shells",
-          "x": 106,
-          "y": 155,
+          "x": 100,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23397,7 +23387,7 @@
         {
           "type": "soldier",
           "x": 132,
-          "y": 208,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23416,7 +23406,7 @@
         },
         {
           "type": "soldier",
-          "x": 192,
+          "x": 188,
           "y": 220,
           "skills": {
             "easy": true,
@@ -23426,8 +23416,8 @@
         },
         {
           "type": "soldier",
-          "x": 199,
-          "y": 219,
+          "x": 196,
+          "y": 220,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23436,8 +23426,8 @@
         },
         {
           "type": "soldier",
-          "x": 170,
-          "y": 203,
+          "x": 172,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23446,8 +23436,8 @@
         },
         {
           "type": "shotgun",
-          "x": 144,
-          "y": 195,
+          "x": 148,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23456,8 +23446,8 @@
         },
         {
           "type": "health",
-          "x": 131,
-          "y": 219,
+          "x": 132,
+          "y": 220,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23467,7 +23457,7 @@
         {
           "type": "soldier",
           "x": 12,
-          "y": 151,
+          "y": 148,
           "skills": {
             "easy": true,
             "normal": true,
@@ -23476,7 +23466,7 @@
         },
         {
           "type": "soulsphere",
-          "x": 67,
+          "x": 68,
           "y": 52,
           "skills": {
             "easy": true,
@@ -23486,8 +23476,8 @@
         },
         {
           "type": "shotgun",
-          "x": 91,
-          "y": 51,
+          "x": 100,
+          "y": 52,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25218,14 +25208,20 @@
         0
       ],
       "spawn": {
-        "x": 67,
-        "y": 235,
+        "x": 68,
+        "y": 236,
         "angle": 1.5707963267948966
       },
       "items": [
         {
+          "type": "camera",
+          "x": 140,
+          "y": 156,
+          "angle": 1.105917714518533
+        },
+        {
           "type": "pinky",
-          "x": 118,
+          "x": 116,
           "y": 236,
           "skills": {
             "easy": true,
@@ -25235,8 +25231,8 @@
         },
         {
           "type": "barrel",
-          "x": 119,
-          "y": 231,
+          "x": 116,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25245,8 +25241,8 @@
         },
         {
           "type": "barrel",
-          "x": 129,
-          "y": 231,
+          "x": 132,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25255,8 +25251,8 @@
         },
         {
           "type": "barrel",
-          "x": 119,
-          "y": 240,
+          "x": 116,
+          "y": 244,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25265,8 +25261,8 @@
         },
         {
           "type": "barrel",
-          "x": 129,
-          "y": 240,
+          "x": 132,
+          "y": 244,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25276,7 +25272,7 @@
         {
           "type": "pinky",
           "x": 124,
-          "y": 229,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25285,7 +25281,7 @@
         },
         {
           "type": "pinky",
-          "x": 131,
+          "x": 132,
           "y": 236,
           "skills": {
             "easy": true,
@@ -25296,7 +25292,7 @@
         {
           "type": "pinky",
           "x": 124,
-          "y": 243,
+          "y": 244,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25306,7 +25302,7 @@
         {
           "type": "health",
           "x": 124,
-          "y": 181,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25324,15 +25320,9 @@
           }
         },
         {
-          "type": "camera",
-          "x": 123.13877454638168,
-          "y": 214.55661633256676,
-          "angle": 1.105917714518533
-        },
-        {
           "type": "barrel",
           "x": 84,
-          "y": 101,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25342,7 +25332,7 @@
         {
           "type": "barrel",
           "x": 92,
-          "y": 103,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25371,7 +25361,7 @@
         },
         {
           "type": "chaingun",
-          "x": 158,
+          "x": 164,
           "y": 244,
           "skills": {
             "easy": true,
@@ -25381,8 +25371,8 @@
         },
         {
           "type": "health",
-          "x": 159,
-          "y": 231,
+          "x": 164,
+          "y": 228,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25391,8 +25381,8 @@
         },
         {
           "type": "skullpile",
-          "x": 121,
-          "y": 177,
+          "x": 116,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25401,8 +25391,8 @@
         },
         {
           "type": "skullpile",
-          "x": 127,
-          "y": 177,
+          "x": 132,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25411,8 +25401,8 @@
         },
         {
           "type": "shotgun",
-          "x": 99,
-          "y": 181,
+          "x": 100,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25421,8 +25411,8 @@
         },
         {
           "type": "shotgun",
-          "x": 101,
-          "y": 175,
+          "x": 100,
+          "y": 172,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25431,8 +25421,8 @@
         },
         {
           "type": "shotgun",
-          "x": 103,
-          "y": 186,
+          "x": 108,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25441,8 +25431,8 @@
         },
         {
           "type": "chaingun",
-          "x": 144,
-          "y": 177,
+          "x": 148,
+          "y": 172,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25451,8 +25441,8 @@
         },
         {
           "type": "chaingun",
-          "x": 145,
-          "y": 183,
+          "x": 148,
+          "y": 180,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25461,8 +25451,8 @@
         },
         {
           "type": "chaingun",
-          "x": 142,
-          "y": 189,
+          "x": 140,
+          "y": 188,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25471,7 +25461,7 @@
         },
         {
           "type": "soulsphere",
-          "x": 139,
+          "x": 140,
           "y": 212,
           "skills": {
             "easy": true,
@@ -25481,18 +25471,8 @@
         },
         {
           "type": "chaingun",
-          "x": 162,
-          "y": 237,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "health",
-          "x": 99,
-          "y": 154,
+          "x": 164,
+          "y": 236,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25501,8 +25481,8 @@
         },
         {
           "type": "chaingun",
-          "x": 101,
-          "y": 157,
+          "x": 100,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25511,7 +25491,7 @@
         },
         {
           "type": "chaingun",
-          "x": 69,
+          "x": 68,
           "y": 100,
           "skills": {
             "easy": true,
@@ -25521,8 +25501,8 @@
         },
         {
           "type": "barrel",
-          "x": 80,
-          "y": 113,
+          "x": 84,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25531,8 +25511,8 @@
         },
         {
           "type": "shotgun",
-          "x": 127,
-          "y": 74,
+          "x": 132,
+          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25541,7 +25521,7 @@
         },
         {
           "type": "health",
-          "x": 123,
+          "x": 124,
           "y": 68,
           "skills": {
             "easy": true,
@@ -25552,7 +25532,7 @@
         {
           "type": "health",
           "x": 180,
-          "y": 99,
+          "y": 100,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25561,8 +25541,8 @@
         },
         {
           "type": "shotgun",
-          "x": 178,
-          "y": 102,
+          "x": 180,
+          "y": 108,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25571,8 +25551,8 @@
         },
         {
           "type": "chaingun",
-          "x": 149,
-          "y": 155,
+          "x": 156,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -25581,8 +25561,8 @@
         },
         {
           "type": "shotgun",
-          "x": 146,
-          "y": 157,
+          "x": 148,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -26622,8 +26602,8 @@
         0
       ],
       "spawn": {
-        "x": 128,
-        "y": 128,
+        "x": 132,
+        "y": 132,
         "angle": 0
       },
       "items": []

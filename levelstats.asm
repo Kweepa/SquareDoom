@@ -1,4 +1,4 @@
-; Level stats counters + summary roll-in (kernal scrap; copied from $c800 blob)
+; Level stats counters + summary roll-in (kernal scrap; copied from $9000 blob)
 ; BSS counters live in cassette buffer (zeropage.asm) — not in this PRG image.
 !zone levelstats
 
@@ -307,12 +307,14 @@ summary_screen
 	cli
 	lda #1
 	sta input_paused		; Timer A skips $dc00; Timer B still ticks SFX
+	jsr io_push
 	; Re-assert CIA1 timers (SFX needs Timer B @ ~140 Hz)
 	lda #$83
 	sta $dc0d
 	lda #$11
 	sta $dc0e
 	sta $dc0f
+	jsr io_pop
 	jsr clear_screen
 	lda #UI_COL
 	sta ui_text_col
@@ -424,12 +426,14 @@ summary_screen
 	sta input_paused
 	pla
 	sta music_enabled
+	jsr io_push
 	; Re-assert CIA1 timers + IRQs for next level / menu
 	lda #$83
 	sta $dc0d
 	lda #$11
 	sta $dc0e
 	sta $dc0f
+	jsr io_pop
 	cli
 	lda #0
 	sta sound_priority

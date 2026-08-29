@@ -2,7 +2,7 @@
  * Cut itemgraphics/multicolour/{pistol,minigun,rocketlauncher}.png into
  * 24×21 hi-res VIC layers, write crop PNGs, and emit:
  *   pistol_sprites.asm  — 6 sprites (gun×3 + hand×3; flash shared)
- *   minigun_weapon.asm  — 9 blobs (B×3 @ $2940; A/shared×6 @ $3000; flash shared)
+ *   minigun_weapon.asm  — 9 blobs (B×3 @ MINIGUN_B_SPRITES; A/shared×6 @ MINIGUN_SPRITES; flash shared)
  *   rocket_weapon.asm   — 8 sprites (hi + detail + 4 dark + pink flash behind)
  *
  * Layout (sprite pixels; ×2 on screen with XY expand):
@@ -321,7 +321,7 @@ function processLayerCrops(expectW, expectH, crops) {
   const WHITE = [255, 255, 255];
   const GREY = [137, 137, 137];
   const BLACK = [0, 0, 0];
-  // Emit order: frame B alts first (placed at $2940), then *= $3000 idle A + shared.
+  // Emit order: frame B alts first (MINIGUN_B_SPRITES), then *= MINIGUN_SPRITES idle A + shared.
   const { layers, info } = processLayerCrops(48, 28, [
     { file: 'minigun_b_upperhighlight.png', label: 'minigun_b_upperhighlight', x: 12, y: 0, rgb: WHITE },
     { file: 'minigun_b_grey.png', label: 'minigun_b_grey_left', x: 0, y: 0, rgb: GREY },
@@ -336,7 +336,7 @@ function processLayerCrops(expectW, expectH, crops) {
   const bLayers = layers.slice(0, 3);
   const aLayers = layers.slice(3);
   let asm = `; Auto-generated from minigun_* layer PNGs - do not edit\n`;
-  asm += `; Nine blobs: B upper+grey L/R @ MINIGUN_B_SPRITES ($2940), then\n`;
+  asm += `; Nine blobs: B upper+grey L/R @ MINIGUN_B_SPRITES, then\n`;
   asm += `;   *= MINIGUN_SPRITES: A upper, lower hi, A grey L/R, black L/R.\n`;
   asm += `;   VIC 0/2/3 swap A↔B on fire; 1/4/5 shared. Muzzle: sprites 6–7.\n`;
   asm += `!zone minigun\n\n`;

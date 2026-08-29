@@ -1,5 +1,5 @@
 ; Load PRG from disk device 8 (SA=1 → file load address).
-; Levels → $9000 (4K SID + level at $A000, E1M1..E1M9); MENU → MENU_BASE;
+; Levels → $9000 (cooked blob, no SID); MENU → MENU_BASE;
 ; UI screens via overlay LoadUiFile.
 !zone loader
 
@@ -45,10 +45,13 @@ LoadPrg
 	sty load_name_h
 
 	sei
+	cld					; IEC timeouts use ADC; D=1 → tape fall-through
+	lda #$35				; I/O in before CIA (play default is $34)
+	sta $01
 	lda #$7f
 	sta $dc0d
-	lda $dc0d
 	sta $dd0d
+	lda $dc0d
 	lda $dd0d
 
 	; Stop profiler timers — they sit on CIA2 with the IEC port
@@ -60,7 +63,18 @@ LoadPrg
 	sta $01
 
 	jsr $ff8a				; RESTOR — KERNAL vectors
-	jsr $ff84				; IOINIT — CIA1 jiffy + CIA2 serial pins
+	jsr $ff84				; IOINIT — $DD00=$07 (bank 0), $01=$E7
+	lda #$36				; IOINIT mapped BASIC+KERNAL; keep BASIC out
+	sta $01
+	lda $dd00
+	ora #$03				; VIC bank 0 for IEC (bits 0–1 = %11)
+	sta $dd00
+
+	; IOINIT points VIC at $0400 (boot text). Black bg + colour 0 hides it.
+	lda #0
+	sta $d020
+	sta $d021
+	jsr fill_color_ram
 
 	lda #0					; silent — no SEARCHING/LOADING text
 	jsr $ff90				; SETMSG
@@ -88,6 +102,8 @@ LoadPrg
 	ldx #LEVEL_DEVICE
 	ldy #1					; SA=1 → load to PRG address
 	jsr $ffba				; SETLFS
+	ldx #LEVEL_DEVICE			; IEC; KERNAL OPEN BCS falls into tape if $BA<3
+	stx $ba
 	lda #0
 	jsr $ffd5				; LOAD
 	php
@@ -111,8 +127,11 @@ LoadPrg
 	lda #0
 	sta $d020
 	sta $d021
+	jsr set_vic_bank3			; IOINIT may have restored bank 0
 	jsr prof_init
 	jsr input_irq_init
+	lda #$34
+	sta $01
 	plp
 	rts
 

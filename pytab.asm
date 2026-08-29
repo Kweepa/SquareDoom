@@ -1,5 +1,5 @@
 ; Auto-generated — project_y screen-row offsets (see tools/genpytab.js)
-; Placed at PY_TAB ($bc00) by squaredoom.asm — page-aligned, flush to SQTAB $c800
+; Placed at PY_TAB ($b000) by squaredoom.asm — page-aligned, flush to SQTAB $bc00
 py_tab
 ; dh = 1
 	!byte $0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d,$0d

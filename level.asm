@@ -8,8 +8,8 @@ start_level
 	lda #0
 	sta boss_floors_done
 	jsr find_spawn
+	jsr item_skill_filter
 	jsr enemy_alloc_all
-	jsr item_sector_cache_init
 	jsr init_level_stats
 	jsr init_hud_state
 	lda #$ff
@@ -25,6 +25,41 @@ start_level
 	sta player_prev_sec
 	jsr update_eye
 	rts
+
+; difficulty 0/1/2 → skill bits $20/$40/$80. Zero cells that miss; then AND #$1F.
+item_skill_filter
+	ldx difficulty
+	lda .isf_mask,x
+	sta tmp0
+	lda #<level_items
+	sta ptr_l
+	lda #>level_items
+	sta ptr_h
+	ldx #4				; 4 pages = 1024
+	ldy #0
+.isf_lp
+	lda (ptr_l),y
+	beq .isf_nx
+	sta tmp1
+	and #$e0
+	and tmp0
+	bne .isf_keep
+	lda #0
+	sta (ptr_l),y
+	beq .isf_nx
+.isf_keep
+	lda tmp1
+	and #$1f
+	sta (ptr_l),y
+.isf_nx
+	iny
+	bne .isf_lp
+	inc ptr_h
+	dex
+	bne .isf_lp
+	rts
+.isf_mask
+	!byte $20, $40, $80
 
 ; Default status values. health=0 (new game / death / menu restart) → full
 ; reset; else keep ammo, weapons, health, armor, backpack across maps.

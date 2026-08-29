@@ -5,9 +5,9 @@
 ; (lives in low for mid headroom). Baron hook from enemy_mid .ed_kill.
 ; ============================================================================
 
-BARREL_FUSE = $83			; bit7 lit + 3-frame countdown
+BARREL_FUSE_TIME = 3			; overlay frames until detonation
+EXPLOSION_TIME = 2
 EXPLOSION_SPLASH = 8			; world units (1 tile)
-MAX_PLACEABLE_ITEMS = 46		; slots 0..45 (46/47 reserved)
 
 ; boss_* / barrel_events — cassette scrap BSS (zeropage.asm)
 
@@ -76,10 +76,76 @@ boss_lower_forever_floors
 	rts
 
 ; ---------------------------------------------------------------------------
-; explosion_near_y — Y = item slot; C=0 if within EXPLOSION_SPLASH of save_xh/yh
+; FX overlay (cassette): fuse / explosion sprites, not the item layer
 ; ---------------------------------------------------------------------------
-explosion_near_y
-	lda level_item_x,y
+fx_clear
+	ldx #0
+	lda #0
+.fxc
+	sta FX_KIND,x
+	inx
+	cpx #FX_MAX
+	bcc .fxc
+	rts
+
+; mapx/mapy → C=0 X=index if an overlay occupies that tile
+fx_find
+	ldx #0
+.fxf
+	lda FX_KIND,x
+	beq .fxf_nx
+	lda FX_TX,x
+	cmp mapx
+	bne .fxf_nx
+	lda FX_TY,x
+	cmp mapy
+	bne .fxf_nx
+	clc
+	rts
+.fxf_nx
+	inx
+	cpx #FX_MAX
+	bcc .fxf
+	sec
+	rts
+
+fx_alloc
+	ldx #0
+.fxa
+	lda FX_KIND,x
+	beq .fxa_got
+	inx
+	cpx #FX_MAX
+	bcc .fxa
+	sec
+	rts
+.fxa_got
+	clc
+	rts
+
+; Light a barrel fuse at mapx/mapy (no-op if already fused / overlay full)
+fx_fuse_at
+	jsr fx_find
+	bcc .fxu_rts
+	jsr fx_alloc
+	bcs .fxu_rts
+	lda #FX_FUSE
+	sta FX_KIND,x
+	lda mapx
+	sta FX_TX,x
+	lda mapy
+	sta FX_TY,x
+	lda #BARREL_FUSE_TIME
+	sta FX_TIME,x
+	inc barrel_events
+.fxu_rts
+	rts
+
+; ---------------------------------------------------------------------------
+; explosion_near_mobj — X = mobj; C=0 if within EXPLOSION_SPLASH of save_xh/yh
+; ---------------------------------------------------------------------------
+explosion_near_mobj
+	lda MOBJ_X,x
 	sec
 	sbc save_xh
 	bcs .eny_ax
@@ -88,7 +154,7 @@ explosion_near_y
 .eny_ax
 	cmp #EXPLOSION_SPLASH+1
 	bcs .eny_out
-	lda level_item_y,y
+	lda MOBJ_Y,x
 	sec
 	sbc save_yh
 	bcs .eny_ay
@@ -102,20 +168,38 @@ explosion_near_y
 	rts
 
 ; ---------------------------------------------------------------------------
-; explode — X = item slot (barrel or rocket)
-; EXPLOSION for 2 display frames; splash enemies; fuse neighbour barrels.
+; explode_tile — mapx/mapy = blast tile (barrel or rocket).
+; Overlay explosion sprite; splash enemies; fuse neighbour barrels (3×3).
 ; ---------------------------------------------------------------------------
-explode
-	lda #ITEM_TYPE_EXPLOSION
-	sta level_item_type,x
-	lda #2
-	sta level_item_meta,x
-	inc barrel_events
-	stx tmp4
-	lda level_item_x,x
+explode_tile
+	jsr item_tile_xy
+	lda tmp0
 	sta save_xh
-	lda level_item_y,x
+	lda tmp1
 	sta save_yh
+	; drop barrel from the layer if present
+	jsr item_layer_id
+	cmp #ITEM_TYPE_BARREL
+	bne .bex_fx
+	lda #0
+	sta (ptr_l),y
+.bex_fx
+	; reuse overlay on this tile, else alloc
+	jsr fx_find
+	bcc .bex_set
+	jsr fx_alloc
+	bcs .bex_sfx			; full — still splash
+.bex_set
+	lda #FX_EXPL
+	sta FX_KIND,x
+	lda mapx
+	sta FX_TX,x
+	lda mapy
+	sta FX_TY,x
+	lda #EXPLOSION_TIME
+	sta FX_TIME,x
+	inc barrel_events
+.bex_sfx
 	lda #SOUND_BAREXP
 	jsr play_sound
 	ldx #0
@@ -125,46 +209,74 @@ explode
 	lda MOBJ_INFO,x
 	cmp #MOBJINFO_IMPSHOT
 	bcs .bex_mn
-	ldy MOBJ_OBJ,x
-	jsr explosion_near_y
+	jsr explosion_near_mobj
 	bcs .bex_mn
 	stx tmp5
-	sty tmp3
 	jsr GetRandom8
 	and #31
 	clc
 	adc #16
-	ldx tmp3
+	ldx tmp5
 	jsr enemy_damage
 	ldx tmp5
 .bex_mn
 	inx
 	cpx #MOBJ_PLAYER_ROCKET
 	bcc .bex_mobj
-	ldx #0
-.bex_item
-	cpx tmp4
-	beq .bex_in
-	lda level_item_type,x
+	; 3×3 layer neighbourhood (skip center)
+	lda mapx
+	sta tmp4
+	lda mapy
+	sta tmp5
+	lda tmp5
+	sec
+	sbc #1
+	sta mapy
+	ldy #3
+.bex_yy
+	lda tmp4
+	sec
+	sbc #1
+	sta mapx
+	ldx #3
+.bex_xx
+	lda mapx
+	cmp #MAP_SIZE
+	bcs .bex_xn
+	lda mapy
+	cmp #MAP_SIZE
+	bcs .bex_xn
+	lda mapx
+	cmp tmp4
+	bne .bex_chk
+	lda mapy
+	cmp tmp5
+	beq .bex_xn
+.bex_chk
+	stx tmp2
+	sty tmp3
+	jsr item_layer_id
 	cmp #ITEM_TYPE_BARREL
-	bne .bex_in
-	lda level_item_meta,x
-	bmi .bex_in
-	txa
-	tay
-	jsr explosion_near_y
-	bcs .bex_in
-	lda #BARREL_FUSE
-	sta level_item_meta,x
-	inc barrel_events
-.bex_in
-	inx
-	cpx #MAX_PLACEABLE_ITEMS
-	bcc .bex_item
+	bne .bex_rst
+	jsr fx_fuse_at
+.bex_rst
+	ldx tmp2
+	ldy tmp3
+.bex_xn
+	inc mapx
+	dex
+	bne .bex_xx
+	inc mapy
+	dey
+	bne .bex_yy
+	lda tmp4
+	sta mapx
+	lda tmp5
+	sta mapy
 	rts
 
 ; ---------------------------------------------------------------------------
-; barrel_update — explosion countdown + fused barrel detonation (after fire)
+; barrel_update — overlay fuse countdown + explosion lifetime
 ; ---------------------------------------------------------------------------
 barrel_update
 	lda barrel_events
@@ -173,46 +285,33 @@ barrel_update
 .bu_go
 	ldx #0
 .bu_lp
-	lda level_item_type,x
-	cmp #ITEM_TYPE_EXPLOSION
-	beq .bu_expl
-	cmp #ITEM_TYPE_BARREL
+	lda FX_KIND,x
+	beq .bu_nx
+	cmp #FX_FUSE
+	beq .bu_fuse
+	cmp #FX_EXPL
 	bne .bu_nx
-	lda level_item_meta,x
-	bpl .bu_nx
-	dec level_item_meta,x
-	lda level_item_meta,x
-	cmp #$80
+	dec FX_TIME,x
 	bne .bu_nx
-	dec barrel_events			; fuse consumed
-	stx tmp2
-	jsr explode
-	ldx tmp2
-	jmp .bu_nx
-.bu_expl
-	lda level_item_meta,x
-	beq .bu_clr
-	dec level_item_meta,x
-	jmp .bu_nx
-.bu_clr
-	lda #ITEM_TYPE_EMPTY_E
-	sta level_item_type,x
+	lda #0
+	sta FX_KIND,x
 	dec barrel_events
+	jmp .bu_nx
+.bu_fuse
+	dec FX_TIME,x
+	bne .bu_nx
+	stx tmp2
+	lda FX_TX,x
+	sta mapx
+	lda FX_TY,x
+	sta mapy
+	lda #0
+	sta FX_KIND,x
+	dec barrel_events			; fuse consumed
+	jsr explode_tile
+	ldx tmp2
 .bu_nx
 	inx
-	cpx #MAX_PLACEABLE_ITEMS
+	cpx #FX_MAX
 	bcc .bu_lp
-	; Rocket slot (46) can be ITEM_TYPE_EXPLOSION — placeable loop skips it
-	lda level_item_type + ITEM_PLAYER_ROCKET
-	cmp #ITEM_TYPE_EXPLOSION
-	bne .bu_rts
-	lda level_item_meta + ITEM_PLAYER_ROCKET
-	beq .bu_rclr
-	dec level_item_meta + ITEM_PLAYER_ROCKET
-	rts
-.bu_rclr
-	lda #ITEM_TYPE_EMPTY_E
-	sta level_item_type + ITEM_PLAYER_ROCKET
-	dec barrel_events
-.bu_rts
 	rts

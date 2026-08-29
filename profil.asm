@@ -39,9 +39,10 @@ CIA2_ICR	= $dd0d
 CIA2_CRA	= $dd0e
 CIA2_CRB	= $dd0f
 
-PROF_SCR	= $0400
+PROF_SCR	= VIC_SCREEN
 
 prof_init
+	jsr io_push
 	lda #$7f
 	sta CIA2_ICR		; no CIA2 IRQs
 	lda CIA2_ICR		; ack
@@ -67,7 +68,7 @@ prof_init
 	sta turn_acc_h
 	lda #20
 	sta dt_ms
-	rts
+	jmp io_pop
 
 ; frame_cy >> 10 → dt_ms (HUD binary-ms). 0 → 20; saturate at 255.
 calc_frame_dt
@@ -93,6 +94,7 @@ calc_frame_dt
 
 ; Consistent 32-bit cascade sample → casc_now.
 prof_read_casc
+	jsr io_push
 .prc_retry
 	lda CIA2_TB_HI
 	sta casc_now + 3
@@ -108,7 +110,7 @@ prof_read_casc
 	lda CIA2_TB_LO
 	cmp casc_now + 2
 	bne .prc_retry
-	rts
+	jmp io_pop
 
 prof_store_t0
 	lda casc_now
