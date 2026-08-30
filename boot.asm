@@ -1,6 +1,8 @@
-; SquareDoom disposable boot — install Krill, then hand off to MENU @ $0400.
-; KERNAL LOAD only for LOADER + INSTALL. After JSR install, every load is loadraw.
-; MENU overwrites this image (and the $2000 installer); trampoline at $02A0 survives.
+; SquareDoom disposable boot — splash first, then Krill, then MENU @ $0400.
+; KERNAL-load colour then bitmap so the cover paints in already coloured, before
+; INSTALL (that 7K KERNAL load is the long wait). After JSR install, every load
+; is loadraw. MENU overwrites this image (and the $2000 installer); trampoline at
+; $02A0 survives.
 !cpu 6502
 !to "boot.prg", cbm
 
@@ -9,30 +11,54 @@
 *= LOADER_BASE
 !byte $0b, $08, $0a, $00, $9e, $32, $30, $36, $31, $00, $00, $00	; SYS 2061
 
+; Bitmap clear uses these; menu will overwrite boot anyway.
+clr_ptr		= $fb
+
 *= $080d
 boot_start
 	lda #BANK_IO
 	sta $01
 	jsr $ff84				; IOINIT
 	lda $d011
-	and #%11101111				; DEN off — IOINIT restores bank 0
+	and #%11101111				; DEN off until colour is in
 	sta $d011
 	lda #0
 	sta $d020
+	sta $d015
+	sta $d01a
 	cli
+
+	lda #7
+	ldx #<name_splashc
+	ldy #>name_splashc
+	jsr load_sa1
+	bcs .fail
+	jsr copy_splash_col
+	jsr clear_bitmap
+	jsr splash_vic			; matrix + colour RAM live; bitmap black
+
+	lda #6
+	ldx #<name_splash
+	ldy #>name_splash
+	jsr load_sa1
+	bcs .fail
+	jsr splash_vic			; KERNAL LOAD RMW of $dd00; keep bank 1
 
 	lda #6
 	ldx #<name_loader
 	ldy #>name_loader
 	jsr load_sa1
 	bcs .fail
+	jsr splash_vic
 	lda #7
 	ldx #<name_install
 	ldy #>name_install
 	jsr load_sa1
 	bcs .fail
+	jsr splash_vic
 	jsr KRILL_INSTALL			; C=1 → no fallback, hang
 	bcs .fail
+	jsr splash_vic			; Krill DDRA=$03 — absolute $dd00 only
 
 	ldx #0
 .copy
@@ -50,7 +76,6 @@ boot_start
 	jmp .hang
 
 ; KERNAL LOAD, SA=1 (address from the PRG header). A=len, X/Y=name.
-; Only used for LOADER and INSTALL, before Krill is up.
 load_sa1
 	jsr $ffbd
 	lda #1
@@ -65,6 +90,77 @@ load_sa1
 	plp
 	rts
 
+; splashc: matrix already at $4000. Copy colour staging → $D800, set bg.
+copy_splash_col
+	ldx #0
+.csc
+	lda SPLASH_COL,x
+	sta KOALA_COL_RAM,x
+	lda SPLASH_COL + $100,x
+	sta KOALA_COL_RAM + $100,x
+	lda SPLASH_COL + $200,x
+	sta KOALA_COL_RAM + $200,x
+	inx
+	bne .csc
+	ldx #0
+.csc_t
+	lda SPLASH_COL + $300,x
+	sta KOALA_COL_RAM + $300,x
+	inx
+	cpx #KOALA_TAIL
+	bne .csc_t
+	lda SPLASH_BG
+	sta $d021
+	sta $d020
+	rts
+
+; $6000–$7FFF ← 0 so the bitmap paints onto black, not leftover RAM.
+clear_bitmap
+	lda #<BITMAP
+	sta clr_ptr
+	lda #>BITMAP
+	sta clr_ptr + 1
+	ldx #32
+	lda #0
+	tay
+.cb
+	sta (clr_ptr),y
+	iny
+	bne .cb
+	inc clr_ptr + 1
+	dex
+	bne .cb
+	rts
+
+; VIC bank 1 MCM bitmap. Absolute $dd00 — RMW poisons Krill IEC after install.
+; $d020/$d021 already set from SPLASH_BG.
+splash_vic
+	lda #%00000010			; VIC bank 1; upper 6 bits 0
+	sta $dd00
+	lda $d011
+	and #%10000111			; clear ECM/BMM/DEN/RSEL
+	ora #%00111011			; bitmap + DEN + 25 rows
+	sta $d011
+	lda $d016
+	and #%11100111
+	ora #%00011000			; CSEL + MCM
+	sta $d016
+	lda #%00001000			; matrix $4000, bitmap $6000
+	sta $d018
+	lda #0
+	sta $d015
+	sta $d01a
+	lda SPLASH_BG
+	sta $d021
+	sta $d020
+	rts
+
+name_splashc
+	!text "SPLASHC"
+	!byte 0
+name_splash
+	!text "SPLASH"
+	!byte 0
 name_loader
 	!text "LOADER"
 	!byte 0

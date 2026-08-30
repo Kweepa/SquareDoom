@@ -19,14 +19,14 @@ LOGO_TOP	= 1			; one grey row above the logo
 BRAND_KEEP_ROWS	= LOGO_TOP + MENU_LOGO_ROWS	; rows 0–8 (logo band)
 CONTENT_TOP	= BRAND_KEEP_ROWS + 2	; title two rows below the logo
 HINT_ROW	= 23
-HINT_COL	= 0			; black help text
+HINT_COL	= 11			; dark grey move / adjust / select labels
 HINT_GAP	= 8			; px between key sprite and label
 HINT_SPR_Y	= 228			; 21px sprite centered on row 23
 MUX_LOGO_RASTER	= 30			; MCM on in the top border
-MUX_HIRES_RASTER = 124			; first non-badline of row 9 (blank grey under logo)
+MUX_HIRES_RASTER = 124			; first non-badline of row 9 (blank under logo)
 CURSOR_TICK_MAX	= 20			; skull overlay; was 5 (~1/4 speed)
-COL_MAIN	= 11			; darkest grey (all screens)
-MCM_BG		= COL_MAIN		; $d021 during logo = dark grey (bitmap 00)
+COL_MAIN	= 0			; black (menus + surround)
+MCM_BG		= COL_MAIN		; $d021 during logo = black (bitmap 00)
 MCM_COL		= 2			; colour RAM default for bitmap 11
 HINT_SPR_RAM	= $4800			; 6×64 in VIC bank 1 (menu-only)
 HINT_SPR_PTR0	= (HINT_SPR_RAM - SCREEN) / 64
@@ -37,9 +37,11 @@ glyph_lj	= $4400			; 96×8 lead-justified glyphs; below sprite RAM
 TEXT_COL	= 2			; red options
 HILITE_COL	= 7			; yellow selected
 TITLE_COL	= 7			; yellow titles
-MENU_BORDER	= 11			; darkest grey
+HINT_KEY_COL	= 11			; dark grey key caps
+HINT_OVER_COL	= 1			; white letter overlay on the keys
+MENU_BORDER	= COL_MAIN
 COL_BOX		= 0			; black
-STORY_BG	= 11			; same as COL_MAIN; white panel sits on this
+STORY_BG	= COL_MAIN		; black around the white paper
 STORY_BOX	= 1			; white story panel
 STORY_TEXT	= 0			; black story text
 STORY_GREY_TOP	= BRAND_KEEP_ROWS	; story/text panels start just below the logo
@@ -933,6 +935,16 @@ calc_box
 	adc box_top
 	sta box_top
 .cb_ok
+	lda menu_id
+	beq .cb_up			; main
+	cmp #3				; options
+	bne .cb_rts
+.cb_up
+	lda box_top
+	sec
+	sbc #1
+	sta box_top
+.cb_rts
 	rts
 
 ; Width>40 → full screen; else center.
@@ -1080,7 +1092,7 @@ show_text_screen
 	sta pr_setcol
 	jmp .sts_body
 
-; Read This! / endings: grey surround, white panel, black text. Restores COL_MAIN.
+; Read This! / endings: black surround, white panel, black text. Restores COL_MAIN.
 show_story_screen
 	sta txt_ptr_l
 	sty txt_ptr_h
@@ -1215,7 +1227,7 @@ calc_text_box
 	sta ui_str_h
 	rts
 
-; Story pages: center the white panel on the dark-grey field below the logo.
+; Story pages: center the white panel on the field below the logo.
 apply_story_layout
 	lda cell_bg
 	cmp #STORY_BOX
@@ -1475,7 +1487,7 @@ mux_logo_spr
 	sta $d015
 	rts
 
-; Blank grey line under the logo — only $d016; 00 pixels are grey in both modes.
+; Blank line under the logo — only $d016; 00 pixels are $d021 in both modes.
 mux_hires_mcm
 	lda #$08				; CSEL, MCM off
 	sta $d016
@@ -1525,7 +1537,7 @@ mux_cursor_spr
 	sta $d015
 	rts
 
-; Raster IRQ late — WS / AD / RETURN key pairs (white in front of black).
+; Raster IRQ late — WS / AD / RETURN: white letters in front of dark grey keys.
 mux_hint_spr
 	lda hint_spr_en
 	bne .mh_go
@@ -1540,11 +1552,11 @@ mux_hint_spr
 	inx
 	cpx #HINT_SPR_COUNT
 	bne .mhp
-	lda #HILITE_COL
+	lda #HINT_OVER_COL
 	sta $d027
 	sta $d029
 	sta $d02b
-	lda #0
+	lda #HINT_KEY_COL
 	sta $d028
 	sta $d02a
 	sta $d02c
@@ -2495,7 +2507,7 @@ str_skip
 	rts
 
 ; Hide full redraws: DEN off fills the screen with $d020. Sprites off.
-; Border matches COL_MAIN / STORY_BG (darkest grey).
+; Border matches COL_MAIN / STORY_BG.
 menu_blank
 	lda $d011
 	and #%11101111				; DEN off

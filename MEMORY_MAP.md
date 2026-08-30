@@ -4,13 +4,14 @@ Snapshot of C64 RAM after **boot → MENU → GFX copy → GAME** has finished a
 
 ## Boot sequence
 
-Autostart file name is **`squaredoom`** (`boot.prg`). Boot KERNAL-loads **`loader`** (`$8E00`) and **`install`** (`$2000`), `JSR $2000`, then every later load is Krill `loadraw` (CLC → dest from the PRG header). `UNINSTALL_API=0`: do **not** `IOINIT` while Krill is up (`$DD02=$3F` tears down the drive code).
+Autostart file name is **`squaredoom`** (`boot.prg`). Boot KERNAL-loads **`splashc`** then **`splash`** first (cover paints in colour, stays up during the slow INSTALL), then **`loader`** (`$8E00`) and **`install`** (`$2000`), `JSR $2000`, then every later load is Krill `loadraw` (CLC → dest from the PRG header). `UNINSTALL_API=0`: do **not** `IOINIT` while Krill is up (`$DD02=$3F` tears down the drive code).
 
-1. `IOINIT`, DEN off, CLI. KERNAL-load `LOADER` + `INSTALL`. `JSR install`.
-2. Copy a trampoline to `$02A0` (below the overlay). `loadraw` **`menu`** at `LOCODE_BASE` (`$0400`), `JMP $0400`.
-3. MENU UI. Selectors land in `$02FA`–`$02FF`. On start: `loadraw` **`gfx`** at `GFX_STAGING` (`$A000`), `copy_vic` (`$01=$34`, sprite tail → `$D000`, charset → `$D800`).
-4. Trampoline `loadraw` **`game`** at `$0400` (code only, overwrites MENU). `TXS $FF`, `JMP $0400` (`locode_entry`).
-5. `locode_entry` `loadraw` **`high`** at `$9000` (tables, `py_tab`, sprite head), copies the kernal blob `$9000` → `$F930`, `init_sqtabs`, then `game_start` → `LoadLevel`.
+1. `IOINIT`, CLI. KERNAL-load **`splashc`** at `$4000` (matrix in place, colour staging `$43E8`). Copy colour → `$D800`, clear bitmap, bank-1 MCM on. KERNAL-load **`splash`** at `$6000` (bitmap paints in already coloured).
+2. KERNAL-load `LOADER` + `INSTALL` (splash stays; restore `$dd00` bank 1). `JSR install`. Absolute `$dd00=%00000010` again (Krill DDRA).
+3. Copy a trampoline to `$02A0` (below the overlay). `loadraw` **`menu`** at `LOCODE_BASE` (`$0400`), `JMP $0400`. MENU `init_menu_vic` blanks DEN, then draws.
+4. MENU UI. Selectors land in `$02FA`–`$02FF`. On start: `loadraw` **`gfx`** at `GFX_STAGING` (`$A000`), `copy_vic` (`$01=$34`, sprite tail → `$D000`, charset → `$D800`).
+5. Trampoline `loadraw` **`game`** at `$0400` (code only, overwrites MENU). `TXS $FF`, `JMP $0400` (`locode_entry`).
+6. `locode_entry` `loadraw` **`high`** at `$9000` (tables, `py_tab`, sprite head), copies the kernal blob `$9000` → `$F930`, `init_sqtabs`, then `game_start` → `LoadLevel`.
 
 In-game Run/Stop and E1M8 complete `JMP reboot_game`, which `IOINIT`s (uninstalls Krill), KERNAL-loads `SQUAREDOOM`, and `JMP $080d`. `game_complete=1` makes the next MENU entry show the ending pages.
 
@@ -29,7 +30,7 @@ Krill was built with `LOAD_UNDER_D000_DFFF=0`, so GFX is still copied **while ME
 | `$02FE` | `game_complete` |
 | `$02FF` | `difficulty` |
 
-**Menu VIC** (while MENU.PRG is resident): hires bitmap, bank 1, matrix `$4000`, bitmap `$6000`. Split rasters mux skull cursor + WS/AD/RETURN hints. Game play uses charset bank 3 (`$C400` / `$D800`) as below.
+**Menu VIC** (while MENU.PRG is resident): hires bitmap, bank 1, matrix `$4000`, bitmap `$6000`. Boot first uses this bank for the Koala splash (MCM), still showing through Krill install and MENU load. Split rasters mux skull cursor + WS/AD/RETURN hints. Game play uses charset bank 3 (`$C400` / `$D800`) as below.
 
 ---
 
@@ -113,6 +114,8 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | `squaredoom` | `boot.prg` | `$0801` (SYS 2061) |
 | `loader` | `krill/loader.prg` | `$8E00` (resident; KERNAL-loaded once) |
 | `install` | `krill/install.prg` | `$2000` (transient installer) |
+| `splashc` | `splashc.prg` | `$4000` (MCM matrix + colour staging `$43E8`; copied to `$D800`) |
+| `splash` | `splash.prg` | `$6000` (8000-byte MCM bitmap; paints in after colour) |
 | `menu` | `menu.prg` | `$0400` (must end before `$4000`) |
 | `gfx` | `gfx.prg` | `$A000` (sprite tail + charset; copied under I/O) |
 | `game` | `game.prg` | `$0400`–`end_code` |

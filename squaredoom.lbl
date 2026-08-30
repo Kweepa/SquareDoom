@@ -479,6 +479,7 @@ al C:00c8 .SEC_TABLE_SIZE
 al C:00c8 .ARMOR_BLUE
 al C:00c8 .AMMO_BULLETS_MAX
 al C:00ce .free_high
+al C:00e8 .KOALA_TAIL
 al C:00f0 .music_zp0
 al C:00f1 .music_zp1
 al C:00f2 .music_zp2
@@ -698,6 +699,7 @@ al C:03b4 .FX_TIME
 al C:03c4 .FX_END
 al C:03e8 .FLASH_PERIOD_MS
 al C:03e8 .DAMAGE_PERIOD_MS
+al C:03e8 .SPLASH_COL_SIZE
 al C:03fc .CASS_BUF_END
 al C:0400 .LOCODE_BASE
 al C:0400 .MAP_CELLS
@@ -1000,6 +1002,7 @@ al C:42ee .TryDamageEnemy
 al C:4363 .TryDamageAtCol
 al C:4371 .proj_scale_vel
 al C:4379 .missile_try_move
+al C:43e8 .SPLASH_COL
 al C:4428 .missile_tile_blocked
 al C:443a .missile_push_walls
 al C:451e .missile_scale_mom
@@ -1007,6 +1010,7 @@ al C:4566 .spawn_enemy_missile
 al C:461f .spawn_player_rocket
 al C:46be .a_fly
 al C:46d2 .proj_fly
+al C:47d0 .SPLASH_BG
 al C:4851 .missile_despawn
 al C:4873 .missile_try_hit_player
 al C:4891 .procket_try_hit
@@ -1384,6 +1388,7 @@ al C:d240 .SHOTGUN_SPRITES
 al C:d3c0 .PISTOL_SPRITES
 al C:d540 .MUZZLE_FLASH_SPRITES
 al C:d640 .SHOTGUN_COCK_SPRITES
+al C:d800 .KOALA_COL_RAM
 al C:d800 .CHARSET
 al C:db50 .CHARSET_END
 al C:dd04 .CIA2_TA_LO

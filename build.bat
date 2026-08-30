@@ -50,6 +50,8 @@ python tools\gen_menu_cursor_sprites.py
 if errorlevel 1 exit /b 1
 python tools\gen_menu_logo_mcm.py
 if errorlevel 1 exit /b 1
+python tools\gen_splash.py
+if errorlevel 1 exit /b 1
 "%ACME%" sprites_bank3.asm
 if errorlevel 1 exit /b 1
 "%ACME%" gfx.asm
@@ -80,9 +82,11 @@ if errorlevel 1 exit /b 1
 python tools\gen_vice_mon.py
 if errorlevel 1 exit /b 1
 
-echo Built boot.prg menu.prg gfx.prg game.prg high.prg and squaredoom.d64
+echo Built boot.prg splashc.prg splash.prg menu.prg gfx.prg game.prg high.prg and squaredoom.d64
 echo Memory: see mem: TOTAL free warn above ^(code+high+kernal-scrap^)
 dir boot.prg
+dir splashc.prg
+dir splash.prg
 dir menu.prg
 dir gfx.prg
 dir game.prg

@@ -67,7 +67,16 @@ game_complete	= $02fe
 difficulty	= $02ff
 
 ; Menu hires (VIC bank 1). Game uses VIC_SCREEN in bank 3.
+; Boot splash: splashc @ $4000 (matrix in place, colour staged $43E8), bitmap @ $6000.
 SCREEN		= $4000
 BITMAP		= $6000
 BITMAP_SIZE	= 8000
 BITMAP_END	= BITMAP + BITMAP_SIZE
+SPLASH_COL	= SCREEN + 1000	; $43E8 — colour staging from splashc.prg
+SPLASH_COL_SIZE	= 1000
+SPLASH_BG	= SPLASH_COL + SPLASH_COL_SIZE	; $47D0
+KOALA_COL_RAM	= $d800
+KOALA_TAIL	= 1000 - 768		; 232
+!if SPLASH_BG + 1 > BITMAP {
+	!error "splash colour staging overlaps bitmap; bg=$", SPLASH_BG
+}
