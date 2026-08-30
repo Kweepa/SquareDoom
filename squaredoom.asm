@@ -1,10 +1,11 @@
-; SquareDoom — ACME root (C64); assembled as game.prg @ $0900
+; SquareDoom — ACME root (C64); assembled as game.prg @ $0400
 !cpu 6502
 !to "game.prg", cbm
 
 ; VIC bank 3 ($C000): screen $C400, sprites $C800–$D7BF, charset $D800.
 ; Play default $01=$34. SQTAB $BC00. Level $9000. py_tab $B000.
-; Boot loads MENU then GFX (copy under I/O) then this image over MENU.
+; Boot installs Krill at $8E00, loads MENU @ $0400; MENU copies GFX then GAME
+; (code) over MENU. locode_entry loadraws HIGH ($9000–$D000) before the blob copy.
 !source "mem_vic.asm"
 SCREENBUFFER = $e000			; column-major colours (40×25)
 PATTERNBUFFER = SCREENBUFFER + $400	; screen codes; hi = colour hi + 4
@@ -28,7 +29,7 @@ AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE–this (18..22)
 MAX_SECTORS = 199		; usable ids 1..199
 SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
-MEM_CODE_LIMIT = MEM_LEVEL		; code must end before map
+MEM_CODE_LIMIT = loadraw		; code must end before Krill ($8E00)
 
 !source "zeropage.asm"
 *= LOCODE_BASE
@@ -71,7 +72,10 @@ free_code = MEM_CODE_LIMIT - end_code
 !if free_code < 0 {
 	!error "Code overlaps level at $", MEM_CODE_LIMIT, "; overshoot=", end_code - MEM_CODE_LIMIT
 }
-!warn "mem: code end=$", end_code, " free to map $", MEM_CODE_LIMIT, " =", free_code
+!if end_code > loadraw {
+	!error "Code overlaps Krill resident at $", loadraw, "; end=$", end_code
+}
+!warn "mem: code end=$", end_code, " free to Krill $", loadraw, " =", free_code
 
 ; ------------------------------------------------------------------
 ; Level window $9000: kernal blob staged in first KERNAL_BLOB_SIZE bytes
@@ -220,7 +224,7 @@ copy_kernal_blob
 	bne -
 	rts
 
-; First 2K of sprites load at $C800 (always RAM). Tail copied into $D000 by MENU+3.
+; First 2K of sprites load at $C800 (always RAM). Tail copied into $D000 by MENU copy_vic.
 *=VIC_SPRITES
 	!bin "tmp/sprites.bin", SPRITE_HEAD
 !if * != VIC_SPRITES + SPRITE_HEAD {

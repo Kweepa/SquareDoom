@@ -92,19 +92,6 @@ summary_tick
 	ldx #2
 	jmp wait_frames_x
 
-; KERNAL default I/O vector table lives at $FD30 in ROM. LoadPrg's RESTOR
-; path stomps underlay $FD30–$FD4F (MEMUSS=$FD30; watch hit put_pct @ $FD46).
-; Leave that window empty so menu/level LOAD cannot trash roll-in code.
-!if * > $fd30 {
-	!error "levelstats crossed $FD30 before vector hole; *=", *
-}
-!fill $fd30 - *, 0
-kernal_vec_hole
-	!fill $20, 0			; $FD30..$FD4F
-!if * != $fd50 {
-	!error "kernal_vec_hole end != $FD50; *=", *
-}
-
 ; ---------------------------------------------------------------------------
 ; roll_in_percentage — A = target 0..100, X = row; VicDoom step +4
 ; ---------------------------------------------------------------------------

@@ -66,11 +66,13 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 (
   echo.
   echo Assemble failed — check mem: warnings above for free bytes / overlaps.
-  echo Ceilings: GAME $0900 code^<$9000 map  py_tab $B000  SQTAB $BC00  screen $C400  sprites $C800-$D7BF  charset $D800
+  echo Ceilings: GAME $0400 code^<$8E00 Krill / $9000 map  py_tab $B000  SQTAB $BC00  screen $C400  sprites $C800-$D7BF  charset $D800
   echo Play default $01=$34; I/O windows $35. Under-KERNAL BSS $e000; kernal scrap after SEC_WDARK_END
   exit /b 1
 )
 python tools\sort_lbl.py squaredoom.lbl
+if errorlevel 1 exit /b 1
+python tools\split_game_high.py
 if errorlevel 1 exit /b 1
 python tools\mkdisk.py --out squaredoom.d64 --boot boot.prg --levels levels
 if errorlevel 1 exit /b 1
@@ -78,10 +80,11 @@ if errorlevel 1 exit /b 1
 python tools\gen_vice_mon.py
 if errorlevel 1 exit /b 1
 
-echo Built boot.prg menu.prg gfx.prg game.prg and squaredoom.d64
+echo Built boot.prg menu.prg gfx.prg game.prg high.prg and squaredoom.d64
 echo Memory: see mem: TOTAL free warn above ^(code+high+kernal-scrap^)
 dir boot.prg
 dir menu.prg
 dir gfx.prg
 dir game.prg
+dir high.prg
 dir squaredoom.d64

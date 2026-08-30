@@ -1,4 +1,4 @@
-; Sprite tail + charset staged at $A000; MENU+3 copies to $D000 / $D800.
+; Sprite tail + charset staged at $A000; MENU copy_vic copies to $D000 / $D800.
 !cpu 6502
 !to "gfx.prg", cbm
 

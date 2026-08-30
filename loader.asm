@@ -1,12 +1,10 @@
-; Load PRG from disk device 8 (SA=1 → file load address).
-; Levels → $9000 (cooked blob, no SID). Reboot reloads boot as SQUAREDOOM.
+; Disk load — Krill fastloader (loadraw). $01 = BANK_LOADER during the call.
+; Levels → $9000 (cooked blob, header address). Reboot KERNAL-loads SQUAREDOOM.
 !zone loader
-
-LEVEL_LFN = 15
-LEVEL_DEVICE = 8
 
 level_dos_name
 	!text "E1M1"
+	!byte 0
 
 ; FormatDosName — write "ENMM" into level_dos_name from episode + level_num
 FormatDosName
@@ -24,127 +22,72 @@ FormatDosName
 	sta level_dos_name + 3
 	rts
 
-; load_namelen…load_do_pad — cassette scrap BSS (zeropage.asm)
-
-ENTER_MIN_JIFFIES = 120			; ~2s NTSC / 2.4s PAL
-
-; LoadPrg — A=name length, X/Y=name pointer.
-; If load_do_pad ≠ 0, hold ≥ ENTER_MIN_JIFFIES on success (level ENTERING).
-; C=0 ok, C=1 error. cur_weapon at $FB survives; no stash.
+; LoadPrg — X/Y = 0-terminated name. Dest from PRG header (carry clear).
+; If load_do_pad ≠ 0, hold ~2s on success (level ENTERING). Jiffy is dead
+; (SEI, KERNAL out) so that hold is wait_frames_120, not $A2.
+; C=0 ok, C=1 error. Interrupts disabled around loadraw (KERNAL unmapped).
+; Do not IOINIT: $DD02=$3F uninstalls the drive-side Krill code.
 LoadPrg
-	sta load_namelen
 	stx load_name_l
 	sty load_name_h
 
 	sei
-	cld					; IEC timeouts use ADC; D=1 → tape fall-through
-	lda #$35				; I/O in before CIA (play default is $34)
+	cld
+	lda #BANK_LOADER
 	sta $01
 	lda #$7f
 	sta $dc0d
-	sta $dd0d
 	lda $dc0d
-	lda $dd0d
-
-	; Stop profiler timers — they sit on CIA2 with the IEC port
 	lda #0
-	sta $dd0e
+	sta $d01a
+	sta $dd0e				; profiler sits on CIA2 timers; Krill uses PRA
 	sta $dd0f
 
-	lda #$36				; KERNAL in, BASIC out, I/O in
-	sta $01
-
-	jsr $ff8a				; RESTOR — KERNAL vectors
-	jsr $ff84				; IOINIT — $DD00=$07 (bank 0), $01=$E7
-	lda #$36				; IOINIT mapped BASIC+KERNAL; keep BASIC out
-	sta $01
-	lda $dd00
-	ora #$03				; VIC bank 0 for IEC (bits 0–1 = %11)
-	sta $dd00
-
-	; IOINIT points VIC at $0400 (boot text). Black bg + colour 0 hides it.
-	lda #0
-	sta $d020
-	sta $d021
-	jsr fill_color_ram
-
-	lda #0					; silent — no SEARCHING/LOADING text
-	jsr $ff90				; SETMSG
-
-	; ST…LDTND ($90–$98); stray $98 kills OPEN (no game symbols here)
-	ldx #0
-	txa
-.lp_clr
-	sta $90,x
-	inx
-	cpx #9
-	bne .lp_clr
-
-	jsr $ffe7				; CLALL
-
-	cli
-	lda $a2					; jiffy low (ticks under KERNAL IRQ)
-	sta load_jiffy0
-
-	lda load_namelen
 	ldx load_name_l
 	ldy load_name_h
-	jsr $ffbd				; SETNAM
-	lda #LEVEL_LFN
-	ldx #LEVEL_DEVICE
-	ldy #1					; SA=1 → load to PRG address
-	jsr $ffba				; SETLFS
-	ldx #LEVEL_DEVICE			; IEC; KERNAL OPEN BCS falls into tape if $BA<3
-	stx $ba
-	lda #0
-	jsr $ffd5				; LOAD
+	clc					; dest from PRG header
+	jsr loadraw
 	php
 
-	plp
-	php
 	bcs .lp_done
 	lda load_do_pad
 	beq .lp_done
-.lp_pad
-	lda $a2
-	sec
-	sbc load_jiffy0
-	cmp #ENTER_MIN_JIFFIES
-	bcc .lp_pad
+	jsr wait_frames_120
 
 .lp_done
-	sei
-	lda #$35
+	lda #BANK_LOADER
 	sta $01
 	lda #0
 	sta $d020
 	sta $d021
-	jsr set_vic_bank3			; IOINIT may have restored bank 0
+	jsr set_vic_bank3
+	lda $d011
+	ora #%00010000				; DEN on after ENTERING / play
+	sta $d011
 	jsr prof_init
 	jsr input_irq_init
-	lda #$34
+	lda #BANK_RAM
 	sta $01
 	plp
 	rts
 
-; LoadLevel — FormatDosName + LoadPrg with ENTERING jiffy pad. C=0 ok, C=1 error.
+; LoadLevel — FormatDosName + LoadPrg with ENTERING frame pad. C=0 ok, C=1 error.
 LoadLevel
 	jsr FormatDosName
 	lda #1
 	sta load_do_pad
-	lda #4
 	ldx #<level_dos_name
 	ldy #>level_dos_name
 	jmp LoadPrg
 
-; reboot_game — KERNAL-load boot PRG "SQUAREDOOM", then JMP $080d (boot_start).
+; reboot_game — uninstall Krill (IOINIT $DD02=$3F), KERNAL-load SQUAREDOOM, JMP $080d.
 reboot_game
 	sei
-	lda #$36
+	lda #BANK_IO
 	sta $01
 	ldx #$ff
 	txs
-	jsr $ff84				; IOINIT
+	jsr $ff84				; IOINIT — tears down drive-side Krill
 	lda $d011
 	and #%11101111				; DEN off — IOINIT restores bank 0
 	sta $d011

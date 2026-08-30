@@ -33,7 +33,7 @@ next_level
 	jsr start_level
 	jmp gameloop
 .nl_fail
-	jmp REBOOT_STUB
+	jmp reboot_game
 
 ; music_init — A=0 song; SidTracker may poke CIA TA — re-init IRQ after
 music_init
@@ -61,7 +61,12 @@ show_entering
 	sta ui_text_col
 	jsr get_level_title
 	ldx #10
-	jmp print_centered
+	jsr print_centered
+	jsr io_push
+	lda $d011
+	ora #%00010000				; unblank; HIGH load left DEN off
+	sta $d011
+	jmp io_pop
 
 after_level_end
 	jsr hide_weapon
@@ -88,11 +93,11 @@ after_level_end
 	lda level_num
 	cmp #10
 	bcc .ale_next
-	jmp REBOOT_STUB
+	jmp reboot_game
 .ale_end
 	lda #1
 	sta game_complete
-	jmp REBOOT_STUB
+	jmp reboot_game
 .ale_next
 	jmp next_level
 
@@ -104,7 +109,7 @@ gameloop_check_esc
 	rts
 .gce_go
 	jsr hide_weapon
-	jmp REBOOT_STUB
+	jmp reboot_game
 
 ; Rising edge of IRQ-latched F1 (key_map from read_input)
 gameloop_check_map

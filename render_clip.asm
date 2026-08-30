@@ -94,7 +94,7 @@ clip_col_reset
 	sta clip_n
 	jmp clip_col_bind
 
-; COL_CLIP_ENTRIES + col*CLIP_COL_BYTES
+; clip_base = COL_CLIP_ENTRIES + col * CLIP_COL_BYTES (contiguous under KERNAL)
 clip_base_lo
 !for .col, 40 {
 	!byte <(COL_CLIP_ENTRIES + (.col - 1) * CLIP_COL_BYTES)

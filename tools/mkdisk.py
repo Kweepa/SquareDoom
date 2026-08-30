@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build squaredoom.d64: boot (autostart name squaredoom), menu, gfx, game, levels."""
+"""Build squaredoom.d64: boot (autostart name squaredoom), krill, menu, gfx, game, high, levels.
+
+krill/loader.prg and krill/install.prg are prebuilt Krill v194 binaries (see
+krill/README.md). Boot KERNAL-loads both, runs INSTALL once, and every load
+after that goes through the fastloader. GAME is code only; HIGH is $9000–$D000.
+"""
 
 import argparse
 import os
@@ -16,11 +21,15 @@ LEVEL_LOAD_ADDR = 0x9000
 LEVEL_BYTES = 3473
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
 
-# (dos_name, path relative to repo root)
+# (dos_name, path relative to repo root). Krill first after boot so INSTALL
+# is on disk before MENU overwrites the $2000 installer RAM.
 DISK_PRGS = [
+	("loader", "krill/loader.prg"),
+	("install", "krill/install.prg"),
 	("menu", "menu.prg"),
 	("gfx", "gfx.prg"),
 	("game", "game.prg"),
+	("high", "high.prg"),
 ]
 
 
@@ -128,7 +137,7 @@ def main() -> None:
 		subprocess.check_call(cmd)
 
 	print(
-		f"Wrote {d64} via {c1541} (boot + {len(DISK_PRGS)} prgs, {len(levels)} levels)"
+		f"Wrote {d64} via {c1541} (boot + krill + {len(DISK_PRGS) - 2} prgs, {len(levels)} levels)"
 	)
 
 

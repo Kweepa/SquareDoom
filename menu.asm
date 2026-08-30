@@ -1,6 +1,6 @@
-; SquareDoom MENU overlay — load @ LOCODE_BASE ($0900), JSR from boot, then overwritten by GAME.
-; Entry: +0 run_menu, +3 copy_vic. Hires bitmap UI + doommenufont (options + text screens).
-; Selectors at $08FA–$08FF survive GAME overwrite. SFX: CIA1 Timer A + menu playsound.
+; SquareDoom MENU overlay — load @ LOCODE_BASE ($0400), JMP from boot trampoline.
+; Entry: +0 run_menu, +3 copy_vic. After start: loadraw GFX, copy_vic, trampoline GAME.
+; Selectors at $02FA–$02FF survive GAME overwrite. SFX: CIA1 Timer A + menu playsound.
 !cpu 6502
 !to "menu.prg", cbm
 
@@ -96,7 +96,7 @@ dst_ptr		= ptr_r_l
 	jmp run_menu
 	jmp copy_vic
 
-; GFX staging $A000 → sprite tail $D000 + charset $D800 (KERNAL cannot write I/O).
+; GFX staging $A000 → sprite tail $D000 + charset $D800 (Krill LOAD_UNDER_D000=0).
 copy_vic
 	sei
 	lda #$34
@@ -241,13 +241,75 @@ run_menu
 .rm_done
 	jsr menu_sfx_done
 	lda $d011
-	and #%11101111				; DEN off through boot asset loads
+	and #%11101111				; DEN off through GFX copy / GAME load
 	sta $d011
 	lda #0
 	sta $d015
 	sta $d020
 	sta $d021
+
+	ldx #<name_gfx
+	ldy #>name_gfx
+	jsr krill_load
+	bcs .rm_fail
+	jsr copy_vic
+
+	ldx #0
+.rm_copy
+	lda game_stub_src,x
+	sta KRILL_STUB,x
+	inx
+	cpx #game_stub_len
+	bne .rm_copy
+	jmp KRILL_STUB
+
+.rm_fail
+	lda #BANK_LOADER
+	sta $01
+.rm_hang
+	jmp .rm_hang
+
+; X/Y = 0-terminated name. Carry clear → dest from PRG header. Returns sei.
+krill_load
+	sei
+	lda #BANK_LOADER
+	sta $01
+	clc
+	jsr loadraw
 	rts
+
+name_gfx
+	!text "GFX"
+	!byte 0
+
+; loadraw of GAME @ $0400 overwrites MENU; caller must live below $0400.
+game_stub_src
+!pseudopc KRILL_STUB {
+	sei
+	lda #BANK_LOADER
+	sta $01
+	clc
+	ldx #<game_stub_name
+	ldy #>game_stub_name
+	jsr loadraw
+	bcs game_stub_fail
+	ldx #$ff
+	txs
+	jmp LOCODE_BASE
+game_stub_fail
+	lda #BANK_LOADER
+	sta $01
+game_stub_hang
+	jmp game_stub_hang
+game_stub_name
+	!text "GAME"
+	!byte 0
+}
+game_stub_end = *
+game_stub_len = game_stub_end - game_stub_src
+!if game_stub_len > KRILL_STUB_END - KRILL_STUB {
+	!error "MENU Krill stub overlaps SID shadows; len=", game_stub_len
+}
 
 menu_move_up
 	lda menu_item
@@ -1184,10 +1246,8 @@ apply_story_layout
 init_menu_vic
 	lda #$35				; I/O in, KERNAL out (menu_sfx IRQ uses $fffe)
 	sta $01
-	lda $dd00
-	and #%11111100
-	ora #%00000010			; VIC bank 1 ($4000-$7FFF)
-	sta $dd00
+	lda #%00000010			; VIC bank 1 ($4000-$7FFF), upper 6 bits 0
+	sta $dd00			; absolute — RMW of $dd00 poisons Krill IEC
 	lda $d011
 	and #%10000111			; clear ECM/BMM/DEN/RSEL
 	ora #%00101011			; hires bitmap + 25 rows, DEN off until first draw

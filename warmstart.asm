@@ -1,11 +1,10 @@
 !zone locode
 
-; Boot JMP $0900 lands here after GAME overwrites MENU.
+; MENU trampoline JMP $0400 lands here after GAME overwrites MENU.
 locode_entry
-	jsr install_reboot_stub
 	sei
 	cld
-	; Kill CIA NMI/IRQ while KERNAL still owns $FFFA (boot left $01=$36).
+	; Kill CIA NMI/IRQ. Boot/MENU left $01 at BANK_LOADER ($35).
 	lda $01
 	ora #$04			; I/O in
 	sta $01
@@ -47,6 +46,11 @@ locode_entry
 	sta $d021
 	jsr set_vic_bank3
 
+	ldx #<name_high
+	ldy #>name_high
+	clc
+	jsr loadraw
+	bcs .high_fail
 	jsr copy_kernal_blob		; $9000 staging → $F950
 	lda #$34
 	sta $01
@@ -67,12 +71,8 @@ locode_entry
 	lda #$34			; play default: I/O out
 	sta $01
 	jmp game_start
-
-install_reboot_stub
-	lda #$4c
-	sta REBOOT_STUB
-	lda #<reboot_game
-	sta REBOOT_STUB+1
-	lda #>reboot_game
-	sta REBOOT_STUB+2
-	rts
+.high_fail
+	jmp .high_fail
+name_high
+	!text "HIGH"
+	!byte 0

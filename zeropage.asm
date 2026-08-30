@@ -126,8 +126,8 @@ has_backpack	= $8c			; 1 after backpack pickup
 in_turn_l	= $8d			; J held ms this frame
 in_turn_r	= $8e			; L held ms
 in_fwd		= $8f			; W
-; $90–$AF / $B7–$BC — KERNAL-owned during OPEN/LOAD (ST…EAL, SETNAM/SETLFS).
-; LoadPrg pre-clears $90–$98 (stray ST bit6/7 aborts LOAD; LDTND≥$0A kills OPEN).
+; $90–$AF / $B7–$BC — leftover KERNAL ZP (reboot still uses SETNAM/LOAD).
+; Play LoadPrg is Krill loadraw and does not need this range. Survivors → $FB+.
 ; Do not place anything that must survive LOAD here. Survivors → $FB+.
 ; $99–$AE ok only under $01=$34/$35 after load (re-inited / transient).
 sky_col_base	= $97			; (playera*5/8) mod 40; rebuilt with column rays
@@ -214,6 +214,8 @@ dbg_far_y	= $a1			; raw project_y(far_floor); $FF if none
 ; Same-flat paint_near skip (per column) + fill_span ends + frame span count
 ; last_near_flatgrp: SEC_FLATGRP of last paint_near. Aliased last_near_* below
 ; are item-draw scratch after columns (must not overlap during cast_column).
+; $60–$64 are also Krill's ZP (loadaddrlo/hi … loader_zp_last). Dead across a
+; loadraw; do not keep live state here while a disk load is in flight.
 last_near_flatgrp = $60
 last_near_floor	= $60			; item scratch (alias; after all columns)
 last_near_ceil	= $61			; item scratch
@@ -262,6 +264,9 @@ COL_NUM		= 40
 COL_CLIP_N	= PATTERNBUFFER + $400	; $e800 — 40 bytes: entry count per column
 COL_CLIP_ENTRIES = COL_CLIP_N + COL_NUM	; 40 × CLIP_COL_BYTES interleaved stack
 COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES
+!if COL_CLIP_END > $fffa {
+	!error "COL_CLIP_END past vectors; COL_CLIP_END=$", COL_CLIP_END
+}
 
 ; Contiguous play buffers at $e000:
 ;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
@@ -549,7 +554,7 @@ cheat_dig_prev		= SCRAP_CASS + 28
 cheat_a			= SCRAP_CASS + 29
 cheat_b			= SCRAP_CASS + 30
 cheat_c			= SCRAP_CASS + 31
-; episode lives at $08FA (mem_vic.asm) so it survives GAME load
+; episode lives at $02FA (mem_vic.asm) so it survives GAME load at $0400
 end_level		= SCRAP_CASS + 33
 menu_can_ret		= SCRAP_CASS + 34
 menu_id			= SCRAP_CASS + 35

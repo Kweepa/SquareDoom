@@ -3,9 +3,8 @@ Doom for the commodore 64
 Ported by steve mccrea, jul-aug 2026.
 
 Title screen by paul docherty.
-
-Sid music by ???.
-played with sid wizard by hermit.
+sid music by ???.
+loader by krill / plush.
 ^
 Developed using the acme assembler
 by marco baye.
