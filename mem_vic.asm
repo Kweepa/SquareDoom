@@ -43,13 +43,13 @@ BANK_RAM	= $34
 BANK_IO		= $36
 BANK_LOADER	= $35
 
-; -DUSE_KRILL=1: native Krill (236 B at $8E00). Default 0: KERNAL LOAD ($FFD5).
+; -DUSE_KRILL=1: native Krill (236 B at $8F14). Default 0: KERNAL LOAD ($FFD5).
 !ifndef USE_KRILL {
 	USE_KRILL = 0
 }
 
 !if USE_KRILL {
-	; Krill v194: resident $8E00, install $2000, ZP $60. No KERNAL fallback.
+	; Krill v194: resident $8F14, install $2000, ZP $60. No KERNAL fallback.
 	!source "krill/loadersymbols-c64.inc"
 	KRILL_INSTALL	= install
 	KRILL_RESIDENT	= loadraw

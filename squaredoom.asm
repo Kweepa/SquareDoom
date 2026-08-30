@@ -6,7 +6,7 @@
 ; Play default $01=$34. SQTAB $BC00. Level $9000. py_tab $B000.
 ; Boot loads MENU @ $0400; MENU copies GFX then GAME (code) over MENU.
 ; locode_entry loads HIGH ($9000–$D000) before the blob copy.
-; USE_KRILL=1: Krill at $8E00. Default: KERNAL LOAD.
+; USE_KRILL=1: Krill at $8F14. Default: KERNAL LOAD.
 !source "mem_vic.asm"
 SCREENBUFFER = $e000			; column-major colours (40×25)
 PATTERNBUFFER = SCREENBUFFER + $400	; screen codes; hi = colour hi + 4
@@ -69,14 +69,8 @@ SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 !source "wall_switch.asm"
 
 end_code = *
-free_code = MEM_CODE_LIMIT - end_code
-!if free_code < 0 {
+!if end_code > MEM_CODE_LIMIT {
 	!error "Code overlaps limit at $", MEM_CODE_LIMIT, "; overshoot=", end_code - MEM_CODE_LIMIT
-}
-!if USE_KRILL {
-	!warn "mem: code end=$", end_code, " free to Krill $", loadraw, " =", free_code
-} else {
-	!warn "mem: code end=$", end_code, " free to map $", MEM_CODE_LIMIT, " =", free_code
 }
 
 ; ------------------------------------------------------------------

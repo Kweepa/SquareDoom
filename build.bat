@@ -67,7 +67,7 @@ if errorlevel 1 exit /b 1
 "%ACME%" -DUSE_KRILL=1 -v3 --vicelabels squaredoom-krill.lbl squaredoom.asm
 if errorlevel 1 (
   echo.
-  echo Assemble failed ^(Krill^) — check mem: warnings. Code must end before Krill $8E00.
+  echo Assemble failed ^(Krill^) — code must end before Krill $8F14.
   exit /b 1
 )
 python tools\sort_lbl.py squaredoom-krill.lbl
@@ -89,7 +89,7 @@ if errorlevel 1 exit /b 1
 "%ACME%" -v3 --vicelabels squaredoom.lbl squaredoom.asm
 if errorlevel 1 (
   echo.
-  echo Assemble failed — check mem: warnings above for free bytes / overlaps.
+  echo Assemble failed — check overlap errors above.
   echo Ceilings: GAME $0400 code^<$9000 map  py_tab $B000  SQTAB $BC00  screen $C400  sprites $C800-$D7BF  charset $D800
   echo Play default $01=$34; I/O windows $35. Under-KERNAL BSS $e000; kernal scrap after SEC_WDARK_END
   exit /b 1
@@ -106,7 +106,6 @@ if errorlevel 1 exit /b 1
 
 echo Built boot.prg splashc.prg splash.prg menu.prg gfx.prg game.prg high.prg
 echo Disks: squaredoom.d64 ^(KERNAL, default^) and squaredoom-krill.d64
-echo Memory: see mem: code warn above
 dir boot.prg
 dir splashc.prg
 dir splash.prg
@@ -116,3 +115,7 @@ dir game.prg
 dir high.prg
 dir squaredoom.d64
 dir squaredoom-krill.d64
+python tools\report_free_code.py squaredoom-krill.lbl
+if errorlevel 1 exit /b 1
+python tools\report_free_code.py squaredoom.lbl
+if errorlevel 1 exit /b 1

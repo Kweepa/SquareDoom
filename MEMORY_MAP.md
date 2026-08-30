@@ -4,9 +4,9 @@ Snapshot of C64 RAM after **boot → MENU → GFX copy → GAME** has finished a
 
 ## Boot sequence
 
-Autostart file name is **`squaredoom`** (`boot.prg`). Two disks from `build.bat`: **`squaredoom.d64`** (default, KERNAL `$FFD5`) and **`squaredoom-krill.d64`** (`-DUSE_KRILL=1`, native Krill 236 B at `$8E00`). `run-game.bat` launches the KERNAL disk; `run-game.bat krill` the Krill disk.
+Autostart file name is **`squaredoom`** (`boot.prg`). Two disks from `build.bat`: **`squaredoom.d64`** (default, KERNAL `$FFD5`) and **`squaredoom-krill.d64`** (`-DUSE_KRILL=1`, native Krill 236 B at `$8F14`). `run-game.bat` launches the KERNAL disk; `run-game.bat krill` the Krill disk.
 
-Boot KERNAL-loads **`splashc`** then **`splash`** first (cover paints in colour). On the Krill disk it then KERNAL-loads **`loader`** (`$8E00`) and **`install`** (`$2000`), `JSR $2000`, and every later load is `loadraw`. On the KERNAL disk there is no INSTALL; later loads are `$FFD5` (SA=1). `UNINSTALL_API=0`: do **not** `IOINIT` while Krill drive code is up (`$DD02=$3F` tears it down). KERNAL `LoadPrg` does `IOINIT` — that is required.
+Boot KERNAL-loads **`splashc`** then **`splash`** first (cover paints in colour). On the Krill disk it then KERNAL-loads **`loader`** (`$8F14`) and **`install`** (`$2000`), `JSR $2000`, and every later load is `loadraw`. On the KERNAL disk there is no INSTALL; later loads are `$FFD5` (SA=1). `UNINSTALL_API=0`: do **not** `IOINIT` while Krill drive code is up (`$DD02=$3F` tears it down). KERNAL `LoadPrg` does `IOINIT` — that is required.
 
 1. `IOINIT`, CLI. KERNAL-load **`splashc`** at `$4000` (matrix in place, colour staging `$43E8`). Copy colour → `$D800`, clear bitmap, bank-1 MCM on. KERNAL-load **`splash`** at `$6000` (bitmap paints in already coloured).
 2. Krill disk only: KERNAL-load `LOADER` + `INSTALL` (splash stays; restore `$dd00` bank 1). `JSR install`. Absolute `$dd00=%00000010` again (Krill DDRA).
@@ -17,7 +17,7 @@ Boot KERNAL-loads **`splashc`** then **`splash`** first (cover paints in colour)
 
 In-game Run/Stop and E1M8 complete `JMP reboot_game`, which `IOINIT`s (uninstalls Krill if it was installed), KERNAL-loads `SQUAREDOOM`, and `JMP $080d`. `game_complete=1` makes the next MENU entry show the ending pages.
 
-GFX is copied **while MENU owns `$0400`**. `game.prg` is code `$0400`–`end_code` (must end before Krill `$8E00` on the Krill disk, before `$9000` on the KERNAL disk). `high.prg` is `$9000`–`$D000`. `$D000+` is under-I/O RAM (sprite tail + charset). MENU/GAME at `$0400` overwrite the caller, hence the `$02A7` trampoline.
+GFX is copied **while MENU owns `$0400`**. `game.prg` is code `$0400`–`end_code` (must end before Krill `$8F14` on the Krill disk, before `$9000` on the KERNAL disk). `high.prg` is `$9000`–`$D000`. `$D000+` is under-I/O RAM (sprite tail + charset). MENU/GAME at `$0400` overwrite the caller, hence the `$02A7` trampoline.
 
 **Selectors that survive GAME load** (GAME starts at `$0400`):
 
@@ -63,8 +63,8 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | KB | Range | Contents |
 |----|-------|----------|
 | 0 | `$0000`–`$03FF` | CPU port, game zero page, under-stack play BSS, cassette scrap, FX overlay. **`KRILL_STUB`** `$02A7`. Selectors `$02FA`–`$02FF`. |
-| 1–31 | `$0400`–`$7FFF` | Play code (`game.prg` from `LOCODE_BASE`). Must end before Krill `$8E00` on the Krill disk. |
-| 32–35 | `$8000`–`$8FFF` | Rest of play code; **Krill resident** `$8E00`–`$8EEC` on the Krill disk; gap then map `$9000`. |
+| 1–31 | `$0400`–`$7FFF` | Play code (`game.prg` from `LOCODE_BASE`). Must end before Krill `$8F14` on the Krill disk. |
+| 32–35 | `$8000`–`$8FFF` | Rest of play code; **Krill resident** `$8F14`–`$8FFF` on the Krill disk, flush under map `$9000`. |
 | 36–39 | `$9000`–`$9FFF` | **Level** (disk) after `LoadLevel`; HIGH first stages kernal blob + tables here. |
 | 40–43 | `$A000`–`$AFFF` | High tables / sky / recip / item bitmaps / pcsfreq (`high.prg`). Free to `py_tab` `$B000`. |
 | 44–46 | `$B000`–`$BBFF` | `py_tab` (12 pages, `high.prg`). |
@@ -94,8 +94,8 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | `$0100`–`$0170` | Under-stack play BSS (`SCRAP_UNDER`) |
 | `$02A7` | `KRILL_STUB` (boot/MENU trampoline; after RS-232 `ENABL` `$02A1`) |
 | `$02FA`–`$02FF` | Menu/game selectors |
-| `$0400`–`$8DFF` | Play code (`game.prg`); on the Krill disk must end before `loadraw` `$8E00` |
-| `$8E00`–`$8EEC` | Krill resident on **`squaredoom-krill.d64`** only (`loadraw`) |
+| `$0400`–`$8F13` | Play code (`game.prg`); on the Krill disk must end before `loadraw` `$8F14` |
+| `$8F14`–`$8FFF` | Krill resident on **`squaredoom-krill.d64`** only (`loadraw`) |
 | `$9000`–`$9D90` | Level blob (disk) |
 | `$9D91`–`$AFFF` | High tables / sky / recip / items / pcsfreq |
 | `$B000`–`$BBFF` | `py_tab` |
@@ -114,7 +114,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | DOS name | PRG | Load |
 |----------|-----|------|
 | `squaredoom` | `boot.prg` | `$0801` (SYS 2061) |
-| `loader` | `krill/loader.prg` | `$8E00` (Krill disk only) |
+| `loader` | `krill/loader.prg` | `$8F14` (Krill disk only) |
 | `install` | `krill/install.prg` | `$2000` (Krill disk only) |
 | `splashc` | `splashc.prg` | `$4000` (MCM matrix + colour staging `$43E8`; copied to `$D800`) |
 | `splash` | `splash.prg` | `$6000` (8000-byte MCM bitmap; paints in after colour) |
@@ -169,6 +169,6 @@ Unchanged: `level_map`, `level_items`, sector tables, spawn, switch faces, stats
 
 ## Free scrap (tracked at assemble)
 
-See the `mem: code` ACME warning: code window to Krill `$8E00` (Krill disk) or `$9000` (KERNAL disk). High vs `py_tab` and kernal scrap vs `$FFFA` are overlap errors only.
+Build prints `Free code (Krill/KERNAL): N bytes` from `end_code` vs `MEM_CODE_LIMIT` (Krill `$8F14` or KERNAL `$9000`). High vs `py_tab` and kernal scrap vs `$FFFA` are overlap errors only.
 
 Sources: `squaredoom.asm`, `mem_vic.asm`, `zeropage.asm`, `boot.asm`, `menu.asm`, `warmstart.asm`, `loader.asm`, `squaredoom.lbl`.
