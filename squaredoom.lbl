@@ -764,7 +764,6 @@ al C:1102 .prof_frame_sample
 al C:112d .prof_print
 al C:11d2 .render
 al C:120d .on_cell
-al C:12db .free_code
 al C:12e9 .setup_player_tile
 al C:1329 .rebuild_col_rays
 al C:1388 .DOOR_RECLOSE_5S_MS

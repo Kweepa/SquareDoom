@@ -15,15 +15,24 @@ CURSOR_FRAMES	= 2			; overlay eyes off/on
 MENU_LOGO_ROWS	= 8			; MCM Doom logo (16×8 chars)
 LOGO_COLS	= 16
 LOGO_LEFT	= (40 - LOGO_COLS) / 2	; 12
-LOGO_TOP	= 1			; one grey row above the logo
-BRAND_KEEP_ROWS	= LOGO_TOP + MENU_LOGO_ROWS	; rows 0–8 (logo band)
-CONTENT_TOP	= BRAND_KEEP_ROWS + 2	; title two rows below the logo
+LOGO_TOP	= 0			; flush with top (border is black)
+BRAND_KEEP_ROWS	= LOGO_TOP + MENU_LOGO_ROWS	; rows 0–7 (logo band)
+CONTENT_TOP	= BRAND_KEEP_ROWS + 1	; row 8 blank (MCM→hires mux)
+TITLE_ROW	= BRAND_KEEP_ROWS + 1	; 2× titles stay on rows 9–10
+TITLE_ABOVE	= 3			; 2-row title + 1 gap (min box_top)
+TITLE_CONTENT_TOP = CONTENT_TOP + TITLE_ABOVE	; 12
 HINT_ROW	= 23
 HINT_COL	= 11			; dark grey move / adjust / select labels
 HINT_GAP	= 8			; px between key sprite and label
 HINT_SPR_Y	= 228			; 21px sprite centered on row 23
 MUX_LOGO_RASTER	= 30			; MCM on in the top border
-MUX_HIRES_RASTER = 124			; first non-badline of row 9 (blank under logo)
+MUX_HIRES_RASTER = 116			; first non-badline of row 8 (blank under logo)
+ITEM_ROWS	= 2			; option items are 2× glyphs (16px)
+dbl_hi		= $8000			; above bitmap $7F3F / matrix $4000
+dbl_lo		= $8100			; byte → doubled bits 7–0
+!if dbl_lo + 256 > MEM_LEVEL {
+	!error "dbl tabs overlap HIGH"
+}
 CURSOR_TICK_MAX	= 20			; skull overlay; was 5 (~1/4 speed)
 COL_MAIN	= 0			; black (menus + surround)
 MCM_BG		= COL_MAIN		; $d021 during logo = black (bitmap 00)
@@ -71,6 +80,8 @@ ui_str_l	= $f9
 ui_str_h	= $fa
 ptr_r_l		= $f5			; bitmap cell to the right of ptr
 ptr_r_h		= $f6
+ptr_r2_l	= $f3			; third cell (2× blit)
+ptr_r2_h	= $f4
 gptr_l		= $f7			; current glyph (8 bytes)
 gptr_h		= $f8
 tmp0		= $02
@@ -755,12 +766,11 @@ draw_menu
 	sta cursor_spr_en
 	jmp menu_unblank
 
-; Title two lines above the box
+; Title on TITLE_ROW (does not follow the option box)
 draw_section_title
-	lda box_top
-	sec
-	sbc #2
-	tax
+	lda #1
+	sta pr_scale
+	ldx #TITLE_ROW
 	lda #COL_MAIN
 	sta cell_bg
 	lda #TITLE_COL
@@ -775,6 +785,8 @@ draw_section_title
 
 ; Key sprites + "move / adjust / select" on HINT_ROW.
 draw_hint
+	lda #0
+	sta pr_scale
 	lda #COL_MAIN
 	sta cell_bg
 	lda #HINT_COL
@@ -893,10 +905,13 @@ hint_print_px
 	lda #0
 	sta pr_mono
 	sta pr_drop
+	sta pr_scale
 	jmp print_go
 
-; box_top, box_left, box_width from menu strings
+; box_top, box_left, box_width, box_height from menu strings (2× items)
 calc_box
+	lda #1
+	sta pr_scale
 	lda #0
 	sta pix_max_l
 	sta pix_max_h
@@ -953,17 +968,24 @@ calc_box
 	adc #BOX_PAD
 	sta box_width
 	jsr clamp_box_width
-	; Vertically center box (items + top/bottom gaps) above hint row
+	; Vertically center box (2 rows per item + top/bottom gaps) above hint
 	lda menu_size
+	asl					; ITEM_ROWS
 	clc
 	adc #BOX_VGAP
 	adc #BOX_VGAP
-	sta tmp5				; box_height
+	sta box_height
+	lda menu_id
+	beq .cb_main
+	lda #TITLE_CONTENT_TOP
+	bne .cb_top
+.cb_main
 	lda #CONTENT_TOP
+.cb_top
 	sta box_top
 	lda #HINT_ROW
 	sec
-	sbc tmp5				; last valid box_top
+	sbc box_height
 	sec
 	sbc box_top
 	bcc .cb_ok
@@ -972,16 +994,7 @@ calc_box
 	adc box_top
 	sta box_top
 .cb_ok
-	lda menu_id
-	beq .cb_up			; main
-	cmp #3				; options
-	bne .cb_rts
-.cb_up
-	lda box_top
-	sec
-	sbc #1
-	sta box_top
-.cb_rts
+	dec box_top			; options one row up; titles stay on TITLE_ROW
 	rts
 
 ; Width>40 → full screen; else center.
@@ -1003,16 +1016,19 @@ clamp_box_width
 	rts
 
 draw_menu_item
-	lda box_top
+	lda #1
+	sta pr_scale
+	lda tmp4
+	asl					; ITEM_ROWS
 	clc
+	adc box_top
 	adc #BOX_VGAP
-	adc tmp4
 	sta pr_row
 
 	lda #COL_BOX
 	sta cell_bg
 
-	; Blank box row (bitmap OR would smear proportional glyphs on redraw)
+	; Blank two box rows (bitmap OR would smear proportional glyphs on redraw)
 	lda box_left
 	ldx pr_row
 	jsr bmp_cell_addr
@@ -1022,6 +1038,19 @@ draw_menu_item
 	iny
 	cpy box_width
 	bcc .di_clr
+	lda ptr_l
+	clc
+	adc #<320
+	sta ptr_l
+	lda ptr_h
+	adc #>320
+	sta ptr_h
+	ldy #0
+.di_clr2
+	jsr bmp_blank_cell_y
+	iny
+	cpy box_width
+	bcc .di_clr2
 
 	lda tmp4
 	cmp menu_item
@@ -1032,7 +1061,7 @@ draw_menu_item
 .di_h
 	lda #HILITE_COL
 	sta ui_text_col
-	; Pistol cursor sprites: X = 24 + (box_left+BOX_PAD)*8, Y = 45+row*8
+	; Skull cursor: X = 24 + (box_left+BOX_PAD)*8, Y = 49+row*8 (centre 16px)
 	lda box_left
 	clc
 	adc #BOX_PAD
@@ -1047,7 +1076,7 @@ draw_menu_item
 	asl
 	asl
 	clc
-	adc #45
+	adc #49
 	sta cursor_spr_y
 .di_g
 	lda menu_id
@@ -1127,6 +1156,8 @@ show_text_screen
 	sta ui_text_col
 	lda #1
 	sta pr_setcol
+	lda #0
+	sta pr_scale
 	jmp .sts_body
 
 ; Read This! / endings: black surround, white panel, black text. Restores COL_MAIN.
@@ -1142,6 +1173,7 @@ show_story_screen
 	sta ui_text_col
 	lda #0
 	sta pr_setcol				; panel already black-on-white
+	sta pr_scale
 	jsr .sts_body
 	lda #1
 	sta pr_setcol
@@ -1245,6 +1277,7 @@ calc_text_box
 	adc #BOX_VGAP
 	adc #BOX_VGAP
 	sta tmp5
+	sta box_height
 	lda #BRAND_KEEP_ROWS			; below logo; hints off on text pages
 	sta box_top
 	lda #25
@@ -1303,7 +1336,7 @@ init_menu_vic
 	sta $d011
 	lda $d016
 	and #%11100111
-	ora #%00011000			; CSEL + MCM; IRQ keeps MCM for rows 0–8
+	ora #%00011000			; CSEL + MCM; IRQ keeps MCM for logo rows 0–7
 	sta $d016
 	lda #%00001000			; matrix $4000, bitmap $6000
 	sta $d018
@@ -1516,12 +1549,13 @@ setup_logo_sprites
 	sta $d01c				; hires cursor/hints; logo can use MCM later
 	rts
 
-; Raster IRQ A — MCM on for the logo band; sprites off. $d021 stays COL_MAIN.
+; Raster IRQ A — MCM on for the logo band, then cursor sprites (if enabled).
 mux_logo_spr
 	lda #$18				; CSEL + MCM
 	sta $d016
-	lda #0
-	sta $d015
+	lda cursor_spr_en
+	bne mux_cursor_spr
+	sta $d015				; text pages: keep sprites off
 	rts
 
 ; Blank line under the logo — only $d016; 00 pixels are $d021 in both modes.
@@ -1637,10 +1671,7 @@ fill_option_box
 	lda cell_bg
 .fob_sv
 	sta tmp0
-	lda menu_size
-	clc
-	adc #BOX_VGAP
-	adc #BOX_VGAP
+	lda box_height
 	sta tmp5
 	ldx #0
 .fob_r
@@ -1804,6 +1835,7 @@ print_marked
 	sta pr_shift
 	sta pr_mono
 	sta pr_drop
+	sta pr_scale
 	lda #$ff
 	sta pr_prev
 	ldy #0
@@ -1848,6 +1880,10 @@ bmp_put_scr
 	cmp #HYPHEN_I
 	bne .bps_nk
 	jsr pix_back1
+	lda pr_scale
+	beq .bps_hy1
+	jsr pix_back1
+.bps_hy1
 	lda ft_idx
 .bps_nk
 	sta pr_prev
@@ -1888,6 +1924,10 @@ bmp_put_scr
 	sta ft_color
 	sta (aux_l),y
 .bps_pick
+	lda pr_scale
+	beq .bps_1x
+	jmp blit_2x
+.bps_1x
 	lda pr_shift
 	bne .bps_sh
 	lda ft_lc
@@ -2046,6 +2086,135 @@ blit_drop
 .bps_adv
 	jmp bmp_advance
 
+; 2× nearest-neighbour: expand 8×8 → 16×16 via dbl_hi/dbl_lo, shift, OR 3 cells × 2 rows.
+blit_2x
+	lda #0
+	sta ft_spill2
+	sta ft_src
+	sta tmp0				; dest Y in cell
+.b2_loop
+	ldy ft_src
+	lda (gptr_l),y
+	tax
+	lda dbl_hi,x
+	sta ft_left
+	lda dbl_lo,x
+	sta ft_occ				; 16-bit lo; third byte after shift
+	lda #0
+	sta ft_hi				; shift spill into cell +2
+	ldx pr_shift
+	beq .b2_wr
+.b2_sh
+	lsr ft_left
+	ror ft_occ
+	ror ft_hi
+	dex
+	bne .b2_sh
+.b2_wr
+	ldy tmp0
+	jsr blit_2x_line
+	iny
+	jsr blit_2x_line
+	iny
+	sty tmp0
+	inc ft_src
+	lda ft_src
+	cmp #4
+	bne .b2_n4
+	lda #0
+	sta tmp0
+.b2_n4
+	lda ft_src
+	cmp #8
+	bne .b2_loop
+	jmp blit_2x_col
+
+; Y = dest line in cell. ft_src < 4 → current row; else row below.
+blit_2x_line
+	sty tmp1
+	lda ft_src
+	cmp #4
+	bcs .b2_bel
+	ldy tmp1
+	lda ft_left
+	ora (ptr_l),y
+	sta (ptr_l),y
+	lda ft_occ
+	beq .b2_c0
+	ora (ptr_r_l),y
+	sta (ptr_r_l),y
+	sta ft_spill
+.b2_c0
+	lda ft_hi
+	beq .b2_d0
+	ora (ptr_r2_l),y
+	sta (ptr_r2_l),y
+	sta ft_spill2
+.b2_d0
+	rts
+.b2_bel
+	ldy tmp1
+	lda ft_left
+	jsr ora_below_l
+	lda ft_occ
+	beq .b2_c1
+	jsr ora_below_r
+	sta ft_spill
+.b2_c1
+	lda ft_hi
+	beq .b2_d1
+	jsr ora_below_r2
+	sta ft_spill2
+.b2_d1
+	rts
+
+blit_2x_col
+	lda pr_setcol
+	beq .b2x_adv
+	lda ft_spill
+	beq .b2_s2
+	lda pr_col
+	cmp #39
+	bcs .b2_s2
+	ldy #1
+	lda ft_color
+	sta (aux_l),y
+.b2_s2
+	lda ft_spill2
+	beq .b2_bl
+	lda pr_col
+	cmp #38
+	bcs .b2_bl
+	ldy #2
+	lda ft_color
+	sta (aux_l),y
+.b2_bl
+	jsr color_below
+	lda ft_spill2
+	beq .b2x_adv
+	lda pr_col
+	cmp #38
+	bcs .b2x_adv
+	lda aux_h
+	pha
+	lda aux_l
+	pha
+	clc
+	adc #42
+	sta aux_l
+	bcc .b2_c
+	inc aux_h
+.b2_c
+	ldy #0
+	lda ft_color
+	sta (aux_l),y
+	pla
+	sta aux_l
+	pla
+	sta aux_h
+.b2x_adv
+	jmp bmp_advance
+
 do_shift
 	ldx #0
 	stx ft_right
@@ -2169,6 +2338,10 @@ bmp_advance
 	clc
 	adc #FONT_GAP
 .ba_g
+	ldx pr_scale
+	beq .ba_s
+	asl
+.ba_s
 	clc
 	adc pr_shift
 	sta pr_shift
@@ -2249,17 +2422,8 @@ sync_ptr_r
 	lda pr_col
 	cmp #39
 	bcc .spr_ok
-	lda #<ft_sink
-	sta ptr_r_l
-	sta ft_br_l
-	sta ora_below_r + 1
-	sta ora_below_r + 4
-	lda #>ft_sink
-	sta ptr_r_h
-	sta ft_br_h
-	sta ora_below_r + 2
-	sta ora_below_r + 5
-	rts
+	jsr sync_sink_r
+	jmp sync_sink_r2
 .spr_ok
 	lda ptr_l
 	clc
@@ -2279,6 +2443,55 @@ sync_ptr_r
 	sta ft_br_h
 	sta ora_below_r + 2
 	sta ora_below_r + 5
+	lda pr_col
+	cmp #38
+	bcc .spr_r2
+	jmp sync_sink_r2
+.spr_r2
+	lda ptr_l
+	clc
+	adc #16
+	sta ptr_r2_l
+	lda ptr_h
+	adc #0
+	sta ptr_r2_h
+	clc
+	lda ptr_r2_l
+	adc #<320
+	sta ft_br2_l
+	sta ora_below_r2 + 1
+	sta ora_below_r2 + 4
+	lda ptr_r2_h
+	adc #>320
+	sta ft_br2_h
+	sta ora_below_r2 + 2
+	sta ora_below_r2 + 5
+	rts
+
+sync_sink_r
+	lda #<ft_sink
+	sta ptr_r_l
+	sta ft_br_l
+	sta ora_below_r + 1
+	sta ora_below_r + 4
+	lda #>ft_sink
+	sta ptr_r_h
+	sta ft_br_h
+	sta ora_below_r + 2
+	sta ora_below_r + 5
+	rts
+
+sync_sink_r2
+	lda #<ft_sink
+	sta ptr_r2_l
+	sta ft_br2_l
+	sta ora_below_r2 + 1
+	sta ora_below_r2 + 4
+	lda #>ft_sink
+	sta ptr_r2_h
+	sta ft_br2_h
+	sta ora_below_r2 + 2
+	sta ora_below_r2 + 5
 	rts
 
 ; A = bits, Y = 0. Dest patched to ptr+320 / ptr_r+320 (BSS + abs,y).
@@ -2287,6 +2500,10 @@ ora_below_l
 	sta $ffff,y
 	rts
 ora_below_r
+	ora $ffff,y
+	sta $ffff,y
+	rts
+ora_below_r2
 	ora $ffff,y
 	sta $ffff,y
 	rts
@@ -2334,7 +2551,33 @@ font_set_gptr
 	sta gptr_h
 	rts
 
+; Build dbl_hi/dbl_lo at $8000: each source bit → two bits (AABBCCDD EEFFGGHH).
+init_dbl_tabs
+	ldx #0
+.idt
+	txa
+	lsr
+	lsr
+	lsr
+	lsr
+	tay
+	lda dbl_nib,y
+	sta dbl_hi,x
+	txa
+	and #$0f
+	tay
+	lda dbl_nib,y
+	sta dbl_lo,x
+	inx
+	bne .idt
+	rts
+
+dbl_nib
+	!byte $00, $03, $0c, $0f, $30, $33, $3c, $3f
+	!byte $c0, $c3, $cc, $cf, $f0, $f3, $fc, $ff
+
 init_font_tabs
+	jsr init_dbl_tabs
 	lda #<menufont_udgs
 	sta glyph_lda + 1
 	lda #>menufont_udgs
@@ -2498,6 +2741,11 @@ str_pix_len
 	iny
 	bne .spl
 .spl_d
+	lda pr_scale
+	beq .spl_r
+	asl pr_len
+	rol pr_len_h
+.spl_r
 	rts
 
 ; Visible pixel width ignoring ^ markers → pr_len / pr_len_h
@@ -2791,6 +3039,7 @@ menu_stk_i	!byte 0, 0, 0
 box_top		!byte 0
 box_left	!byte 0
 box_width	!byte 0
+box_height	!byte 0
 ui_keys		!byte 0
 ui_old		!byte 0
 ui_pressed	!byte 0
@@ -2800,6 +3049,7 @@ pr_col		!byte 0
 pr_shift	!byte 0
 pr_mono		!byte 0
 pr_drop		!byte 0
+pr_scale	!byte 0			; 1 = 2× blit (option rows + titles)
 pr_setcol	!byte 1				; 0 = ink only (story panel precoloured)
 pr_si		!byte 0
 pr_prev		!byte 0				; last prop font index ($ff = none)
@@ -2818,6 +3068,7 @@ ft_src		!byte 0
 ft_left		!byte 0
 ft_right	!byte 0
 ft_spill	!byte 0
+ft_spill2	!byte 0			; third cell (2× blit)
 pix_max_l	!byte 0
 pix_max_h	!byte 0
 txt_ptr_l	!byte 0
@@ -2830,6 +3081,8 @@ ft_b_l		!byte 0				; ptr+320 (descender cell)
 ft_b_h		!byte 0
 ft_br_l		!byte 0				; ptr_r+320
 ft_br_h		!byte 0
+ft_br2_l	!byte 0				; ptr_r2+320
+ft_br2_h	!byte 0
 
 str_hint_move	!scr "move",0
 str_hint_adjust	!scr "adjust",0

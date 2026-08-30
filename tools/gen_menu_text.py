@@ -31,8 +31,8 @@ SPACE_W = 4
 BOX_PAD = 2
 # 16px sooner than a full-width panel (280) → grey margins L/R
 MAX_TEXT_PIX = 40 * 8 - BOX_PAD * 8 * 2 - 8 - 16  # 264
-# 25 rows - 9 brand - 2 vgaps
-MAX_PAGE_LINES = 25 - 9 - 2  # 14
+# 25 rows - 8 brand - 2 vgaps
+MAX_PAGE_LINES = 25 - 8 - 2  # 15
 
 
 def esc_scr(s: str) -> str:
