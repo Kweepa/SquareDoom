@@ -1,6 +1,5 @@
 ; Load PRG from disk device 8 (SA=1 → file load address).
-; Levels → $9000 (cooked blob, no SID); MENU → MENU_BASE;
-; UI screens via overlay LoadUiFile.
+; Levels → $9000 (cooked blob, no SID). Reboot reloads boot as SQUAREDOOM.
 !zone loader
 
 LEVEL_LFN = 15
@@ -8,13 +7,6 @@ LEVEL_DEVICE = 8
 
 level_dos_name
 	!text "E1M1"
-
-menu_dos_name
-	!text "MENU"
-
-; 4-byte SETNAM scratch — must be outside under-KERNAL (LoadPrg banks $01=$36)
-ui_name_buf
-	!text "LOGO"
 
 ; FormatDosName — write "ENMM" into level_dos_name from episode + level_num
 FormatDosName
@@ -145,11 +137,34 @@ LoadLevel
 	ldy #>level_dos_name
 	jmp LoadPrg
 
-; LoadMenu — MENU.PRG → MENU_BASE (play-buffer pack after UI_LOAD_MAX). C=0 ok, C=1 error.
-LoadMenu
+; reboot_game — KERNAL-load boot PRG "SQUAREDOOM", then JMP $080d (boot_start).
+reboot_game
+	sei
+	lda #$36
+	sta $01
+	ldx #$ff
+	txs
+	jsr $ff84				; IOINIT
+	lda $d011
+	and #%11101111				; DEN off — IOINIT restores bank 0
+	sta $d011
 	lda #0
-	sta load_do_pad
-	lda #4
-	ldx #<menu_dos_name
-	ldy #>menu_dos_name
-	jmp LoadPrg
+	sta $d015
+	sta $d020
+	sta $d021
+	lda #10
+	ldx #< .rg_name
+	ldy #> .rg_name
+	jsr $ffbd				; SETNAM
+	lda #1
+	ldx $ba
+	ldy #1
+	jsr $ffba				; SETLFS
+	lda #0
+	jsr $ffd5				; LOAD squaredoom
+	bcs .rg_hang
+	jmp $080d				; boot_start
+.rg_hang
+	jmp .rg_hang
+.rg_name
+	!text "SQUAREDOOM"

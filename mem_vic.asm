@@ -36,3 +36,22 @@ PY_TAB_PAGES = 12
 PY_TAB_SIZE = PY_TAB_PAGES * 256
 PY_TAB = $b000
 SQTAB_BASE = $bc00
+
+; Boot / menu / game split (Wolf64 boot + Quake64 GAME naming)
+LOADER_BASE	= $0801			; disposable boot.prg
+LOCODE_BASE	= $0900			; MENU overlay, then game.prg
+GFX_STAGING	= $A000			; gfx.prg; MENU+3 copies under I/O
+MENU_COPY_VIC	= LOCODE_BASE + 3
+REBOOT_STUB	= $08C0			; 3-byte JMP reboot_game
+episode		= $08FA
+music_vol	= $08FB
+level_num	= $08FC
+effects_vol	= $08FD
+game_complete	= $08FE
+difficulty	= $08FF
+
+; Menu hires (VIC bank 1). Game uses VIC_SCREEN in bank 3.
+SCREEN		= $4000
+BITMAP		= $6000
+BITMAP_SIZE	= 8000
+BITMAP_END	= BITMAP + BITMAP_SIZE

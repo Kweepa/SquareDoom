@@ -41,42 +41,47 @@ if errorlevel 1 exit /b 1
 node tools\gensky.js
 if errorlevel 1 exit /b 1
 if not exist tmp mkdir tmp
+copy /Y tmp_menu_hint_spr.asm tmp\menu_hint_spr.asm >nul
+python tools\gen_menufont.py
+if errorlevel 1 exit /b 1
+python tools\gen_menu_text.py
+if errorlevel 1 exit /b 1
+python tools\gen_menu_cursor_sprites.py
+if errorlevel 1 exit /b 1
+python tools\gen_menu_logo_mcm.py
+if errorlevel 1 exit /b 1
 "%ACME%" sprites_bank3.asm
 if errorlevel 1 exit /b 1
-"%ACME%" screens\cred.asm
+"%ACME%" gfx.asm
 if errorlevel 1 exit /b 1
-"%ACME%" screens\help.asm
-if errorlevel 1 exit /b 1
-"%ACME%" screens\ordr.asm
-if errorlevel 1 exit /b 1
-"%ACME%" screens\endg.asm
+"%ACME%" -v3 menu.asm
+if errorlevel 1 (
+  echo.
+  echo MENU.PRG assemble failed — check end before $4000 / missing tmp\ gens.
+  exit /b 1
+)
+"%ACME%" boot.asm
 if errorlevel 1 exit /b 1
 "%ACME%" -v3 --vicelabels squaredoom.lbl squaredoom.asm
 if errorlevel 1 (
   echo.
   echo Assemble failed — check mem: warnings above for free bytes / overlaps.
-  echo Ceilings: code^<$9000 map  py_tab $B000  SQTAB $BC00  screen $C400  sprites $C800-$D7BF  charset $D800
-  echo Play default $01=$34; I/O windows $35. Under-KERNAL BSS $e000; MENU.PRG at MENU_BASE; kernal scrap after SEC_WDARK_END
+  echo Ceilings: GAME $0900 code^<$9000 map  py_tab $B000  SQTAB $BC00  screen $C400  sprites $C800-$D7BF  charset $D800
+  echo Play default $01=$34; I/O windows $35. Under-KERNAL BSS $e000; kernal scrap after SEC_WDARK_END
   exit /b 1
 )
 python tools\sort_lbl.py squaredoom.lbl
 if errorlevel 1 exit /b 1
-python tools\gen_menu_imports.py squaredoom.lbl menu_imports.asm
-if errorlevel 1 exit /b 1
-"%ACME%" -v3 screens\menu.asm
-if errorlevel 1 (
-  echo.
-  echo MENU.PRG assemble failed — overlay too large or missing imports.
-  exit /b 1
-)
-python tools\mkdisk.py --out squaredoom.d64 --prg squaredoom.prg --levels levels --screens screens
+python tools\mkdisk.py --out squaredoom.d64 --boot boot.prg --levels levels
 if errorlevel 1 exit /b 1
 
 python tools\gen_vice_mon.py
 if errorlevel 1 exit /b 1
 
-echo Built squaredoom.prg and squaredoom.d64
+echo Built boot.prg menu.prg gfx.prg game.prg and squaredoom.d64
 echo Memory: see mem: TOTAL free warn above ^(code+high+kernal-scrap^)
-dir squaredoom.prg
+dir boot.prg
+dir menu.prg
+dir gfx.prg
+dir game.prg
 dir squaredoom.d64
-dir screens\menu.prg

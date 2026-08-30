@@ -1,0 +1,10 @@
+Controls
+
+^move............ wasd^
+^turn............ ij^
+^use............. k^
+^fire............ ^space
+^switch weapon... 12345^
+
+^toggle map...... f1^
+^quit to menu.... ^run/stop

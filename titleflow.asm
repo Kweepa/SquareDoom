@@ -1,4 +1,4 @@
-; Resident title / level flow / print / melt (menu UI loads from disk → MENU_BASE)
+; Resident title / level flow / print / melt (pre-game menu is boot MENU.PRG)
 ; Screen ptrs: scr_ptr = VIC_SCREEN cell, col_ptr = $d800 cell, ui_str_l/h = string
 !zone titleflow
 
@@ -6,12 +6,6 @@ TEXT_COL = 2
 HILITE_COL = 7
 UI_COL = 1
 
-difficulty	!byte 2
-; episode / end_level / menu_* / pr_* / melt_* — cassette scrap (zeropage.asm)
-level_num	!byte 1
-effects_vol	!byte 15
-music_vol	!byte 10
-menu_size	!byte 4
 ui_text_col	!byte TEXT_COL
 
 ; ==================================================================
@@ -20,11 +14,6 @@ game_start
 	sta ui_buf_id
 	jsr hide_weapon
 	jsr clear_screen
-	jsr LoadMenu
-	bcs .gs_skip
-	lda #0
-	jsr run_menu
-.gs_skip
 	lda #1
 	sta level_num
 	lda #0
@@ -44,7 +33,7 @@ next_level
 	jsr start_level
 	jmp gameloop
 .nl_fail
-	jmp game_start
+	jmp REBOOT_STUB
 
 ; music_init — A=0 song; SidTracker may poke CIA TA — re-init IRQ after
 music_init
@@ -99,14 +88,11 @@ after_level_end
 	lda level_num
 	cmp #10
 	bcc .ale_next
-	jmp game_start
+	jmp REBOOT_STUB
 .ale_end
-	jsr LoadMenu
-	bcs .ale_gs
-	lda #3				; endgame text index → UI_ENDG
-	jsr show_text_screen
-.ale_gs
-	jmp game_start
+	lda #1
+	sta game_complete
+	jmp REBOOT_STUB
 .ale_next
 	jmp next_level
 
@@ -118,24 +104,7 @@ gameloop_check_esc
 	rts
 .gce_go
 	jsr hide_weapon
-	jsr ui_wait_esc_up
-	jsr LoadMenu
-	bcs .gce_fail
-	lda #1
-	jsr run_menu
-	cmp #1
-	beq .gce_new
-.gce_fail
-	rts
-.gce_new
-	lda #1
-	sta level_num
-	lda #0
-	sta health
-	sta god_mode
-	pla
-	pla
-	jmp next_level
+	jmp REBOOT_STUB
 
 ; Rising edge of IRQ-latched F1 (key_map from read_input)
 gameloop_check_map

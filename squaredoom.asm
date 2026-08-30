@@ -1,12 +1,11 @@
-; SquareDoom — ACME root (C64)
+; SquareDoom — ACME root (C64); assembled as game.prg @ $0900
 !cpu 6502
-!to "squaredoom.prg", cbm
+!to "game.prg", cbm
 
 ; VIC bank 3 ($C000): screen $C400, sprites $C800–$D7BF, charset $D800.
 ; Play default $01=$34. SQTAB $BC00. Level $9000. py_tab $B000.
-; UI disk loads → SCREENBUFFER[0..UI_LOAD_MAX); menu code after that.
+; Boot loads MENU then GFX (copy under I/O) then this image over MENU.
 !source "mem_vic.asm"
-UI_LOAD_MAX = 592			; max CRED/HELP/ORDR/ENDG/logo payload (ordr=582)
 SCREENBUFFER = $e000			; column-major colours (40×25)
 PATTERNBUFFER = SCREENBUFFER + $400	; screen codes; hi = colour hi + 4
 
@@ -29,10 +28,10 @@ AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE–this (18..22)
 MAX_SECTORS = 199		; usable ids 1..199
 SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
-MEM_CODE_LIMIT = MEM_LEVEL		; code + vic gfx src must end before map
+MEM_CODE_LIMIT = MEM_LEVEL		; code must end before map
 
 !source "zeropage.asm"
-!source "basicstub.asm"
+*= LOCODE_BASE
 !source "warmstart.asm"
 !source "maths.asm"
 !source "util.asm"
@@ -56,9 +55,8 @@ MEM_CODE_LIMIT = MEM_LEVEL		; code + vic gfx src must end before map
 !source "hud.asm"
 !source "pickup.asm"
 !source "cheats.asm"			; iddqd / idkfa / idclev (after pickup for INFO_*)
-!source "logo_defs.asm"			; LOGO_* constants (payload on disk ??? SCREENBUFFER)
-!source "loader.asm"			; LoadPrg/LoadMenu/LoadLevel; LoadUiFile in MENU.PRG
-!source "titleflow.asm"			; resident flow/print/melt; menu UI from MENU.PRG
+!source "loader.asm"			; LoadPrg/LoadLevel/reboot_game
+!source "titleflow.asm"			; entering / summary / melt / mapscreen; menu is boot MENU.PRG
 ; Near flats + P + clip
 !source "render_near.asm"
 !source "render_project_y.asm"
@@ -74,25 +72,6 @@ free_code = MEM_CODE_LIMIT - end_code
 	!error "Code overlaps level at $", MEM_CODE_LIMIT, "; overshoot=", end_code - MEM_CODE_LIMIT
 }
 !warn "mem: code end=$", end_code, " free to map $", MEM_CODE_LIMIT, " =", free_code
-
-; Sprite tail + charset (loadable). Head 2K is at $C800; tail+$D800 copied at $01=$34.
-vic_sprite_tail
-	!bin "tmp/sprites.bin", SPRITE_TAIL, SPRITE_HEAD
-!if * - vic_sprite_tail != SPRITE_TAIL {
-	!error "sprite tail size mismatch: got ", * - vic_sprite_tail, " expected ", SPRITE_TAIL
-}
-charset_src
-	!source "charset.asm"
-charset_src_end = *
-!if charset_src_end - charset_src != CHARSET_BYTES {
-	!error "charset src size mismatch"
-}
-
-end_prg_code = *
-!if end_prg_code > MEM_LEVEL {
-	!error "code+gfx src overlaps map at $9000; end=$", end_prg_code
-}
-!warn "mem: gfx src end=$", end_prg_code, " free to map =", MEM_LEVEL - end_prg_code
 
 ; ------------------------------------------------------------------
 ; Level window $9000: kernal blob staged in first KERNAL_BLOB_SIZE bytes
@@ -206,7 +185,7 @@ free_high = PY_TAB - end_high
 	!error "Under-KERNAL BSS past $10000; SEC_WDARK_END=$", SEC_WDARK_END
 }
 !if MENU_LIMIT > $fffa {
-	!error "MENU_LIMIT past vectors; COL_CLIP_END=$", COL_CLIP_END
+	!error "COL_CLIP_END past vectors; COL_CLIP_END=$", COL_CLIP_END
 }
 
 !if end_kernal < SEC_WDARK_END {
@@ -225,7 +204,7 @@ free_high = PY_TAB - end_high
 	!error "cassette scrap BSS overflow; end=$", SCRAP_CASS_END
 }
 
-; Copies run once from warmstart (labels resolved here).
+; Copies run once from locode_entry (labels resolved here).
 copy_kernal_blob
 	ldx #0
 -
@@ -241,34 +220,7 @@ copy_kernal_blob
 	bne -
 	rts
 
-copy_vic_gfx
-	ldx #0
--
-!for .p, 0, (>SPRITE_TAIL) - 1 {
-	lda vic_sprite_tail + .p * $100,x
-	sta VIC_SPRITES + SPRITE_HEAD + .p * $100,x
-}
-!if (<SPRITE_TAIL) != 0 {
-	lda vic_sprite_tail + SPRITE_TAIL - $100,x
-	sta VIC_SPRITES + SPRITE_HEAD + SPRITE_TAIL - $100,x
-}
-	inx
-	bne -
-	ldx #0
--
-!for .p, 0, (>CHARSET_BYTES) - 1 {
-	lda charset_src + .p * $100,x
-	sta CHARSET + .p * $100,x
-}
-!if (<CHARSET_BYTES) != 0 {
-	lda charset_src + CHARSET_BYTES - $100,x
-	sta CHARSET + CHARSET_BYTES - $100,x
-}
-	inx
-	bne -
-	rts
-
-; First 2K of sprites load at $C800 (always RAM). Tail copied into $D000 above.
+; First 2K of sprites load at $C800 (always RAM). Tail copied into $D000 by MENU+3.
 *=VIC_SPRITES
 	!bin "tmp/sprites.bin", SPRITE_HEAD
 !if * != VIC_SPRITES + SPRITE_HEAD {
@@ -276,10 +228,9 @@ copy_vic_gfx
 }
 
 free_kernal = $fffa - end_kernal
-free_menu = MENU_LIMIT - MENU_BASE
 free_low = free_code
 free_mid = 0
 free_total = free_code + free_high + free_kernal
-!warn "mem: kernal data $", SEC_WDARK_END, "..$", end_kernal - 1, " free before $FFFA =", free_kernal, " MENU budget =", free_menu
+!warn "mem: kernal data $", SEC_WDARK_END, "..$", end_kernal - 1, " free before $FFFA =", free_kernal
 !warn "mem: TOTAL free =", free_total, " (code+high+kernal-scrap)"
 

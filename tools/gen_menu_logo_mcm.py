@@ -1,0 +1,221 @@
+#!/usr/bin/env python3
+"""Pack m_doom_c64.png as 16×8 MCM logo cells.
+
+PNG is 128×64 hires (16×8 chars; 2px = 1 MCM).
+Bitmap 00 / $d021 is dark grey (COL_MAIN) on screen — no strap or badge.
+"""
+from __future__ import annotations
+
+from collections import Counter
+from pathlib import Path
+
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parent.parent
+PNG = ROOT / "itemgraphics" / "multicolour" / "m_doom_c64.png"
+OUT = ROOT / "tmp" / "menu_logo_mcm.asm"
+PREVIEW = ROOT / "tmp" / "menu_logo_mcm_preview.png"
+
+# Match tools/gen_menu_cursor_sprites.py
+PEPTO_RGB = (
+	(0x00, 0x00, 0x00),
+	(0xFF, 0xFF, 0xFF),
+	(0x68, 0x37, 0x2B),
+	(0x70, 0xA4, 0xB2),
+	(0x6F, 0x3D, 0x86),
+	(0x58, 0x8D, 0x43),
+	(0x35, 0x28, 0x79),
+	(0xB8, 0xC7, 0x6F),
+	(0x6F, 0x4F, 0x25),
+	(0x43, 0x39, 0x00),
+	(0x9A, 0x67, 0x59),
+	(0x44, 0x44, 0x44),
+	(0x6C, 0x6C, 0x6C),
+	(0x9A, 0xD2, 0x84),
+	(0x6C, 0x5E, 0xB5),
+	(0x95, 0x95, 0x95),
+)
+
+COLS = 40
+LOGO_CHARS = 16
+LOGO_LEFT = (COLS - LOGO_CHARS) // 2
+LOGO_TOP = 1
+BRAND_ROWS = LOGO_TOP + 8
+MCM_W = COLS * 4
+MCM_H = BRAND_ROWS * 8
+BG = 0						# bitmap 00 → $d021 (dark grey on screen)
+GREY = 11					# preview / COL_MAIN
+
+
+def nearest_pepto(rgb: tuple[int, int, int]) -> int:
+	best = 0
+	best_d = 10**9
+	for i, (cr, cg, cb) in enumerate(PEPTO_RGB):
+		d = (rgb[0] - cr) ** 2 + (rgb[1] - cg) ** 2 + (rgb[2] - cb) ** 2
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+
+def nearest_in(c: int, palette: list[int]) -> int:
+	r, g, b = PEPTO_RGB[c]
+	best = palette[0]
+	best_d = 10**9
+	for p in palette:
+		pr, pg, pb = PEPTO_RGB[p]
+		d = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
+
+
+def fmt_bytes(data: list[int], per_line: int = 16) -> list[str]:
+	lines = []
+	for i in range(0, len(data), per_line):
+		chunk = data[i : i + per_line]
+		lines.append("\t!byte " + ",".join(f"${b:02x}" for b in chunk))
+	return lines
+
+
+def load_logo(path: Path) -> list[list[int]]:
+	im = Image.open(path).convert("RGBA")
+	w, h = im.size
+	if w != LOGO_CHARS * 8 or w % 2:
+		raise SystemExit(f"{path.name} expected {LOGO_CHARS * 8}px wide (16 chars hires), got {w}x{h}")
+	px = im.load()
+	src_w = w // 2
+	src = [[BG] * src_w for _ in range(h)]
+	for y in range(h):
+		for mx in range(src_w):
+			r, g, b, a = px[mx * 2, y]
+			if a < 16:
+				continue
+			src[y][mx] = nearest_pepto((r, g, b))
+	return src
+
+
+def build_grid(logo: list[list[int]]) -> list[list[int]]:
+	grid = [[BG] * MCM_W for _ in range(MCM_H)]
+	ox = LOGO_LEFT * 4
+	oy = LOGO_TOP * 8
+	for y, row in enumerate(logo):
+		dy = y + oy
+		if dy < 0 or dy >= MCM_H:
+			continue
+		dst = grid[dy]
+		for x, c in enumerate(row):
+			dx = x + ox
+			if 0 <= dx < MCM_W:
+				dst[dx] = c
+	return grid
+
+
+def pack_cell(pixels: list[int]) -> tuple[list[int], int, int]:
+	counts = Counter(pixels)
+	extra = [c for c, _ in counts.most_common() if c != BG]
+	chosen = extra[:3]
+	palette = [BG] + chosen
+	remapped = [c if c in palette else nearest_in(c, palette) for c in pixels]
+	slots = [c for c, _ in Counter(x for x in remapped if x != BG).most_common(3)]
+	while len(slots) < 3:
+		slots.append(0)
+	pair = {BG: 0}
+	for i, c in enumerate(slots):
+		if c not in pair:
+			pair[c] = i + 1
+	rows = []
+	for y in range(8):
+		b = 0
+		for x in range(4):
+			b = (b << 2) | pair[remapped[y * 4 + x]]
+		rows.append(b)
+	scr = ((slots[0] & 15) << 4) | (slots[1] & 15)
+	col = slots[2] & 15
+	return rows, scr, col
+
+
+def decode_preview(bmp: list[int], scr: list[int], col: list[int]) -> Image.Image:
+	im = Image.new("RGB", (COLS * 8, BRAND_ROWS * 8), PEPTO_RGB[GREY])
+	pp = im.load()
+	for cy in range(BRAND_ROWS):
+		for cx in range(COLS):
+			cell = cy * COLS + cx
+			c01 = scr[cell] >> 4
+			c10 = scr[cell] & 15
+			c11 = col[cell] & 15
+			lut = (GREY, c01, c10, c11)
+			base = cy * 320 + cx * 8
+			for y in range(8):
+				b = bmp[base + y]
+				for p in range(4):
+					bits = (b >> (6 - p * 2)) & 3
+					rgb = PEPTO_RGB[lut[bits]]
+					xx = cx * 8 + p * 2
+					yy = cy * 8 + y
+					pp[xx, yy] = rgb
+					pp[xx + 1, yy] = rgb
+	return im
+
+
+def main() -> None:
+	logo = load_logo(PNG)
+	grid = build_grid(logo)
+	bmp = [0] * (BRAND_ROWS * 320)
+	scr = [0] * (BRAND_ROWS * COLS)
+	col = [0] * (BRAND_ROWS * COLS)
+	over = 0
+	for cy in range(BRAND_ROWS):
+		for cx in range(COLS):
+			pix = []
+			for y in range(8):
+				row = grid[cy * 8 + y]
+				pix.extend(row[cx * 4 : cx * 4 + 4])
+			raw_extra = {c for c in pix if c != BG}
+			if len(raw_extra) > 3:
+				over += 1
+			rows, s, c = pack_cell(pix)
+			base = cy * 320 + cx * 8
+			bmp[base : base + 8] = rows
+			scr[cy * COLS + cx] = s
+			col[cy * COLS + cx] = c
+
+	bmp8 = []
+	scr8 = []
+	col8 = []
+	for cy in range(8):
+		for cx in range(LOGO_CHARS):
+			src_cy = LOGO_TOP + cy
+			src_cx = LOGO_LEFT + cx
+			base = src_cy * 320 + src_cx * 8
+			bmp8.extend(bmp[base : base + 8])
+			cell = src_cy * COLS + src_cx
+			scr8.append(scr[cell])
+			col8.append(col[cell])
+
+	OUT.parent.mkdir(parents=True, exist_ok=True)
+	lines = [
+		"; Auto-generated by tools/gen_menu_logo_mcm.py from m_doom_c64.png",
+		f"; {LOGO_CHARS}x8 logo cells; $d021/00 = dark grey. remapped={over}",
+		f"LOGO_MCM_BMP_SIZE\t= {len(bmp8)}",
+		f"LOGO_MCM_SCR_SIZE\t= {len(scr8)}",
+		"",
+		"logo_mcm_bmp",
+	]
+	lines.extend(fmt_bytes(bmp8))
+	lines.append("")
+	lines.append("logo_mcm_scr")
+	lines.extend(fmt_bytes(scr8))
+	lines.append("")
+	lines.append("logo_mcm_col")
+	lines.extend(fmt_bytes(col8))
+	lines.append("")
+	OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+	decode_preview(bmp, scr, col).save(PREVIEW)
+	print(f"wrote {OUT.relative_to(ROOT)} bmp={len(bmp8)} remapped_cells={over}")
+	print(f"wrote {PREVIEW.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+	main()

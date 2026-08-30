@@ -43,12 +43,18 @@ set_border
 	jmp io_pop
 
 ; VIC bank 3, screen $C400 / charset $D800. Caller must have I/O in.
+; Also drop menu leftover BMM/MCM and turn DEN on — locode used to
+; leave $d011=$2B / $d016=$18 (blank border, bitmap mode).
 set_vic_bank3
 	lda $dd00
 	and #$fc
 	sta $dd00
 	lda #D018_VIC
 	sta $d018
+	lda #$1b				; text, 25 rows, YSCROLL=3, DEN on
+	sta $d011
+	lda #$08				; CSEL, MCM off
+	sta $d016
 	rts
 
 ; A = colour. I/O must be in. Fills $d800–$dbe7.

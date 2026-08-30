@@ -2,3 +2,5 @@ tmp/
 setup-env.bat
 __pycache__/
 
+ref/
+*.vsf

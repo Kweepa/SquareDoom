@@ -1,10 +1,11 @@
-!zone warmstart
+!zone locode
 
-warmstart
+; Boot JMP $0900 lands here after GAME overwrites MENU.
+locode_entry
+	jsr install_reboot_stub
 	sei
 	cld
-	; Kill CIA NMI/IRQ while KERNAL still owns $FFFA (SYS is $37). Banking
-	; KERNAL out first left a window where leftover IEC FLAG jumped to $0000.
+	; Kill CIA NMI/IRQ while KERNAL still owns $FFFA (boot left $01=$36).
 	lda $01
 	ora #$04			; I/O in
 	sta $01
@@ -49,7 +50,6 @@ warmstart
 	jsr copy_kernal_blob		; $9000 staging → $F950
 	lda #$34
 	sta $01
-	jsr copy_vic_gfx		; sprites + charset into bank 3 DRAM
 	jsr init_sqtabs			; $BC00 (RAM at $34 and $35)
 
 	lda #$35
@@ -67,3 +67,12 @@ warmstart
 	lda #$34			; play default: I/O out
 	sta $01
 	jmp game_start
+
+install_reboot_stub
+	lda #$4c
+	sta REBOOT_STUB
+	lda #<reboot_game
+	sta REBOOT_STUB+1
+	lda #>reboot_game
+	sta REBOOT_STUB+2
+	rts

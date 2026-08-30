@@ -1,0 +1,28 @@
+---
+description: Use a repo-root VICE snapshot newer than the D64 as live RAM/VIC truth when debugging
+alwaysApply: true
+---
+
+# VICE snapshot before guessing
+
+When the user reports a visual, raster, colour, or “blank screen” bug (or points at a snapshot):
+
+1. Look in the **repo root** for `*.vsf` (usually `snap.vsf`). These files are gitignored; they still exist on disk.
+2. Compare **mtime** to `squaredoom.d64`. If the snapshot is **newer**, it is the machine the user just captured — dump RAM/VIC from it **before** changing code from screenshots or theory.
+3. If the snapshot is **older** than the D64 (or missing), it is stale. Do not treat it as the current build.
+
+## How to read it
+
+VICE snapshot: 37-byte header, then modules (`16-byte name`, major, minor, `size` little-endian **including** the 22-byte module header).
+
+- **`C64MEM`**: byte 0 of payload is `$01`; next **65536** bytes are DRAM (`$0000–$FFFF`). That is under-I/O RAM at `$D000`, not VIC registers.
+- **`VIC-II`** (name may be `VIC-II     `): use this for `$d011` / `$d016` / `$d018` / `$d020` / `$d021` / raster, not the RAM image.
+
+Dump the regions that match the bug (do not dump all 64K):
+
+| Mode | Typical |
+|------|---------|
+| Menu hires | matrix `$4000`, bitmap `$6000`, font cache `$4400`, sprites `$4800` |
+| Game char | screen `$C400`, charset DRAM `$D800` (only valid in RAM image; colour SRAM is not this) |
+
+If a newer snapshot exists and you skip it, you will misdiagnose (e.g. treating a screenshot glitch as a font bug when RAM shows a smashed cache).

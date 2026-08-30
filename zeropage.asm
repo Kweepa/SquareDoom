@@ -245,7 +245,7 @@ turn_acc_h	= $75
 ; ------------------------------------------------------------------
 ; Under-KERNAL / always-RAM play BSS ($E000+); SQTAB at $BC00; level at $9000.
 ; SidTracker player ZP (kept via sidreloc -k): $f0–$f7.
-; Contiguous play buffers at $e000 (menu overlay = buffers after UI_LOAD_MAX):
+; Contiguous play buffers at $e000:
 ;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
 ; dpsounds/levelstats run from SEC_WDARK_END (copied from $9000 load image).
 ; ------------------------------------------------------------------
@@ -263,11 +263,9 @@ COL_CLIP_N	= PATTERNBUFFER + $400	; $e800 — 40 bytes: entry count per column
 COL_CLIP_ENTRIES = COL_CLIP_N + COL_NUM	; 40 × CLIP_COL_BYTES interleaved stack
 COL_CLIP_END	= COL_CLIP_ENTRIES + COL_NUM * CLIP_COL_BYTES
 
-; MENU.PRG: UI loads clobber SCREENBUFFER[0..UI_LOAD_MAX); code starts after
-MENU_BASE	= SCREENBUFFER + UI_LOAD_MAX
+; Contiguous play buffers at $e000:
+;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
 MENU_LIMIT	= COL_CLIP_END
-run_menu	= MENU_BASE		; jmp stub → run_menu_body
-show_text_screen = MENU_BASE + 3	; jmp stub → show_text_screen_body
 
 ; Per-column ray cache (rebuilt when playera changes), 10×40 = 400 bytes
 COL_DDX_L	= COL_CLIP_END
@@ -551,7 +549,7 @@ cheat_dig_prev		= SCRAP_CASS + 28
 cheat_a			= SCRAP_CASS + 29
 cheat_b			= SCRAP_CASS + 30
 cheat_c			= SCRAP_CASS + 31
-episode			= SCRAP_CASS + 32
+; episode lives at $08FA (mem_vic.asm) so it survives GAME load
 end_level		= SCRAP_CASS + 33
 menu_can_ret		= SCRAP_CASS + 34
 menu_id			= SCRAP_CASS + 35
