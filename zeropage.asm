@@ -105,13 +105,9 @@ armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
 hud_dirty	= $a8			; redraw HUD sides into FB; blit clears after HUD cols
 key_use		= $7f			; 1 = K held (use / open door)
-key_fire	= $84			; 1 = I held (shoot)
-muzzle_ms_l	= $80			; muzzle flash ms remaining (16-bit)
-muzzle_ms_h	= $81
+key_fire	= $84			; 1 = SPACE held (snapshot; HUD fire is IRQ)
 random8		= $82			; GetRandom8 state (Deathchase LCG)
 spr_en		= $83			; mirror of $d015 (write-only)
-fire_rpt_l	= $85			; ms until next shot while held
-fire_rpt_h	= $86
 
 ; Info line (top row, 4s); info_len = cols to reserve (ytop=1)
 ; info_kind (BSS in pickup.asm): 0 = pickup prefix+name, 1 = raw string
@@ -144,13 +140,11 @@ in_back		= $a2			; S (also jiffy lo while KERNAL IRQ owns machine)
 in_strafel	= $a3			; A
 in_strafer	= $a4			; D
 in_use		= $a5			; OR-latch: K held any sample
-in_fire		= $a6			; OR-latch: I held any sample
+in_fire		= $a6			; OR-latch: SPACE held any sample
 vel_ms		= $a7			; hold-ms fed to turn_deliver / scale_vel
 ; SFX playback pointer (IRQ-safe; not shared with render temps)
 sound_ptr_l	= $a9
 sound_ptr_h	= $aa
-wpn_fire_ms_l	= $ab
-wpn_fire_ms_h	= $ac
 near_fpat	= $ad			; floor/ceil dither screen code for paint_near
 
 ; KERNAL-safe survivors ($FB–$FE; unused by IEC/LOAD)
@@ -372,8 +366,6 @@ music_zp7	= $f7
 ; Defined in playsound.asm: sid_filt_shadow=$02f8 sid_vol_shadow=$02f9
 ; (kept off $0314–$0333 KERNAL soft-vector page)
 
-sg_cock_ms_l	= $b0			; shotgun cock animation ms remaining (lo)
-sg_cock_ms_h	= $b1			; shotgun cock animation ms remaining (hi)
 
 ; Per-sector wall darken for set_wall_pat (from SEC_BRIGHT; $FF = full bright)
 SEC_WDARK	= SEC_VISITED_END	; SEC_TABLE_SIZE bytes, index = sector id
@@ -516,7 +508,14 @@ map_pl_row		= SCRAP_UNDER + 109
 map_pl_col		= SCRAP_UNDER + 110
 react_dt_rem		= SCRAP_UNDER + 111	; leftover ms for MOBJ_REACT (ms/16)
 react_dt_units		= SCRAP_UNDER + 112	; ms/16 elapsed this enemy_think
-SCRAP_UNDER_END		= SCRAP_UNDER + 113
+wpn_pose		= SCRAP_UNDER + 113	; POSE_IDLE/FIRE/RECOIL/COCK
+wpn_off_y		= SCRAP_UNDER + 114	; signed HUD Y delta (pistol/rocket)
+wpn_pose_ticks		= SCRAP_UNDER + 115
+wpn_flash_ticks		= SCRAP_UNDER + 116
+wpn_fire_ticks		= SCRAP_UNDER + 117	; shot repeat cooldown
+recoil_step		= SCRAP_UNDER + 118	; rocket grenade keyframe 0..2
+wpn_shot_req		= SCRAP_UNDER + 119	; pending world-shots (IRQ inc, main take)
+SCRAP_UNDER_END		= SCRAP_UNDER + 120
 !if SCRAP_UNDER_END > UNDER_STACK_END {
 	!error "under-stack BSS past UNDER_STACK_END"
 }

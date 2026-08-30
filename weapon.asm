@@ -15,16 +15,28 @@ SHOTGUN_SPR_PTR0 = <(SHOTGUN_SPRITES / 64)
 SHOTGUN_COCK_SPR_PTR0 = <(SHOTGUN_COCK_SPRITES / 64)
 PISTOL_SPR_PTR0 = <(PISTOL_SPRITES / 64)
 MUZZLE_FLASH_PTR0 = <(MUZZLE_FLASH_SPRITES / 64)
-SG_COCK_MS = 600			; cock pose duration after muzzle expires (ms)
 EIGHT_ENABLE_IDLE = $3f		; sprites 0–5 (body; flash 6–7 off)
 EIGHT_ENABLE_ALL = $ff		; all eight (chainsaw)
 FIST_ENABLE = $7f			; sprites 0–6 (hand layers)
 FLASH_ENABLE = $c0			; sprites 6–7
-MUZZLE_MS = 300
-PUNCH_MS = 350				; fist punch pose duration
+
+; HUD poses / 50 Hz ticks (Timer A SAMPLE_MS = 20)
+POSE_IDLE = 0
+POSE_FIRE = 1
+POSE_RECOIL = 2
+POSE_COCK = 3
+FLASH_TICKS = 15			; 300 ms
+PUNCH_TICKS = 18			; 360 ms (~350)
+PISTOL_FIRE_TICKS = 15			; 300 ms
+PISTOL_RECOIL_TICKS = 8			; 160 ms (~150)
+SG_COCK_TICKS = 30			; 600 ms
+SAW_RUN_DY = 8
+PISTOL_FIRE_DY = $fc			; −4
+PISTOL_RECOIL_DY = $fa			; −6
 
 ; Screen layout (XY expand): sprite px ×2.
 ; Bottom dark/hand row Y=208; adjacent X = 112 / 160; centred hi X = 136.
+; Pistol idle is +6 vs that flush so recoil (−6) still covers the bottom of the screen.
 ; Pistol gun = hand − 22 (11 sprite px); minigun light/hi top = dark − 14;
 ; rocket top row = dark − 28; rocket pink flash = body top − 18.
 ; VIC: low sprite # = front — body first, muzzle flash last (under gun/hand).
@@ -36,11 +48,15 @@ muzzle_hi_col	!byte 1			; gun highlight while muzzle flash is up
 muzzle_hi_cols
 	!byte 1, 7, 1, 10		; some bright colours
 
-; Per-weapon fire interval (ms while held) — fist, saw, pistol, sg, mg, rocket
-wpn_fire_ms_lo
-	!byte <800, <100, <600, <900, <100, <1200
-wpn_fire_ms_hi
-	!byte >800, >100, >600, >900, >100, >1200
+; Per-weapon fire interval (50 Hz ticks while held) — fist, saw, pistol, sg, mg, rocket
+wpn_fire_ticks_tab
+	!byte 40, 5, 30, 45, 5, 60
+
+; Rocket grenade recoil (Quake64), Y down, 1/2/2 ticks
+recoil_gren_dy
+	!byte 24, 16, 8
+recoil_gren_ticks
+	!byte 1, 2, 2
 
 wpn_setup_lo
 	!byte <setup_fist, <setup_chainsaw, <setup_pistol, <setup_shotgun
@@ -72,9 +88,9 @@ pistol_spr_x
 	!byte 160, 160, 160		; hand
 	!byte 166, 166			; flash (+6 from body)
 pistol_spr_y
-	!byte 186, 186, 186		; gun (hand Y − 22)
-	!byte 208, 208, 208		; hand (bottom centre)
-	!byte 162, 162			; flash (gun Y − 24)
+	!byte 192, 192, 192		; gun (hand Y − 22)
+	!byte 214, 214, 214		; hand (idle +6 so recoil covers flush)
+	!byte 168, 168			; flash (gun Y − 24)
 
 shotgun_spr_col
 	!byte 11			; highlight (over metal)
@@ -203,21 +219,21 @@ switch_weapon
 	sta wpn_damage + 1
 	lda wpn_damage_hi,x
 	sta wpn_damage + 2
-	lda wpn_fire_ms_lo,x
-	sta wpn_fire_ms_l
-	lda wpn_fire_ms_hi,x
-	sta wpn_fire_ms_h
 	lda #0
-	sta muzzle_ms_l
-	sta muzzle_ms_h
-	sta fire_rpt_l
-	sta fire_rpt_h
-	sta sg_cock_ms_l
-	sta sg_cock_ms_h
+	sta wpn_pose
+	sta wpn_off_y
+	sta wpn_pose_ticks
+	sta wpn_flash_ticks
+	sta wpn_fire_ticks
+	sta recoil_step
+	sta wpn_shot_req
 	lda #1
 	sta hud_dirty
+	php
+	sei				; lock out 50 Hz HUD writer
 	jsr wpn_setup
-	jmp .wpn_hi_bright
+	jsr .wpn_hi_bright
+	plp
 .sw_done
 	rts
 
@@ -252,15 +268,19 @@ show_weapon
 	sta $d015
 	jsr io_pop
 	jmp .wpn_hi_bright
-; Highlight colour: random muzzle tint while flash is up, else SEC_BRIGHT mapping.
+; Highlight colour: random muzzle tint while flash ticks remain, else SEC_BRIGHT.
 ; Skip while shotgun cock pose is up (sprite 0 is black base, not highlight).
 .wpn_hi_bright
 	jsr io_push
-	lda sg_cock_ms_l
-	ora sg_cock_ms_h
-	bne .wh_rts
-	lda muzzle_ms_l
-	ora muzzle_ms_h
+	jsr .wpn_hi_direct
+	jmp io_pop
+
+; I/O already mapped. No tmp*.
+.wpn_hi_direct
+	lda wpn_pose
+	cmp #POSE_COCK
+	beq .wh_rts
+	lda wpn_flash_ticks
 	beq .wh_sector
 	lda muzzle_hi_col
 	bne .wh_apply
@@ -280,7 +300,7 @@ show_weapon
 	bne .wh_rts
 	sta $d028
 .wh_rts
-	jmp io_pop
+	rts
 
 ; SEC_BRIGHT 0..16 → weapon highlight C64 colour
 bright_to_wpn_hi
@@ -298,23 +318,18 @@ bright_to_wpn_hi
 	sta $d015
 	jmp io_pop
 
+; A = enable mask. I/O already in (IRQ).
+.wpn_en_irq
+	sta spr_en
+	and wpn_visible
+	sta $d015
+	rts
+
 ; ------------------------------------------------------------------
 ; Shared 8-sprite setup: A = ptr0, col/x/y tables via (ptr)
 ; ------------------------------------------------------------------
 setup_fist
-	lda #FIST_RIGHT_SPR_PTR0
-	ldx #0				; idle X table
-	beq .fist_apply
-
-; Punch pose — replaces open right hand for PUNCH_MS
-setup_fist_punch
-	lda #FIST_PUNCH_SPR_PTR0
-	ldx #1				; punch X table (further left)
-	; fall through
-.fist_apply
 	jsr io_push
-	sta tmp0			; sprite pointer base
-	stx tmp1			; 0=idle X, 1=punch X
 	lda #FIST_ENABLE
 	jsr .wpn_en
 	lda #$ff
@@ -330,15 +345,9 @@ setup_fist_punch
 	lda fist_spr_col,x
 	sta $d027,x
 	txa
-	adc tmp0
+	adc #FIST_RIGHT_SPR_PTR0
 	sta SPR_PTR,x
-	lda tmp1
-	bne .sf_punch_x
 	lda fist_spr_x,x
-	jmp .sf_got_x
-.sf_punch_x
-	lda fist_punch_spr_x,x
-.sf_got_x
 	sta $d000,y
 	lda fist_spr_y,x
 	sta $d001,y
@@ -408,6 +417,8 @@ setup_pistol
 	lda pistol_spr_x,x
 	sta $d000,y
 	lda pistol_spr_y,x
+	clc
+	adc wpn_off_y
 	sta $d001,y
 	iny
 	iny
@@ -452,7 +463,7 @@ setup_shotgun
 	jmp io_pop
 
 ; Show shotgun cock pose — sprites 0–5 from SHOTGUN_COCK area, flash off.
-; Called after muzzle expires on a shotgun shot; sg_cock_ms must be pre-set.
+; Cock pose: 6 layers, stacked blacks (hi+42=lo), no flash, 2× expand
 setup_shotgun_cock
 	jsr io_push
 	lda #EIGHT_ENABLE_IDLE		; sprites 0–5 on, 6–7 off
@@ -573,6 +584,8 @@ setup_rocket
 	lda rocket_spr_x,x
 	sta $d000,y
 	lda rocket_spr_y,x
+	clc
+	adc wpn_off_y
 	sta $d001,y
 	iny
 	iny
@@ -644,245 +657,97 @@ damage_shotgun
 	bne .sg_pellet
 	rts
 
-; Spend 1 ammo from the active weapon's reserve, show muzzle flash, damage via SMC.
-; C=0 ok, C=1 no ammo (or rocket slot busy). Melee (0/1) skips ammo/flash.
-.fire_shot
+; Fire SFX per weapon id (fist, saw, pistol, sg, mg, rocket)
+wpn_sound
+	!byte SOUND_PUNCH, SOUND_SAWFUL, SOUND_PISTOL, SOUND_SHOTGN, SOUND_PISTOL, SOUND_SHOTGN
+
+; ------------------------------------------------------------------
+; Game loop: take pending IRQ shots (COL_AIM_* valid). No HUD.
+; ------------------------------------------------------------------
+update_muzzle_flash
+	sei
+	lda wpn_shot_req
+	ldx #0
+	stx wpn_shot_req
+	cli
+	tax
+	beq .uw_done
+.uw_loop
+	txa
+	pha
+	jsr .world_shot
+	pla
+	tax
+	dex
+	bne .uw_loop
+.uw_done
+	rts
+
+.world_shot
 	ldx cur_weapon
 	cpx #2
-	bcc .fs_melee
-	cpx #5				; rocket — need free projectile slot
-	bne .fs_ammo
-	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
-	bne .fs_to_empty
-.fs_ammo
-	ldx cur_weapon
+	bcc .ws_dmg			; melee: no ammo
 	lda wpn_ammo_idx,x
 	tay
 	lda ammo_bullets,y
-	bne .fs_have_ammo
-.fs_to_empty
-	jmp .fs_empty
-.fs_have_ammo
+	beq .ws_rts
 	sec
 	sbc #1
 	sta ammo_bullets,y
 	lda #1
 	sta hud_dirty
-	lda #<MUZZLE_MS
-	sta muzzle_ms_l
-	lda #>MUZZLE_MS
-	sta muzzle_ms_h
-	ldx cur_weapon
-	cpx #5				; rocket: own flash, no A/B toggle
-	beq .fs_flash_en
-	jsr .set_muzzle_ptrs		; current A/B (start at A)
-	inc muzzle_flash_var		; next shot flips
-	cpx #4				; minigun: swap body A/B each shot
-	bne .fs_flash_en
-	lda mg_frame
-	eor #1
-	sta mg_frame
-	jsr .set_minigun_frame_ptrs
-.fs_flash_en
-	lda spr_en
-	ora #FLASH_ENABLE
-	jsr .wpn_en
-	inc muzzle_hi_cycle
-	lda muzzle_hi_cycle
-	and #3
-	tax
-	lda muzzle_hi_cols,x
-	sta muzzle_hi_col
-	jsr .wpn_hi_bright
-	ldx cur_weapon
-	lda wpn_sound,x
-	jsr play_sound
-	jsr wpn_damage
-	clc
-	rts
-.fs_melee
-	ldx cur_weapon
-	bne .fs_melee_saw
-	; fist — show punch pose for PUNCH_MS (replaces open right hand)
-	lda #<PUNCH_MS
-	sta muzzle_ms_l
-	lda #>PUNCH_MS
-	sta muzzle_ms_h
-	jsr setup_fist_punch
-	jsr .wpn_hi_bright
-.fs_melee_saw
-	ldx cur_weapon
-	lda wpn_sound,x
-	jsr play_sound
-	jsr wpn_damage
-	clc
-	rts
-.fs_empty
-	lda #SOUND_OOF
-	jsr play_sound
-	sec
+.ws_dmg
+	jmp wpn_damage
+.ws_rts
 	rts
 
-; Fire SFX per weapon id (fist, saw, pistol, sg, mg, rocket)
-wpn_sound
-	!byte SOUND_PUNCH, SOUND_SAWFUL, SOUND_PISTOL, SOUND_SHOTGN, SOUND_PISTOL, SOUND_SHOTGN
-
-; Call once per frame after render (COL_AIM_* set in render_items).
-; While SPACE held: fire when fire_rpt is 0, then wait wpn_fire_ms.
-; Note: $d015 is write-only — use spr_en mirror; gated by wpn_visible.
-update_muzzle_flash
-	; --- muzzle flash / fist-punch timeout ---
-	; Flash bits are ORed into spr_en at fire time (.fire_shot); no per-frame
-	; re-OR needed — show_weapon copies spr_en→$d015, expiry calls wpn_setup.
-	lda muzzle_ms_l
-	ora muzzle_ms_h
-	beq .mf_cock
-.mf_tick
-	sec
-	lda muzzle_ms_l
-	sbc dt_ms
-	sta muzzle_ms_l
-	lda muzzle_ms_h
-	sbc #0
-	sta muzzle_ms_h
-	bcc .mf_expired		; underflow
-	ora muzzle_ms_l		; A = hi
-	bne .mf_cock		; still > 0
-.mf_expired
-	lda #0
-	sta muzzle_ms_l
-	sta muzzle_ms_h
-	; Shotgun: start cock animation instead of restoring idle pose
-	lda cur_weapon
-	cmp #3
-	bne .mf_restore
-	lda #<SG_COCK_MS
-	sta sg_cock_ms_l
-	lda #>SG_COCK_MS
-	sta sg_cock_ms_h
-	lda #SOUND_SGCOCK
-	jsr play_sound
-	jsr setup_shotgun_cock
-	jsr .wpn_hi_bright
-	jmp .mf_cock
-.mf_restore
-	; restore idle weapon pose (fist → open hand; guns → flash off)
-	jsr wpn_setup
-	jsr .wpn_hi_bright
-
-	; --- shotgun cock animation timeout ---
-.mf_cock
-	lda sg_cock_ms_l
-	ora sg_cock_ms_h
-	beq .mf_keys
-	sec
-	lda sg_cock_ms_l
-	sbc dt_ms
-	sta sg_cock_ms_l
-	lda sg_cock_ms_h
-	sbc #0
-	sta sg_cock_ms_h
-	bcc .mf_cock_done	; underflow
-	ora sg_cock_ms_l
-	bne .mf_keys		; still ticking
-.mf_cock_done
-	lda #0
-	sta sg_cock_ms_l
-	sta sg_cock_ms_h
-	; restore idle shotgun pose
-	jsr setup_shotgun
-	jsr .wpn_hi_bright
-
-.mf_keys
-	lda key_fire
-	beq .mf_up
-	lda fire_rpt_l
-	ora fire_rpt_h
-	beq .mf_shot
-	sec
-	lda fire_rpt_l
-	sbc dt_ms
-	sta fire_rpt_l
-	lda fire_rpt_h
-	sbc #0
-	sta fire_rpt_h
-	bcs .mf_done
-.mf_shot
-	; Cancel cock pose and restore idle body before flash (ptrs may still be cock)
-	lda sg_cock_ms_l
-	ora sg_cock_ms_h
-	beq .mf_fire
-	lda #0
-	sta sg_cock_ms_l
-	sta sg_cock_ms_h
-	lda cur_weapon
-	cmp #3
-	bne .mf_fire
-	jsr setup_shotgun
-.mf_fire
-	jsr .fire_shot
-	bcs .mf_stop_rpt
-	lda wpn_fire_ms_l
-	sta fire_rpt_l
-	lda wpn_fire_ms_h
-	sta fire_rpt_h
-.mf_done
-	rts
-.mf_stop_rpt
-.mf_up
-	lda #0
-	sta fire_rpt_l
-	sta fire_rpt_h
-	; Minigun: return body to frame A when fire stops
-	lda cur_weapon
-	cmp #4
-	bne .mf_up_rts
-	lda mg_frame
-	beq .mf_up_rts
-	lda #0
-	sta mg_frame
-	jsr .set_minigun_frame_ptrs
-.mf_up_rts
-	rts
-
-; Called from input_irq (Timer A, every SAMPLE_MS). Chainsaw + SPACE:
-; drop sprites +4 and flip blade hi/hi2 every 4th tick (~100 ms).
-SAW_RUN_DY = 8
-
-update_saw_blade
-	lda cur_weapon
-	cmp #1
-	bne .usb_idle
+; ------------------------------------------------------------------
+; Timer A 50 Hz: fire gate, poses, SPR_PTR / XY / flash / SFX.
+; $01 already $35. No tmp*, no io_push, no SEI/CLI.
+; ------------------------------------------------------------------
+update_weapon_irq
+	lda wpn_visible
+	beq .uwi_rts
+	lda health
+	beq .uwi_rts
+	lda wpn_fire_ticks
+	beq .uwi_space
+	dec wpn_fire_ticks
+.uwi_space
 	lda #$7f
 	sta $dc00
 	lda $dc01
-	and #$10				; SPACE
-	bne .usb_idle			; not held
-	lda saw_running
-	bne .usb_anim
-	lda #1
-	sta saw_running
-	jsr .saw_set_y_run
-.usb_anim
-	inc saw_blade_div
-	lda saw_blade_div
-	and #3
-	bne .usb_rts
-	lda saw_blade_frame
-	eor #1
-	sta saw_blade_frame
-	beq .usb_hi
-	lda #CHAINSAW_BLADE_HI2_PTR
-	sta SPR_PTR
+	and #$10			; SPACE
+	bne .uwi_up
+	ldx cur_weapon
+	cpx #1
+	bne .uwi_held
+	jsr .saw_hold
+.uwi_held
+	jsr .irq_tick_flash
+	jsr .irq_tick_pose
+	lda wpn_fire_ticks
+	bne .uwi_rts
+	jmp .irq_try_fire
+.uwi_up
+	jsr .irq_fire_released
+	jsr .irq_tick_flash
+	jmp .irq_tick_pose
+.uwi_rts
 	rts
-.usb_hi
-	lda #CHAINSAW_SPR_PTR0
-	sta SPR_PTR
-.usb_rts
-	rts
-.usb_idle
+
+.irq_fire_released
+	lda cur_weapon
+	cmp #4
+	bne .ifr_saw
+	lda mg_frame
+	beq .ifr_saw
+	lda #0
+	sta mg_frame
+	jsr .set_minigun_frame_ptrs
+.ifr_saw
 	lda saw_running
-	beq .usb_rts			; already idle — nothing to do
+	beq .ifr_rts
 	lda #0
 	sta saw_running
 	sta saw_blade_frame
@@ -890,12 +755,380 @@ update_saw_blade
 	jsr .saw_set_y_idle
 	lda cur_weapon
 	cmp #1
-	bne .usb_rts
+	bne .ifr_rts
 	lda #CHAINSAW_SPR_PTR0
 	sta SPR_PTR
+.ifr_rts
 	rts
 
-; Y = chainsaw_spr_y[i] (+ SAW_RUN_DY if run)
+.irq_try_fire
+	ldx cur_weapon
+	cpx #2
+	bcc .itf_do			; melee
+	cpx #5
+	bne .itf_ammo
+	lda MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
+	bne .itf_empty
+	lda wpn_shot_req
+	bne .itf_empty
+.itf_ammo
+	lda wpn_ammo_idx,x
+	tay
+	lda ammo_bullets,y
+	cmp wpn_shot_req
+	beq .itf_empty
+	bcc .itf_empty
+.itf_do
+	jsr .irq_start_hud
+	ldx cur_weapon
+	lda wpn_sound,x
+	jsr play_sound
+	inc wpn_shot_req
+	ldx cur_weapon
+	lda wpn_fire_ticks_tab,x
+	sta wpn_fire_ticks
+	rts
+.itf_empty
+	lda #SOUND_OOF
+	jsr play_sound
+	ldx cur_weapon
+	lda wpn_fire_ticks_tab,x
+	sta wpn_fire_ticks
+	rts
+
+.irq_start_hud
+	ldx cur_weapon
+	beq .irq_start_punch
+	cpx #1
+	beq .ish_rts			; saw Y from .saw_hold
+	cpx #2
+	beq .irq_start_pistol
+	cpx #3
+	beq .irq_start_shotgun
+	cpx #4
+	beq .irq_start_minigun
+	jmp .irq_start_rocket
+.ish_rts
+	rts
+
+.irq_start_punch
+	lda #POSE_FIRE
+	sta wpn_pose
+	lda #PUNCH_TICKS
+	sta wpn_pose_ticks
+	jmp .irq_apply_fist
+
+.irq_start_pistol
+	lda #POSE_FIRE
+	sta wpn_pose
+	lda #PISTOL_FIRE_DY
+	sta wpn_off_y
+	lda #PISTOL_FIRE_TICKS
+	sta wpn_pose_ticks
+	lda #FLASH_TICKS
+	sta wpn_flash_ticks
+	jsr .irq_apply_pistol_y
+	jsr .set_muzzle_ptrs
+	inc muzzle_flash_var
+	jsr .irq_flash_on
+	jmp .irq_muzzle_hi
+
+.irq_start_shotgun
+	lda wpn_pose
+	cmp #POSE_COCK
+	bne .iss_flash
+	jsr .irq_apply_shotgun
+.iss_flash
+	lda #POSE_FIRE
+	sta wpn_pose
+	lda #FLASH_TICKS
+	sta wpn_flash_ticks
+	lda #0
+	sta wpn_pose_ticks
+	jsr .set_muzzle_ptrs
+	inc muzzle_flash_var
+	jsr .irq_flash_on
+	jmp .irq_muzzle_hi
+
+.irq_start_minigun
+	lda #POSE_FIRE
+	sta wpn_pose
+	lda #FLASH_TICKS
+	sta wpn_flash_ticks
+	jsr .set_muzzle_ptrs
+	inc muzzle_flash_var
+	lda mg_frame
+	eor #1
+	sta mg_frame
+	jsr .set_minigun_frame_ptrs
+	jsr .irq_flash_on
+	jmp .irq_muzzle_hi
+
+.irq_start_rocket
+	lda #POSE_RECOIL
+	sta wpn_pose
+	lda #0
+	sta recoil_step
+	lda recoil_gren_dy
+	sta wpn_off_y
+	lda recoil_gren_ticks
+	sta wpn_pose_ticks
+	lda #FLASH_TICKS
+	sta wpn_flash_ticks
+	jsr .irq_apply_rocket_y
+	jsr .irq_flash_on
+	jmp .irq_muzzle_hi
+
+.irq_muzzle_hi
+	inc muzzle_hi_cycle
+	lda muzzle_hi_cycle
+	and #3
+	tax
+	lda muzzle_hi_cols,x
+	sta muzzle_hi_col
+	jmp .wpn_hi_direct
+
+.irq_flash_on
+	lda spr_en
+	ora #FLASH_ENABLE
+	jmp .wpn_en_irq
+
+.irq_flash_off
+	lda spr_en
+	and #EIGHT_ENABLE_IDLE
+	jmp .wpn_en_irq
+
+.irq_tick_flash
+	ldx cur_weapon
+	cpx #2
+	beq .itfl_rts			; pistol pose owns flash
+	lda wpn_flash_ticks
+	beq .itfl_rts
+	dec wpn_flash_ticks
+	bne .itfl_rts
+	cpx #3
+	beq .irq_start_cock
+	jsr .irq_flash_off
+	jmp .wpn_hi_direct
+.itfl_rts
+	rts
+
+.irq_start_cock
+	lda #POSE_COCK
+	sta wpn_pose
+	lda #SG_COCK_TICKS
+	sta wpn_pose_ticks
+	lda #0
+	sta wpn_flash_ticks
+	lda #SOUND_SGCOCK
+	jsr play_sound
+	jsr .irq_apply_shotgun_cock
+	jmp .wpn_hi_direct
+
+.irq_tick_pose
+	lda wpn_pose_ticks
+	beq .itp_rts
+	dec wpn_pose_ticks
+	bne .itp_rts
+	ldx cur_weapon
+	beq .itp_fist_idle
+	cpx #2
+	beq .itp_pistol
+	cpx #3
+	beq .itp_sg_idle
+	cpx #5
+	beq .itp_rocket
+.itp_rts
+	rts
+
+.itp_fist_idle
+	lda #POSE_IDLE
+	sta wpn_pose
+	jsr .irq_apply_fist
+	jmp .wpn_hi_direct
+
+.itp_pistol
+	lda wpn_pose
+	cmp #POSE_FIRE
+	bne .itp_pis_idle
+	lda #POSE_RECOIL
+	sta wpn_pose
+	lda #PISTOL_RECOIL_DY
+	sta wpn_off_y
+	lda #PISTOL_RECOIL_TICKS
+	sta wpn_pose_ticks
+	lda #0
+	sta wpn_flash_ticks
+	jsr .irq_flash_off
+	jsr .irq_apply_pistol_y
+	jmp .wpn_hi_direct
+.itp_pis_idle
+	lda #POSE_IDLE
+	sta wpn_pose
+	lda #0
+	sta wpn_off_y
+	jsr .irq_apply_pistol_y
+	jmp .wpn_hi_direct
+
+.itp_sg_idle
+	lda #POSE_IDLE
+	sta wpn_pose
+	jsr .irq_apply_shotgun
+	jmp .wpn_hi_direct
+
+.itp_rocket
+	ldx recoil_step
+	inx
+	stx recoil_step
+	cpx #3
+	bcs .itp_rok_idle
+	lda recoil_gren_dy,x
+	sta wpn_off_y
+	lda recoil_gren_ticks,x
+	sta wpn_pose_ticks
+	jmp .irq_apply_rocket_y
+.itp_rok_idle
+	lda #POSE_IDLE
+	sta wpn_pose
+	lda #0
+	sta recoil_step
+	sta wpn_off_y
+	jmp .irq_apply_rocket_y
+
+; --- IRQ-safe pose apply (A/X/Y only) ---
+
+.irq_apply_pistol_y
+	ldx #0
+	ldy #0
+.iapy
+	lda pistol_spr_y,x
+	clc
+	adc wpn_off_y
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .iapy
+	rts
+
+.irq_apply_rocket_y
+	ldx #0
+	ldy #0
+.iary
+	lda rocket_spr_y,x
+	clc
+	adc wpn_off_y
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .iary
+	rts
+
+.irq_apply_fist
+	ldx #0
+	ldy #0
+.iaf
+	txa
+	clc
+	adc #FIST_RIGHT_SPR_PTR0
+	sta SPR_PTR,x
+	lda wpn_pose
+	bne .iaf_punch
+	lda fist_spr_x,x
+	jmp .iaf_xy
+.iaf_punch
+	txa
+	clc
+	adc #FIST_PUNCH_SPR_PTR0
+	sta SPR_PTR,x
+	lda fist_punch_spr_x,x
+.iaf_xy
+	sta $d000,y
+	lda fist_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .iaf
+	rts
+
+.irq_apply_shotgun
+	ldx #0
+	ldy #0
+	clc
+.iasg
+	lda shotgun_spr_col,x
+	sta $d027,x
+	cpx #6
+	bcs .iasg_xy
+	txa
+	clc
+	adc #SHOTGUN_SPR_PTR0
+	sta SPR_PTR,x
+.iasg_xy
+	lda shotgun_spr_x,x
+	sta $d000,y
+	lda shotgun_spr_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .iasg
+	jsr .set_muzzle_ptrs
+	lda #EIGHT_ENABLE_IDLE
+	jmp .wpn_en_irq
+
+.irq_apply_shotgun_cock
+	ldx #0
+	ldy #0
+	clc
+.iasc
+	lda shotgun_cock_col,x
+	sta $d027,x
+	txa
+	adc #SHOTGUN_COCK_SPR_PTR0
+	sta SPR_PTR,x
+	lda shotgun_cock_x,x
+	sta $d000,y
+	lda shotgun_cock_y,x
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #6
+	bcc .iasc
+	lda #EIGHT_ENABLE_IDLE
+	jmp .wpn_en_irq
+
+.saw_hold
+	lda saw_running
+	bne .sh_anim
+	lda #1
+	sta saw_running
+	jsr .saw_set_y_run
+.sh_anim
+	inc saw_blade_div
+	lda saw_blade_div
+	and #3
+	bne .sh_rts
+	lda saw_blade_frame
+	eor #1
+	sta saw_blade_frame
+	beq .sh_hi
+	lda #CHAINSAW_BLADE_HI2_PTR
+	sta SPR_PTR
+	rts
+.sh_hi
+	lda #CHAINSAW_SPR_PTR0
+	sta SPR_PTR
+.sh_rts
+	rts
+
 .saw_set_y_run
 	ldx #0
 	ldy #0

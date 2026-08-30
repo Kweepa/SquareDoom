@@ -287,7 +287,7 @@ input_irq
 	sta in_map
 .irq_nof1
 
-	jsr update_saw_blade
+	jsr update_weapon_irq
 	lda health
 	beq .irq_rti
 	jsr check_cheats
