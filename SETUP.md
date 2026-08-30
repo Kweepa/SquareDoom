@@ -50,7 +50,9 @@ From the repo root:
 make.bat
 ```
 
-That assembles the game, builds `squaredoom.d64`, and launches VICE.
+That assembles the game, builds `squaredoom.d64` (KERNAL loads) and `squaredoom-krill.d64`, and launches VICE on the KERNAL disk.
+
+`run-game.bat` launches the KERNAL disk (fast with VICE virtual device traps). `run-game.bat krill` launches the Krill disk (needs true drive emulation).
 
 ### Level editor
 

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Build squaredoom.d64: boot (autostart name squaredoom), splash colour+bitmap, krill, menu, gfx, game, high, levels.
+"""Build a SquareDoom d64: boot (autostart name squaredoom), splash, overlays, levels.
 
-krill/loader.prg and krill/install.prg are prebuilt Krill v194 binaries (see
-krill/README.md). Boot KERNAL-loads SPLASHC then SPLASH first (cover paints
-in colour during the bitmap load, stays up through INSTALL), then
-LOADER+INSTALL, JSR install, and every later load is loadraw.
-GAME is code only; HIGH is $9000–$D000.
+Default (KERNAL): splashc, splash, menu, gfx, game, high. Boot and later loads use
+$FFD5. --krill: also packs krill/loader.prg + install.prg; that boot JSR installs
+and every later load is loadraw. GAME is code only; HIGH is $9000–$D000.
 """
 
 import argparse
@@ -23,10 +21,16 @@ LEVEL_LOAD_ADDR = 0x9000
 LEVEL_BYTES = 3473
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
 
-# (dos_name, path relative to repo root). Splash colour then bitmap after boot
-# so the KERNAL-load of the cover is sequential; INSTALL still sits before MENU
-# overwrites the $2000 installer RAM.
-DISK_PRGS = [
+# Splash colour then bitmap after boot so the cover KERNAL-load is sequential.
+DISK_PRGS_KERNAL = [
+	("splashc", "splashc.prg"),
+	("splash", "splash.prg"),
+	("menu", "menu.prg"),
+	("gfx", "gfx.prg"),
+	("game", "game.prg"),
+	("high", "high.prg"),
+]
+DISK_PRGS_KRILL = [
 	("splashc", "splashc.prg"),
 	("splash", "splash.prg"),
 	("loader", "krill/loader.prg"),
@@ -78,10 +82,15 @@ def stage_level(dos_name: str, bin_path: Path, tmp_dir: Path) -> Tuple[str, Path
 
 
 def main() -> None:
-	ap = argparse.ArgumentParser(description="Build squaredoom.d64 via c1541")
+	ap = argparse.ArgumentParser(description="Build a SquareDoom d64 via c1541")
 	ap.add_argument("--out", default="squaredoom.d64")
 	ap.add_argument("--boot", default="boot.prg")
 	ap.add_argument("--levels", default="levels", help="directory with e1mN.bin files")
+	ap.add_argument(
+		"--krill",
+		action="store_true",
+		help="pack Krill LOADER+INSTALL (boot/menu/game must be assembled -DUSE_KRILL=1)",
+	)
 	ap.add_argument(
 		"--c1541",
 		type=Path,
@@ -89,6 +98,8 @@ def main() -> None:
 		help="path to c1541 (default: VICE_BIN env or PATH)",
 	)
 	args = ap.parse_args()
+
+	disk_prgs = DISK_PRGS_KRILL if args.krill else DISK_PRGS_KERNAL
 
 	c1541 = find_c1541(args.c1541)
 	if not c1541:
@@ -104,7 +115,7 @@ def main() -> None:
 		print(f"missing boot PRG: {boot}", file=sys.stderr)
 		sys.exit(1)
 
-	for dos_name, rel in DISK_PRGS:
+	for dos_name, rel in disk_prgs:
 		p = root / rel
 		if not p.is_file():
 			print(f"missing PRG: {p}", file=sys.stderr)
@@ -120,7 +131,7 @@ def main() -> None:
 	with tempfile.TemporaryDirectory(prefix="sd_disk_") as tmp:
 		tmp_dir = Path(tmp)
 		staged: List[Tuple[str, Path]] = []
-		for dos_name, rel in DISK_PRGS:
+		for dos_name, rel in disk_prgs:
 			staged.append((dos_name, root / rel))
 		for dos_name, bin_path in levels:
 			staged.append(stage_level(dos_name, bin_path, tmp_dir))
@@ -141,8 +152,9 @@ def main() -> None:
 			cmd.extend(["-write", str(path), f"{dos_name},p"])
 		subprocess.check_call(cmd)
 
+	kind = "krill" if args.krill else "kernal"
 	print(
-		f"Wrote {d64} via {c1541} (boot + krill + {len(DISK_PRGS) - 2} prgs, {len(levels)} levels)"
+		f"Wrote {d64} via {c1541} ({kind}, boot + {len(disk_prgs)} prgs, {len(levels)} levels)"
 	)
 
 

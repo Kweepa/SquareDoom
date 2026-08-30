@@ -4,3 +4,7 @@ __pycache__/
 
 ref/
 *.vsf
+*.lbl
+*.prg
+!krill/*.prg
+

@@ -4,8 +4,9 @@
 
 ; VIC bank 3 ($C000): screen $C400, sprites $C800–$D7BF, charset $D800.
 ; Play default $01=$34. SQTAB $BC00. Level $9000. py_tab $B000.
-; Boot installs Krill at $8E00, loads MENU @ $0400; MENU copies GFX then GAME
-; (code) over MENU. locode_entry loadraws HIGH ($9000–$D000) before the blob copy.
+; Boot loads MENU @ $0400; MENU copies GFX then GAME (code) over MENU.
+; locode_entry loads HIGH ($9000–$D000) before the blob copy.
+; USE_KRILL=1: Krill at $8E00. Default: KERNAL LOAD.
 !source "mem_vic.asm"
 SCREENBUFFER = $e000			; column-major colours (40×25)
 PATTERNBUFFER = SCREENBUFFER + $400	; screen codes; hi = colour hi + 4
@@ -29,7 +30,7 @@ AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE–this (18..22)
 MAX_SECTORS = 199		; usable ids 1..199
 SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
-MEM_CODE_LIMIT = loadraw		; code must end before Krill ($8E00)
+; MEM_CODE_LIMIT: Krill loadraw, or $9000 if KERNAL-only disk.
 
 !source "zeropage.asm"
 *= LOCODE_BASE
@@ -70,12 +71,13 @@ MEM_CODE_LIMIT = loadraw		; code must end before Krill ($8E00)
 end_code = *
 free_code = MEM_CODE_LIMIT - end_code
 !if free_code < 0 {
-	!error "Code overlaps level at $", MEM_CODE_LIMIT, "; overshoot=", end_code - MEM_CODE_LIMIT
+	!error "Code overlaps limit at $", MEM_CODE_LIMIT, "; overshoot=", end_code - MEM_CODE_LIMIT
 }
-!if end_code > loadraw {
-	!error "Code overlaps Krill resident at $", loadraw, "; end=$", end_code
+!if USE_KRILL {
+	!warn "mem: code end=$", end_code, " free to Krill $", loadraw, " =", free_code
+} else {
+	!warn "mem: code end=$", end_code, " free to map $", MEM_CODE_LIMIT, " =", free_code
 }
-!warn "mem: code end=$", end_code, " free to Krill $", loadraw, " =", free_code
 
 ; ------------------------------------------------------------------
 ; Level window $9000: kernal blob staged in first KERNAL_BLOB_SIZE bytes
@@ -177,7 +179,6 @@ free_high = PY_TAB - end_high
 !if free_high < 0 {
 	!error "High data overlaps py_tab at $", PY_TAB, "; overshoot=", end_high - PY_TAB
 }
-!warn "mem: high end=$", end_high, " free to py_tab $", PY_TAB, " =", free_high
 
 *=PY_TAB
 !source "pytab.asm"
@@ -230,11 +231,4 @@ copy_kernal_blob
 !if * != VIC_SPRITES + SPRITE_HEAD {
 	!error "sprite head must end at $", VIC_SPRITES + SPRITE_HEAD, "; ended at $", *
 }
-
-free_kernal = $fffa - end_kernal
-free_low = free_code
-free_mid = 0
-free_total = free_code + free_high + free_kernal
-!warn "mem: kernal data $", SEC_WDARK_END, "..$", end_kernal - 1, " free before $FFFA =", free_kernal
-!warn "mem: TOTAL free =", free_total, " (code+high+kernal-scrap)"
 

@@ -1,5 +1,5 @@
 ; SquareDoom MENU overlay — load @ LOCODE_BASE ($0400), JMP from boot trampoline.
-; Entry: +0 run_menu, +3 copy_vic. After start: loadraw GFX, copy_vic, trampoline GAME.
+; Entry: +0 run_menu, +3 copy_vic. After start: load GFX, copy_vic, trampoline GAME.
 ; Selectors at $02FA–$02FF survive GAME overwrite. SFX: CIA1 Timer A + menu playsound.
 !cpu 6502
 !to "menu.prg", cbm
@@ -250,9 +250,17 @@ run_menu
 	sta $d020
 	sta $d021
 
+!if USE_KRILL {
 	ldx #<name_gfx
 	ldy #>name_gfx
 	jsr krill_load
+} else {
+	jsr kernal_prepare
+	lda #3
+	ldx #<name_gfx
+	ldy #>name_gfx
+	jsr kernal_load_sa1
+}
 	bcs .rm_fail
 	jsr copy_vic
 
@@ -272,6 +280,7 @@ run_menu
 	jmp .rm_hang
 
 ; X/Y = 0-terminated name. Carry clear → dest from PRG header. Returns sei.
+!if USE_KRILL {
 krill_load
 	sei
 	lda #BANK_LOADER
@@ -279,14 +288,20 @@ krill_load
 	clc
 	jsr loadraw
 	rts
+} else {
+	!source "kernal_load.asm"
+}
 
 name_gfx
 	!text "GFX"
 	!byte 0
 
-; loadraw of GAME @ $0400 overwrites MENU; caller must live below $0400.
+; GAME @ $0400 overwrites MENU; caller must live below $0400.
 game_stub_src
 !pseudopc KRILL_STUB {
+	lda #BANK_IO
+	sta $01
+!if USE_KRILL {
 	sei
 	lda #BANK_LOADER
 	sta $01
@@ -295,6 +310,27 @@ game_stub_src
 	ldy #>game_stub_name
 	jsr loadraw
 	bcs game_stub_fail
+} else {
+	cli
+	jsr $ff84				; IOINIT — CIA1 TA (menu_sfx_done stopped it)
+	lda #BANK_IO
+	sta $01
+	lda #4
+	ldx #<game_stub_name
+	ldy #>game_stub_name
+	jsr $ffbd
+	lda #1
+	ldx $ba
+	ldy #1
+	jsr $ffba
+	lda #0
+	jsr $ffd5
+	php
+	lda #1
+	jsr $ffc3
+	plp
+	bcs game_stub_fail
+}
 	ldx #$ff
 	txs
 	jmp LOCODE_BASE
@@ -310,7 +346,7 @@ game_stub_name
 game_stub_end = *
 game_stub_len = game_stub_end - game_stub_src
 !if game_stub_len > KRILL_STUB_END - KRILL_STUB {
-	!error "MENU Krill stub overlaps SID shadows; len=", game_stub_len
+	!error "MENU overlay stub overlaps SID shadows; len=", game_stub_len
 }
 
 menu_move_up

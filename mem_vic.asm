@@ -37,19 +37,28 @@ PY_TAB_SIZE = PY_TAB_PAGES * 256
 PY_TAB = $b000
 SQTAB_BASE = $bc00
 
-; $01: $34 = 64K RAM (play / copy_vic). $36 = I/O + KERNAL, BASIC out (boot).
-; $35 = I/O in, KERNAL out — loadraw needs IEC at $DD00. Resident is $8E00
-; (always RAM, below the map). BASIC maps in at $A000 as a side effect
-; (write-through still hits DRAM). Must be under SEI.
+; $01: $34 = 64K RAM (play / copy_vic). $36 = I/O + KERNAL, BASIC out (boot / KERNAL load).
+; $35 = I/O in, KERNAL out — Krill loadraw needs IEC at $DD00. Must be under SEI.
 BANK_RAM	= $34
 BANK_IO		= $36
 BANK_LOADER	= $35
 
-; Krill v194 (krill/loadersymbols-c64.inc): resident $8E00, install $2000, ZP $60.
-!source "krill/loadersymbols-c64.inc"
-KRILL_INSTALL	= install
-KRILL_RESIDENT	= loadraw
-KRILL_STUB	= $02a0			; trampoline: loadraw MENU/GAME at $0400
+; -DUSE_KRILL=1: native Krill (236 B at $8E00). Default 0: KERNAL LOAD ($FFD5).
+!ifndef USE_KRILL {
+	USE_KRILL = 0
+}
+
+!if USE_KRILL {
+	; Krill v194: resident $8E00, install $2000, ZP $60. No KERNAL fallback.
+	!source "krill/loadersymbols-c64.inc"
+	KRILL_INSTALL	= install
+	KRILL_RESIDENT	= loadraw
+	MEM_CODE_LIMIT	= loadraw
+} else {
+	MEM_CODE_LIMIT	= MEM_LEVEL
+}
+
+KRILL_STUB	= $02a7			; after RS-232 ENABL $02A1; KERNAL IEC calls RSP232
 KRILL_STUB_END	= $02f8			; sid_filt_shadow; stub must not reach here
 
 ; Boot / menu / game split. Boot is disposable at $0801; overlays start at $0400

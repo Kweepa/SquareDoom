@@ -4,7 +4,6 @@
 locode_entry
 	sei
 	cld
-	; Kill CIA NMI/IRQ. Boot/MENU left $01 at BANK_LOADER ($35).
 	lda $01
 	ora #$04			; I/O in
 	sta $01
@@ -14,43 +13,45 @@ locode_entry
 	lda $dc0d
 	lda $dd0d
 	lda #0
-	sta $dc0e			; stop leftover BASIC jiffy (CIA1 TA)
 	sta $dc0f
 	sta $dd0e			; CIA2 timers (IEC / profiler)
 	sta $dd0f
-	sta $d01a			; no VIC IRQs
-	sta $d015			; no leftover sprite DMA
+	sta $d01a
+	sta $d015
 	lda $d019
 	sta $d019
 
-	lda #$35			; KERNAL out so $FFFA/$FFFE are RAM
-	sta $01
-	lda #<nmi_stub
-	sta $fffa
-	sta $0318
-	lda #>nmi_stub
-	sta $fffb
-	sta $0319
-	lda #<irq_rti_stub
-	sta $fffe
-	lda #>irq_rti_stub
-	sta $ffff
-
-	lda #$ff
-	sta $dc02			; CIA1 Port A out (keyboard cols)
-	lda #0
-	sta $dc03			; Port B in (keyboard rows)
-
-	lda #0
-	sta $d020
-	sta $d021
+!if USE_KRILL {
+	sta $dc0e			; stop leftover BASIC jiffy (CIA1 TA)
+	jsr locode_play_takeover
 	jsr set_vic_bank3
-
 	ldx #<name_high
 	ldy #>name_high
 	clc
 	jsr loadraw
 	bcs .high_fail
+} else {
+	jsr kernal_prepare
+	lda #4
+	ldx #<name_high
+	ldy #>name_high
+	jsr kernal_load_sa1
+	bcs .high_fail
+	sei
+	lda #$7f
+	sta $dc0d
+	sta $dd0d
+	lda $dc0d
+	lda $dd0d
+	lda #0
+	sta $dc0e
+	sta $dc0f
+	sta $dd0e
+	sta $dd0f
+	jsr locode_play_takeover
+	jsr set_vic_bank3
+}
+
 	jsr copy_kernal_blob		; $9000 staging → $F950
 	lda #$34
 	sta $01
@@ -76,3 +77,26 @@ locode_entry
 name_high
 	!text "HIGH"
 	!byte 0
+
+; $01=$35, RAM NMI/IRQ, keyboard DDR. Caller has already SEI'd.
+locode_play_takeover
+	lda #$35
+	sta $01
+	lda #<nmi_stub
+	sta $fffa
+	sta $0318
+	lda #>nmi_stub
+	sta $fffb
+	sta $0319
+	lda #<irq_rti_stub
+	sta $fffe
+	lda #>irq_rti_stub
+	sta $ffff
+	lda #$ff
+	sta $dc02
+	lda #0
+	sta $dc03
+	lda #0
+	sta $d020
+	sta $d021
+	rts

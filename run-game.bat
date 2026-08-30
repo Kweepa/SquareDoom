@@ -20,9 +20,12 @@ echo See SETUP.md
 exit /b 1
 
 :launch
-if not exist "%~dp0squaredoom.d64" (
-  echo squaredoom.d64 missing after build
+set "DISK=%~dp0squaredoom.d64"
+if /i "%~1"=="krill" set "DISK=%~dp0squaredoom-krill.d64"
+if /i "%~1"=="--krill" set "DISK=%~dp0squaredoom-krill.d64"
+if not exist "%DISK%" (
+  echo %DISK% missing after build
   exit /b 1
 )
 
-start "" "%VICE%" -silent -autostartprgmode 0 -8 "%~dp0squaredoom.d64" -autostart "%~dp0squaredoom.d64"
+start "" "%VICE%" -silent -autostartprgmode 0 -8 "%DISK%" -autostart "%DISK%"

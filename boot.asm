@@ -1,8 +1,7 @@
-; SquareDoom disposable boot — splash first, then Krill, then MENU @ $0400.
-; KERNAL-load colour then bitmap so the cover paints in already coloured, before
-; INSTALL (that 7K KERNAL load is the long wait). After JSR install, every load
-; is loadraw. MENU overwrites this image (and the $2000 installer); trampoline at
-; $02A0 survives.
+; SquareDoom disposable boot — splash first, then MENU @ $0400.
+; KERNAL-load colour then bitmap so the cover paints in already coloured.
+; USE_KRILL=1: then LOADER+INSTALL, JSR install, loadraw MENU.
+; Default: trampoline KERNAL-loads MENU (no INSTALL). Trampoline at $02A7.
 !cpu 6502
 !to "boot.prg", cbm
 
@@ -44,6 +43,7 @@ boot_start
 	bcs .fail
 	jsr splash_vic			; KERNAL LOAD RMW of $dd00; keep bank 1
 
+!if USE_KRILL {
 	lda #6
 	ldx #<name_loader
 	ldy #>name_loader
@@ -56,9 +56,10 @@ boot_start
 	jsr load_sa1
 	bcs .fail
 	jsr splash_vic
-	jsr KRILL_INSTALL			; C=1 → no fallback, hang
+	jsr KRILL_INSTALL
 	bcs .fail
 	jsr splash_vic			; Krill DDRA=$03 — absolute $dd00 only
+}
 
 	ldx #0
 .copy
@@ -161,17 +162,22 @@ name_splashc
 name_splash
 	!text "SPLASH"
 	!byte 0
+!if USE_KRILL {
 name_loader
 	!text "LOADER"
 	!byte 0
 name_install
 	!text "INSTALL"
 	!byte 0
+}
 
 ; Assembled as if at KRILL_STUB; bytes emitted here and copied there.
-; loadraw of MENU @ $0400 overwrites boot, so the caller cannot live at $0801.
+; MENU @ $0400 overwrites boot, so the caller cannot live at $0801.
 stub_src
 !pseudopc KRILL_STUB {
+	lda #BANK_IO
+	sta $01
+!if USE_KRILL {
 	sei
 	lda #BANK_LOADER
 	sta $01
@@ -180,6 +186,24 @@ stub_src
 	ldy #>boot_stub_name
 	jsr loadraw
 	bcs boot_stub_fail
+} else {
+	cli
+	lda #4
+	ldx #<boot_stub_name
+	ldy #>boot_stub_name
+	jsr $ffbd
+	lda #1
+	ldx $ba
+	ldy #1
+	jsr $ffba
+	lda #0
+	jsr $ffd5
+	php
+	lda #1
+	jsr $ffc3
+	plp
+	bcs boot_stub_fail
+}
 	jmp LOCODE_BASE
 boot_stub_fail
 	lda #BANK_LOADER
@@ -193,5 +217,5 @@ boot_stub_name
 stub_end = *
 stub_len = stub_end - stub_src
 !if stub_len > KRILL_STUB_END - KRILL_STUB {
-	!error "Boot Krill stub overlaps SID shadows; len=", stub_len
+	!error "Boot overlay stub overlaps SID shadows; len=", stub_len
 }

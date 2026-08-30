@@ -122,8 +122,8 @@ has_backpack	= $8c			; 1 after backpack pickup
 in_turn_l	= $8d			; J held ms this frame
 in_turn_r	= $8e			; L held ms
 in_fwd		= $8f			; W
-; $90–$AF / $B7–$BC — leftover KERNAL ZP (reboot still uses SETNAM/LOAD).
-; Play LoadPrg is Krill loadraw and does not need this range. Survivors → $FB+.
+; $90–$AF / $B7–$BC — leftover KERNAL ZP (KERNAL LoadPrg / reboot SETNAM/LOAD).
+; Krill LoadPrg does not need this range. Survivors → $FB+.
 ; Do not place anything that must survive LOAD here. Survivors → $FB+.
 ; $99–$AE ok only under $01=$34/$35 after load (re-inited / transient).
 sky_col_base	= $97			; (playera*5/8) mod 40; rebuilt with column rays
@@ -208,7 +208,7 @@ dbg_far_y	= $a1			; raw project_y(far_floor); $FF if none
 ; Same-flat paint_near skip (per column) + fill_span ends + frame span count
 ; last_near_flatgrp: SEC_FLATGRP of last paint_near. Aliased last_near_* below
 ; are item-draw scratch after columns (must not overlap during cast_column).
-; $60–$64 are also Krill's ZP (loadaddrlo/hi … loader_zp_last). Dead across a
+; $60–$67 are also Krill's ZP (loadaddrlo/hi … loader_zp_last). Dead across a
 ; loadraw; do not keep live state here while a disk load is in flight.
 last_near_flatgrp = $60
 last_near_floor	= $60			; item scratch (alias; after all columns)
