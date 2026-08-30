@@ -5,7 +5,8 @@ credits.txt / order.txt / readthis.txt / ending.txt are split into screens
 on lines that are only '^'. control.txt keeps inline ^ as monospaced spans.
 
 Story lines are wrapped 16px earlier than a full-width panel so dark-grey
-shows left and right of the white box. Widths match menu.asm left-justify.
+shows left and right of the white box. Widths match menu.asm left-justify
+(including `--` : second hyphen 1px left).
 """
 from __future__ import annotations
 
@@ -88,14 +89,20 @@ def _char_w(ch: str, widths: list[int], mono: bool) -> int:
 def line_pix(s: str, widths: list[int], marked: bool) -> int:
 	n = 0
 	mono = False
+	prev = ""
 	for ch in s:
 		if marked and ch == "^":
 			if not mono:
 				# snap to next cell, matching pix_snap_len
 				n = (n + 7) & ~7
 			mono = not mono
+			prev = ""
 			continue
-		n += _char_w(ch, widths, mono)
+		w = _char_w(ch, widths, mono)
+		if not mono and ch == "-" and prev == "-":
+			w -= 1
+		n += w
+		prev = ch if not mono else ""
 	return n
 
 

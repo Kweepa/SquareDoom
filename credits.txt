@@ -1,21 +1,29 @@
-Doom for the commodore 64
+Doom is a trademark of
+id software llc/zenimax media inc.
 
-Ported by steve mccrea, jul-aug 2026.
+Unofficial commodore 64 fan port
+created by steve mccrea in 2026.
 
+Not affiliated with or endorsed
+by id software or zenimax.
+
+For non-commercial/fan use only.
+^
 Title screen by paul docherty.
 sid music by ???.
 loader by krill / plush.
-^
+
 Developed using the acme assembler
 by marco baye.
 
 Tested using the vice emulator
 by andreas boose and the vice team.
 ^
-Doom shareware by id software:
-john carmack, john romero, dave taylor,
+Doom was created by john carmack,
+john romero, dave taylor,
 adrian carmack, kevin cloud,
 sandy peterson, jay wilbur, and
 shawn green, with additional support
-from bobby prince, paul radek, and
-gregor punchatz.
+from tom hall, bobby prince, paul
+radek, gregor punchatz, american
+mcgee and donna jackson.

@@ -47,6 +47,7 @@ STORY_TEXT	= 0			; black story text
 STORY_GREY_TOP	= BRAND_KEEP_ROWS	; story/text panels start just below the logo
 MARK_CARET	= $1e			; !scr "^" — toggle colour span, not drawn
 FONT_GAP	= 1			; pixels after each glyph
+HYPHEN_I	= '-' - ' '		; `--` : second hyphen 1px left (em-dash)
 SPACE_W		= 4			; empty-glyph / space width
 
 NM_BACK		= 256 - 66
@@ -519,8 +520,8 @@ sync_mouse_string
 	bpl .sms_on
 	rts
 
-str_mon		!scr "On "
-str_moff	!scr "Off"
+str_mon		!scr "on "
+str_moff	!scr "off"
 
 sync_vol_strings
 	lda #<str_fx_vol
@@ -1781,6 +1782,8 @@ print_at
 	sta pr_mono
 	sta pr_drop
 print_go
+	lda #$ff
+	sta pr_prev
 	ldy #0
 .pa
 	lda (ui_str_l),y
@@ -1801,6 +1804,8 @@ print_marked
 	sta pr_shift
 	sta pr_mono
 	sta pr_drop
+	lda #$ff
+	sta pr_prev
 	ldy #0
 .pm
 	lda (ui_str_l),y
@@ -1838,6 +1843,14 @@ bmp_put_scr
 	sta ft_idx
 	ldx pr_mono
 	bne .bps_mono
+	cmp pr_prev
+	bne .bps_nk
+	cmp #HYPHEN_I
+	bne .bps_nk
+	jsr pix_back1
+	lda ft_idx
+.bps_nk
+	sta pr_prev
 	tax
 	lda glyph_w_tab,x
 	bne .bps_ink
@@ -1849,6 +1862,8 @@ bmp_put_scr
 	jsr font_set_gptr
 	jmp .bps_draw
 .bps_mono
+	lda #$ff
+	sta pr_prev
 	lda #8
 	sta glyph_w
 	jsr font_set_gptr
@@ -2168,6 +2183,21 @@ bmp_advance
 	sta pr_shift
 	rts
 
+; pr_col/pr_shift -= 1px (hyphen following hyphen).
+pix_back1
+	lda pr_shift
+	bne .pb_s
+	lda pr_col
+	beq .pb_d
+	dec pr_col
+	lda #7
+	sta pr_shift
+	rts
+.pb_s
+	dec pr_shift
+.pb_d
+	rts
+
 ; ptr/aux follow pr_col/pr_row. Step +8 when the column advances.
 bmp_sync_ptr
 	lda pr_row
@@ -2425,11 +2455,37 @@ str_len
 	tya
 	rts
 
+; X = font index. Add glyph_w+FONT_GAP to pr_len; `--` kerns 1px.
+add_prop_w
+	lda glyph_w_tab,x
+	bne .apw_a
+	lda #SPACE_W
+.apw_a
+	clc
+	adc #FONT_GAP
+	cpx pr_prev
+	bne .apw_add
+	cpx #HYPHEN_I
+	bne .apw_add
+	sec
+	sbc #1
+.apw_add
+	stx pr_prev
+	clc
+	adc pr_len
+	sta pr_len
+	bcc .apw_d
+	inc pr_len_h
+.apw_d
+	rts
+
 ; Pixel width of ui_str (incl. FONT_GAP per char) → pr_len / pr_len_h
 str_pix_len
 	lda #0
 	sta pr_len
 	sta pr_len_h
+	lda #$ff
+	sta pr_prev
 	ldy #0
 .spl
 	lda (ui_str_l),y
@@ -2437,17 +2493,7 @@ str_pix_len
 	sty ft_src
 	jsr scr_to_font
 	tax
-	lda glyph_w_tab,x
-	bne .spl_a
-	lda #SPACE_W
-.spl_a
-	clc
-	adc #FONT_GAP
-	adc pr_len
-	sta pr_len
-	bcc .spl_n
-	inc pr_len_h
-.spl_n
+	jsr add_prop_w
 	ldy ft_src
 	iny
 	bne .spl
@@ -2460,6 +2506,8 @@ marked_str_pix_len
 	sta pr_len
 	sta pr_len_h
 	sta pr_mono
+	lda #$ff
+	sta pr_prev
 	ldy #0
 .mspl
 	lda (ui_str_l),y
@@ -2478,20 +2526,12 @@ marked_str_pix_len
 	sty ft_src
 	jsr scr_to_font
 	tax
-	lda glyph_w_tab,x
-	bne .mspl_a
-	lda #SPACE_W
-.mspl_a
-	clc
-	adc #FONT_GAP
-	adc pr_len
-	sta pr_len
-	bcc .mspl_c
-	inc pr_len_h
-.mspl_c
+	jsr add_prop_w
 	ldy ft_src
 	jmp .mspl_s
 .mspl_8
+	lda #$ff
+	sta pr_prev
 	lda pr_len
 	clc
 	adc #8
@@ -2762,6 +2802,7 @@ pr_mono		!byte 0
 pr_drop		!byte 0
 pr_setcol	!byte 1				; 0 = ink only (story panel precoloured)
 pr_si		!byte 0
+pr_prev		!byte 0				; last prop font index ($ff = none)
 pr_len		!byte 0
 pr_len_h	!byte 0
 glyph_lead	!byte 0
@@ -2793,22 +2834,22 @@ ft_br_h		!byte 0
 str_hint_move	!scr "move",0
 str_hint_adjust	!scr "adjust",0
 str_hint_select	!scr "select",0
-str_new_game	!scr "New Game",0
+str_new_game	!scr "New game",0
 str_sound	!scr "Options",0
 str_control	!scr "Controls",0
-str_read_this	!scr "Read This!",0
+str_read_this	!scr "Read this!",0
 str_credits	!scr "Credits",0
 str_quit	!scr "Quit",0
 str_back	!scr "Back",0
-str_e1		!scr "Knee Deep in the Dead",0
-str_e2		!scr "The Shores of Hell",0
+str_e1		!scr "Knee deep in the dead",0
+str_e2		!scr "The shores of hell",0
 str_e3		!scr "Inferno",0
-str_fx_vol	!scr "Effects Volume 15",0
-str_mus_vol	!scr "Music Volume 10",0
-str_mouse	!scr "Mouse (port 1) Off",0
+str_fx_vol	!scr "Effects volume 15",0
+str_mus_vol	!scr "Music volume 10",0
+str_mouse	!scr "Mouse (port 1) off",0
 str_itytd	!scr "I'm too young to die",0
 str_hmp		!scr "Hurt me plenty",0
-str_uv		!scr "Ultra-Violence",0
+str_uv		!scr "Ultra-violence",0
 
 str_sec_main	!scr "SquareDoom",0
 str_sec_new	!scr "Which episode to play?",0

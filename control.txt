@@ -1,9 +1,9 @@
 Controls
 
 move^..........^ wasd
-turn^..........^ jl
-use^...........^ k
-fire^...........^ space
+turn^..........^ jl or mouse
+use^...........^ k or rmb
+fire^...........^ space or lmb
 switch weapon^...^ 12345
 
 toggle map^.....^ f1
