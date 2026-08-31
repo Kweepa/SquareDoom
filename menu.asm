@@ -41,6 +41,14 @@ HINT_SPR_RAM	= $4800			; 6×64 in VIC bank 1 (menu-only)
 HINT_SPR_PTR0	= (HINT_SPR_RAM - SCREEN) / 64
 CURSOR_SPR_RAM	= HINT_SPR_RAM + HINT_SPR_COUNT * 64
 CURSOR_SPR_PTR0	= (CURSOR_SPR_RAM - SCREEN) / 64
+WIP_SPR_RAM	= CURSOR_SPR_RAM + CURSOR_SPR_COUNT * 64	; $4B40
+WIP_SPR_PTR0	= (WIP_SPR_RAM - SCREEN) / 64		; sprite 0
+WIP_COL		= 1			; white
+WIP_X_MIN	= 24
+WIP_X_MAX	= 320
+WIP_Y_MIN	= 50
+WIP_Y_MAX	= 229
+WIP_SPR_EN_BIT	= %00000001
 glyph_lj	= $4400			; 96×8 lead-justified glyphs; below sprite RAM
 
 TEXT_COL	= 2			; red options
@@ -197,6 +205,7 @@ run_menu
 	lda #10
 	sta music_vol
 	jsr copy_menu_sprites
+	jsr setup_wip_spr
 	jsr setup_logo_sprites
 	jsr menu_sfx_init
 	jsr detect_mouse
@@ -1546,6 +1555,38 @@ copy_menu_sprites
 	inx
 	cpx #<(CURSOR_SPR_COUNT * 64)
 	bne .cms_c2
+	ldx #0
+.cms_w
+	lda menu_wip_spr,x
+	sta WIP_SPR_RAM,x
+	inx
+	cpx #(WIP_SPR_COUNT * 64)
+	bne .cms_w
+	rts
+
+; Sprite 0: WIP watermark. Mux never touches ptr/X/Y/colour.
+setup_wip_spr
+	lda #WIP_SPR_PTR0
+	sta SCREEN + $3f8
+	lda #WIP_COL
+	sta $d027
+	lda #40
+	sta wip_x
+	lda #70
+	sta wip_y
+	lda #0
+	sta wip_spr_xmsb
+	lda #1
+	sta wip_dx
+	sta wip_dy
+	lda #WIP_SPR_EN_BIT
+	sta wip_spr_en
+	lda wip_x
+	sta $d000
+	lda wip_y
+	sta $d001
+	lda wip_spr_xmsb
+	sta $d010
 	rts
 
 setup_logo_sprites
@@ -1562,7 +1603,10 @@ mux_logo_spr
 	sta $d016
 	lda cursor_spr_en
 	bne mux_cursor_spr
-	sta $d015				; text pages: keep sprites off
+	lda wip_spr_en				; text pages: WIP only
+	sta $d015
+	lda wip_spr_xmsb
+	sta $d010
 	rts
 
 ; Blank line under the logo — only $d016; 00 pixels are $d021 in both modes.
@@ -1571,7 +1615,7 @@ mux_hires_mcm
 	sta $d016
 	rts
 
-; Raster IRQ mid — skull cursor (overlay 0–1 + base layers, white in front).
+; Raster IRQ mid — skull cursor on sprites 1–7 (WIP stays sprite 0).
 mux_cursor_spr
 	lda cursor_spr_en
 	bne .mc_go
@@ -1580,7 +1624,7 @@ mux_cursor_spr
 	ldx #0
 	lda #CURSOR_SPR_PTR0
 .mcp
-	sta SCREEN + $3f8,x
+	sta SCREEN + $3f9,x
 	clc
 	adc #1
 	inx
@@ -1589,12 +1633,12 @@ mux_cursor_spr
 	ldx #0
 .mccol
 	lda cursor_spr_cols,x
-	sta $d027,x
+	sta $d028,x
 	inx
 	cpx #CURSOR_SPR_COUNT
 	bne .mccol
 	ldx #0
-	ldy #0
+	ldy #2
 .mcxy
 	lda cursor_spr_x
 	sta $d000,y
@@ -1605,17 +1649,19 @@ mux_cursor_spr
 	inx
 	cpx #CURSOR_SPR_COUNT
 	bne .mcxy
-	lda #0
-	sta $d010
 	lda #CURSOR_BASE_MASK
 	ldx cursor_frame
-	beq .mc_d015
+	beq .mc_shift
 	ora #CURSOR_OVERLAY_MASK
-.mc_d015
+.mc_shift
+	asl					; sprites 1–7
+	ora wip_spr_en
 	sta $d015
+	lda wip_spr_xmsb
+	sta $d010
 	rts
 
-; Raster IRQ late — WS / AD / RETURN: white letters in front of dark grey keys.
+; Raster IRQ late — WS / AD / RETURN on sprites 1–6 (WIP stays sprite 0).
 mux_hint_spr
 	lda hint_spr_en
 	bne .mh_go
@@ -1624,22 +1670,22 @@ mux_hint_spr
 	ldx #0
 	lda #HINT_SPR_PTR0
 .mhp
-	sta SCREEN + $3f8,x
+	sta SCREEN + $3f9,x
 	clc
 	adc #1
 	inx
 	cpx #HINT_SPR_COUNT
 	bne .mhp
 	lda #HINT_OVER_COL
-	sta $d027
-	sta $d029
-	sta $d02b
-	lda #HINT_KEY_COL
 	sta $d028
 	sta $d02a
 	sta $d02c
+	lda #HINT_KEY_COL
+	sta $d029
+	sta $d02b
+	sta $d02d
 	ldx #0
-	ldy #0
+	ldy #2
 .mhx
 	lda hint_spr_x,x
 	sta $d000,y
@@ -1651,17 +1697,19 @@ mux_hint_spr
 	inx
 	cpx #3
 	bne .mhx
-	lda #0
-	sta $d010
 	lda #HINT_SPR_Y
-	sta $d001
 	sta $d003
 	sta $d005
 	sta $d007
 	sta $d009
 	sta $d00b
+	sta $d00d
 	lda #%00111111
+	asl					; sprites 1–6
+	ora wip_spr_en
 	sta $d015
+	lda wip_spr_xmsb
+	sta $d010
 	rts
 
 fill_option_box
@@ -2883,6 +2931,7 @@ wait_frame
 .wf_lo
 	lda $d011
 	bmi .wf_lo
+	jsr update_wip_spr
 	inc cursor_tick
 	lda cursor_tick
 	cmp #CURSOR_TICK_MAX		; ~2.5 Hz skull overlay (was 5 ticks)
@@ -2896,6 +2945,76 @@ wait_frame
 	lda #0
 	sta cursor_frame
 .wf_rts
+	rts
+
+; DVD bounce on sprite 0. X is 16-bit (low + $d010 bit 0).
+update_wip_spr
+	lda wip_dx
+	bpl .uw_xp
+	lda wip_x
+	bne .uw_xd
+	dec wip_spr_xmsb
+.uw_xd
+	dec wip_x
+	jmp .uw_xc
+.uw_xp
+	inc wip_x
+	bne .uw_xc
+	inc wip_spr_xmsb
+.uw_xc
+	lda wip_spr_xmsb
+	bne .uw_xh
+	lda wip_x
+	cmp #WIP_X_MIN
+	bcs .uw_xh
+	lda #1
+	sta wip_dx
+	lda #WIP_X_MIN
+	sta wip_x
+	lda #0
+	sta wip_spr_xmsb
+	jmp .uw_y
+.uw_xh
+	lda wip_spr_xmsb
+	beq .uw_y
+	lda wip_x
+	cmp #<(WIP_X_MAX + 1)
+	bcc .uw_y
+	lda #$ff
+	sta wip_dx
+	lda #<WIP_X_MAX
+	sta wip_x
+	lda #>WIP_X_MAX
+	sta wip_spr_xmsb
+.uw_y
+	lda wip_y
+	clc
+	adc wip_dy
+	sta wip_y
+	cmp #WIP_Y_MIN
+	bcc .uw_yl
+	cmp #WIP_Y_MAX + 1
+	bcc .uw_hw
+	lda #$ff
+	sta wip_dy
+	lda #WIP_Y_MAX
+	sta wip_y
+	jmp .uw_hw
+.uw_yl
+	lda #1
+	sta wip_dy
+	lda #WIP_Y_MIN
+	sta wip_y
+.uw_hw
+	lda wip_spr_en
+	beq .uw_rts
+	lda wip_x
+	sta $d000
+	lda wip_y
+	sta $d001
+	lda wip_spr_xmsb
+	sta $d010
+.uw_rts
 	rts
 
 wait_frames_x
@@ -2922,8 +3041,10 @@ wait_key
 
 ; Any key (full keyboard matrix) — text screens.
 ; Wait for release + a few quiet frames so Return-to-enter doesn't bounce-dismiss.
+; wait_frame each poll so the WIP sprite keeps bouncing.
 wait_any_key
 .wau
+	jsr wait_frame
 	lda #0
 	sta $dc00
 	lda $dc01
@@ -2940,12 +3061,14 @@ wait_any_key
 	dex
 	bne .wau_s
 .wad
+	jsr wait_frame
 	lda #0
 	sta $dc00
 	lda $dc01
 	cmp #$ff
 	beq .wad
 .war
+	jsr wait_frame
 	lda #0
 	sta $dc00
 	lda $dc01
@@ -3025,6 +3148,12 @@ menu_stack_d	!byte 0
 menu_can_ret	!byte 0
 hint_spr_en	!byte 0
 cursor_spr_en	!byte 0
+wip_spr_en	!byte 0
+wip_spr_xmsb	!byte 0
+wip_x		!byte 0
+wip_y		!byte 0
+wip_dx		!byte 0
+wip_dy		!byte 0
 cursor_frame	!byte 0
 cursor_tick	!byte 0
 menu_mux_phase	!byte 0
@@ -3144,6 +3273,7 @@ menu_str_hi
 
 !source "tmp/menu_hint_spr.asm"
 !source "tmp/menu_cursor_spr.asm"
+!source "tmp/menu_wip_spr.asm"
 !source "tmp/menu_logo_mcm.asm"
 !source "tmp/menufont.asm"
 !source "menu_playsound.asm"

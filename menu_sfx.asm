@@ -61,6 +61,7 @@ menu_raster_off
 	sta $d015
 	sta hint_spr_en
 	sta cursor_spr_en
+	sta wip_spr_en
 	lda $d019
 	sta $d019
 	cli

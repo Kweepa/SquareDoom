@@ -46,6 +46,8 @@ python tools\gen_menu_text.py
 if errorlevel 1 exit /b 1
 python tools\gen_menu_cursor_sprites.py
 if errorlevel 1 exit /b 1
+python tools\gen_menu_wip_sprite.py
+if errorlevel 1 exit /b 1
 python tools\gen_menu_logo_mcm.py
 if errorlevel 1 exit /b 1
 python tools\gen_splash.py
