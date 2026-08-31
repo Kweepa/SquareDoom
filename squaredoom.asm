@@ -191,7 +191,7 @@ free_high = PY_TAB - end_high
 	!error "Kernal scrap wrapped past $FFFF; end=$", end_kernal
 }
 !if end_kernal > $fffa {
-	!error "Kernal scrap overlaps hardware vectors ($FFFA+); end=$", end_kernal
+	!error "Kernal scrap overlaps hardware vectors (FFFA+); end=", end_kernal
 }
 !if CASS_LEVELSTATS_END > CASS_BUF_END {
 	!error "cassette BSS overflow"

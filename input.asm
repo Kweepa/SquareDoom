@@ -68,6 +68,7 @@ input_irq_init
 	sta input_paused
 	sta key_map_was
 	sta music_tick
+	sta io_depth
 	; music_enabled preserved across re-init (LoadPrg path)
 	sta $d01a				; no VIC IRQs
 

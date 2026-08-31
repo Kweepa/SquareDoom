@@ -120,6 +120,16 @@ roll_in_percentage
 .rip_done
 	rts
 
+; $FD30–$FD4F is KERNAL's default I/O vector table (ROM). RESTOR reads it;
+; lda/sta $FD30,x with KERNAL in copies that table into RAM under ROM.
+; Snap: those 32 bytes replaced put_pct_val (jsr cell_addr → EA31…);
+; PC FD39 executed F2 (BNE offset) as JAM. Emit zeros in the hole so the
+; $9000 staging blob stays contiguous for copy_kernal_blob.
+!if * > $FD30 {
+	!error "levelstats crossed FD30 before VECTOR hole; *=", *
+}
+	!fill $FD50 - *, 0
+
 put_pct_val
 	lda roll_cur
 	sta tmp2

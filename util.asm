@@ -3,12 +3,16 @@
 ; Map I/O in ($35), saving previous $01. Nested-safe with io_pop.
 ; Do not PHA $01: a subroutine RTS would pull that byte as the return PCL
 ; (setup_pistol's first jsr io_push returned to $6936 BRK in sprite data).
+; php/sei: Timer B update_sfx also io_push; a split ldx/stx io_depth walks
+; depth into GAME (snap: $A5 → sta $06C6) and later $FFFE dies.
 io_depth	!byte 0
 io_stk		!byte 0, 0, 0, 0
 io_tmp_a	!byte 0
 io_tmp_x	!byte 0
 
 io_push
+	php
+	sei
 	sta io_tmp_a
 	stx io_tmp_x
 	ldx io_depth
@@ -20,9 +24,12 @@ io_push
 	sta $01
 	ldx io_tmp_x
 	lda io_tmp_a
+	plp
 	rts
 
 io_pop
+	php
+	sei
 	sta io_tmp_a
 	stx io_tmp_x
 	ldx io_depth
@@ -32,6 +39,7 @@ io_pop
 	sta $01
 	ldx io_tmp_x
 	lda io_tmp_a
+	plp
 	rts
 
 ; A = border colour

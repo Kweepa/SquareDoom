@@ -7,6 +7,8 @@ kernal_load_sa1
 	ldy #1
 	jsr $ffba
 	lda #0
+	jsr $ff90				; $9D=0. Do not inherit A from SETLFS.
+	lda #0					; LOAD not VERIFY (SETMSG may clobber A)
 	jsr $ffd5
 	php
 	lda #1
@@ -14,10 +16,13 @@ kernal_load_sa1
 	plp
 	rts
 
-; After play/menu had KERNAL out: RESTOR + IOINIT so CIA1 TA runs, then CLI.
-; Leaves $01=$36. Does not stop CIA1 TA (IOINIT starts it). CIA2 timers off
-; (profiler / IEC). IOINIT unblanks bank 0 — this blanks DEN again. Caller
-; restores VIC (LoadPrg: bank 3 + ENTERING; HIGH/GFX: stay blank).
+; After play/menu had KERNAL out: IOINIT so CIA1 TA runs, then CLI.
+; Do not RESTOR — that copies ROM $FD30 (default I/O vectors) into $0314 and
+; write-throughs the same 32 bytes into RAM $FD30 (stats snap: smashed
+; put_pct_val). We never poke ILOAD $0330 or IIRQ $0314; boot left them stock.
+; Leaves $01=$36. CIA2 timers off (profiler / IEC). IOINIT unblanks bank 0 —
+; this blanks DEN again. Caller restores VIC (LoadPrg: bank 3 + ENTERING;
+; HIGH/GFX: stay blank).
 kernal_prepare
 	sei
 	cld
@@ -33,7 +38,6 @@ kernal_prepare
 	sta $dd0f
 	lda #BANK_IO
 	sta $01
-	jsr $ff8a				; RESTOR
 	jsr $ff84				; IOINIT
 	lda #BANK_IO
 	sta $01
@@ -44,9 +48,16 @@ kernal_prepare
 	sta $d020
 	sta $d021
 	lda $d011
-	and #%11101111				; DEN off — IOINIT unblanks bank 0
+	and #%01101111				; DEN off; drop RST8 from the read
 	sta $d011
-	jsr $ff90				; SETMSG (A=0)
+	; SETMSG must see A=0. `lda $d011` keeps RST8 when raster≥256, so A=$8x
+	; enables control messages. SEARCHING/LOADING then CHROUT into $0400
+	; (IOINIT bank 0 screen) which is GAME (snap: "SEARCHING FOR HIGH" over
+	; mul_recip_z+$4d = $12 JAM, screen-code 'R').
+	lda #0
+	jsr $ff90
+	lda #1
+	sta $cc					; cursor off — IRQ blink also pokes $0400
 	ldx #0
 	txa
 .kp_clr

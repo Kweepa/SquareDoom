@@ -327,6 +327,13 @@ game_stub_src
 	jsr $ff84				; IOINIT — CIA1 TA (menu_sfx_done stopped it)
 	lda #BANK_IO
 	sta $01
+	lda $d011
+	and #%01101111				; DEN off — IOINIT unblanks bank 0
+	sta $d011
+	lda #0
+	jsr $ff90				; no SEARCHING on $0400 (GAME dest)
+	lda #1
+	sta $cc
 	lda #4
 	ldx #<game_stub_name
 	ldy #>game_stub_name
