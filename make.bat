@@ -34,4 +34,4 @@ if not exist "%~dp0tmp\vice.mon" (
   echo tmp\vice.mon missing — run build.bat first
   exit /b 1
 )
-start "" "%VICE%" -silent -autostartprgmode 0 -moncommands "%~dp0tmp\vice.mon" -8 "%~dp0squaredoom.d64" -autostart "%~dp0squaredoom.d64"
+start "" "%VICE%" -silent -autostartprgmode 0 -trapdevice8 +drive8truedrive -moncommands "%~dp0tmp\vice.mon" -8 "%~dp0squaredoom.d64" -autostart "%~dp0squaredoom.d64"
