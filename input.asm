@@ -8,6 +8,9 @@
 ;   2 = pistol (PA7/PB3); 4 = minigun (PA1/PB3); 5 = rocket (PA2/PB0)
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
+; 1351 Port 1: POTX sampled at TA IRQ entry (mux parked $7F); LMB = FIRE (PB4).
+; Yaw delta accumulates in mouse_turn; gameloop applies it once before render.
+; LMB pulls PB4 on every column, so F1 is ignored when SPACE-column PB4 is down.
 ;
 ; Why SPACE / F1 (C64 matrix ghosting):
 ;   The keyboard is an undioded 8×8 matrix. Three corners of a rectangle
@@ -69,8 +72,15 @@ input_irq_init
 	sta key_map_was
 	sta music_tick
 	sta io_depth
+	sta mouse_turn
 	; music_enabled preserved across re-init (LoadPrg path)
+	; mouse_en preserved (menu Options; level loads re-call this)
 	sta $d01a				; no VIC IRQs
+
+	lda #$7f
+	sta $dc00				; park Port 1 paddle mux
+	lda $d419				; seed so first IRQ delta is 0 ($01=$35)
+	sta mouse_x
 
 	lda #$7f
 	sta $dc0d				; clear CIA1 IRQ enables
@@ -161,13 +171,46 @@ input_irq
 	lda irq_ifr
 	and #$01
 	bne .irq_ta
-	jmp .irq_rti
+	jmp .irq_rti				; TB-only: leave mux parked
 .irq_ta
-	; MUSIC_PLAY skipped — no SID on the level PRG
-.irq_try_keys
+	; Sample SID POTX before anything below touches $DC00. CIA1 PA6/PA7
+	; switch the paddle mux; the previous TA / ui_read_keys parked $7F
+	; for a whole sample period, so this reading is settled.
+	lda $d419
+	tax
 	lda input_paused
+	beq .irq_mouse_chk
+	stx mouse_x				; keep baseline so unpause does not snap
+	jmp .irq_park
+.irq_mouse_chk
+	lda mouse_en
 	beq .irq_keys
-	jmp .irq_rti
+	; 1351 POTX wrap-delta. |dx|<=2 noise; |dx|>=33 = wrap (keep mouse_x, no look)
+	txa
+	sec
+	sbc mouse_x
+	stx mouse_x
+	tay
+	bpl .irq_mpos
+	cpy #$fe
+	bcs .irq_keys
+	cpy #$e0
+	bcc .irq_keys
+	tya
+	bcs .irq_mdx
+.irq_mpos
+	cpy #3
+	bcc .irq_keys
+	cpy #33
+	bcs .irq_keys
+	tya
+.irq_mdx
+	cmp #$80				; signed /2 into mouse_turn (applied once/frame)
+	ror
+	clc
+	adc mouse_turn
+	sta mouse_turn
+
 .irq_keys
 
 	; J / K (PA4 = $EF)
@@ -272,27 +315,34 @@ input_irq
 	sta in_wpn_fist
 .irq_no1
 	txa
-	and #$10				; SPACE = fire
+	and #$10				; SPACE / 1351 LMB (PB4)
 	bne .irq_nospc
 	lda #1
 	sta in_fire
 .irq_nospc
 
 	; F1 (PA0 = $FE, PB4) = map
+	; 1351 LMB pulls PB4 on every column — skip if SPACE column also saw PB4
 	lda #$fe
 	sta $dc00
 	lda $dc01
 	and #$10
 	bne .irq_nof1
+	txa
+	and #$10
+	beq .irq_nof1				; LMB or SPACE: not a real F1
 	lda #1
 	sta in_map
 .irq_nof1
 
 	jsr update_weapon_irq
 	lda health
-	beq .irq_rti
+	beq .irq_park
 	jsr check_cheats
 
+.irq_park
+	lda #$7f
+	sta $dc00				; mux parked for next TA POTX sample
 .irq_rti
 	pla
 	sta $01

@@ -74,6 +74,9 @@ level_num	= $02fc
 effects_vol	= $02fd
 game_complete	= $02fe
 difficulty	= $02ff
+; 1351 Port 1 on/off (menu detect/toggle). Below $0400; not $38 (game sq3_h);
+; not KERNAL/Krill ZP ($90+, $60–$64). Do not clear in input_irq_init.
+mouse_en	= $81
 
 ; Menu hires (VIC bank 1). Game uses VIC_SCREEN in bank 3.
 ; Boot splash: splashc @ $4000 (matrix in place, colour staged $43E8), bitmap @ $6000.

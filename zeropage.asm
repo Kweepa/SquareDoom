@@ -118,6 +118,7 @@ info_name_l	= $8a			; ptr to name/raw string (screen codes, 0-term)
 info_name_h	= $8b
 has_backpack	= $8c			; 1 after backpack pickup
 
+; mouse_en = $81 in mem_vic.asm (menu Options; not $38 / sq3_h)
 ; CIA1 Timer A input sampler (~20 binary-ms @ 50 Hz); IRQ bumps, main snapshots under SEI
 in_turn_l	= $8d			; J held ms this frame
 in_turn_r	= $8e			; L held ms
@@ -575,7 +576,9 @@ boss_floors_done	= SCRAP_CASS + 55
 boss_scan_sec		= SCRAP_CASS + 56
 barrel_events		= SCRAP_CASS + 57
 item_slot		= SCRAP_CASS + 58
-SCRAP_CASS_END		= SCRAP_CASS + 59
+mouse_x			= SCRAP_CASS + 59	; last SID POTX ($d419); seed in input_irq_init
+mouse_turn		= SCRAP_CASS + 60	; signed POTX yaw this frame; IRQ add, main take
+SCRAP_CASS_END		= SCRAP_CASS + 61
 !if SCRAP_CASS_END > CASS_BUF_END {
 	!error "cassette scrap BSS past CASS_BUF_END"
 }

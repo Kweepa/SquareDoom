@@ -717,7 +717,7 @@ update_weapon_irq
 	lda #$7f
 	sta $dc00
 	lda $dc01
-	and #$10			; SPACE
+	and #$10			; SPACE / 1351 LMB (PB4)
 	bne .uwi_up
 	ldx cur_weapon
 	cpx #1

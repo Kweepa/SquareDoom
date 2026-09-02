@@ -14,10 +14,16 @@ gameloop
 	jsr update_map_time
 	jsr read_input
 	jsr gameloop_check_map
+	sei
 	clc
 	lda playera
 	adc turn
+	clc
+	adc mouse_turn
 	sta playera
+	lda #0
+	sta mouse_turn
+	cli
 	jsr apply_move
 	jsr try_walk_into
 	jsr try_pickups

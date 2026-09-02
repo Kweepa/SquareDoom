@@ -109,7 +109,7 @@ sound_count	= $c2
 sound_max	= $c3
 ps_save_x	= $c4
 ps_save_y	= $c5
-mouse_en	= $38			; match zp.asm — 1351 on/off (survives locode LOAD)
+; mouse_en — mem_vic.asm ($81); not $38 (game sq3_h)
 ; copy_block_up (boot-only; aliases menu draw ZP)
 src_ptr		= ptr_l
 dst_ptr		= ptr_r_l

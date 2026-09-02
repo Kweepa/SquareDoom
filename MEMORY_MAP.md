@@ -31,6 +31,7 @@ GFX is copied **while MENU owns `$0400`**. `game.prg` is code `$0400`–`end_cod
 | `$02FD` | `effects_vol` |
 | `$02FE` | `game_complete` |
 | `$02FF` | `difficulty` |
+| `$81` | `mouse_en` (1351 Port 1; not `$38` / `sq3_h`) |
 
 **Menu VIC** (while MENU.PRG is resident): hires bitmap, bank 1, matrix `$4000`, bitmap `$6000`. Boot first uses this bank for the Koala splash (MCM), still showing through Krill install and MENU load. Split rasters mux skull cursor + WS/AD/RETURN hints. Game play uses charset bank 3 (`$C400` / `$D800`) as below.
 
