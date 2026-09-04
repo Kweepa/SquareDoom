@@ -516,7 +516,9 @@ wpn_flash_ticks		= SCRAP_UNDER + 116
 wpn_fire_ticks		= SCRAP_UNDER + 117	; shot repeat cooldown
 recoil_step		= SCRAP_UNDER + 118	; rocket grenade keyframe 0..2
 wpn_shot_req		= SCRAP_UNDER + 119	; pending world-shots (IRQ inc, main take)
-SCRAP_UNDER_END		= SCRAP_UNDER + 120
+; Closed-terminator Z for item O(1) cull (not under-KERNAL: +80 there hits FD30)
+COL_CLIP_OCC_ZL		= SCRAP_UNDER + 120	; 40 bytes ($FFFF if open-ended)
+SCRAP_UNDER_END		= SCRAP_UNDER + 160
 !if SCRAP_UNDER_END > UNDER_STACK_END {
 	!error "under-stack BSS past UNDER_STACK_END"
 }
@@ -592,6 +594,7 @@ FX_TIME		= FX_TY + FX_MAX
 FX_END		= FX_TIME + FX_MAX
 FX_FUSE		= 1
 FX_EXPL		= 2
-!if FX_END > CASS_BUF_END {
-	!error "FX overlay past cassette buffer"
+COL_CLIP_OCC_ZH	= FX_END			; 40 bytes (pair with COL_CLIP_OCC_ZL)
+!if COL_CLIP_OCC_ZH + COL_NUM > CASS_BUF_END {
+	!error "COL_CLIP_OCC_ZH past cassette buffer"
 }

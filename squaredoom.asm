@@ -21,8 +21,8 @@ MSG_LETTER0 = MSG_LET0
 FLOOR_PAT_BASE = 90		; floor dither 90–105
 
 MAX_DDA = 32
-PROFILE = 1
-DBG_FPS = 0
+PROFILE = 0
+DBG_FPS = 1
 DBG_PORTAL = 0
 CENTER_COL = 19
 MUZZLE_COL = 20			; pistol muzzle aim column

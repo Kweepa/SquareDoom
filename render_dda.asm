@@ -363,7 +363,7 @@ cast_column
 	jmp .inner
 
 .done
-	jsr clip_col_commit		; COL_CLIP_N ← clip_n/4 for item draw
+	jsr clip_col_commit		; COL_CLIP_N + OCC terminator Z for item draw
 !if PROFILE = 1 {
 	ldy #PROF_DDA
 	jsr prof_add_bucket

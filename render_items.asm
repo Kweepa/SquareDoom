@@ -11,7 +11,7 @@
 
 ITEM_DEPTH_MIN = 1			; editor uses ~0.8 world units
 ITEM_AXIS_MAX = 120			; cull if |dx| or |dy| > 15 tiles (8-bit safe)
-ITEM_GATHER_HALF = 8			; 16×16 AABB
+ITEM_GATHER_HALF = 3			; [c-3 .. c+2] = 6×6 (Wolf)
 ITEM_TYPE_ENEMY_LO = 1
 ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
@@ -86,7 +86,7 @@ render_items
 }
 	rts
 
-; A = signed sintab/costab (−64..64) → (A*7)>>6 tile steps (−7..7)
+; A = signed sintab/costab (−64..64) → (A*3)>>6 tile steps (−3..3)
 item_dir_tiles
 	sta tmp2
 	bpl .idt_pos
@@ -95,30 +95,15 @@ item_dir_tiles
 	adc #1
 .idt_pos
 	sta tmp3
-	lda #0
-	sta tmp1
-	lda tmp3
-	sta tmp0
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1
-	asl tmp0
-	rol tmp1			; *8
-	sec
-	lda tmp0
-	sbc tmp3
-	sta tmp0
-	lda tmp1
-	sbc #0
-	sta tmp1			; *7
-	ldx #6
-.idt_lsr
-	lsr tmp1
-	ror tmp0
-	dex
-	bne .idt_lsr
-	lda tmp0
+	asl				; *2
+	clc
+	adc tmp3			; *3 (max 192)
+	lsr
+	lsr
+	lsr
+	lsr
+	lsr
+	lsr				; /64
 	bit tmp2
 	bpl .idt_out
 	eor #$ff
@@ -138,7 +123,8 @@ item_clamp31
 	lda #0
 	rts
 
-; AABB around player + 7 tiles forward (fwd = sin, −cos)
+; 6×6 AABB centered at player tile + 3·forward (fwd = sin, −cos).
+; Walk item layer with a running ptr (inc along row; +MAP_SIZE next row).
 items_cull_near
 	lda playerx_h
 	lsr
@@ -187,15 +173,20 @@ items_cull_near
 	sta last_near_ccol			; y1
 	lda last_near_fcol
 	sta mapy
-.icn_y
 	lda last_near_ok
 	sta mapx
+	jsr item_layer_ptr			; ptr at (x0,y0)
+	lda ptr_l
+	sta aux_l				; row base
+	lda ptr_h
+	sta aux_h
 .icn_x
-	jsr item_layer_id
+	ldy #0
+	lda (ptr_l),y
 	beq .icn_nx
 	sta wall_col
 	jsr item_tile_xy
-	jsr map_sector_id
+	jsr map_sector_id			; clobbers ptr
 	sta near_ceil
 	lda mapx
 	ora #VIS_LAYER
@@ -203,6 +194,16 @@ items_cull_near
 	lda mapy
 	sta span_b				; ty for ITEM_SORT_SEC
 	jsr item_vis_push
+	; restore layer walk ptr = row_base + (mapx - x0)
+	lda mapx
+	sec
+	sbc last_near_ok
+	clc
+	adc aux_l
+	sta ptr_l
+	lda aux_h
+	adc #0
+	sta ptr_h
 .icn_nx
 	lda span_a
 	cmp #MAX_ITEMS
@@ -211,13 +212,27 @@ items_cull_near
 	cmp far_ceil
 	bcs .icn_yn
 	inc mapx
+	inc ptr_l
+	bne .icn_x
+	inc ptr_h
 	jmp .icn_x
 .icn_yn
 	lda mapy
 	cmp last_near_ccol
 	bcs .icn_done
 	inc mapy
-	jmp .icn_y
+	clc
+	lda aux_l
+	adc #MAP_SIZE
+	sta aux_l
+	sta ptr_l
+	lda aux_h
+	adc #0
+	sta aux_h
+	sta ptr_h
+	lda last_near_ok
+	sta mapx
+	jmp .icn_x
 .icn_done
 	rts
 
