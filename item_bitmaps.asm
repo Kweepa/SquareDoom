@@ -4,7 +4,7 @@
 ; spawn/enemies/switch skip atlases (nodraw stub / enemy_sprites / wall_switch).
 !zone item_bitmaps
 
-ITEM_TYPE_COUNT = 32
+ITEM_TYPE_COUNT = 43
 ITEM_MIP_COUNT = 4
 
 ; mip source width / height / log2 (index = mip 0..3)
@@ -19,9 +19,9 @@ item_mip_vshift
 
 ; Base address lo/hi: index = typeId * ITEM_MIP_COUNT + mip
 item_mip_base_lo
-	!byte <item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_barrel_m0,<item_spr_barrel_m1,<item_spr_barrel_m2,<item_spr_barrel_m3,<item_spr_health_m0,<item_spr_health_m1,<item_spr_health_m2,<item_spr_health_m3,<item_spr_shells_m0,<item_spr_shells_m1,<item_spr_shells_m2,<item_spr_shells_m3,<item_spr_shotgun_m0,<item_spr_shotgun_m1,<item_spr_shotgun_m2,<item_spr_shotgun_m3,<item_spr_chaingun_m0,<item_spr_chaingun_m1,<item_spr_chaingun_m2,<item_spr_chaingun_m3,<item_spr_chainsaw_m0,<item_spr_chainsaw_m1,<item_spr_chainsaw_m2,<item_spr_chainsaw_m3,<item_spr_rocketlauncher_m0,<item_spr_rocketlauncher_m1,<item_spr_rocketlauncher_m2,<item_spr_rocketlauncher_m3,<item_spr_greenarmor_m0,<item_spr_greenarmor_m1,<item_spr_greenarmor_m2,<item_spr_greenarmor_m3,<item_spr_bluearmor_m0,<item_spr_bluearmor_m1,<item_spr_bluearmor_m2,<item_spr_bluearmor_m3,<item_spr_backpack_m0,<item_spr_backpack_m1,<item_spr_backpack_m2,<item_spr_backpack_m3,<item_spr_redcard_m0,<item_spr_redcard_m1,<item_spr_redcard_m2,<item_spr_redcard_m3,<item_spr_bluecard_m0,<item_spr_bluecard_m1,<item_spr_bluecard_m2,<item_spr_bluecard_m3,<item_spr_yellowcard_m0,<item_spr_yellowcard_m1,<item_spr_yellowcard_m2,<item_spr_yellowcard_m3,<item_spr_soulsphere_m0,<item_spr_soulsphere_m1,<item_spr_soulsphere_m2,<item_spr_soulsphere_m3,<item_spr_radsuit_m0,<item_spr_radsuit_m1,<item_spr_radsuit_m2,<item_spr_radsuit_m3,<item_spr_poscorpse_m0,<item_spr_poscorpse_m1,<item_spr_poscorpse_m2,<item_spr_poscorpse_m3,<item_spr_impcorpse_m0,<item_spr_impcorpse_m1,<item_spr_impcorpse_m2,<item_spr_impcorpse_m3,<item_spr_demoncorpse_m0,<item_spr_demoncorpse_m1,<item_spr_demoncorpse_m2,<item_spr_demoncorpse_m3,<item_spr_baroncorpse_m0,<item_spr_baroncorpse_m1,<item_spr_baroncorpse_m2,<item_spr_baroncorpse_m3,<item_spr_skullpile_m0,<item_spr_skullpile_m1,<item_spr_skullpile_m2,<item_spr_skullpile_m3,<item_spr_techcolumn_m0,<item_spr_techcolumn_m1,<item_spr_techcolumn_m2,<item_spr_techcolumn_m3,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_fireball_m0,<item_spr_fireball_m1,<item_spr_fireball_m2,<item_spr_fireball_m3,<item_spr_plasmaball_m0,<item_spr_plasmaball_m1,<item_spr_plasmaball_m2,<item_spr_plasmaball_m3,<item_spr_rocket_m0,<item_spr_rocket_m1,<item_spr_rocket_m2,<item_spr_rocket_m3,<item_spr_barexpl_m0,<item_spr_barexpl_m1,<item_spr_barexpl_m2,<item_spr_barexpl_m3
+	!byte <item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_barrel_m0,<item_spr_barrel_m1,<item_spr_barrel_m2,<item_spr_barrel_m3,<item_spr_health_m0,<item_spr_health_m1,<item_spr_health_m2,<item_spr_health_m3,<item_spr_shells_m0,<item_spr_shells_m1,<item_spr_shells_m2,<item_spr_shells_m3,<item_spr_shotgun_m0,<item_spr_shotgun_m1,<item_spr_shotgun_m2,<item_spr_shotgun_m3,<item_spr_chaingun_m0,<item_spr_chaingun_m1,<item_spr_chaingun_m2,<item_spr_chaingun_m3,<item_spr_chainsaw_m0,<item_spr_chainsaw_m1,<item_spr_chainsaw_m2,<item_spr_chainsaw_m3,<item_spr_rocketlauncher_m0,<item_spr_rocketlauncher_m1,<item_spr_rocketlauncher_m2,<item_spr_rocketlauncher_m3,<item_spr_greenarmor_m0,<item_spr_greenarmor_m1,<item_spr_greenarmor_m2,<item_spr_greenarmor_m3,<item_spr_bluearmor_m0,<item_spr_bluearmor_m1,<item_spr_bluearmor_m2,<item_spr_bluearmor_m3,<item_spr_backpack_m0,<item_spr_backpack_m1,<item_spr_backpack_m2,<item_spr_backpack_m3,<item_spr_redcard_m0,<item_spr_redcard_m1,<item_spr_redcard_m2,<item_spr_redcard_m3,<item_spr_bluecard_m0,<item_spr_bluecard_m1,<item_spr_bluecard_m2,<item_spr_bluecard_m3,<item_spr_yellowcard_m0,<item_spr_yellowcard_m1,<item_spr_yellowcard_m2,<item_spr_yellowcard_m3,<item_spr_soulsphere_m0,<item_spr_soulsphere_m1,<item_spr_soulsphere_m2,<item_spr_soulsphere_m3,<item_spr_radsuit_m0,<item_spr_radsuit_m1,<item_spr_radsuit_m2,<item_spr_radsuit_m3,<item_spr_healthbonus_m0,<item_spr_healthbonus_m1,<item_spr_healthbonus_m2,<item_spr_healthbonus_m3,<item_spr_armorbonus_m0,<item_spr_armorbonus_m1,<item_spr_armorbonus_m2,<item_spr_armorbonus_m3,<item_spr_clip_m0,<item_spr_clip_m1,<item_spr_clip_m2,<item_spr_clip_m3,<item_spr_shellbox_m0,<item_spr_shellbox_m1,<item_spr_shellbox_m2,<item_spr_shellbox_m3,<item_spr_ammobox_m0,<item_spr_ammobox_m1,<item_spr_ammobox_m2,<item_spr_ammobox_m3,<item_spr_healthcrate_m0,<item_spr_healthcrate_m1,<item_spr_healthcrate_m2,<item_spr_healthcrate_m3,<item_spr_candelabra_m0,<item_spr_candelabra_m1,<item_spr_candelabra_m2,<item_spr_candelabra_m3,<item_spr_lightpost_m0,<item_spr_lightpost_m1,<item_spr_lightpost_m2,<item_spr_lightpost_m3,<item_spr_gibs_m0,<item_spr_gibs_m1,<item_spr_gibs_m2,<item_spr_gibs_m3,<item_spr_gruntgibs_m0,<item_spr_gruntgibs_m1,<item_spr_gruntgibs_m2,<item_spr_gruntgibs_m3,<item_spr_gruntcorpse_m0,<item_spr_gruntcorpse_m1,<item_spr_gruntcorpse_m2,<item_spr_gruntcorpse_m3,<item_spr_skullpile_m0,<item_spr_skullpile_m1,<item_spr_skullpile_m2,<item_spr_skullpile_m3,<item_spr_techcolumn_m0,<item_spr_techcolumn_m1,<item_spr_techcolumn_m2,<item_spr_techcolumn_m3,<item_spr_poscorpse_m0,<item_spr_poscorpse_m1,<item_spr_poscorpse_m2,<item_spr_poscorpse_m3,<item_spr_impcorpse_m0,<item_spr_impcorpse_m1,<item_spr_impcorpse_m2,<item_spr_impcorpse_m3,<item_spr_demoncorpse_m0,<item_spr_demoncorpse_m1,<item_spr_demoncorpse_m2,<item_spr_demoncorpse_m3,<item_spr_baroncorpse_m0,<item_spr_baroncorpse_m1,<item_spr_baroncorpse_m2,<item_spr_baroncorpse_m3,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_nodraw,<item_spr_fireball_m0,<item_spr_fireball_m1,<item_spr_fireball_m2,<item_spr_fireball_m3,<item_spr_plasmaball_m0,<item_spr_plasmaball_m1,<item_spr_plasmaball_m2,<item_spr_plasmaball_m3,<item_spr_rocket_m0,<item_spr_rocket_m1,<item_spr_rocket_m2,<item_spr_rocket_m3,<item_spr_barexpl_m0,<item_spr_barexpl_m1,<item_spr_barexpl_m2,<item_spr_barexpl_m3
 item_mip_base_hi
-	!byte >item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_barrel_m0,>item_spr_barrel_m1,>item_spr_barrel_m2,>item_spr_barrel_m3,>item_spr_health_m0,>item_spr_health_m1,>item_spr_health_m2,>item_spr_health_m3,>item_spr_shells_m0,>item_spr_shells_m1,>item_spr_shells_m2,>item_spr_shells_m3,>item_spr_shotgun_m0,>item_spr_shotgun_m1,>item_spr_shotgun_m2,>item_spr_shotgun_m3,>item_spr_chaingun_m0,>item_spr_chaingun_m1,>item_spr_chaingun_m2,>item_spr_chaingun_m3,>item_spr_chainsaw_m0,>item_spr_chainsaw_m1,>item_spr_chainsaw_m2,>item_spr_chainsaw_m3,>item_spr_rocketlauncher_m0,>item_spr_rocketlauncher_m1,>item_spr_rocketlauncher_m2,>item_spr_rocketlauncher_m3,>item_spr_greenarmor_m0,>item_spr_greenarmor_m1,>item_spr_greenarmor_m2,>item_spr_greenarmor_m3,>item_spr_bluearmor_m0,>item_spr_bluearmor_m1,>item_spr_bluearmor_m2,>item_spr_bluearmor_m3,>item_spr_backpack_m0,>item_spr_backpack_m1,>item_spr_backpack_m2,>item_spr_backpack_m3,>item_spr_redcard_m0,>item_spr_redcard_m1,>item_spr_redcard_m2,>item_spr_redcard_m3,>item_spr_bluecard_m0,>item_spr_bluecard_m1,>item_spr_bluecard_m2,>item_spr_bluecard_m3,>item_spr_yellowcard_m0,>item_spr_yellowcard_m1,>item_spr_yellowcard_m2,>item_spr_yellowcard_m3,>item_spr_soulsphere_m0,>item_spr_soulsphere_m1,>item_spr_soulsphere_m2,>item_spr_soulsphere_m3,>item_spr_radsuit_m0,>item_spr_radsuit_m1,>item_spr_radsuit_m2,>item_spr_radsuit_m3,>item_spr_poscorpse_m0,>item_spr_poscorpse_m1,>item_spr_poscorpse_m2,>item_spr_poscorpse_m3,>item_spr_impcorpse_m0,>item_spr_impcorpse_m1,>item_spr_impcorpse_m2,>item_spr_impcorpse_m3,>item_spr_demoncorpse_m0,>item_spr_demoncorpse_m1,>item_spr_demoncorpse_m2,>item_spr_demoncorpse_m3,>item_spr_baroncorpse_m0,>item_spr_baroncorpse_m1,>item_spr_baroncorpse_m2,>item_spr_baroncorpse_m3,>item_spr_skullpile_m0,>item_spr_skullpile_m1,>item_spr_skullpile_m2,>item_spr_skullpile_m3,>item_spr_techcolumn_m0,>item_spr_techcolumn_m1,>item_spr_techcolumn_m2,>item_spr_techcolumn_m3,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_fireball_m0,>item_spr_fireball_m1,>item_spr_fireball_m2,>item_spr_fireball_m3,>item_spr_plasmaball_m0,>item_spr_plasmaball_m1,>item_spr_plasmaball_m2,>item_spr_plasmaball_m3,>item_spr_rocket_m0,>item_spr_rocket_m1,>item_spr_rocket_m2,>item_spr_rocket_m3,>item_spr_barexpl_m0,>item_spr_barexpl_m1,>item_spr_barexpl_m2,>item_spr_barexpl_m3
+	!byte >item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_barrel_m0,>item_spr_barrel_m1,>item_spr_barrel_m2,>item_spr_barrel_m3,>item_spr_health_m0,>item_spr_health_m1,>item_spr_health_m2,>item_spr_health_m3,>item_spr_shells_m0,>item_spr_shells_m1,>item_spr_shells_m2,>item_spr_shells_m3,>item_spr_shotgun_m0,>item_spr_shotgun_m1,>item_spr_shotgun_m2,>item_spr_shotgun_m3,>item_spr_chaingun_m0,>item_spr_chaingun_m1,>item_spr_chaingun_m2,>item_spr_chaingun_m3,>item_spr_chainsaw_m0,>item_spr_chainsaw_m1,>item_spr_chainsaw_m2,>item_spr_chainsaw_m3,>item_spr_rocketlauncher_m0,>item_spr_rocketlauncher_m1,>item_spr_rocketlauncher_m2,>item_spr_rocketlauncher_m3,>item_spr_greenarmor_m0,>item_spr_greenarmor_m1,>item_spr_greenarmor_m2,>item_spr_greenarmor_m3,>item_spr_bluearmor_m0,>item_spr_bluearmor_m1,>item_spr_bluearmor_m2,>item_spr_bluearmor_m3,>item_spr_backpack_m0,>item_spr_backpack_m1,>item_spr_backpack_m2,>item_spr_backpack_m3,>item_spr_redcard_m0,>item_spr_redcard_m1,>item_spr_redcard_m2,>item_spr_redcard_m3,>item_spr_bluecard_m0,>item_spr_bluecard_m1,>item_spr_bluecard_m2,>item_spr_bluecard_m3,>item_spr_yellowcard_m0,>item_spr_yellowcard_m1,>item_spr_yellowcard_m2,>item_spr_yellowcard_m3,>item_spr_soulsphere_m0,>item_spr_soulsphere_m1,>item_spr_soulsphere_m2,>item_spr_soulsphere_m3,>item_spr_radsuit_m0,>item_spr_radsuit_m1,>item_spr_radsuit_m2,>item_spr_radsuit_m3,>item_spr_healthbonus_m0,>item_spr_healthbonus_m1,>item_spr_healthbonus_m2,>item_spr_healthbonus_m3,>item_spr_armorbonus_m0,>item_spr_armorbonus_m1,>item_spr_armorbonus_m2,>item_spr_armorbonus_m3,>item_spr_clip_m0,>item_spr_clip_m1,>item_spr_clip_m2,>item_spr_clip_m3,>item_spr_shellbox_m0,>item_spr_shellbox_m1,>item_spr_shellbox_m2,>item_spr_shellbox_m3,>item_spr_ammobox_m0,>item_spr_ammobox_m1,>item_spr_ammobox_m2,>item_spr_ammobox_m3,>item_spr_healthcrate_m0,>item_spr_healthcrate_m1,>item_spr_healthcrate_m2,>item_spr_healthcrate_m3,>item_spr_candelabra_m0,>item_spr_candelabra_m1,>item_spr_candelabra_m2,>item_spr_candelabra_m3,>item_spr_lightpost_m0,>item_spr_lightpost_m1,>item_spr_lightpost_m2,>item_spr_lightpost_m3,>item_spr_gibs_m0,>item_spr_gibs_m1,>item_spr_gibs_m2,>item_spr_gibs_m3,>item_spr_gruntgibs_m0,>item_spr_gruntgibs_m1,>item_spr_gruntgibs_m2,>item_spr_gruntgibs_m3,>item_spr_gruntcorpse_m0,>item_spr_gruntcorpse_m1,>item_spr_gruntcorpse_m2,>item_spr_gruntcorpse_m3,>item_spr_skullpile_m0,>item_spr_skullpile_m1,>item_spr_skullpile_m2,>item_spr_skullpile_m3,>item_spr_techcolumn_m0,>item_spr_techcolumn_m1,>item_spr_techcolumn_m2,>item_spr_techcolumn_m3,>item_spr_poscorpse_m0,>item_spr_poscorpse_m1,>item_spr_poscorpse_m2,>item_spr_poscorpse_m3,>item_spr_impcorpse_m0,>item_spr_impcorpse_m1,>item_spr_impcorpse_m2,>item_spr_impcorpse_m3,>item_spr_demoncorpse_m0,>item_spr_demoncorpse_m1,>item_spr_demoncorpse_m2,>item_spr_demoncorpse_m3,>item_spr_baroncorpse_m0,>item_spr_baroncorpse_m1,>item_spr_baroncorpse_m2,>item_spr_baroncorpse_m3,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_nodraw,>item_spr_fireball_m0,>item_spr_fireball_m1,>item_spr_fireball_m2,>item_spr_fireball_m3,>item_spr_plasmaball_m0,>item_spr_plasmaball_m1,>item_spr_plasmaball_m2,>item_spr_plasmaball_m3,>item_spr_rocket_m0,>item_spr_rocket_m1,>item_spr_rocket_m2,>item_spr_rocket_m3,>item_spr_barexpl_m0,>item_spr_barexpl_m1,>item_spr_barexpl_m2,>item_spr_barexpl_m3
 
 ; bmp_x * mip_height; index = vshift*16 + bmp_x
 mip_col_off_lo
@@ -50,7 +50,7 @@ item_spr_barrel_m0
 	!byte $05,$0b,$05,$0b,$05,$05,$05,$05,$05,$0b,$05,$0c,$0b,$05,$05,$05
 	!byte $05,$0b,$05,$0b,$05,$05,$05,$05,$05,$ff,$05,$ff,$ff,$ff,$ff,$05
 item_spr_barrel_m1
-	!byte $0d,$0b,$0d,$05,$05,$0b,$05,$05,$05,$0b,$05,$05,$05,$0b,$05,$05
+	!byte $0d,$0b,$0d,$05,$05,$0b,$05,$05,$05,$0b,$0c,$05,$05,$0b,$05,$05
 item_spr_barrel_m2
 	!byte $0d,$05,$05,$05
 item_spr_barrel_m3
@@ -68,8 +68,8 @@ item_spr_health_m3
 	!byte $05
 item_spr_shells_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$02,$0a,$0a,$0a
-	!byte $ff,$ff,$ff,$ff,$02,$02,$02,$02,$ff,$ff,$ff,$07,$02,$0a,$0a,$0a
-	!byte $ff,$ff,$ff,$ff,$02,$02,$02,$02,$ff,$ff,$ff,$07,$02,$0a,$0a,$0a
+	!byte $ff,$ff,$ff,$08,$02,$02,$02,$02,$ff,$ff,$ff,$07,$02,$0a,$0a,$0a
+	!byte $ff,$ff,$ff,$08,$02,$02,$02,$02,$ff,$ff,$ff,$07,$02,$0a,$0a,$0a
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_shells_m1
 	!byte $ff,$07,$0a,$0a,$ff,$07,$02,$02,$ff,$07,$0a,$0a,$ff,$ff,$ff,$ff
@@ -78,25 +78,25 @@ item_spr_shells_m2
 item_spr_shells_m3
 	!byte $07
 item_spr_shotgun_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff,$ff,$ff,$00,$ff,$02,$02
-	!byte $ff,$ff,$ff,$ff,$ff,$00,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$00,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$02,$ff
-	!byte $ff,$ff,$ff,$ff,$ff,$00,$02,$ff,$ff,$ff,$ff,$ff,$ff,$00,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff,$ff,$ff,$0b,$ff,$02,$02
+	!byte $ff,$ff,$ff,$ff,$ff,$0b,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$0b,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0b,$02,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$0b,$02,$ff,$ff,$ff,$ff,$ff,$ff,$0b,$ff,$ff
 item_spr_shotgun_m1
-	!byte $ff,$00,$ff,$02,$ff,$ff,$00,$02,$ff,$ff,$00,$ff,$ff,$ff,$00,$02
+	!byte $ff,$0b,$ff,$02,$ff,$ff,$0b,$02,$ff,$ff,$0b,$ff,$ff,$ff,$0b,$02
 item_spr_shotgun_m2
-	!byte $ff,$00,$ff,$00
+	!byte $ff,$0b,$ff,$0b
 item_spr_shotgun_m3
-	!byte $00
+	!byte $0b
 item_spr_chaingun_m0
 	!byte $ff,$ff,$ff,$0c,$0c,$ff,$02,$02,$ff,$ff,$01,$0c,$0c,$02,$02,$02
-	!byte $ff,$ff,$01,$0c,$01,$02,$02,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff
-	!byte $ff,$ff,$01,$01,$01,$01,$01,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff
-	!byte $ff,$ff,$01,$01,$01,$01,$01,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$0f,$0c,$0f,$02,$02,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff
+	!byte $ff,$ff,$01,$0f,$0f,$0f,$0f,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff
+	!byte $ff,$ff,$01,$0f,$0f,$0f,$0f,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff
 item_spr_chaingun_m1
-	!byte $ff,$0c,$ff,$02,$01,$0c,$02,$ff,$ff,$01,$01,$ff,$ff,$0c,$ff,$ff
+	!byte $ff,$0c,$ff,$02,$0f,$0c,$02,$ff,$ff,$0f,$0f,$ff,$ff,$0c,$ff,$ff
 item_spr_chaingun_m2
-	!byte $0c,$02,$01,$ff
+	!byte $0c,$02,$0f,$ff
 item_spr_chaingun_m3
 	!byte $0c
 item_spr_chainsaw_m0
@@ -111,36 +111,36 @@ item_spr_chainsaw_m2
 item_spr_chainsaw_m3
 	!byte $0c
 item_spr_rocketlauncher_m0
-	!byte $ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff
-	!byte $ff,$ff,$ff,$ff,$02,$0b,$0b,$0b,$ff,$ff,$ff,$ff,$02,$0f,$0b,$ff
-	!byte $ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff
-	!byte $ff,$ff,$ff,$0f,$0b,$0b,$0b,$ff,$ff,$ff,$ff,$ff,$0f,$0b,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$02,$02,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$02,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$02,$0f,$0c,$ff
+	!byte $ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff
+	!byte $ff,$ff,$ff,$01,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$ff,$0f,$0c,$ff,$ff
 item_spr_rocketlauncher_m1
-	!byte $ff,$ff,$0f,$ff,$ff,$ff,$02,$0b,$ff,$ff,$0f,$ff,$ff,$0b,$0f,$ff
+	!byte $ff,$ff,$0f,$ff,$ff,$ff,$02,$0c,$ff,$ff,$0f,$ff,$ff,$0c,$0f,$ff
 item_spr_rocketlauncher_m2
 	!byte $ff,$0f,$ff,$0f
 item_spr_rocketlauncher_m3
 	!byte $0f
 item_spr_greenarmor_m0
-	!byte $07,$07,$ff,$ff,$ff,$ff,$ff,$ff,$07,$07,$07,$05,$07,$05,$07,$ff
-	!byte $07,$07,$07,$05,$05,$07,$05,$07,$ff,$07,$05,$07,$07,$07,$07,$07
-	!byte $ff,$07,$05,$07,$07,$07,$07,$07,$07,$07,$07,$05,$05,$07,$05,$07
-	!byte $07,$07,$07,$05,$07,$05,$07,$ff,$07,$07,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $05,$05,$ff,$ff,$ff,$ff,$ff,$ff,$05,$05,$05,$0b,$05,$0b,$05,$ff
+	!byte $05,$05,$05,$0b,$0b,$05,$0b,$05,$ff,$05,$0b,$05,$05,$05,$05,$05
+	!byte $ff,$05,$0b,$05,$05,$05,$05,$05,$05,$05,$05,$0b,$0b,$05,$0b,$05
+	!byte $05,$05,$05,$0b,$05,$0b,$05,$ff,$05,$05,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_greenarmor_m1
-	!byte $07,$05,$07,$ff,$ff,$07,$05,$07,$ff,$07,$05,$07,$07,$05,$07,$ff
+	!byte $05,$0b,$05,$ff,$ff,$05,$0b,$05,$ff,$05,$0b,$05,$05,$0b,$05,$ff
 item_spr_greenarmor_m2
-	!byte $07,$05,$07,$05
+	!byte $05,$0b,$05,$0b
 item_spr_greenarmor_m3
-	!byte $07
+	!byte $05
 item_spr_bluearmor_m0
-	!byte $0e,$0e,$ff,$ff,$ff,$ff,$ff,$ff,$0e,$0e,$0e,$06,$0e,$06,$0e,$ff
-	!byte $0e,$0e,$0e,$06,$06,$0e,$06,$0e,$ff,$0e,$06,$0e,$0e,$0e,$0e,$0e
-	!byte $ff,$0e,$06,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$06,$06,$0e,$06,$0e
-	!byte $0e,$0e,$0e,$06,$0e,$06,$0e,$ff,$0e,$0e,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $0e,$0e,$ff,$ff,$ff,$ff,$ff,$ff,$0e,$0e,$0e,$09,$0e,$09,$0e,$ff
+	!byte $0e,$0e,$0e,$09,$09,$0e,$09,$0e,$ff,$0e,$09,$0e,$0e,$0e,$0e,$0e
+	!byte $ff,$0e,$09,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$0e,$09,$09,$0e,$09,$0e
+	!byte $0e,$0e,$0e,$09,$0e,$09,$0e,$ff,$0e,$0e,$ff,$ff,$ff,$ff,$ff,$ff
 item_spr_bluearmor_m1
-	!byte $0e,$06,$0e,$ff,$ff,$0e,$06,$0e,$ff,$0e,$06,$0e,$0e,$06,$0e,$ff
+	!byte $0e,$09,$0e,$ff,$ff,$0e,$09,$0e,$ff,$0e,$09,$0e,$0e,$09,$0e,$ff
 item_spr_bluearmor_m2
-	!byte $0e,$06,$0e,$06
+	!byte $0e,$09,$0e,$09
 item_spr_bluearmor_m3
 	!byte $0e
 item_spr_backpack_m0
@@ -209,6 +209,149 @@ item_spr_radsuit_m2
 	!byte $01,$0f,$01,$0f
 item_spr_radsuit_m3
 	!byte $0f
+item_spr_healthbonus_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0e,$06,$06,$ff
+	!byte $ff,$ff,$ff,$06,$06,$0e,$06,$06,$06,$06,$06,$06,$06,$0e,$06,$06
+	!byte $0e,$06,$06,$06,$06,$0e,$06,$06,$ff,$ff,$ff,$0e,$06,$0e,$06,$06
+	!byte $ff,$ff,$ff,$ff,$0e,$0e,$06,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_healthbonus_m1
+	!byte $ff,$ff,$06,$06,$0e,$06,$0e,$06,$ff,$ff,$0e,$06,$ff,$ff,$ff,$ff
+item_spr_healthbonus_m2
+	!byte $ff,$06,$0e,$06
+item_spr_healthbonus_m3
+	!byte $06
+item_spr_armorbonus_m0
+	!byte $ff,$ff,$0b,$0b,$0b,$0b,$0b,$ff,$ff,$0b,$08,$08,$08,$0c,$0c,$0c
+	!byte $08,$0c,$08,$08,$0c,$0d,$0b,$ff,$08,$08,$0c,$0c,$0c,$0b,$0c,$0c
+	!byte $08,$08,$0c,$0c,$0c,$0b,$0c,$0c,$08,$08,$08,$08,$0c,$0d,$0b,$ff
+	!byte $ff,$09,$08,$09,$08,$0c,$0c,$0c,$ff,$ff,$0b,$0b,$0b,$0b,$0b,$ff
+item_spr_armorbonus_m1
+	!byte $ff,$0b,$0c,$0c,$08,$0c,$0d,$0b,$08,$08,$0d,$ff,$ff,$0b,$08,$0c
+item_spr_armorbonus_m2
+	!byte $08,$0c,$08,$0d
+item_spr_armorbonus_m3
+	!byte $08
+item_spr_clip_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$07,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$07,$0b,$0b,$0c
+	!byte $ff,$ff,$ff,$ff,$0a,$0c,$0c,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_clip_m1
+	!byte $ff,$ff,$ff,$ff,$ff,$07,$0c,$0c,$ff,$0a,$0b,$0b,$ff,$ff,$ff,$ff
+item_spr_clip_m2
+	!byte $07,$0c,$ff,$ff
+item_spr_clip_m3
+	!byte $0c
+item_spr_shellbox_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$0f
+	!byte $ff,$ff,$ff,$ff,$ff,$01,$05,$0f,$ff,$ff,$ff,$ff,$ff,$01,$0f,$0f
+	!byte $ff,$ff,$ff,$ff,$ff,$01,$05,$0f,$ff,$ff,$ff,$ff,$ff,$07,$08,$08
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$08,$08,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_shellbox_m1
+	!byte $ff,$ff,$0c,$0f,$ff,$ff,$0c,$0f,$ff,$ff,$07,$08,$ff,$ff,$ff,$ff
+item_spr_shellbox_m2
+	!byte $ff,$0f,$ff,$08
+item_spr_shellbox_m3
+	!byte $0f
+item_spr_ammobox_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$05,$09,$05,$05
+	!byte $ff,$ff,$ff,$0d,$05,$01,$09,$05,$ff,$ff,$ff,$0d,$05,$05,$09,$05
+	!byte $ff,$ff,$ff,$0d,$05,$05,$09,$05,$ff,$ff,$ff,$0d,$05,$01,$09,$05
+	!byte $ff,$ff,$ff,$ff,$05,$09,$05,$05,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_ammobox_m1
+	!byte $ff,$ff,$0d,$05,$ff,$ff,$05,$05,$ff,$ff,$0d,$05,$ff,$ff,$ff,$ff
+item_spr_ammobox_m2
+	!byte $ff,$05,$ff,$05
+item_spr_ammobox_m3
+	!byte $05
+item_spr_healthcrate_m0
+	!byte $ff,$ff,$01,$0f,$01,$01,$01,$01,$ff,$01,$01,$0f,$01,$01,$01,$01
+	!byte $ff,$01,$01,$0f,$01,$05,$01,$01,$ff,$01,$01,$0f,$05,$05,$05,$01
+	!byte $ff,$01,$01,$0f,$05,$05,$05,$01,$ff,$01,$01,$0f,$01,$05,$01,$01
+	!byte $ff,$01,$01,$0f,$01,$01,$01,$01,$ff,$ff,$01,$0f,$01,$01,$01,$01
+item_spr_healthcrate_m1
+	!byte $01,$0f,$01,$01,$01,$0f,$05,$01,$01,$0f,$05,$01,$01,$0f,$01,$01
+item_spr_healthcrate_m2
+	!byte $01,$01,$01,$05
+item_spr_healthcrate_m3
+	!byte $05
+item_spr_candelabra_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$0a,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$08,$ff,$ff,$ff,$0a,$07,$0a,$08,$0a,$08,$0a,$08,$0a
+	!byte $ff,$ff,$ff,$08,$ff,$ff,$ff,$08,$ff,$07,$0a,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_candelabra_m1
+	!byte $ff,$07,$ff,$09,$07,$0a,$08,$0a,$ff,$07,$ff,$09,$ff,$ff,$ff,$ff
+item_spr_candelabra_m2
+	!byte $07,$08,$ff,$ff
+item_spr_candelabra_m3
+	!byte $07
+item_spr_lightpost_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$07,$01,$0c,$0c,$0f,$0c,$0f,$0c
+	!byte $07,$01,$0b,$0b,$0c,$0b,$0c,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0c
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_lightpost_m1
+	!byte $ff,$ff,$ff,$0b,$07,$0c,$0c,$0f,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff
+item_spr_lightpost_m2
+	!byte $07,$0c,$ff,$ff
+item_spr_lightpost_m3
+	!byte $07
+item_spr_gibs_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0a,$09
+	!byte $ff,$ff,$ff,$ff,$ff,$0a,$0a,$02,$ff,$ff,$ff,$ff,$ff,$02,$0a,$02
+	!byte $ff,$ff,$ff,$ff,$ff,$0a,$08,$02,$ff,$ff,$ff,$ff,$ff,$ff,$08,$09
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_gibs_m1
+	!byte $ff,$ff,$ff,$02,$ff,$ff,$02,$0a,$ff,$ff,$ff,$0a,$ff,$ff,$ff,$02
+item_spr_gibs_m2
+	!byte $ff,$02,$ff,$0a
+item_spr_gibs_m3
+	!byte $02
+item_spr_gruntgibs_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$0a,$0a,$0a,$09
+	!byte $ff,$ff,$ff,$ff,$ff,$0a,$0a,$02,$ff,$ff,$ff,$ff,$ff,$02,$0a,$02
+	!byte $ff,$ff,$ff,$ff,$0d,$0a,$08,$02,$ff,$ff,$ff,$ff,$0d,$0d,$08,$09
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_gruntgibs_m1
+	!byte $ff,$ff,$ff,$02,$ff,$ff,$0a,$0a,$ff,$ff,$0d,$0a,$ff,$ff,$ff,$02
+item_spr_gruntgibs_m2
+	!byte $ff,$02,$ff,$0a
+item_spr_gruntgibs_m3
+	!byte $02
+item_spr_gruntcorpse_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0d,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0a,$02
+	!byte $ff,$ff,$ff,$ff,$ff,$0a,$0b,$02,$ff,$ff,$ff,$ff,$ff,$0a,$0a,$02
+	!byte $ff,$ff,$ff,$ff,$ff,$05,$0d,$02,$ff,$ff,$ff,$ff,$ff,$05,$05,$09
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0d,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_gruntcorpse_m1
+	!byte $ff,$ff,$0b,$02,$ff,$ff,$0a,$02,$ff,$ff,$0d,$02,$ff,$ff,$05,$02
+item_spr_gruntcorpse_m2
+	!byte $ff,$02,$ff,$05
+item_spr_gruntcorpse_m3
+	!byte $02
+item_spr_skullpile_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$07,$ff,$ff,$ff,$ff,$0c
+	!byte $ff,$01,$07,$02,$02,$ff,$0c,$0b,$07,$07,$ff,$ff,$ff,$0c,$0b,$0b
+	!byte $01,$07,$ff,$ff,$02,$02,$02,$0b,$ff,$ff,$07,$07,$ff,$ff,$0b,$0b
+	!byte $ff,$ff,$01,$07,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_skullpile_m1
+	!byte $ff,$07,$ff,$0c,$07,$02,$02,$0b,$ff,$ff,$07,$0b,$ff,$ff,$ff,$ff
+item_spr_skullpile_m2
+	!byte $07,$0c,$07,$0b
+item_spr_skullpile_m3
+	!byte $07
+item_spr_techcolumn_m0
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$ff,$ff,$ff,$ff,$0f,$ff
+	!byte $0b,$0f,$0b,$0f,$0b,$0f,$0f,$0b,$0b,$0c,$0b,$0c,$0f,$0b,$0c,$0b
+	!byte $0b,$0b,$0c,$0b,$0c,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0f,$0b,$0b
+	!byte $ff,$0b,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+item_spr_techcolumn_m1
+	!byte $ff,$0f,$ff,$0f,$0b,$0b,$0c,$0b,$0b,$0c,$0b,$0b,$ff,$0b,$ff,$0b
+item_spr_techcolumn_m2
+	!byte $0f,$0f,$0b,$0b
+item_spr_techcolumn_m3
+	!byte $0c
 item_spr_poscorpse_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0e,$02
 	!byte $ff,$ff,$ff,$ff,$ff,$0e,$0e,$0e,$ff,$ff,$ff,$ff,$06,$0e,$06,$ff
@@ -243,38 +386,16 @@ item_spr_demoncorpse_m2
 item_spr_demoncorpse_m3
 	!byte $0a
 item_spr_baroncorpse_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0b,$0b
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0c,$0c
 	!byte $ff,$ff,$ff,$ff,$02,$09,$08,$09,$ff,$ff,$ff,$02,$0a,$08,$09,$ff
-	!byte $ff,$ff,$ff,$02,$02,$09,$09,$ff,$ff,$ff,$ff,$02,$0a,$08,$0b,$0b
-	!byte $ff,$ff,$ff,$0a,$02,$09,$0b,$09,$ff,$ff,$ff,$02,$0a,$02,$09,$ff
+	!byte $ff,$ff,$ff,$02,$02,$09,$09,$ff,$ff,$ff,$ff,$02,$0a,$08,$0c,$0c
+	!byte $ff,$ff,$ff,$0a,$02,$09,$0c,$09,$ff,$ff,$ff,$02,$0a,$02,$09,$ff
 item_spr_baroncorpse_m1
-	!byte $ff,$ff,$02,$0b,$ff,$02,$0a,$02,$ff,$0a,$02,$0b,$ff,$02,$0a,$02
+	!byte $ff,$ff,$02,$0c,$ff,$02,$0a,$02,$ff,$0a,$02,$0c,$ff,$02,$0a,$02
 item_spr_baroncorpse_m2
 	!byte $ff,$02,$ff,$0a
 item_spr_baroncorpse_m3
 	!byte $02
-item_spr_skullpile_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$07,$07,$ff,$ff,$ff,$ff,$0c
-	!byte $ff,$01,$07,$02,$02,$ff,$0c,$0b,$07,$07,$ff,$ff,$ff,$0c,$0b,$0b
-	!byte $01,$07,$ff,$ff,$02,$02,$02,$0b,$ff,$ff,$07,$07,$ff,$ff,$0b,$0b
-	!byte $ff,$ff,$01,$07,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-item_spr_skullpile_m1
-	!byte $ff,$07,$ff,$0c,$07,$02,$02,$0b,$ff,$ff,$07,$0b,$ff,$ff,$ff,$ff
-item_spr_skullpile_m2
-	!byte $07,$0c,$07,$0b
-item_spr_skullpile_m3
-	!byte $07
-item_spr_techcolumn_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0f,$ff,$ff,$ff,$ff,$0f,$ff
-	!byte $0b,$0f,$0b,$0f,$0b,$0f,$0f,$0b,$0b,$0f,$0b,$0f,$0f,$0b,$0f,$0b
-	!byte $0b,$0b,$0f,$0b,$0f,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0b,$0f,$0b,$0b
-	!byte $ff,$0b,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-item_spr_techcolumn_m1
-	!byte $ff,$0f,$ff,$0f,$0b,$0b,$0f,$0b,$0b,$0f,$0b,$0b,$ff,$0b,$ff,$0b
-item_spr_techcolumn_m2
-	!byte $0f,$0f,$0b,$0b
-item_spr_techcolumn_m3
-	!byte $0c
 item_spr_fireball_m0
 	!byte $ff,$ff,$02,$ff,$02,$ff,$02,$ff,$02,$ff,$02,$02,$08,$02,$ff,$ff
 	!byte $ff,$02,$08,$07,$07,$08,$02,$02,$02,$08,$07,$07,$07,$07,$02,$ff
@@ -309,13 +430,13 @@ item_spr_rocket_m2
 item_spr_rocket_m3
 	!byte $07
 item_spr_barexpl_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$0b,$ff,$ff,$ff,$0b,$02,$02,$08,$0a,$0a,$02
-	!byte $0b,$02,$0a,$08,$02,$0c,$02,$0b,$02,$08,$0a,$01,$0a,$0a,$08,$01
-	!byte $0b,$0b,$07,$01,$01,$08,$02,$0b,$02,$02,$0a,$07,$0a,$02,$0a,$0b
-	!byte $ff,$0b,$0b,$02,$02,$08,$02,$ff,$ff,$ff,$ff,$ff,$08,$02,$ff,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$0c,$02,$02,$08,$0a,$0a,$02
+	!byte $0c,$02,$0a,$08,$02,$0b,$02,$0c,$02,$08,$0a,$01,$0a,$0a,$08,$01
+	!byte $0c,$0c,$07,$01,$01,$08,$02,$0c,$02,$02,$0a,$07,$0a,$02,$0a,$0c
+	!byte $ff,$0c,$0c,$02,$02,$08,$02,$ff,$ff,$ff,$ff,$ff,$08,$02,$ff,$ff
 item_spr_barexpl_m1
-	!byte $ff,$0a,$02,$ff,$0a,$07,$07,$0b,$02,$01,$07,$0b,$ff,$0a,$02,$ff
+	!byte $ff,$0a,$02,$ff,$0a,$07,$07,$0c,$02,$01,$07,$0c,$ff,$0a,$02,$ff
 item_spr_barexpl_m2
-	!byte $0a,$0b,$07,$02
+	!byte $0a,$0c,$07,$02
 item_spr_barexpl_m3
 	!byte $0a

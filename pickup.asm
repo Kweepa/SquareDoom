@@ -52,8 +52,23 @@ ITEM_TYPE_BLUECARD = 17
 ITEM_TYPE_YELLOWCARD = 18
 ITEM_TYPE_SOULSPHERE = 19
 ITEM_TYPE_RADSUIT = 20
-ITEM_TYPE_POSCORPSE = 21
+ITEM_TYPE_HEALTHBONUS = 21
+ITEM_TYPE_ARMORBONUS = 22
+ITEM_TYPE_CLIP = 23
+ITEM_TYPE_SHELLBOX = 24
+ITEM_TYPE_AMMOBOX = 25
+ITEM_TYPE_HEALTHCRATE = 26
+ITEM_TYPE_POSCORPSE = 34
 ITEM_TYPE_EMPTY = $ff
+ITEM_TYPE_PICKUP_LAST = ITEM_TYPE_HEALTHCRATE
+
+HEALTH_BONUS = 1
+ARMOR_BONUS = 1
+HEALTH_STIM = 10
+CLIP_ADD = 10
+AMMOBOX_ADD = 50
+SHELLBOX_ADD = 20
+ARMOR_BONUS_MAX = 200
 
 ; ---------------------------------------------------------------------------
 ; add_ammo — Y = pool 0/1/2, A = amount; clamp to current max; sets hud_dirty
@@ -91,7 +106,7 @@ try_pickups
 	beq .tp_guts
 	cmp #ITEM_TYPE_HEALTH
 	bcc .tp_guts
-	cmp #ITEM_TYPE_RADSUIT + 1
+	cmp #ITEM_TYPE_PICKUP_LAST + 1
 	bcs .tp_guts
 	sta tmp4			; typeId
 	jsr pickup_apply
@@ -155,9 +170,13 @@ try_pickups
 ; pickup_apply — A = typeId; C=1 if taken (message set), C=0 if refused
 ; ---------------------------------------------------------------------------
 pickup_apply
+	cmp #ITEM_TYPE_POSCORPSE
+	bne .pa_tab
+	jmp .pa_poscorpse
+.pa_tab
 	sec
 	sbc #ITEM_TYPE_HEALTH
-	cmp #ITEM_TYPE_POSCORPSE - ITEM_TYPE_HEALTH + 1
+	cmp #ITEM_TYPE_PICKUP_LAST - ITEM_TYPE_HEALTH + 1
 	bcc .pa_ok
 	clc
 	rts
@@ -173,12 +192,16 @@ pickup_apply
 	!byte <.pa_health, <.pa_shells, <.pa_weapon, <.pa_weapon
 	!byte <.pa_weapon, <.pa_weapon, <.pa_garmor, <.pa_barmor
 	!byte <.pa_pack, <.pa_red, <.pa_blue, <.pa_yellow
-	!byte <.pa_soulsphere, <.pa_radsuit, <.pa_poscorpse
+	!byte <.pa_soulsphere, <.pa_radsuit
+	!byte <.pa_hbonus, <.pa_abonus, <.pa_clip, <.pa_shellbox
+	!byte <.pa_ammobox, <.pa_stim
 .pa_jmp_hi
 	!byte >.pa_health, >.pa_shells, >.pa_weapon, >.pa_weapon
 	!byte >.pa_weapon, >.pa_weapon, >.pa_garmor, >.pa_barmor
 	!byte >.pa_pack, >.pa_red, >.pa_blue, >.pa_yellow
-	!byte >.pa_soulsphere, >.pa_radsuit, >.pa_poscorpse
+	!byte >.pa_soulsphere, >.pa_radsuit
+	!byte >.pa_hbonus, >.pa_abonus, >.pa_clip, >.pa_shellbox
+	!byte >.pa_ammobox, >.pa_stim
 
 .pa_health
 	lda health
@@ -355,6 +378,111 @@ pickup_apply
 	jsr switch_weapon
 	lda #ITEM_TYPE_ROCKETLAUNCHER
 	jmp pickup_message
+
+.pa_hbonus
+	lda health
+	cmp #ARMOR_BONUS_MAX
+	bcs .pa_hbonus_no
+	clc
+	adc #HEALTH_BONUS
+	cmp #ARMOR_BONUS_MAX + 1
+	bcc .pa_hbonus_ok
+	lda #ARMOR_BONUS_MAX
+.pa_hbonus_ok
+	sta health
+	lda #ITEM_TYPE_HEALTHBONUS
+	jmp pickup_message
+.pa_hbonus_no
+	jmp .pa_no
+
+.pa_abonus
+	lda armor
+	cmp #ARMOR_BONUS_MAX
+	bcs .pa_abonus_no
+	clc
+	adc #ARMOR_BONUS
+	cmp #ARMOR_BONUS_MAX + 1
+	bcc .pa_abonus_ok
+	lda #ARMOR_BONUS_MAX
+.pa_abonus_ok
+	sta armor
+	lda #ITEM_TYPE_ARMORBONUS
+	jmp pickup_message
+.pa_abonus_no
+	jmp .pa_no
+
+.pa_clip
+	ldy #0
+	lda has_backpack
+	bne .pa_clip_chk
+	lda ammo_max_base,y
+	bne .pa_clip_cap
+.pa_clip_chk
+	lda ammo_max_pack,y
+.pa_clip_cap
+	cmp ammo_bullets
+	beq .pa_clip_full
+	bcc .pa_clip_full
+	lda #CLIP_ADD
+	jsr add_ammo
+	lda #ITEM_TYPE_CLIP
+	jmp pickup_message
+.pa_clip_full
+	jmp .pa_no
+
+.pa_shellbox
+	ldy #1
+	lda has_backpack
+	bne .pa_sb_chk
+	lda ammo_max_base,y
+	bne .pa_sb_cap
+.pa_sb_chk
+	lda ammo_max_pack,y
+.pa_sb_cap
+	cmp ammo_shells
+	beq .pa_sb_full
+	bcc .pa_sb_full
+	lda #SHELLBOX_ADD
+	jsr add_ammo
+	lda #ITEM_TYPE_SHELLBOX
+	jmp pickup_message
+.pa_sb_full
+	jmp .pa_no
+
+.pa_ammobox
+	ldy #0
+	lda has_backpack
+	bne .pa_ab_chk
+	lda ammo_max_base,y
+	bne .pa_ab_cap
+.pa_ab_chk
+	lda ammo_max_pack,y
+.pa_ab_cap
+	cmp ammo_bullets
+	beq .pa_ab_full
+	bcc .pa_ab_full
+	lda #AMMOBOX_ADD
+	jsr add_ammo
+	lda #ITEM_TYPE_AMMOBOX
+	jmp pickup_message
+.pa_ab_full
+	jmp .pa_no
+
+.pa_stim
+	lda health
+	cmp #HEALTH_MAX
+	bcs .pa_stim_no
+	clc
+	adc #HEALTH_STIM
+	cmp #HEALTH_MAX
+	bcc .pa_stim_ok
+	lda #HEALTH_MAX
+.pa_stim_ok
+	sta health
+	lda #ITEM_TYPE_HEALTHCRATE
+	jmp pickup_message
+.pa_stim_no
+	jmp .pa_no
 
 ; Pos corpse — +4 shells +10 bullets (always take)
 .pa_poscorpse
@@ -559,12 +687,16 @@ pickup_name_lo
 	!byte <name_health, <name_ammo, <name_shotgun, <name_chaingun
 	!byte <name_chainsaw, <name_rocket, <name_garmor, <name_barmor
 	!byte <name_backpack, <name_redcard, <name_bluecard, <name_yellowcard
-	!byte <name_soulsphere, <name_radsuit, <name_clips
+	!byte <name_soulsphere, <name_radsuit
+	!byte <name_hbonus, <name_abonus, <name_clip, <name_shellbox
+	!byte <name_ammobox, <name_stim
 pickup_name_hi
 	!byte >name_health, >name_ammo, >name_shotgun, >name_chaingun
 	!byte >name_chainsaw, >name_rocket, >name_garmor, >name_barmor
 	!byte >name_backpack, >name_redcard, >name_bluecard, >name_yellowcard
-	!byte >name_soulsphere, >name_radsuit, >name_clips
+	!byte >name_soulsphere, >name_radsuit
+	!byte >name_hbonus, >name_abonus, >name_clip, >name_shellbox
+	!byte >name_ammobox, >name_stim
 
 name_health
 	!scr "health"
@@ -574,6 +706,24 @@ name_ammo
 	!byte 0
 name_clips
 	!scr "ammo"
+	!byte 0
+name_clip
+	!scr "clip"
+	!byte 0
+name_shellbox
+	!scr "shell box"
+	!byte 0
+name_ammobox
+	!scr "ammo box"
+	!byte 0
+name_hbonus
+	!scr "health bonus"
+	!byte 0
+name_abonus
+	!scr "armor bonus"
+	!byte 0
+name_stim
+	!scr "health crate"
 	!byte 0
 name_shotgun
 	!scr "shotgun"

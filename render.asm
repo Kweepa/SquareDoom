@@ -66,14 +66,14 @@ render
 	jsr render_items
 	jsr draw_info_msg
 	jsr draw_hud
+	jsr prof_print			; last frame's F into FB row 0 (pre-blit)
 	jsr blit_fb
 	jsr show_weapon			; HUD sprites after first (and every) blit
 	jsr prof_frame_sample
 !if DBG_PORTAL = 1 {
-	jsr prof_print
 	jmp dbg_portal_flush
 }
-	jmp prof_print
+	rts
 
 ; ---------------------------------------------------------------------------
 ; on_cell — sector id change on the current column ray

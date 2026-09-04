@@ -17,12 +17,12 @@ ITEM_TYPE_ENEMY_HI = 5
 ITEM_TYPE_EMPTY = $ff
 ITEM_TYPE_SPAWN = 0
 ITEM_TYPE_BARREL = 6
-ITEM_TYPE_SWITCH = 27
-ITEM_TYPE_FIREBALL = 28
-ITEM_TYPE_PLASMABALL = 29
-ITEM_TYPE_ROCKET = 30
-ITEM_TYPE_EXPLOSION = 31
-ITEM_TYPE_POSCORPSE = 21
+ITEM_TYPE_SWITCH = 38
+ITEM_TYPE_FIREBALL = 39
+ITEM_TYPE_PLASMABALL = 40
+ITEM_TYPE_ROCKET = 41
+ITEM_TYPE_EXPLOSION = 42
+ITEM_TYPE_POSCORPSE = 34
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -265,7 +265,7 @@ vis_mobj_type
 	lda ITEM_CORPSE_TEX,x
 	cmp #$ff
 	beq .vmt_rts
-	cmp #ITEM_TYPE_POSCORPSE		; 21 — defined in pickup? use 21
+	cmp #ITEM_TYPE_POSCORPSE		; atlas corpse tex
 	bcc .vmt_rts
 	sta wall_col
 .vmt_rts

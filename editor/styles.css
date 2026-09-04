@@ -332,14 +332,16 @@ button.danger {
   list-style: none;
   margin: 0 0 1rem;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 2px;
 }
 
 .level-list button {
   width: 100%;
-  text-align: left;
+  text-align: center;
+  padding: 0.3rem 0.25rem;
+  font-size: 0.75rem;
 }
 
 .item-palette {

@@ -31,7 +31,7 @@ ITEM_ROWS	= 2			; option items are 2× glyphs (16px)
 dbl_hi		= $8000			; above bitmap $7F3F / matrix $4000
 dbl_lo		= $8100			; byte → doubled bits 7–0
 !if dbl_lo + 256 > MEM_LEVEL {
-	!error "dbl tabs overlap HIGH"
+	!error "dbl tabs overlap MEM_LEVEL"
 }
 CURSOR_TICK_MAX	= 20			; skull overlay; was 5 (~1/4 speed)
 COL_MAIN	= 0			; black (menus + surround)
@@ -118,7 +118,7 @@ dst_ptr		= ptr_r_l
 	jmp run_menu
 	jmp copy_vic
 
-; GFX staging $A000 → sprite tail $D000 + charset $D800 (Krill LOAD_UNDER_D000=0).
+; GFX staging $A000 → sprites $C800 + charset $D800 (Krill LOAD_UNDER_D000=0).
 copy_vic
 	sei
 	lda #$34
@@ -127,16 +127,16 @@ copy_vic
 	sta src_ptr
 	lda #>GFX_STAGING
 	sta src_ptr+1
-	lda #<(VIC_SPRITES + SPRITE_HEAD)
+	lda #<VIC_SPRITES
 	sta dst_ptr
-	lda #>(VIC_SPRITES + SPRITE_HEAD)
+	lda #>VIC_SPRITES
 	sta dst_ptr+1
-	ldx #>SPRITE_TAIL
-	ldy #<SPRITE_TAIL
+	ldx #>SPRITE_BYTES
+	ldy #<SPRITE_BYTES
 	jsr copy_block_up
-	lda #<(GFX_STAGING + SPRITE_TAIL)
+	lda #<(GFX_STAGING + SPRITE_BYTES)
 	sta src_ptr
-	lda #>(GFX_STAGING + SPRITE_TAIL)
+	lda #>(GFX_STAGING + SPRITE_BYTES)
 	sta src_ptr+1
 	lda #<CHARSET
 	sta dst_ptr
@@ -3241,8 +3241,8 @@ str_hmp		!scr "Hurt me plenty",0
 str_uv		!scr "Ultra-violence",0
 
 str_sec_main	!scr "SquareDoom",0
-str_sec_new	!scr "Which episode to play?",0
-str_sec_skill	!scr "How tough are you?",0
+str_sec_new	!scr "Which episode?",0
+str_sec_skill	!scr "Choose skill level",0
 str_sec_sound	!scr "Options",0
 
 section_lo

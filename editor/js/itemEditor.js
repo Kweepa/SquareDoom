@@ -128,7 +128,7 @@ export class ItemEditor {
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
-    } else if (!allSwitches && noViewpoints) {
+    } else if (noViewpoints) {
       const skills = document.createElement('div');
       skills.className = 'field skills';
       const skillLabel = document.createElement('span');

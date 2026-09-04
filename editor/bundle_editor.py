@@ -4,12 +4,33 @@
 from __future__ import annotations
 
 import base64
+import io
 import json
 import re
 from pathlib import Path
 
+from PIL import Image
+
 ROOT = Path(__file__).resolve().parent
+REPO = ROOT.parent
 OUT = ROOT / "index.html"
+GAME_GFX = REPO / "itemgraphics"
+EDITOR_GFX = ROOT / "itemgraphics"
+
+# Keep monochrome/editor icons for viewpoints + enemies (no game item atlases).
+KEEP_EDITOR_ICONS = frozenset(
+    {
+        "spawn",
+        "camera",
+        "soldier",
+        "imp",
+        "pinky",
+        "caco",
+        "baron",
+        "cursor",
+        "acid",
+    }
+)
 
 JS_ORDER = [
     "js/model.js",
@@ -48,14 +69,38 @@ def wrap_top_level_await(src: str) -> str:
     )
 
 
+def png_data_url(raw: bytes) -> str:
+    return "data:image/png;base64," + base64.b64encode(raw).decode("ascii")
+
+
+def game_atlas_icon_png(path: Path) -> bytes:
+    """Embed mip0 (left 8×8 of a 12×8 atlas), or the full image if smaller."""
+    img = Image.open(path).convert("RGBA")
+    w, h = img.size
+    if w >= 8 and h >= 8:
+        img = img.crop((0, 0, 8, 8))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def collect_item_images() -> dict[str, str]:
+    """Editor icons for spawn/enemies/camera; game itemgraphics mip0 for props."""
+    image_data: dict[str, str] = {}
+    if EDITOR_GFX.is_dir():
+        for p in sorted(EDITOR_GFX.glob("*.png")):
+            image_data[p.stem] = png_data_url(p.read_bytes())
+    if GAME_GFX.is_dir():
+        for p in sorted(GAME_GFX.glob("*.png")):
+            if p.stem in KEEP_EDITOR_ICONS:
+                continue
+            image_data[p.stem] = png_data_url(game_atlas_icon_png(p))
+    return image_data
+
+
 def main() -> None:
     css = (ROOT / "styles.css").read_text(encoding="utf-8")
-
-    image_data = {}
-    for p in sorted((ROOT / "itemgraphics").glob("*.png")):
-        image_data[p.stem] = "data:image/png;base64," + base64.b64encode(p.read_bytes()).decode(
-            "ascii"
-        )
+    image_data = collect_item_images()
 
     parts = []
     for rel in JS_ORDER:
@@ -139,6 +184,8 @@ def main() -> None:
 """
     OUT.write_text(html, encoding="utf-8")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes)")
+    props = sorted(k for k in image_data if k not in KEEP_EDITOR_ICONS)
+    print(f"  game-atlas icons: {len(props)}  editor-kept: {sorted(KEEP_EDITOR_ICONS & image_data.keys())}")
 
 
 if __name__ == "__main__":

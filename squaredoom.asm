@@ -2,11 +2,11 @@
 !cpu 6502
 !to "game.prg", cbm
 
-; VIC bank 3 ($C000): screen $C400, sprites $C800–$D7BF, charset $D800.
-; Play default $01=$34. SQTAB $BC00. Level $9000. py_tab $B000.
-; Boot loads MENU @ $0400; MENU copies GFX then GAME (code) over MENU.
-; locode_entry loads HIGH ($9000–$D000) before the blob copy.
-; USE_KRILL=1: Krill at $8F14. Default: KERNAL LOAD.
+; VIC bank 3 ($C000): screen $C000, sprites $C800–$D7BF, charset $D800.
+; Play default $01=$34. SQTAB $B800. Level $96E0. py_tab $AC00.
+; Boot loads MENU @ $0400; MENU copies GFX then GAME over MENU.
+; GAME image is $0400–py_tab (kernal blob already at MEM_LEVEL).
+; USE_KRILL=1: Krill at $C400. Default: KERNAL LOAD.
 !source "mem_vic.asm"
 SCREENBUFFER = $e000			; column-major colours (40×25)
 PATTERNBUFFER = SCREENBUFFER + $400	; screen codes; hi = colour hi + 4
@@ -21,7 +21,7 @@ MSG_LETTER0 = MSG_LET0
 FLOOR_PAT_BASE = 90		; floor dither 90–105
 
 MAX_DDA = 32
-PROFILE = 0
+PROFILE = 1
 DBG_FPS = 0
 DBG_PORTAL = 0
 CENTER_COL = 19
@@ -30,7 +30,7 @@ AIM_COL_SLACK = 2		; TryDamageEnemy also checks MUZZLE–this (18..22)
 MAX_SECTORS = 199		; usable ids 1..199
 SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 
-; MEM_CODE_LIMIT: Krill loadraw, or $9000 if KERNAL-only disk.
+; MEM_CODE_LIMIT: level window (MEM_LEVEL) on both disks.
 
 !source "zeropage.asm"
 *= LOCODE_BASE
@@ -65,8 +65,45 @@ SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 !source "render_clip.asm"
 ; Enemy mips (always-RAM)
 !source "enemy_sprites.asm"
-; Switch atlas (was high; py_tab now $B000)
+; Switch atlas (was high; py_tab now $AC00)
 !source "wall_switch.asm"
+!source "item_bitmaps.asm"
+
+; Copies run once from locode_entry. KERNAL_BLOB_SIZE is a forward label.
+copy_kernal_blob
+	lda #<kernal_blob
+	sta ptr_l
+	lda #>kernal_blob
+	sta ptr_h
+	lda #<SEC_WDARK_END
+	sta aux_l
+	lda #>SEC_WDARK_END
+	sta aux_h
+	lda #<KERNAL_BLOB_SIZE
+	sta tmp0
+	lda #>KERNAL_BLOB_SIZE
+	sta tmp1
+	ldy #0
+.ckb_loop
+	lda (ptr_l),y
+	sta (aux_l),y
+	inc ptr_l
+	bne .ckb_dst
+	inc ptr_h
+.ckb_dst
+	inc aux_l
+	bne .ckb_cnt
+	inc aux_h
+.ckb_cnt
+	lda tmp0
+	bne .ckb_lo
+	dec tmp1
+.ckb_lo
+	dec tmp0
+	lda tmp0
+	ora tmp1
+	bne .ckb_loop
+	rts
 
 end_code = *
 !if end_code > MEM_CODE_LIMIT {
@@ -74,8 +111,8 @@ end_code = *
 }
 
 ; ------------------------------------------------------------------
-; Level window $9000: kernal blob staged in first KERNAL_BLOB_SIZE bytes
-; (copied to $F950), rest zero until LoadLevel. High tables follow the blob+fill.
+; Level window MEM_LEVEL: kernal blob staged in first KERNAL_BLOB_SIZE bytes
+; (copied to SEC_WDARK_END), rest zero until LoadLevel. Tables follow.
 ; ------------------------------------------------------------------
 *=MEM_LEVEL
 kernal_blob
@@ -130,11 +167,12 @@ ACT_FLASH_LIGHTS = 14		; SEC_BRIGHT → 16, 1 Hz (max 2 sectors)
 ACT_OPEN_MONSTER_CLOSET = 15	; raise floor+ceil +6, permanent
 ACT_SECRET = 16			; walk-into oneshot → inc secrets found
 
-; Item layer byte: 0 = empty, else type | skillBits<<5 (stripped at start_level)
+; Item layer byte: 0 = empty, else type | skillCode<<6 (type stripped at start_level)
+; type bits 0–5 (1–63); skillCode 0=all, 1=easy, 2=normal+, 3=hard
 
 level_data = MEM_LEVEL
 level_map = level_data
-level_items = level_map + MAP_CELLS		; $9400, 32-aligned
+level_items = level_map + MAP_CELLS		; MEM_LEVEL+$400, 32-aligned
 SEC_FLOOR  = level_items + MAP_CELLS
 SEC_CEIL   = SEC_FLOOR + SEC_TABLE_SIZE
 SEC_TYPE   = SEC_CEIL + SEC_TABLE_SIZE
@@ -163,18 +201,15 @@ level_par_time = level_num_secrets + 1
 !source "tables.asm"
 !source "sky.asm"
 !source "recip.asm"
-!source "item_bitmaps.asm"
 !source "pcsfreq.asm"
 
 !zone 0
 
 end_high = *
-free_high = PY_TAB - end_high
-!if free_high < 0 {
+!if end_high > PY_TAB {
 	!error "High data overlaps py_tab at $", PY_TAB, "; overshoot=", end_high - PY_TAB
 }
-
-*=PY_TAB
+	!fill PY_TAB - end_high, 0
 !source "pytab.asm"
 !if * != PY_TAB + PY_TAB_SIZE {
 	!error "py_tab must end at $", PY_TAB + PY_TAB_SIZE, "; ended at $", *
@@ -203,26 +238,4 @@ free_high = PY_TAB - end_high
 	!error "cassette scrap BSS overflow; end=$", SCRAP_CASS_END
 }
 
-; Copies run once from locode_entry (labels resolved here).
-copy_kernal_blob
-	ldx #0
--
-!for .p, 0, (>KERNAL_BLOB_SIZE) - 1 {
-	lda kernal_blob + .p * $100,x
-	sta SEC_WDARK_END + .p * $100,x
-}
-!if (<KERNAL_BLOB_SIZE) != 0 {
-	lda kernal_blob + KERNAL_BLOB_SIZE - $100,x
-	sta SEC_WDARK_END + KERNAL_BLOB_SIZE - $100,x
-}
-	inx
-	bne -
-	rts
-
-; First 2K of sprites load at $C800 (always RAM). Tail copied into $D000 by MENU copy_vic.
-*=VIC_SPRITES
-	!bin "tmp/sprites.bin", SPRITE_HEAD
-!if * != VIC_SPRITES + SPRITE_HEAD {
-	!error "sprite head must end at $", VIC_SPRITES + SPRITE_HEAD, "; ended at $", *
-}
 

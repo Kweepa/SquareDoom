@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print free bytes between end_code and MEM_CODE_LIMIT from a VICE label file."""
+"""Print locode slack (MEM_LEVEL − end_code) from a VICE label file."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def main() -> None:
         raise SystemExit(
             f"Code overlaps limit at ${limit:04x}; overshoot={-free}"
         )
-    print(f"Free code ({_tag(path)}): {free} bytes")
+    print(f"Locode slack ({_tag(path)}): {free} bytes")
 
 
 if __name__ == "__main__":

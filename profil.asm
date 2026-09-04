@@ -39,8 +39,6 @@ CIA2_ICR	= $dd0d
 CIA2_CRA	= $dd0e
 CIA2_CRB	= $dd0f
 
-PROF_SCR	= VIC_SCREEN
-
 prof_init
 	jsr io_push
 	lda #$7f
@@ -143,12 +141,15 @@ prof_frame_sample
 
 !if PROFILE = 1 {
 ; Read Timer A into A=hi X=lo (retry if HI changes mid-read).
+; Play $01=$34 — $DDxx is DRAM unless I/O is mapped (F already uses io_push).
 prof_read_cia
+	jsr io_push
+.prc_cia
 	lda CIA2_TA_HI
 	ldx CIA2_TA_LO
 	cmp CIA2_TA_HI
-	bne prof_read_cia
-	rts
+	bne .prc_cia
+	jmp io_pop
 
 prof_snap
 	jsr prof_read_cia
@@ -248,13 +249,15 @@ prof_add_py_pair
 }
 
 ; DBG_FPS: F (≈ ms). PROFILE: S D W N L P I (ms).
-; Bucket ms ≈ (cycles>>8)/4, 3 decimal digits. Chars only — colour from blit.
+; Bucket ms ≈ (cycles>>8)/4, 3 decimal digits. Doomfont into the column-major
+; back buffers (row 0) so blit copies them like draw_info_msg.
+PROF_COLOR = 1				; white
+
 prof_print
 	ldx #0
 !if DBG_FPS = 1 {
-	lda #$86			; inverse 'F'
-	sta PROF_SCR,x
-	inx
+	lda #MSG_LET0 + ('F' - 'A')
+	jsr .pp_ch
 	lda frame_cy + 2
 	ldy frame_cy + 1
 	jsr .pp_ms3
@@ -268,8 +271,7 @@ prof_print
 	tya
 	pha
 	lda .pp_letter,y
-	sta PROF_SCR,x
-	inx
+	jsr .pp_ch
 	lda .pp_id,y
 	tay
 	lda prof_hi,y
@@ -298,16 +300,16 @@ prof_print
 	!byte PROF_ITEMS
 
 .pp_letter
-	!byte $93			; S
-	!byte $84			; D
-	!byte $97			; W
-	!byte $8e			; N
-	!byte $8c			; L
-	!byte $90			; P
-	!byte $89			; I
+	!byte MSG_LET0 + ('S' - 'A')
+	!byte MSG_LET0 + ('D' - 'A')
+	!byte MSG_LET0 + ('W' - 'A')
+	!byte MSG_LET0 + ('N' - 'A')
+	!byte MSG_LET0 + ('L' - 'A')
+	!byte MSG_LET0 + ('P' - 'A')
+	!byte MSG_LET0 + ('I' - 'A')
 }
 
-SCREEN_DIGIT_BASE = $b0
+SCREEN_DIGIT_BASE = $30			; doomfont '0'..'9' (HUD)
 
 ; Frame print scratch when PROFILE=0 (no prof_now_*/prof_dt_* from buckets).
 !if PROFILE = 0 {
@@ -322,7 +324,7 @@ pp_dig_h	= prof_now_l
 pp_dig_t	= prof_now_h
 }
 
-; A:Y = hi:lo count → 3 decimal digits at PROF_SCR,x (clamp 999)
+; A:Y = hi:lo count → 3 decimal digits at FB row 0, col X (clamp 999)
 .pp_u16_3
 	sta pp_tmp_h
 	sty pp_tmp_l
@@ -337,7 +339,7 @@ pp_dig_t	= prof_now_h
 	bcc .pp_dec3
 	bcs .pp_sat
 
-; A:Y = hi:mid (cycles>>8) → (A:Y)>>2 ≈ ms → 3 decimal digits at PROF_SCR,x
+; A:Y = hi:mid (cycles>>8) → (A:Y)>>2 ≈ ms → 3 decimal digits at FB row 0, col X
 .pp_ms3
 	sta pp_tmp_h
 	sty pp_tmp_l
@@ -396,14 +398,34 @@ pp_dig_t	= prof_now_h
 	pla
 	tax
 	lda pp_dig_h
-	sta PROF_SCR,x
-	inx
+	jsr .pp_ch
 	lda pp_dig_t
-	sta PROF_SCR,x
-	inx
+	jsr .pp_ch
 	lda pp_tmp_l
 	clc
 	adc #SCREEN_DIGIT_BASE
-	sta PROF_SCR,x
+	; fall through
+
+; A = doomfont screen code → PATTERNBUFFER row 0, PROF_COLOR in SCREENBUFFER; X++
+; Preserves Y (PROFILE loop index lives in Y across the letter store).
+.pp_ch
+	sta tmp0
+	tya
+	pha
+	lda colbaselo,x
+	sta col_base_l
+	sta pat_base_l
+	lda colbasehi,x
+	sta col_base_h
+	clc
+	adc #4				; PATTERNBUFFER = SCREENBUFFER+$400
+	sta pat_base_h
+	ldy #0				; row 0
+	lda #PROF_COLOR
+	sta (col_base_l),y
+	lda tmp0
+	sta (pat_base_l),y
+	pla
+	tay
 	inx
 	rts

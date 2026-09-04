@@ -8,3 +8,4 @@ ref/
 *.prg
 !krill/*.prg
 
+.cursor/debug*

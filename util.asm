@@ -50,9 +50,8 @@ set_border
 	sta $d020
 	jmp io_pop
 
-; VIC bank 3, screen $C400 / charset $D800. Caller must have I/O in.
-; Drop menu leftover BMM/MCM. Leave DEN off — HIGH loadraw writes the
-; $C400 screen hole; unblank after show_entering (locode) or in LoadPrg.
+; VIC bank 3, screen $C000 / charset $D800. Caller must have I/O in.
+; Drop menu leftover BMM/MCM. Leave DEN off until the first blit / show_entering.
 ; Absolute $dd00 write: Krill DDRA=$03 makes bits 2–5 inputs. RMW latches
 ; live IEC pins and the next loadraw hangs (BIT $DD00 / BVC). Quake64 vic.asm.
 set_vic_bank3

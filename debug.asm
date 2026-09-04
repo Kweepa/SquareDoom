@@ -140,7 +140,7 @@ dbg_portal_flush
 	inc fill_row
 	rts
 
-; A = 0..255 → three inverse digits at current fill_row (Willy PrintDec3)
+; A = 0..255 → three doomfont digits at current fill_row (Willy PrintDec3)
 .dpf_u8_3
 	ldx #SCREEN_DIGIT_BASE
 .dpf_h

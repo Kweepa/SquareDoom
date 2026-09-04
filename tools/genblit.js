@@ -1,6 +1,6 @@
 /**
  * Emit compact interleaved blit: column-major colour + lighting FBs
- * → colour RAM ($D800) and screen ($C400, VIC bank 3).
+ * → colour RAM ($D800) and screen ($C000, VIC bank 3).
  *
  * Pattern dest is DRAM (copy at $01=$34). Colour dest needs I/O ($35).
  * Per column: copy 25 pattern cells, $35 + 25 colour cells, $34 + cli
@@ -18,7 +18,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const COLS = 40;
 const ROWS = 25;
 const CRAM = 0xd800;
-const SCREEN = 0xc400;
+const SCREEN = 0xc000;
 const HUD_LEFT = 8; // cols 0..7
 const HUD_RIGHT = 32; // cols 32..39
 
@@ -54,7 +54,7 @@ function emitRows(kind) {
 
 let asm = `; Auto-generated — compact interleaved colour RAM + screen blit\n`;
 asm += `; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400\n`;
-asm += `; Dest: pattern $C400 (RAM, $34), colour $D800 (I/O, $35); yield $34+cli/col\n`;
+asm += `; Dest: pattern $C000 (RAM, $34), colour $D800 (I/O, $35); yield $34+cli/col\n`;
 asm += `; Row 24: always blit cols 8–31 (view); HUD cols 0–7/32–39 if hud_dirty\n`;
 asm += `!zone blit_fb\n\n`;
 asm += `blit_fb\n`;
@@ -86,7 +86,7 @@ asm += `\trts\n`;
 
 writeFileSync(join(root, 'blit.asm'), asm);
 console.log(
-  'wrote blit.asm (column-loop, $C400 + colour yield)',
+  'wrote blit.asm (column-loop, $C000 + colour yield)',
   COLS * ROWS,
   'cells'
 );

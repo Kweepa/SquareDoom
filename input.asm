@@ -41,7 +41,7 @@ SAMPLE_TA_HI = >$4FFF
 SFX_TB_LO = <$1BFF
 SFX_TB_HI = >$1BFF
 
-; No SID on the level PRG (map owns $9000)
+; No SID on the level PRG (map owns $96E0)
 MUSIC_INIT
 MUSIC_PLAY
 	rts

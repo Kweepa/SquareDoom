@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Carve ACME's $0400–$D000 game.prg into code + high (skip the Krill gap if present)."""
+"""Validate ACME game.prg is one CPU image $0400 through py_tab. No high.prg."""
 from __future__ import annotations
 
 import argparse
 import re
-import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 GAME = ROOT / "game.prg"
 LBL = ROOT / "squaredoom.lbl"
-HIGH = ROOT / "high.prg"
 
 LOCODE_BASE = 0x0400
-MEM_LEVEL = 0x9000
-HIGH_END = 0xD000  # VIC_SPRITES + SPRITE_HEAD
+MEM_LEVEL = 0x96E0
+PY_TAB = 0xAC00
+PY_TAB_SIZE = 12 * 256
+GAME_END = PY_TAB + PY_TAB_SIZE  # $B800, flush under SQTAB
 
 
 def lbl_addr(lbl_path: Path, name: str) -> int | None:
@@ -27,7 +27,9 @@ def lbl_addr(lbl_path: Path, name: str) -> int | None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Split game.prg into code + high")
+    ap = argparse.ArgumentParser(
+        description="Validate game.prg is $0400 through py_tab (no high.prg)"
+    )
     ap.add_argument("--lbl", type=Path, default=LBL, help="VICE labels (default squaredoom.lbl)")
     args = ap.parse_args()
     lbl_path = args.lbl
@@ -48,28 +50,30 @@ def main() -> None:
     end_code = lbl_addr(lbl_path, "end_code")
     if end_code is None:
         raise SystemExit(f"{lbl_path.name}: missing label end_code")
-    code_limit = lbl_addr(lbl_path, "loadraw")
-    if code_limit is None:
-        code_limit = MEM_LEVEL
-    if end_code > code_limit:
-        raise SystemExit(f"end_code ${end_code:04x} overlaps code limit ${code_limit:04x}")
+    mem_level = lbl_addr(lbl_path, "MEM_LEVEL")
+    if mem_level is None:
+        mem_level = MEM_LEVEL
+    py_tab = lbl_addr(lbl_path, "PY_TAB")
+    if py_tab is None:
+        py_tab = PY_TAB
+    game_end = py_tab + PY_TAB_SIZE
+
+    if end_code > mem_level:
+        raise SystemExit(f"end_code ${end_code:04x} overlaps MEM_LEVEL ${mem_level:04x}")
     if end_code < load:
         raise SystemExit(f"end_code ${end_code:04x} before load ${load:04x}")
 
     img_end = load + len(body)
-    if img_end < HIGH_END:
-        raise SystemExit(f"game.prg ends at ${img_end:04x}, need ${HIGH_END:04x}")
+    if img_end != game_end:
+        raise SystemExit(
+            f"game.prg ends at ${img_end:04x}, expected ${game_end:04x} (py_tab end)"
+        )
+    if img_end > 0xC000:
+        raise SystemExit(f"game.prg covers ${img_end:04x}; must stay below $C000 (Krill $C400)")
 
-    def slice_abs(start: int, end: int) -> bytes:
-        return body[start - load : end - load]
-
-    code = slice_abs(LOCODE_BASE, end_code)
-    high = slice_abs(MEM_LEVEL, HIGH_END)
-    GAME.write_bytes(struct.pack("<H", LOCODE_BASE) + code)
-    HIGH.write_bytes(struct.pack("<H", MEM_LEVEL) + high)
     print(
-        f"split game.prg ${LOCODE_BASE:04x}–${end_code:04x} ({len(code)} B), "
-        f"high.prg ${MEM_LEVEL:04x}–${HIGH_END:04x} ({len(high)} B)"
+        f"game.prg ${LOCODE_BASE:04x}–${img_end:04x} ({len(body)} B), "
+        f"end_code ${end_code:04x}, locode slack {mem_level - end_code} B"
     )
 
 

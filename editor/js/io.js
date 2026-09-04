@@ -1,8 +1,9 @@
 /**
  * Cooked binary layout (no header), per level:
- *   1. Map: 1024 bytes sector ids (first so runtime level_map is $9000 / 32-aligned)
- *   2. Item layer: 1024 bytes, one cell per tile: 0 or type | skillBits<<5
- *      skillBits: bit0=easy, bit1=normal, bit2=hard (bits 5–7 of the byte)
+ *   1. Map: 1024 bytes sector ids (first so runtime level_map is $96E0 / 32-aligned)
+ *   2. Item layer: 1024 bytes, one cell per tile: 0 or type | skillCode<<6
+ *      type: bits 0–5 (1–63); skillCode bits 6–7:
+ *        0=all, 1=easy only, 2=normal+, 3=hard only
  *   3. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
  *      order: floor, ceil, special, targetSector, floorColor, ceilingColor, brightness
  *   4. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
@@ -11,7 +12,7 @@
  *   7. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
- * typeId: index into ITEM_TYPES (1–31 in the layer; 0 = empty)
+ * typeId: index into ITEM_TYPES (1–63 in the layer; 0 = empty)
  */
 
 import {
@@ -34,6 +35,7 @@ import {
   MAX_ENEMIES,
   MAX_SECTORS,
   MAX_SWITCH_FACES,
+  MAX_COOK_TYPE_ID,
   enemyCount,
   statItemCount,
   secretCount,
@@ -59,6 +61,20 @@ import {
   buildSwitchFaceBindings,
 } from './model.js';
 
+/** Pack editor skill checkboxes → 2-bit cook code (see file header). */
+export function packSkillCode(skills) {
+  const e = skills?.easy !== false;
+  const n = skills?.normal !== false;
+  const h = skills?.hard !== false;
+  if (e && n && h) return 0;
+  if (e && !n && !h) return 1;
+  if (!e && n && h) return 2;
+  if (!e && !n && h) return 3;
+  if (!e && n && !h) return 2;
+  if (e && n && !h) return 0;
+  if (e && !n && h) return 0;
+  return 0;
+}
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
 const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
 const SPAWN_BYTES = 3;
@@ -374,16 +390,13 @@ export function cookLevel(level) {
   for (const it of level.items.filter((it) => isGameItem(it.type))) {
     const s = snapToTileCenter(it.x, it.y);
     const typeId = ITEM_TYPES.indexOf(it.type);
-    if (typeId < 1 || typeId > 31) continue;
-    let bits = 0;
-    if (it.skills?.easy) bits |= 1;
-    if (it.skills?.normal) bits |= 2;
-    if (it.skills?.hard) bits |= 4;
+    if (typeId < 1 || typeId > MAX_COOK_TYPE_ID) continue;
+    const code = packSkillCode(it.skills);
     const idx = s.ty * 32 + s.tx;
     if (layer[idx]) {
       warnings.push(`Tile ${s.tx},${s.ty}: last-wins (${it.type} overwrites)`);
     }
-    layer[idx] = (typeId & 0x1f) | ((bits & 7) << 5);
+    layer[idx] = (typeId & 0x3f) | ((code & 3) << 6);
   }
 
   const spawn = level.spawn ?? defaultSpawn();

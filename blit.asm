@@ -1,6 +1,6 @@
 ; Auto-generated — compact interleaved colour RAM + screen blit
 ; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400
-; Dest: pattern $C400 (RAM, $34), colour $D800 (I/O, $35); yield $34+cli/col
+; Dest: pattern $C000 (RAM, $34), colour $D800 (I/O, $35); yield $34+cli/col
 ; Row 24: always blit cols 8–31 (view); HUD cols 0–7/32–39 if hud_dirty
 !zone blit_fb
 
@@ -17,76 +17,76 @@ blit_fb
 	sta pat_base_h
 	ldy #0
 	lda (pat_base_l),y
-	sta $c400,x
+	sta $c000,x
 	iny
 	lda (pat_base_l),y
-	sta $c428,x
+	sta $c028,x
 	iny
 	lda (pat_base_l),y
-	sta $c450,x
+	sta $c050,x
 	iny
 	lda (pat_base_l),y
-	sta $c478,x
+	sta $c078,x
 	iny
 	lda (pat_base_l),y
-	sta $c4a0,x
+	sta $c0a0,x
 	iny
 	lda (pat_base_l),y
-	sta $c4c8,x
+	sta $c0c8,x
 	iny
 	lda (pat_base_l),y
-	sta $c4f0,x
+	sta $c0f0,x
 	iny
 	lda (pat_base_l),y
-	sta $c518,x
+	sta $c118,x
 	iny
 	lda (pat_base_l),y
-	sta $c540,x
+	sta $c140,x
 	iny
 	lda (pat_base_l),y
-	sta $c568,x
+	sta $c168,x
 	iny
 	lda (pat_base_l),y
-	sta $c590,x
+	sta $c190,x
 	iny
 	lda (pat_base_l),y
-	sta $c5b8,x
+	sta $c1b8,x
 	iny
 	lda (pat_base_l),y
-	sta $c5e0,x
+	sta $c1e0,x
 	iny
 	lda (pat_base_l),y
-	sta $c608,x
+	sta $c208,x
 	iny
 	lda (pat_base_l),y
-	sta $c630,x
+	sta $c230,x
 	iny
 	lda (pat_base_l),y
-	sta $c658,x
+	sta $c258,x
 	iny
 	lda (pat_base_l),y
-	sta $c680,x
+	sta $c280,x
 	iny
 	lda (pat_base_l),y
-	sta $c6a8,x
+	sta $c2a8,x
 	iny
 	lda (pat_base_l),y
-	sta $c6d0,x
+	sta $c2d0,x
 	iny
 	lda (pat_base_l),y
-	sta $c6f8,x
+	sta $c2f8,x
 	iny
 	lda (pat_base_l),y
-	sta $c720,x
+	sta $c320,x
 	iny
 	lda (pat_base_l),y
-	sta $c748,x
+	sta $c348,x
 	iny
 	lda (pat_base_l),y
-	sta $c770,x
+	sta $c370,x
 	iny
 	lda (pat_base_l),y
-	sta $c798,x
+	sta $c398,x
 	iny
 	cpx #8
 	bcc .hud_side_p
@@ -97,7 +97,7 @@ blit_fb
 	beq .hud_clean_p
 .blit_r24_p
 	lda (pat_base_l),y
-	sta $c7c0,x
+	sta $c3c0,x
 .hud_clean_p
 	lda #$35
 	sta $01

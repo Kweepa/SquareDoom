@@ -68,14 +68,14 @@ ITEM_TYPE_ENEMY_LAST = 5
 ITEM_TYPE_SOLDIER = 1
 ITEM_TYPE_IMP = 2
 ITEM_TYPE_BARREL = 6
-ITEM_TYPE_FIREBALL = 28
-ITEM_TYPE_POSCORPSE = 21
-ITEM_TYPE_IMPCORPSE = 22
-ITEM_TYPE_DEMONCORPSE = 23
-ITEM_TYPE_BARONCORPSE = 24
-ITEM_TYPE_PLASMABALL = 29
-ITEM_TYPE_ROCKET = 30
-ITEM_TYPE_EXPLOSION = 31
+ITEM_TYPE_FIREBALL = 39
+ITEM_TYPE_POSCORPSE = 34
+ITEM_TYPE_IMPCORPSE = 35
+ITEM_TYPE_DEMONCORPSE = 36
+ITEM_TYPE_BARONCORPSE = 37
+ITEM_TYPE_PLASMABALL = 40
+ITEM_TYPE_ROCKET = 41
+ITEM_TYPE_EXPLOSION = 42
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -1204,7 +1204,7 @@ a_fall
 	cmp #MOBJINFO_CACO
 	bcs .af_stub			; caco / missile
 	clc
-	adc #ITEM_TYPE_POSCORPSE	; 0→21, 1→22, 2→23
+	adc #ITEM_TYPE_POSCORPSE	; 0→pos, 1→imp, 2→demon
 	sta ITEM_CORPSE_TEX,x
 	rts
 .af_baron
@@ -1287,7 +1287,7 @@ enemy_damage
 ; ---------------------------------------------------------------------------
 ; enemy_get_texture — X = mobj → A = tex (bit6=animate), C=1 if 16×32
 ; Live enemies use enemy_sprites. Dead pos/imp/demon/baron use item atlas
-; (ITEM_CORPSE_TEX = 21..24). Caco stub is a 16×32 frame index.
+; (ITEM_CORPSE_TEX = pos/imp/demon/baron atlas ids). Caco stub is a 16×32 frame index.
 ; ---------------------------------------------------------------------------
 enemy_get_texture
 	lda ITEM_CORPSE_TEX,x
@@ -1295,7 +1295,7 @@ enemy_get_texture
 	beq .egt_live
 	cmp #ITEM_TYPE_POSCORPSE
 	bcc .egt_stub			; caco / other 16×32 corpse
-	; item-atlas corpse (21..24)
+	; item-atlas corpse
 .egt_item8
 	lda #0
 	clc

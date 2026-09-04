@@ -21,6 +21,7 @@ export class MapView {
    *   items: Set<any>,
    *   hoverTile: {tx:number,ty:number}|null,
    *   box: {x0:number,y0:number,x1:number,y1:number}|null,
+   *   itemDrag?: {dtx:number,dty:number}|null,
    * }} opts.getSelection
    * @param {(ev: PointerEvent, info: object) => void} opts.onPointer
    * @param {(type: string, wx: number, wy: number) => void} opts.onDropItem
@@ -282,8 +283,13 @@ export class MapView {
     }
 
     const markers = level.spawn ? [level.spawn, ...level.items] : level.items;
+    const itemDrag = sel.itemDrag;
     for (const it of markers) {
-      const { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
+      let { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
+      if (itemDrag && sel.items?.has(it)) {
+        ix += itemDrag.dtx * c;
+        iy += itemDrag.dty * c;
+      }
       const { drawW, drawH } = this.#spriteSize(it, spriteSize);
       const left = ix - drawW / 2;
       const top = iy - drawH / 2;

@@ -96,11 +96,11 @@ clip_col_reset
 
 ; clip_base = COL_CLIP_ENTRIES + col * CLIP_COL_BYTES (contiguous under KERNAL)
 clip_base_lo
-!for .col, 40 {
+!for .col, 1, 40 {
 	!byte <(COL_CLIP_ENTRIES + (.col - 1) * CLIP_COL_BYTES)
 }
 clip_base_hi
-!for .col, 40 {
+!for .col, 1, 40 {
 	!byte >(COL_CLIP_ENTRIES + (.col - 1) * CLIP_COL_BYTES)
 }
 

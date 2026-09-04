@@ -289,6 +289,8 @@ const episode = createEpisode();
  *   items: Set<any>,
  *   primaryTile: {tx:number,ty:number}|null,
  *   hoverTile: {tx:number,ty:number}|null,
+ *   box: any,
+ *   itemDrag: {dtx:number,dty:number}|null,
  * }} */
 const selection = {
   tiles: new Set(),
@@ -296,6 +298,7 @@ const selection = {
   primaryTile: null,
   hoverTile: null,
   box: null,
+  itemDrag: null,
 };
 
 /** @type {null | {
@@ -563,6 +566,7 @@ function clearSelection() {
   selection.primaryTile = null;
   selection.hoverTile = null;
   selection.box = null;
+  selection.itemDrag = null;
   drag = null;
 }
 
@@ -787,11 +791,31 @@ function startBoxSelect(info, additive) {
 function startDrag(info, mode) {
   drag = {
     mode,
+    startTx: info.tx,
+    startTy: info.ty,
     lastTx: info.tx,
     lastTy: info.ty,
     lastWx: info.wx,
     lastWy: info.wy,
   };
+  if (mode === 'items') {
+    selection.itemDrag = { dtx: 0, dty: 0 };
+  }
+}
+
+/** Clamp tile delta so every selected item stays on the map. */
+function clampItemDragDelta(items, dtx, dty) {
+  let outDtx = dtx;
+  let outDty = dty;
+  for (const it of items) {
+    const tx = Math.floor(it.x / WORLD_PER_TILE);
+    const ty = Math.floor(it.y / WORLD_PER_TILE);
+    if (tx + outDtx < 0) outDtx = -tx;
+    if (tx + outDtx >= MAP_SIZE) outDtx = MAP_SIZE - 1 - tx;
+    if (ty + outDty < 0) outDty = -ty;
+    if (ty + outDty >= MAP_SIZE) outDty = MAP_SIZE - 1 - ty;
+  }
+  return { dtx: outDtx, dty: outDty };
 }
 
 function handlePointer(e, info) {
@@ -799,6 +823,14 @@ function handlePointer(e, info) {
 
   if (e.type === 'pointerleave') {
     selection.hoverTile = null;
+    if (drag?.mode === 'items') {
+      // Cancel preview — do not commit mid-drag when leaving the map.
+      selection.itemDrag = null;
+      drag = null;
+      endUndoGesture();
+      mapView.draw();
+      return;
+    }
     if (!drag) mapView.draw();
     return;
   }
@@ -834,21 +866,18 @@ function handlePointer(e, info) {
       }
 
       if (drag.mode === 'items') {
-        const dtx = info.tx - drag.lastTx;
-        const dty = info.ty - drag.lastTy;
-        if (dtx || dty) {
-          beginUndoGesture();
-          const kept = moveItemsBy(level, [...selection.items], dtx * WORLD_PER_TILE, dty * WORLD_PER_TILE);
-          selection.items = new Set(kept);
-          drag.lastTx = info.tx;
-          drag.lastTy = info.ty;
-          drag.lastWx = info.wx;
-          drag.lastWy = info.wy;
-          markDirty();
-          refreshEditors();
-          mapView.draw();
-          previewView.draw();
-        }
+        drag.lastTx = info.tx;
+        drag.lastTy = info.ty;
+        drag.lastWx = info.wx;
+        drag.lastWy = info.wy;
+        const rawDtx = info.tx - drag.startTx;
+        const rawDty = info.ty - drag.startTy;
+        selection.itemDrag = clampItemDragDelta(
+          [...selection.items],
+          rawDtx,
+          rawDty,
+        );
+        mapView.draw();
       }
       return;
     }
@@ -901,6 +930,34 @@ function handlePointer(e, info) {
         setStatus(
           `Selection: ${selection.tiles.size} tile(s), ${selection.items.size} item(s) · ${n} sectors`,
         );
+        refreshAll();
+        return;
+      }
+
+      if (drag.mode === 'items') {
+        const preview = selection.itemDrag;
+        selection.itemDrag = null;
+        const dtx = preview?.dtx ?? 0;
+        const dty = preview?.dty ?? 0;
+        drag = null;
+        if (dtx || dty) {
+          beginUndoGesture();
+          const kept = moveItemsBy(
+            level,
+            [...selection.items],
+            dtx * WORLD_PER_TILE,
+            dty * WORLD_PER_TILE,
+          );
+          selection.items = new Set(kept);
+          markDirty();
+        }
+        endUndoGesture();
+        const n = sectorCount(level);
+        if (selection.tiles.size || selection.items.size) {
+          setStatus(
+            `Selection: ${selection.tiles.size} tile(s), ${selection.items.size} item(s) · ${n} sectors`,
+          );
+        }
         refreshAll();
         return;
       }

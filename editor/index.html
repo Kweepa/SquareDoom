@@ -340,14 +340,16 @@ button.danger {
   list-style: none;
   margin: 0 0 1rem;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 2px;
 }
 
 .level-list button {
   width: 100%;
-  text-align: left;
+  text-align: center;
+  padding: 0.3rem 0.25rem;
+  font-size: 0.75rem;
 }
 
 .item-palette {
@@ -571,32 +573,51 @@ button.danger {
   <script>
 const ITEM_IMAGE_DATA = {
   "acid": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRFAAAATP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZmfEcAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAjSURBVBhXY2CAAUYGRiAA8UA0mAVjQGigEJQAS4FVgjWDSAAFQAAkiZHR2AAAAABJRU5ErkJggg==",
-  "backpack": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAA8SURBVChTY2RgYPgPxHgBSAEYV2gqgTGMD9OMIolFEapumAlIJkGMRrYGjY2wG914qEbsClCsQPYBuikAVR9NWpa9QukAAAAASUVORK5CYII=",
+  "ammobox": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAWklEQVR4nGNkYGD4z4AHMOGTJEoBC4yx8v98FIlwxkQwzQhyQ9gaX6y6V4VsBtP/Q+0Z/oNA2BpfMAYBkBhIDmwFY64vQ5gDyDAICJvMCBZjOLgZ4QawABYAACn3Hu8kybwyAAAAAElFTkSuQmCC",
+  "armorbonus": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAeklEQVR4nGNkYGD4z8DAwNAXoAmi4KBow3UwzQQivLy8GN5qB6EoCLWH0IxeXl7/XdjugzkwRcJX14HpPb8UISZgA8ffI1mBrBvGthSEuAmsACSg16LCcP78eTAGsWEa4CYs9F7NYGhoCMYgNgwwbdu2DcyA0chskBgAQsQq0ewEI54AAAAASUVORK5CYII=",
+  "backpack": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAVUlEQVR4nGNggIK+AM3/IAzjwwATTBJZIYYCZHD8/XWGUHsGuCIUBSBJS0FNhtUHGRhhilhARoIkQAAkCQMwRSzoElgdiQ2AdINMYUR3Ocw6kCSIBgBxoCPD6a0QDgAAAABJRU5ErkJggg==",
   "baron": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRFAAAATP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZmfEcAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAfSURBVBhXY2BgYAQjEGCE0nAGTIoRJAKRhKmB64IwAALHABMjfxjoAAAAAElFTkSuQmCC",
-  "barrel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAAzSURBVChTY2RgYPgv1aQGpHCD/1BFYBqGgZpgbLAJODHIXMImoFsBMxGqmQwT0EzE70gAkBhMfdLp4f8AAAAASUVORK5CYII=",
-  "bluearmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAABGdBTUEAALGPC/xhBQAAAwBQTFRFAAAAjnDvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAajm+MgAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAiSURBVBhXY2BkZGRgABFADAYgHgQDAYwCMcAiEBVAGk0EAAXoACU3JAsHAAAAAElFTkSuQmCC",
-  "bluecard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGDgYNgLY6LQIAX/gZJgDGMj0aiSUBORFUIUIOuEKYKKIxSgScA0YlqBZiKmFVgVwHyBTgMAq7JVjzLB+isAAAAASUVORK5CYII=",
+  "barrel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAVElEQVR4nGNkYGD4v/L/fAYQWLt2HZhGBowgBSCGl5cXhuS2bdsgCkg2wdDQkOH8+fNgE5hggvFbQxl4kpjBGCQJokEArgAZwCRRFGCzH+4GfI4EANgRIpYkBADSAAAAAElFTkSuQmCC",
+  "bluearmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAWElEQVR4nGMsyH39nwEKJkwWBdMFua9hQgwscBaaBAwwwXSBwNNLomCMbCLYBJigtB7EBGRFTMgSyAAmBlYA0oGsCMSGmQI3AdlYZA2MDAwMYG+i+wDmeADnmCTdevQWTwAAAABJRU5ErkJggg==",
+  "bluecard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAARElEQVR4nGNkYGD4zwAFBbmvYUw4YEKXvHBkEQoNVgCTZE28iyKJYgJI8vd8ZdxWIJtgYBOHqQCbbqKsYAR5E5v3YAAA734a3EuH5M8AAAAASUVORK5CYII=",
   "caco": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABKSURBVChTY2RgYPgPxAwVmkogCg46rt+Ds/8DJcEYqhiVD5PEpgAsBpNAVogshqIAZgWyVXAF6JIgPtQkOAPsSBTjoT6ES2BzMABmd1Ed8DzHkQAAAABJRU5ErkJggg==",
   "camera": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAAD//xtBqzAAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAGAAAAABAAAAYAAAAAEAAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADZp5qVybcLXwAAACBJREFUGFdjYIADRkZGBgZGKAPEBjHAgigMuBREMRQAAASFAB9sgapfAAAAAElFTkSuQmCC",
-  "chaingun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAAN0lEQVQoU2NkYGD4D8R4wX+GKf8hGKQYnYZLwhSh03gVQK1HWIGhG+Q+ZEG8boAYhw3jlAArBgA4CGspijHAXgAAAABJRU5ErkJggg==",
-  "chainsaw": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAANElEQVQoU2NkYGD4D8R4wX+GKf9BinBgmCRORSAJXBhsKrIkujVgU0lSgG4V1Id4fMDwHwBY2GAkmPIKogAAAABJRU5ErkJggg==",
+  "candelabra": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAX0lEQVR4nGNgYGD4D8P7zxXB2TDMxMDAwLD/XBGIYmCdBxJD8EEArAAmcerJDhSFMAA2qi9A8/+RnEIwjWYNgoNFEuIGGDCT8UAxGu4GGIC5AauCIzmFYBP6AjRRFAAAL3wwNIemvbwAAAAASUVORK5CYII=",
+  "chaingun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAW0lEQVR4nGNkYGD4z4AHMOGThCv4//8/w6ZNm8ACIDYyzVhdXY1ihbm5OcPJkyfhNNwKkAA6aG1tZWACEWw79jKcb2zD7oZGYwsUHcg02A2NxhZgN9SfPYHVBACsXSOnN7oH5QAAAABJRU5ErkJggg==",
+  "chainsaw": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAATklEQVR4nGNgoBb4T4wkVkVMyJL/////X11dDaLANEiMZf+5IoZDqccY7GZbMXh7e4NVw2iQQrAJIElsoKamhoFh/7mi/yCMbjwIgBQBAJh/NPEqtcTZAAAAAElFTkSuQmCC",
+  "clip": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAOklEQVR4nGNkYGD4z4AHMOGTpI4CFhhj/7kiMM067z+DzZR+TAV71nIynD9/nsHQ0JACN4B0g0xBBgD/Hw2FcWnPWQAAAABJRU5ErkJggg==",
   "cursor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRF/wAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAw8+BvgAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAmSURBVChTY2CEAAYoDWfQQoABYToDGIAshgKYM2D2otM0dRjC+wB4ogDj8+mE8gAAAABJRU5ErkJggg==",
-  "greenarmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAABGdBTUEAALGPC/xhBQAAAwBQTFRFAAAAqeVMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASha6+wAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAiSURBVBhXY2BkZGRgABFADAYgHgQDAYwCMcAiEBVAGk0EAAXoACU3JAsHAAAAAElFTkSuQmCC",
-  "health": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAA1SURBVChTY2RgYPgPxHgBSMF/dADVCNaMIQkTgJkOVwDThVUBkpFwK0kzAZtD4CagG4/MBwCz74Z7GeAxogAAAABJRU5ErkJggg==",
+  "gibs": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAATElEQVR4nGNkYGD4z4AHMOGTpLeCIzmFDI3GFmAaGTA2Glv8d7a0hAucerIDTH9+zM9Qf/YEAyPIm6H2DAw6Xyzgiq7wnGBYfRDCBgCGyxQ5buRWZAAAAABJRU5ErkJggg==",
+  "greenarmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAWElEQVR4nGMMW+P7nwEKVoVsBtNha3xhQgwscBaaBAwwwXSBwJd5f8EY2USwCTBBniRmuEK4CcgSyAAmBlYA0oGsCMSGmQI3AdlYZA2MDAwMYG+i+wDmeACEPCWggcrpPwAAAABJRU5ErkJggg==",
+  "gruntcorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAASklEQVR4nGNkYGD4z4AHMOGTpJMCFhjjSE4hmJ7kcAdMrwrZDDFh5f/5YMm2ezfBAsHBQWAaJA4CjCBvNhpboBh7hecEw+qDEDYA7xkUc6jAgysAAAAASUVORK5CYII=",
+  "gruntgibs": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAWUlEQVR4nGNkYGD4z4AHMOGTpKKCIzmFcIGV/+eDMYYJIEWNxhYM0rmXUExgbDS2+O9saQkXOPVkB5j+/Jifof7sCQZGkDdD7RkYdL5YwBVd4TnBsPoghA0AOzwaIcsQ1wsAAAAASUVORK5CYII=",
+  "health": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAS0lEQVR4nGNkYGD4z4AHsMAY//+jqmNkZATTTNgkkcXAJmzevBmnFSBz/sNUh6/1A9MrgzfBrQFbgSyJzoYrgOlCZ6NYgWE/IyMDAHIjHSKQZzeLAAAAAElFTkSuQmCC",
+  "healthbonus": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAATklEQVR4nGNgYGD4D8MOhr3/C3Jfw/kgzMSABi4cWYTCx1CADuAKHAx74YIFua9RFSALwKyBibHABAxs4rBaAVaAzXEoVhw4X4whARMDADOSHs0HW6IsAAAAAElFTkSuQmCC",
+  "healthcrate": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAQElEQVR4nGNkYGD4z4AHsICI//+xq2FkZGRg/I9LFmbC5s2b8cmjmhC+1g9MrwzeBFfAhC6JzoYrQNaFzCboSABnfRsdq7PrPwAAAABJRU5ErkJggg==",
   "imp": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGBQoakEpjuu34MJgen/QAmQIjCNzIZphktCBeCKwHx03cimwE0gygp0N8CsAzsSl0OJciQAEsRMi5MST+IAAAAASUVORK5CYII=",
+  "lightpost": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAW0lEQVR4nGNkYGD4zwAF+88VgWlHoz6YEAMjsoL//yFMRkaQMASwwFkMDAw1NTUM58+fRxZiYELhYQEoCszNzRkMDQ1xKzh58iR+K/CasGnTJrAJIFBdXQ1XAADkgBkKR4EEaAAAAABJRU5ErkJggg==",
   "pinky": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABISURBVChTY2RgYPgPxAyr4reBKDgIW+gFZ/8HSmLFMM34FYB0g1TCaBgbZirIbrgCZKuQNIEdiWECXgVQx8E0QXTD7YR4G44BeT5x6pQGoHMAAAAASUVORK5CYII=",
-  "radsuit": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAP///6XZn90AAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAADAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKOTAADoAwAAo5MAAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAAHd36etszaFAAAAB9JREFUGFdjYGBkZIBgGMXIAAYgBpTPCFGDTQRMAikABL8AIz0vha8AAAAASUVORK5CYII=",
-  "redcard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGBQoakEY6LQIAX/gZJgDGMj0aiSUBORFUIUIOuEKYKKIxSgScA0YlqBZiKmFVgVwHyBTgMA/iJO4Dom4N8AAAAASUVORK5CYII=",
-  "rocketlauncher": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAGq/xvF9IssAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAADAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKOTAADoAwAAo5MAAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAAHd36etszaFAAAABxJREFUGFdjYMABGBkYGKGAAYxADBALLAXGyAAAAusAFfzUv3wAAAAASUVORK5CYII=",
-  "shells": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAQ6gAAEOoBgtMKmAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAAoSURBVChTY2RgYPgPxHgBSAE+zPC/QlMJJwYZDdYNUoSNpqcCXD4BAB9nR0L3C/f+AAAAAElFTkSuQmCC",
-  "shotgun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAANElEQVQoU2NkYGD4D8R4AUgBPgyUnPKfgAKQCSBF2DCKIMwqmEIwH4WD1S14HQj2IV5fAAAqV07TIDhfPgAAAABJRU5ErkJggg==",
-  "skullpile": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAwBQTFRFAAAA/9gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAR1k+bwAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNtCDrVoAAAAkSURBVBhXY2BgYGBkBBIgCs6AiQElIGKMQAgBUDVw1SBdQDEAA7gAHMKiUicAAAAASUVORK5CYII=",
+  "radsuit": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAfElEQVR4nFWPQQqAIBBFf+HOLuM1BD1HZ2gTgXQghc6Qq7lJu9bFF0bqgfjnzzD6BwBPzhkkxtjub220IN77rnVwpKi1IoQA51w71PSI0elSClJKXSttg4j0hjbVM7LtsNMJYP69b+8Dsl0Y3brgtv/PEXrsDYz5jaZo5BeJoDKK/0OBiQAAAABJRU5ErkJggg==",
+  "redcard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAARUlEQVR4nGNkYGD4zwAFR3IKYUw4YEKX3Hv8OAoNVgCT/J3EiCKJYgJIknUe3DZMBcgmOFtaYirAppsoK0Bm/sfmPRgAAMn9GoUkBH8IAAAAAElFTkSuQmCC",
+  "rocketlauncher": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAUUlEQVR4nGNkYGD4z4AHMOGTpEzB//8Qmxk3bdr0/3xjG1zCsL4KTJ88eZLB3NycgQXEYGNgYPjl4QwWAPFhAMYGmfW/uroajJH5MB+iC6BgANU0LBNeTisAAAAAAElFTkSuQmCC",
+  "shellbox": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAP0lEQVR4nGNkYGD4z4AHMOGTpLeC////w/H+c0VwBYwguU2bNjEs+TWbIYYtFUxbLLkDlizacB1hAkgSmYYBABoIGZG/2JfrAAAAAElFTkSuQmCC",
+  "shells": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAN0lEQVR4nGNkYGD4z4AHMOGTJF7B/nNFDH0Bmig0DDCC3NBobIGhs/7sCYQJzpaWYA46TR1HAgBQvw83FMt81wAAAABJRU5ErkJggg==",
+  "shotgun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAMElEQVR4nGNgGCTAy8vrPy45RkKKWBqNLcASvwwNGVpbW8EaYGL1Z08wgjkwAWwAAK+dEG1v4ICuAAAAAElFTkSuQmCC",
+  "skullpile": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAbUlEQVR4nGNgYGD4D8P7zxX9BwFkMSYGBgaG/eeKGCDiDAwHzheDaWQA1gnC2EwCm+Bo1MdwKPUYii6YSSzoxjUaW4A1wADYBBCoP3uCobq6GsN+uAKQ5Pnz58FsLy8vuAJGkEOQJZHBtm3bGADcQDsPUhMgxAAAAABJRU5ErkJggg==",
   "soldier": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABDSURBVChTY2RgYPgPxGAg1aQGpp/V3YIJgWmQAjAGKgBjZDG4AmQJNEWourGYAjEa3Qq4KehGE3QDVitgxiP7BsYGAId/SvGLiS63AAAAAElFTkSuQmCC",
-  "soulsphere": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAIh+y/dLvLcAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAADAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAKOTAADoAwAAo5MAAOgDAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAAAHd36etszaFAAAACRJREFUGFc1i4EJAAAIwrb/nw4rERwMBVQBWssgKWrI9vT7uw8DsQAb9i374gAAAABJRU5ErkJggg==",
+  "soulsphere": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAZ0lEQVR4nGNkgAIHw97/MDYIHDhfzAiiWWCSBjZxyPIg8B+kiAkmOWGyKFwGxAaJgeTAJlw4sojh////DIyMYFPBbEejPjCbEdl4kEIQQObDTYA6DN0dDEww12IDIDm4JMwqJNPAcgANGTJK9CJCggAAAABJRU5ErkJggg==",
   "spawn": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABJSURBVChTY2RgYPgPxAz7zxWBKDhwNOqDs/8DJeEYpAHGh2kGC0A5GIpBRoMlkXUhi4EVoJuApgGhG9ktSJowHIXpSGQj0a0EACQ+faihsYgcAAAAAElFTkSuQmCC",
-  "switch": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAP///6XZn90AAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAGAAAAABAAAAYAAAAAEAAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADZp5qVybcLXwAAACBJREFUGFdjYGBgYGBkZGQE02CE4EOEcDAYoSyQYkYGAAMSABW6nVPrAAAAAElFTkSuQmCC",
-  "techcolumn": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAAAqSURBVChTY2BgYPjffu3ufxCNjJHEIAqwYagGiE5kU9BMpIsCgo7EpwAAumR+GebHMr0AAAAASUVORK5CYII=",
-  "yellowcard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABCSURBVChTY2RgYPgPxGCw/1wRjIlCgxT8B0qCMYyNRKNKQk1EVghRgKwTpggqjlCAJgHTiGkFmomYVmBVAPMFOg0At8ZyrJoNx5wAAAAASUVORK5CYII="
+  "switch": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAMUlEQVR4nGPsC9D8z4AHMOGTBAEWdIG32kH4FZw/fx6/AhgobdHAr2D6vdvEOZKgAgCi/wlmOpQ+QgAAAABJRU5ErkJggg==",
+  "techcolumn": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAYElEQVR4nJWPuQ3AMAhFv7MRlXdgEo/EHBTsQMVIjkCy5bjLlxDXE0cDMAGAmdNtmVn5loCqVuLuiIgPVMA5gYgKWhOeRY8xdvPUBkQEvfeCbuWKvGMyc1nGq/7/yPvNF7VfOB1ea3YFAAAAAElFTkSuQmCC",
+  "yellowcard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAARElEQVR4nGNkYGD4zwAF+88VwZhwwIQuOf3ebRQarAAmeSj1GIokigkgSbvZVritQDYhU0kVUwE23URZwQjyJjbvwQAAStQcluOaWOkAAAAASUVORK5CYII=",
+  "barexpl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAqklEQVR4nGNkYGD4z8DAwFBdXc3AtmMvwy8PZzBdf/YESJiBCVmSV/YjWBAmBgIsIAIk6WxpCRb4HfydgfWjJcN2qEKwAhA49WQHQ+H6a2D2gaRiBrbUvQgrQEZ/fszPcDS3CCzIOg/sLIa+AE0GFpBdZh+/MbT9usngzMDA0B+oBVYM08TU2toKVm3+8h3YGpAgyD0gGuQTsBV7jx8Hew/kBhC9nZ8L7k0AXEdGLEkG5voAAAAASUVORK5CYII=",
+  "baroncorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaElEQVR4nGNkYGD4z4AHMOGTJEoBCzKn0dgCzna2tGTYe/w4wgSQJEgQWRJEw024wnOCgffJR4YrPNfhNMNxBgaW6upqsALhq+sYjr+/Dma/1Q5iUANpOtIK5v+vrq7+H2oP9i4YI/MBCskpOcXbV88AAAAASUVORK5CYII=",
+  "demoncorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAT0lEQVR4nGNkYGD4z4AHMOGTJEoBCzKn0diCwdnSEs7fe/w4AyPMDUdyCsl0w6ZNm+C6QUbC6HdujnD+/02bNv0/klMIsgqMQfxGYwswGwDBHCJY6ywHFQAAAABJRU5ErkJggg==",
+  "fireball": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAYklEQVR4nGNgYGD432hs8R8bDcKMUAZDo7EFA6/sR4bPj/lBXIb6syfAYoxQ1WBJwzpPsOT5pu1ghSBFYBNAKu1mW4ElYQCmiAlmNDrAMAGbFSAAdgPMQTC3wHTDAFYvwmgAxFpGP3DUHQUAAAAASUVORK5CYII=",
+  "impcorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAARUlEQVR4nGNkYGD4z4AHMOGTJE1BdXU1VgWMyG7oC9BEkXyrHYRQgC4JtwJkNEgSpPr4++twnSAA4oNNgOku2gBRgMwHAKf+GViuJK09AAAAAElFTkSuQmCC",
+  "plasmaball": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaElEQVR4nGNgYGD4H7bG9z82GoRZGBgYGFaFbGYIW+PLkKmkysCwxhckBAYgMUaoarDkK0NdsITY+csM0+/dBmtkhBrJEBwcBNeJrIgJbjQawDABmxUwh8BdDsL7zxWh+AKkBqsXYTQAwmZMmlR1CYUAAAAASUVORK5CYII=",
+  "poscorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAATklEQVR4nGNkYGD4z4AHMOGTpI4CFmSOg2Evg4FNHJx/4cgiBkaYIwtyX2O3otHYAi4J0gGjBY/5wvn/G40t/hfkvgaZBMYgfl+AJpgNAHyXHuyOKpXCAAAAAElFTkSuQmCC",
+  "rocket": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAYklEQVR4nGNgYGD432hs8R8bDcKMUAZDo7EFA6/sR4bPj/lBXIb6syfAYoxQ1WBJwzpPsOT5pu1ghSBFYBNAKu1mW4ElYQCmiAlmNDrAMAGbFSAAdgPMQTC3wHTDAFYvwmgAxFpGP3DUHQUAAAAASUVORK5CYII="
 };
 
 // ---- js/model.js ----
@@ -608,8 +629,6 @@ const MAX_SECTORS = 199;
 /** Cooked switch face table size (sector id + solid NESW face per entry). */
 const MAX_SWITCH_FACES = 8;
 const MAX_ITEMS = 48;
-/** Last two item slots reserved for enemy missile + player rocket. */
-const MAX_PLACEABLE_ITEMS = MAX_ITEMS - 2;
 /** Live enemy mobjs; last two mobj slots reserved for missiles (matches game MAX_MOBJ). */
 const MAX_MOBJ = 32;
 const MAX_ENEMIES = MAX_MOBJ - 2;
@@ -618,6 +637,55 @@ const MAX_ENEMIES = MAX_MOBJ - 2;
 const LEVEL_NAME_LEN = 20;
 const WORLD_PER_TILE = 8;
 const WORLD_MAX = MAP_SIZE * WORLD_PER_TILE - 1; // 255
+
+function worldToTile(x, y) {
+  const tx = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(Number(x) / WORLD_PER_TILE)));
+  const ty = Math.max(0, Math.min(MAP_SIZE - 1, Math.floor(Number(y) / WORLD_PER_TILE)));
+  return { tx, ty };
+}
+
+function tileCenter(tx, ty) {
+  return {
+    x: tx * WORLD_PER_TILE + WORLD_PER_TILE / 2,
+    y: ty * WORLD_PER_TILE + WORLD_PER_TILE / 2,
+  };
+}
+
+function snapToTileCenter(x, y) {
+  const { tx, ty } = worldToTile(x, y);
+  return { ...tileCenter(tx, ty), tx, ty };
+}
+
+/** First game item occupying a map cell, or null. */
+function gameItemAtTile(level, tx, ty) {
+  return (
+    level.items.find((it) => {
+      if (!isGameItem(it.type)) return false;
+      const t = worldToTile(it.x, it.y);
+      return t.tx === tx && t.ty === ty;
+    }) ?? null
+  );
+}
+
+/** Snap game items to tile centers; last-wins on a cell. Cameras stay as-is except snap. */
+function snapLevelItems(level) {
+  const cameras = level.items.filter((it) => it.type === CAMERA_TYPE).map((it) => {
+    const s = snapToTileCenter(it.x, it.y);
+    return { ...it, x: s.x, y: s.y };
+  });
+  const byTile = new Map();
+  for (const it of level.items) {
+    if (!isGameItem(it.type)) continue;
+    const s = snapToTileCenter(it.x, it.y);
+    byTile.set(tileKey(s.tx, s.ty), { ...it, x: s.x, y: s.y });
+  }
+  level.items = [...cameras, ...byTile.values()];
+  if (level.spawn) {
+    const s = snapToTileCenter(level.spawn.x, level.spawn.y);
+    level.spawn.x = s.x;
+    level.spawn.y = s.y;
+  }
+}
 /** Max tile span on either axis so item billboards can use signed 8-bit world deltas. */
 const MAX_SECTOR_SPAN = 15;
 
@@ -788,6 +856,10 @@ function isElevatorSector(sector) {
     || a === 'lower_floor_forever' || a === 'raise_floor';
 }
 
+/**
+ * typeId = index (cook layer: 6-bit type | 2-bit skill code).
+ * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 34+.
+ */
 const ITEM_TYPES = [
   'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
@@ -795,8 +867,13 @@ const ITEM_TYPES = [
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere',
   'radsuit',
-  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
+  // New placeables (21–31)
+  'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
+  'candelabra', 'lightpost', 'gibs', 'gruntgibs', 'gruntcorpse',
+  // Decor that stayed placeable
   'skullpile', 'techcolumn',
+  // Runtime-only (never cooked into the layer as props)
+  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'switch',
   'fireball',
   'plasmaball', 'rocket',
@@ -814,6 +891,8 @@ const RUNTIME_ONLY_TYPES = new Set([
   'plasmaball', 'rocket', 'barexpl',
   'switch', // sector trigger=switch; not a placeable prop
 ]);
+/** Max typeId that fits in the cooked item layer (6 bits). */
+const MAX_COOK_TYPE_ID = 63;
 /** Legacy cook type ids that map to SWITCH_TYPE. */
 const LEGACY_SWITCH_COOK_TYPES = new Set([
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
@@ -887,12 +966,13 @@ function enemyCount(level) {
   return level.items.filter((it) => ENEMY_TYPES.has(it.type)).length;
 }
 
-/** Pickups that count toward intermission item % (health…radsuit; not corpses). */
+/** Pickups that count toward intermission item % (not decor / corpses). */
 const STAT_ITEM_TYPES = new Set([
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere', 'radsuit',
+  'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
 ]);
 
 function statItemCount(level) {
@@ -1128,13 +1208,6 @@ function setCell(level, tx, ty, sectorId) {
   level.map[cellIndex(tx, ty)] = sectorId;
 }
 
-function worldToTile(wx, wy) {
-  return {
-    tx: Math.max(0, Math.min(MAP_SIZE - 1, wx >> 3)),
-    ty: Math.max(0, Math.min(MAP_SIZE - 1, wy >> 3)),
-  };
-}
-
 function clampWorld(v) {
   return Math.max(0, Math.min(WORLD_MAX, v | 0));
 }
@@ -1282,20 +1355,23 @@ function shiftLevel(level, dx, dy) {
     const nx = it.x + dx * WORLD_PER_TILE;
     const ny = it.y + dy * WORLD_PER_TILE;
     if (nx >= 0 && nx <= WORLD_MAX && ny >= 0 && ny <= WORLD_MAX) {
-      it.x = nx;
-      it.y = ny;
+      const s = snapToTileCenter(nx, ny);
+      it.x = s.x;
+      it.y = s.y;
       kept.push(it);
     }
   }
   level.items.length = 0;
   level.items.push(...kept);
+  snapLevelItems(level);
 
   if (level.spawn) {
     const sx = level.spawn.x + dx * WORLD_PER_TILE;
     const sy = level.spawn.y + dy * WORLD_PER_TILE;
     if (sx >= 0 && sx <= WORLD_MAX && sy >= 0 && sy <= WORLD_MAX) {
-      level.spawn.x = sx;
-      level.spawn.y = sy;
+      const s = snapToTileCenter(sx, sy);
+      level.spawn.x = s.x;
+      level.spawn.y = s.y;
     }
   }
 }
@@ -2298,16 +2374,22 @@ function moveItemsBy(level, items, dx, dy) {
     const ny = it.y + dy;
     if (nx < 0 || nx > WORLD_MAX || ny < 0 || ny > WORLD_MAX) {
       if (isSpawn(it)) {
-        it.x = clampWorld(nx);
-        it.y = clampWorld(ny);
+        const s = snapToTileCenter(nx, ny);
+        it.x = s.x;
+        it.y = s.y;
         kept.push(it);
       } else {
         removeItem(level, it);
       }
       continue;
     }
-    it.x = nx;
-    it.y = ny;
+    const s = snapToTileCenter(nx, ny);
+    if (isGameItem(it.type)) {
+      const other = gameItemAtTile(level, s.tx, s.ty);
+      if (other && other !== it) removeItem(level, other);
+    }
+    it.x = s.x;
+    it.y = s.y;
     kept.push(it);
   }
   return kept;
@@ -2349,43 +2431,47 @@ function hasSpawn(level) {
 /** Place or move the level spawn (always exactly one). */
 function setSpawn(level, x, y, angle) {
   if (!level.spawn) level.spawn = defaultSpawn();
+  const s = snapToTileCenter(x, y);
   level.spawn.type = SPAWN_TYPE;
-  level.spawn.x = clampWorld(x);
-  level.spawn.y = clampWorld(y);
+  level.spawn.x = s.x;
+  level.spawn.y = s.y;
   if (angle !== undefined) level.spawn.angle = normalizeAngle(angle);
   return level.spawn;
 }
 
 function addItem(level, type, x, y, skills = defaultSkills()) {
+  const snapped = snapToTileCenter(x, y);
+  x = snapped.x;
+  y = snapped.y;
   if (type === SPAWN_TYPE) {
     return setSpawn(level, x, y);
   }
   if (type === CAMERA_TYPE) {
     const item = {
       type: CAMERA_TYPE,
-      x: clampWorld(x),
-      y: clampWorld(y),
+      x,
+      y,
       angle: 0,
     };
     level.items.push(item);
     return item;
   }
   if (type === SWITCH_TYPE || isSwitchCookType(type)) {
-    if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
     const item = {
       type: SWITCH_TYPE,
-      x: clampWorld(x),
-      y: clampWorld(y),
+      x,
+      y,
     };
     level.items.push(item);
     return item;
   }
-  if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) return null;
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) return null;
+  const occupant = gameItemAtTile(level, snapped.tx, snapped.ty);
+  if (occupant) removeItem(level, occupant);
   const item = {
     type,
-    x: clampWorld(x),
-    y: clampWorld(y),
+    x,
+    y,
     skills: { ...skills },
   };
   level.items.push(item);
@@ -2399,8 +2485,13 @@ function removeItem(level, item) {
 }
 
 function moveItem(level, item, x, y) {
-  item.x = clampWorld(x);
-  item.y = clampWorld(y);
+  const s = snapToTileCenter(x, y);
+  if (isGameItem(item.type)) {
+    const other = gameItemAtTile(level, s.tx, s.ty);
+    if (other && other !== item) removeItem(level, other);
+  }
+  item.x = s.x;
+  item.y = s.y;
 }
 
 /** True if selection ref is still on the level (spawn or items). */
@@ -2415,37 +2506,40 @@ function activeLevel(episode) {
 
 // ---- js/io.js ----
 /**
- * Cooked binary layout (no header), per level — structure-of-arrays:
- *   1. Map: 1024 bytes sector ids (first so runtime level_map is $a000 / 32-aligned)
- *   2. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
- *      order: floor, ceil, special (packed trigger|oneshot|action), targetSector,
- *      floorColor, ceilingColor, brightness
- *      special: bits1:0=trigger, bit2=single_shot, bits7:3=action
- *      targetSector is the resolved sector id (from editor targetTag); 0 if empty / unresolved
- *      Same-tag sectors are linked into a sibling chain via targetSector (head ← triggers;
- *      each member points at the next). Runtime walks the chain for remote door/floor actions.
- *      editor tag strings are not stored in the binary
- *   3. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
- *   4. Items SoA: 4 × 48 bytes — typeId[48], x[48], y[48], meta[48]
- *      meta: skillBits (bit0=easy, bit1=normal, bit2=hard); switches use meta=0
- *      unused item slots: typeId=0xFF
- *      spawn is not an item (typeId 0 unused in table)
+ * Cooked binary layout (no header), per level:
+ *   1. Map: 1024 bytes sector ids (first so runtime level_map is $96E0 / 32-aligned)
+ *   2. Item layer: 1024 bytes, one cell per tile: 0 or type | skillCode<<6
+ *      type: bits 0–5 (1–63); skillCode bits 6–7:
+ *        0=all, 1=easy only, 2=normal+, 3=hard only
+ *   3. Sector attribute tables: 7 × 200 bytes (index = sector id; byte 0 unused)
+ *      order: floor, ceil, special, targetSector, floorColor, ceilingColor, brightness
+ *   4. Spawn: 3 bytes — x, y, angleByte (playera 0..255)
  *   5. switch faces: 17 bytes — count, sec[8], dir[8]
- *      (switch sector id + NESW face of the solid; see buildSwitchFaceBindings)
- *   6. sector_max: 1 byte — max sector id used in map or sector table
+ *   6. sector_max: 1 byte
  *   7. stats: 4 bytes — num_enemies, num_items, num_secrets, par_time (seconds)
  * Display name is not in the binary (resident titles in the game PRG).
  * Colors: 0..15 = Commodore 64 palette
-
- * typeId: index into ITEM_TYPES (0-based); 0xFF = empty slot
+ * typeId: index into ITEM_TYPES (1–63 in the layer; 0 = empty)
  */
 
+/** Pack editor skill checkboxes → 2-bit cook code (see file header). */
+function packSkillCode(skills) {
+  const e = skills?.easy !== false;
+  const n = skills?.normal !== false;
+  const h = skills?.hard !== false;
+  if (e && n && h) return 0;
+  if (e && !n && !h) return 1;
+  if (!e && n && h) return 2;
+  if (!e && !n && h) return 3;
+  if (!e && n && !h) return 2;
+  if (e && n && !h) return 0;
+  if (e && !n && h) return 0;
+  return 0;
+}
 const SECTOR_TABLE_COUNT = 7;		 // floor, ceil, type, target, fcol, ccol, bright
 const SECTOR_TABLE_SIZE = 200;		 // index = sector id; [0] unused
-const ITEM_BYTES = 4;
 const SPAWN_BYTES = 3;
 const SWITCH_FACE_BYTES = 1 + MAX_SWITCH_FACES * 2;
-const EMPTY_ITEM_TYPE = 0xff;
 
 function levelToJSON(level) {
   const sectorObj = {};
@@ -2543,10 +2637,11 @@ function levelFromJSON(data, opts = {}) {
   if (Array.isArray(data.items)) {
     for (const it of data.items) {
       if (it.type === CAMERA_TYPE) {
+        const s = snapToTileCenter(it.x ?? 0, it.y ?? 0);
         level.items.push({
           type: CAMERA_TYPE,
-          x: clamp(it.x ?? 0, 0, 255),
-          y: clamp(it.y ?? 0, 0, 255),
+          x: s.x,
+          y: s.y,
           angle: normalizeAngle(it.angle),
         });
         continue;
@@ -2569,11 +2664,11 @@ function levelFromJSON(data, opts = {}) {
         continue;
       }
       if (!ITEM_TYPES.includes(it.type) || !isGameItem(it.type)) continue;
-      if (gameItemCount(level) >= MAX_PLACEABLE_ITEMS) break;
+      const s = snapToTileCenter(it.x ?? 0, it.y ?? 0);
       level.items.push({
         type: it.type,
-        x: clamp(it.x ?? 0, 0, 255),
-        y: clamp(it.y ?? 0, 0, 255),
+        x: s.x,
+        y: s.y,
         skills: {
           easy: it.skills?.easy !== false,
           normal: it.skills?.normal !== false,
@@ -2601,22 +2696,21 @@ function levelFromJSON(data, opts = {}) {
   }
 
   if (data.spawn) {
-    setSpawn(
-      level,
-      data.spawn.x ?? 0,
-      data.spawn.y ?? 0,
-      data.spawn.angle ?? 0,
-    );
+    const s = snapToTileCenter(data.spawn.x ?? 0, data.spawn.y ?? 0);
+    setSpawn(level, s.x, s.y, data.spawn.angle ?? 0);
   } else if (legacySpawn) {
     // Legacy: use spawn item xy; angle from item if present, else old hardcoded playera=250
     const ang =
       legacySpawn.angle != null
         ? Number(legacySpawn.angle) || 0
         : byteToAngle(250);
-    setSpawn(level, legacySpawn.x ?? 0, legacySpawn.y ?? 0, ang);
+    const s = snapToTileCenter(legacySpawn.x ?? 0, legacySpawn.y ?? 0);
+    setSpawn(level, s.x, s.y, ang);
   } else {
     level.spawn = defaultSpawn();
   }
+
+  snapLevelItems(level);
 
   compactSectorIds(level);
   /** @type {string[]} */
@@ -2745,37 +2839,26 @@ function cookLevel(level) {
 
   chainSameTagTargets(level, targets, warnings);
 
+  snapLevelItems(level);
   const mapBytes = new Uint8Array(level.map);
 
-  const gameItems = level.items.filter((it) => isGameItem(it.type));
   const nEnemies = enemyCount(level);
   if (nEnemies > MAX_ENEMIES) {
     errors.push(`Too many enemies (${nEnemies}/${MAX_ENEMIES})`);
   }
 
-  const typesArr = new Uint8Array(MAX_ITEMS);
-  const xs = new Uint8Array(MAX_ITEMS);
-  const ys = new Uint8Array(MAX_ITEMS);
-  const metas = new Uint8Array(MAX_ITEMS);
-  typesArr.fill(EMPTY_ITEM_TYPE);
-  for (let i = 0; i < MAX_ITEMS; i++) {
-    const it = gameItems[i];
-    if (!it) continue;
+  const layer = new Uint8Array(MAP_CELLS);
+  for (const it of level.items.filter((it) => isGameItem(it.type))) {
+    const s = snapToTileCenter(it.x, it.y);
     const typeId = ITEM_TYPES.indexOf(it.type);
-    typesArr[i] = typeId < 0 ? EMPTY_ITEM_TYPE : typeId;
-    xs[i] = it.x & 0xff;
-    ys[i] = it.y & 0xff;
-    let bits = 0;
-    if (it.skills.easy) bits |= 1;
-    if (it.skills.normal) bits |= 2;
-    if (it.skills.hard) bits |= 4;
-    metas[i] = bits;
+    if (typeId < 1 || typeId > MAX_COOK_TYPE_ID) continue;
+    const code = packSkillCode(it.skills);
+    const idx = s.ty * 32 + s.tx;
+    if (layer[idx]) {
+      warnings.push(`Tile ${s.tx},${s.ty}: last-wins (${it.type} overwrites)`);
+    }
+    layer[idx] = (typeId & 0x3f) | ((code & 3) << 6);
   }
-  const itemTable = new Uint8Array(MAX_ITEMS * ITEM_BYTES);
-  itemTable.set(typesArr, 0);
-  itemTable.set(xs, MAX_ITEMS);
-  itemTable.set(ys, MAX_ITEMS * 2);
-  itemTable.set(metas, MAX_ITEMS * 3);
 
   const spawn = level.spawn ?? defaultSpawn();
   const spawnBytes = new Uint8Array([
@@ -2813,14 +2896,15 @@ function cookLevel(level) {
   const nSecrets = secretCount(level);
   const out = new Uint8Array(
     mapBytes.length +
+      MAP_CELLS +
       sectorBytes +
       SPAWN_BYTES +
-      itemTable.length +
       SWITCH_FACE_BYTES +
       5,
   );
   let o = 0;
   out.set(mapBytes, o); o += mapBytes.length;
+  out.set(layer, o); o += MAP_CELLS;
   out.set(floors, o); o += SECTOR_TABLE_SIZE;
   out.set(ceils, o); o += SECTOR_TABLE_SIZE;
   out.set(types, o); o += SECTOR_TABLE_SIZE;
@@ -2829,7 +2913,6 @@ function cookLevel(level) {
   out.set(ccols, o); o += SECTOR_TABLE_SIZE;
   out.set(brights, o); o += SECTOR_TABLE_SIZE;
   out.set(spawnBytes, o); o += SPAWN_BYTES;
-  out.set(itemTable, o); o += itemTable.length;
   out.set(switchTable, o); o += SWITCH_FACE_BYTES;
   out[o++] = sectorMax & 0xff;
   out[o++] = nEnemies & 0xff;
@@ -3067,6 +3150,7 @@ class MapView {
    *   items: Set<any>,
    *   hoverTile: {tx:number,ty:number}|null,
    *   box: {x0:number,y0:number,x1:number,y1:number}|null,
+   *   itemDrag?: {dtx:number,dty:number}|null,
    * }} opts.getSelection
    * @param {(ev: PointerEvent, info: object) => void} opts.onPointer
    * @param {(type: string, wx: number, wy: number) => void} opts.onDropItem
@@ -3328,8 +3412,13 @@ class MapView {
     }
 
     const markers = level.spawn ? [level.spawn, ...level.items] : level.items;
+    const itemDrag = sel.itemDrag;
     for (const it of markers) {
-      const { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
+      let { ix, iy, spriteSize } = this.#itemDrawPos(it, c);
+      if (itemDrag && sel.items?.has(it)) {
+        ix += itemDrag.dtx * c;
+        iy += itemDrag.dty * c;
+      }
       const { drawW, drawH } = this.#spriteSize(it, spriteSize);
       const left = ix - drawW / 2;
       const top = iy - drawH / 2;
@@ -4401,7 +4490,7 @@ class TileEditor {
     const countLine = document.createElement('p');
     countLine.className = 'muted';
     countLine.textContent =
-      `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}/${MAX_PLACEABLE_ITEMS}` +
+      `Sectors: ${this.opts.sectorCount()} · Items: ${this.opts.itemCount()}` +
       ` · Enemies: ${this.opts.enemyCount()}/${MAX_ENEMIES}` +
       ` · Secrets: ${this.opts.secretCount()}`;
     this.root.appendChild(countLine);
@@ -4752,7 +4841,7 @@ class ItemEditor {
       });
       angleLab.append(span, input);
       this.root.appendChild(angleLab);
-    } else if (!allSwitches && noViewpoints) {
+    } else if (noViewpoints) {
       const skills = document.createElement('div');
       skills.className = 'field skills';
       const skillLabel = document.createElement('span');
@@ -5177,6 +5266,8 @@ const episode = createEpisode();
  *   items: Set<any>,
  *   primaryTile: {tx:number,ty:number}|null,
  *   hoverTile: {tx:number,ty:number}|null,
+ *   box: any,
+ *   itemDrag: {dtx:number,dty:number}|null,
  * }} */
 const selection = {
   tiles: new Set(),
@@ -5184,6 +5275,7 @@ const selection = {
   primaryTile: null,
   hoverTile: null,
   box: null,
+  itemDrag: null,
 };
 
 /** @type {null | {
@@ -5452,6 +5544,7 @@ function clearSelection() {
   selection.primaryTile = null;
   selection.hoverTile = null;
   selection.box = null;
+  selection.itemDrag = null;
   drag = null;
 }
 
@@ -5478,10 +5571,6 @@ refreshAfterPack = refreshAll;
 function placeItem(type, wx, wy) {
   const level = activeLevel(episode);
   if (!EDITOR_ITEM_TYPES.includes(type)) return;
-  if (type !== CAMERA_TYPE && type !== SPAWN_TYPE && gameItemCount(level) >= MAX_PLACEABLE_ITEMS) {
-    setStatus(`Max ${MAX_PLACEABLE_ITEMS} items`, true);
-    return;
-  }
   if (ENEMY_TYPES.has(type) && enemyCount(level) >= MAX_ENEMIES) {
     setStatus(`Max ${MAX_ENEMIES} enemies (mobj limit)`, true);
     return;
@@ -5680,11 +5769,31 @@ function startBoxSelect(info, additive) {
 function startDrag(info, mode) {
   drag = {
     mode,
+    startTx: info.tx,
+    startTy: info.ty,
     lastTx: info.tx,
     lastTy: info.ty,
     lastWx: info.wx,
     lastWy: info.wy,
   };
+  if (mode === 'items') {
+    selection.itemDrag = { dtx: 0, dty: 0 };
+  }
+}
+
+/** Clamp tile delta so every selected item stays on the map. */
+function clampItemDragDelta(items, dtx, dty) {
+  let outDtx = dtx;
+  let outDty = dty;
+  for (const it of items) {
+    const tx = Math.floor(it.x / WORLD_PER_TILE);
+    const ty = Math.floor(it.y / WORLD_PER_TILE);
+    if (tx + outDtx < 0) outDtx = -tx;
+    if (tx + outDtx >= MAP_SIZE) outDtx = MAP_SIZE - 1 - tx;
+    if (ty + outDty < 0) outDty = -ty;
+    if (ty + outDty >= MAP_SIZE) outDty = MAP_SIZE - 1 - ty;
+  }
+  return { dtx: outDtx, dty: outDty };
 }
 
 function handlePointer(e, info) {
@@ -5692,6 +5801,14 @@ function handlePointer(e, info) {
 
   if (e.type === 'pointerleave') {
     selection.hoverTile = null;
+    if (drag?.mode === 'items') {
+      // Cancel preview — do not commit mid-drag when leaving the map.
+      selection.itemDrag = null;
+      drag = null;
+      endUndoGesture();
+      mapView.draw();
+      return;
+    }
     if (!drag) mapView.draw();
     return;
   }
@@ -5727,19 +5844,18 @@ function handlePointer(e, info) {
       }
 
       if (drag.mode === 'items') {
-        const dx = info.wx - drag.lastWx;
-        const dy = info.wy - drag.lastWy;
-        if (dx || dy) {
-          beginUndoGesture();
-          const kept = moveItemsBy(level, [...selection.items], dx, dy);
-          selection.items = new Set(kept);
-          drag.lastWx = info.wx;
-          drag.lastWy = info.wy;
-          markDirty();
-          refreshEditors();
-          mapView.draw();
-          previewView.draw();
-        }
+        drag.lastTx = info.tx;
+        drag.lastTy = info.ty;
+        drag.lastWx = info.wx;
+        drag.lastWy = info.wy;
+        const rawDtx = info.tx - drag.startTx;
+        const rawDty = info.ty - drag.startTy;
+        selection.itemDrag = clampItemDragDelta(
+          [...selection.items],
+          rawDtx,
+          rawDty,
+        );
+        mapView.draw();
       }
       return;
     }
@@ -5792,6 +5908,34 @@ function handlePointer(e, info) {
         setStatus(
           `Selection: ${selection.tiles.size} tile(s), ${selection.items.size} item(s) · ${n} sectors`,
         );
+        refreshAll();
+        return;
+      }
+
+      if (drag.mode === 'items') {
+        const preview = selection.itemDrag;
+        selection.itemDrag = null;
+        const dtx = preview?.dtx ?? 0;
+        const dty = preview?.dty ?? 0;
+        drag = null;
+        if (dtx || dty) {
+          beginUndoGesture();
+          const kept = moveItemsBy(
+            level,
+            [...selection.items],
+            dtx * WORLD_PER_TILE,
+            dty * WORLD_PER_TILE,
+          );
+          selection.items = new Set(kept);
+          markDirty();
+        }
+        endUndoGesture();
+        const n = sectorCount(level);
+        if (selection.tiles.size || selection.items.size) {
+          setStatus(
+            `Selection: ${selection.tiles.size} tile(s), ${selection.items.size} item(s) · ${n} sectors`,
+          );
+        }
         refreshAll();
         return;
       }

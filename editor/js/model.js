@@ -233,6 +233,10 @@ export function isElevatorSector(sector) {
     || a === 'lower_floor_forever' || a === 'raise_floor';
 }
 
+/**
+ * typeId = index (cook layer: 6-bit type | 2-bit skill code).
+ * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 34+.
+ */
 export const ITEM_TYPES = [
   'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
@@ -240,8 +244,13 @@ export const ITEM_TYPES = [
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere',
   'radsuit',
-  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
+  // New placeables (21–31)
+  'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
+  'candelabra', 'lightpost', 'gibs', 'gruntgibs', 'gruntcorpse',
+  // Decor that stayed placeable
   'skullpile', 'techcolumn',
+  // Runtime-only (never cooked into the layer as props)
+  'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
   'switch',
   'fireball',
   'plasmaball', 'rocket',
@@ -259,6 +268,8 @@ export const RUNTIME_ONLY_TYPES = new Set([
   'plasmaball', 'rocket', 'barexpl',
   'switch', // sector trigger=switch; not a placeable prop
 ]);
+/** Max typeId that fits in the cooked item layer (6 bits). */
+export const MAX_COOK_TYPE_ID = 63;
 /** Legacy cook type ids that map to SWITCH_TYPE. */
 const LEGACY_SWITCH_COOK_TYPES = new Set([
   'switch_opendoor', 'switch_endlevel', 'switch_lowerlift',
@@ -332,12 +343,13 @@ export function enemyCount(level) {
   return level.items.filter((it) => ENEMY_TYPES.has(it.type)).length;
 }
 
-/** Pickups that count toward intermission item % (health…radsuit; not corpses). */
+/** Pickups that count toward intermission item % (not decor / corpses). */
 export const STAT_ITEM_TYPES = new Set([
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere', 'radsuit',
+  'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
 ]);
 
 export function statItemCount(level) {

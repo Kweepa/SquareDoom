@@ -22,7 +22,7 @@ kernal_load_sa1
 ; put_pct_val). We never poke ILOAD $0330 or IIRQ $0314; boot left them stock.
 ; Leaves $01=$36. CIA2 timers off (profiler / IEC). IOINIT unblanks bank 0 —
 ; this blanks DEN again. Caller restores VIC (LoadPrg: bank 3 + ENTERING;
-; HIGH/GFX: stay blank).
+; GFX / GAME trampoline: stay blank).
 kernal_prepare
 	sei
 	cld
@@ -52,7 +52,7 @@ kernal_prepare
 	sta $d011
 	; SETMSG must see A=0. `lda $d011` keeps RST8 when raster≥256, so A=$8x
 	; enables control messages. SEARCHING/LOADING then CHROUT into $0400
-	; (IOINIT bank 0 screen) which is GAME (snap: "SEARCHING FOR HIGH" over
+	; (IOINIT bank 0 screen) which is GAME (snap: "SEARCHING FOR GAME" over
 	; mul_recip_z+$4d = $12 JAM, screen-code 'R').
 	lda #0
 	jsr $ff90

@@ -1,5 +1,5 @@
 ; Disk load — Krill loadraw (USE_KRILL=1) or KERNAL LOAD (default).
-; Levels → $9000 (cooked blob, header address). Reboot KERNAL-loads SQUAREDOOM.
+; Levels → $96E0 (cooked blob, header address). Reboot KERNAL-loads SQUAREDOOM.
 !zone loader
 
 !if USE_KRILL {

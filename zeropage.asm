@@ -240,11 +240,11 @@ turn_acc_l	= $74			; angle×1024 remainder
 turn_acc_h	= $75
 
 ; ------------------------------------------------------------------
-; Under-KERNAL / always-RAM play BSS ($E000+); SQTAB at $BC00; level at $9000.
+; Under-KERNAL / always-RAM play BSS ($E000+); SQTAB at $B800; level at $96E0.
 ; SidTracker player ZP (kept via sidreloc -k): $f0–$f7.
 ; Contiguous play buffers at $e000:
 ;   SCREENBUFFER $e000, PATTERNBUFFER $e400, COL_CLIP, then COL rays / rest
-; dpsounds/levelstats run from SEC_WDARK_END (copied from $9000 load image).
+; dpsounds/levelstats run from SEC_WDARK_END (copied from MEM_LEVEL staging).
 ; ------------------------------------------------------------------
 SQTAB1		= SQTAB_BASE
 SQTAB2		= SQTAB_BASE + $200

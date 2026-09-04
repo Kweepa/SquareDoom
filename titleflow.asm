@@ -64,7 +64,7 @@ show_entering
 	jsr print_centered
 	jsr io_push
 	lda $d011
-	ora #%00010000				; unblank; HIGH load left DEN off
+	ora #%00010000				; unblank; set_vic_bank3 left DEN off
 	sta $d011
 	jmp io_pop
 

@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M3",
+  "activeLevel": "E1M1",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -2283,18 +2283,8 @@
           "angle": 6.278081610720889
         },
         {
-          "type": "greenarmor",
-          "x": 20,
-          "y": 76,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "barrel",
-          "x": 100,
+          "x": 108,
           "y": 60,
           "skills": {
             "easy": true,
@@ -2315,7 +2305,7 @@
         {
           "type": "soldier",
           "x": 180,
-          "y": 20,
+          "y": 28,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2336,16 +2326,6 @@
           "type": "soldier",
           "x": 52,
           "y": 92,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "soldier",
-          "x": 28,
-          "y": 68,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2374,8 +2354,8 @@
         },
         {
           "type": "barrel",
-          "x": 196,
-          "y": 148,
+          "x": 204,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2384,8 +2364,8 @@
         },
         {
           "type": "barrel",
-          "x": 228,
-          "y": 148,
+          "x": 220,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2414,8 +2394,8 @@
         },
         {
           "type": "barrel",
-          "x": 108,
-          "y": 84,
+          "x": 116,
+          "y": 76,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2433,18 +2413,8 @@
           }
         },
         {
-          "type": "health",
-          "x": 156,
-          "y": 124,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "soldier",
-          "x": 204,
+          "x": 212,
           "y": 100,
           "skills": {
             "easy": true,
@@ -2463,19 +2433,9 @@
           }
         },
         {
-          "type": "shotgun",
-          "x": 236,
-          "y": 68,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "shells",
-          "x": 180,
-          "y": 124,
+          "x": 212,
+          "y": 132,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2485,7 +2445,167 @@
         {
           "type": "soldier",
           "x": 196,
-          "y": 156,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 84,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 116,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 84,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 44,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 44,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 12,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 12,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 44,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 68,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 68,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 84,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 84,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 204,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 220,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 204,
+          "y": 204,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 220,
+          "y": 204,
           "skills": {
             "easy": true,
             "normal": true,
@@ -2494,8 +2614,468 @@
         },
         {
           "type": "health",
+          "x": 220,
+          "y": 196,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "candelabra",
+          "x": 204,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "candelabra",
+          "x": 220,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 204,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 220,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 196,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 228,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 196,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 228,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 228,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 100,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 124,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 68,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 44,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "greenarmor",
+          "x": 20,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 20,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "soldier",
+          "x": 28,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 92,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 100,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 140,
+          "y": 12,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 148,
+          "y": 12,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 156,
+          "y": 20,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 156,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 180,
+          "y": 12,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 180,
+          "y": 20,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 164,
+          "y": 44,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 196,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "lightpost",
+          "x": 212,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 188,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 196,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shotgun",
+          "x": 228,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shellbox",
           "x": 244,
           "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 244,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 244,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 244,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 244,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 236,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 204,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 204,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 204,
+          "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 212,
+          "y": 124,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 180,
+          "y": 124,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shellbox",
+          "x": 156,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 244,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 164,
+          "y": 124,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 156,
+          "y": 124,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 236,
+          "y": 116,
           "skills": {
             "easy": true,
             "normal": true,

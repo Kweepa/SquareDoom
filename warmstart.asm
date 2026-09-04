@@ -1,6 +1,7 @@
 !zone locode
 
 ; MENU trampoline JMP $0400 lands here after GAME overwrites MENU.
+; GAME image already holds the kernal blob at MEM_LEVEL.
 locode_entry
 	sei
 	cld
@@ -20,42 +21,16 @@ locode_entry
 	sta $d015
 	lda $d019
 	sta $d019
-
 !if USE_KRILL {
 	sta $dc0e			; stop leftover BASIC jiffy (CIA1 TA)
-	jsr locode_play_takeover
-	jsr set_vic_bank3
-	ldx #<name_high
-	ldy #>name_high
-	clc
-	jsr loadraw
-	bcs .high_fail
-} else {
-	jsr kernal_prepare
-	lda #4
-	ldx #<name_high
-	ldy #>name_high
-	jsr kernal_load_sa1
-	bcs .high_fail
-	sei
-	lda #$7f
-	sta $dc0d
-	sta $dd0d
-	lda $dc0d
-	lda $dd0d
-	lda #0
-	sta $dc0e
-	sta $dc0f
-	sta $dd0e
-	sta $dd0f
-	jsr locode_play_takeover
-	jsr set_vic_bank3
 }
+	jsr locode_play_takeover
+	jsr set_vic_bank3
 
-	jsr copy_kernal_blob		; $9000 staging → $F950
+	jsr copy_kernal_blob		; MEM_LEVEL staging → SEC_WDARK_END
 	lda #$34
 	sta $01
-	jsr init_sqtabs			; $BC00 (RAM at $34 and $35)
+	jsr init_sqtabs			; $B800 (RAM at $34 and $35)
 
 	lda #$35
 	sta $01
@@ -72,11 +47,6 @@ locode_entry
 	lda #$34			; play default: I/O out
 	sta $01
 	jmp game_start
-.high_fail
-	jmp .high_fail
-name_high
-	!text "HIGH"
-	!byte 0
 
 ; $01=$35, RAM NMI/IRQ, keyboard DDR. Caller has already SEI'd.
 locode_play_takeover

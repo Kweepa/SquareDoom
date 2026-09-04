@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Build a SquareDoom d64: boot (autostart name squaredoom), splash, overlays, levels.
 
-Default (KERNAL): splashc, splash, menu, gfx, game, high. Boot and later loads use
+Default (KERNAL): splashc, splash, menu, gfx, game. Boot and later loads use
 $FFD5. --krill: also packs krill/loader.prg + install.prg; that boot JSR installs
-and every later load is loadraw. GAME is code only; HIGH is $9000–$D000.
+and every later load is loadraw. GAME is $0400 through py_tab ($B800).
+Levels load at $96E0.
 """
 
 import argparse
@@ -17,7 +18,7 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-LEVEL_LOAD_ADDR = 0x9000
+LEVEL_LOAD_ADDR = 0x96E0
 LEVEL_BYTES = 3473
 LEVEL_NAME_RE = re.compile(r"^(e\dm\d)\.bin$", re.IGNORECASE)
 
@@ -28,7 +29,6 @@ DISK_PRGS_KERNAL = [
 	("menu", "menu.prg"),
 	("gfx", "gfx.prg"),
 	("game", "game.prg"),
-	("high", "high.prg"),
 ]
 DISK_PRGS_KRILL = [
 	("splashc", "splashc.prg"),
@@ -38,7 +38,6 @@ DISK_PRGS_KRILL = [
 	("menu", "menu.prg"),
 	("gfx", "gfx.prg"),
 	("game", "game.prg"),
-	("high", "high.prg"),
 ]
 
 
@@ -69,7 +68,7 @@ def collect_levels(level_dir: Path) -> List[Tuple[str, Path]]:
 
 
 def stage_level(dos_name: str, bin_path: Path, tmp_dir: Path) -> Tuple[str, Path]:
-	"""PRG @ $9000 = cooked level blob only."""
+	"""PRG @ $96E0 = cooked level blob only."""
 	level = bin_path.read_bytes()
 	if len(level) != LEVEL_BYTES:
 		print(

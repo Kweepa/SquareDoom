@@ -26,11 +26,9 @@ start_level
 	jsr update_eye
 	rts
 
-; difficulty 0/1/2 → skill bits $20/$40/$80. Zero cells that miss; then AND #$1F.
+; difficulty 0/1/2. skillCode in bits 6–7: 0=all, 1=easy, 2=normal+, 3=hard.
+; Zero cells that miss; then AND #$3F for typeId.
 item_skill_filter
-	ldx difficulty
-	lda .isf_mask,x
-	sta tmp0
 	lda #<level_items
 	sta ptr_l
 	lda #>level_items
@@ -41,15 +39,31 @@ item_skill_filter
 	lda (ptr_l),y
 	beq .isf_nx
 	sta tmp1
-	and #$e0
-	and tmp0
-	bne .isf_keep
-	lda #0
-	sta (ptr_l),y
-	beq .isf_nx
+	and #$c0
+	beq .isf_keep			; code 0 = all skills
+	cmp #$40
+	beq .isf_easy
+	cmp #$80
+	beq .isf_nm
+	; code 3 = hard only
+	lda difficulty
+	cmp #2
+	bne .isf_zap
+	beq .isf_keep
+.isf_easy
+	lda difficulty
+	bne .isf_zap
+	beq .isf_keep
+.isf_nm
+	lda difficulty
+	beq .isf_zap			; easy → remove
 .isf_keep
 	lda tmp1
-	and #$1f
+	and #$3f
+	sta (ptr_l),y
+	bne .isf_nx
+.isf_zap
+	lda #0
 	sta (ptr_l),y
 .isf_nx
 	iny
@@ -58,9 +72,6 @@ item_skill_filter
 	dex
 	bne .isf_lp
 	rts
-.isf_mask
-	!byte $20, $40, $80
-
 ; Default status values. health=0 (new game / death / menu restart) → full
 ; reset; else keep ammo, weapons, health, armor, backpack across maps.
 init_hud_state
