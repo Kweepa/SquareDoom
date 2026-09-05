@@ -6,14 +6,15 @@
 ; Per column: load ray cache, mid(frac*dd) → sdx/sdy, mid(s*fish) → wz,
 ; then TheKeep-style march comparing sdx vs sdy. Same-id cells skip on_cell
 ; (cheap add only). Sector changes call on_cell in render.asm.
-; mapx/mapy advance with tile (SMC) so on_cell sees the hit cell.
+; mapx/mapy are not marched — switch faces use cur_id (leaving sector).
 ;
 ; Incremental wz: each step does wz += ddw then s += dd (inlined; COL_DDWX/Y
 ; from setup). calc_wallz then only shifts — no fish mul at edges.
 ;
 ; Quadrant: xstep/ystep are fixed per column — preamble SMC-patches the
-; tile advances (INC/DEC zp for ±X; CLC+ADC / SEC+SBC for ±Y). dda_steps
-; lives in X on the same-id hot path (dex/beq); spilled around soft/cell.
+; tile advances (INC/DEC tile_l for ±X; CLC+ADC/SEC+SBC #32 + branch tile_h
+; for ±Y). dda_steps lives in X on the same-id hot path (dex/beq); spilled
+; around soft/cell.
 ;
 ; Branch form vs PROFILE (see march comments below):
 ;   PROFILE=0 — short relatives where in range: bne/bcs .adv_y from .inner,
@@ -104,32 +105,37 @@ cast_column
 	sta wz_y_l
 	stx wz_y_h
 
-	; Patch tile + mapx/mapy advances for this column's (xstep, ystep) quadrant.
-	; mapx/mapy must track the marched cell (switch faces / wall U use them).
+	; Patch tile advances for this column's (xstep, ystep) quadrant.
+	; mapx/mapy are not marched — switch faces use cur_id (leaving sector).
+	; Rows are 32-aligned: ±X stays in-row so tile_l never page-wraps.
+	; ±Y: CLC/ADC or SEC/SBC #32, then BCC+INC or BCS+DEC tile_h (carry rare).
 	ldx #$e6				; INC zp
 	lda xstep
 	bpl .patch_x
 	ldx #$c6				; DEC zp
 .patch_x
 	stx .smc_x_lo
-	stx .smc_x_hi
-	stx .smc_mapx
 	ldx #$18				; CLC
 	ldy #$69				; ADC #
+	lda #$90				; BCC
+	sta tmp0
+	lda #$e6				; INC tile_h
+	sta tmp1
 	lda ystep
 	bpl .patch_y
 	ldx #$38				; SEC
 	ldy #$e9				; SBC #
+	lda #$b0				; BCS
+	sta tmp0
+	lda #$c6				; DEC tile_h
+	sta tmp1
 .patch_y
 	stx .smc_y_clc
 	sty .smc_y_op1
-	sty .smc_y_op2
-	ldx #$e6				; INC mapy
-	lda ystep
-	bpl .patch_my
-	ldx #$c6				; DEC mapy
-.patch_my
-	stx .smc_mapy
+	lda tmp0
+	sta .smc_y_br
+	lda tmp1
+	sta .smc_y_hi
 
 .cc_init
 	; Open clip [0,25); HUD columns leave row 24 untouched.
@@ -201,15 +207,9 @@ cast_column
 }
 
 .adv_x
-	; ±X: SMC INC/DEC tile (page fix on wrap). Map sealed — no OOB check.
+	; ±X: SMC INC/DEC tile_l only (32-aligned rows — no page wrap).
 .smc_x_lo
 	inc tile_l
-	bne .smc_x_ok
-.smc_x_hi
-	inc tile_h
-.smc_x_ok
-.smc_mapx
-	inc mapx
 	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ax_same			; same sector — cheap path
@@ -276,24 +276,27 @@ cast_column
 	lda sdx_h
 	adc ddx_h
 	sta sdx_h
-	; Cell → .inner: mapx/mapy tracking pushed this past ±127; always trampoline.
+	; Cell → .inner: .adv_x shrunk enough for a relative branch (PROFILE=0).
 	bcs .ax_done
+!if PROFILE = 1 {
 	jmp .inner
+} else {
+	bcc .inner
+}
 
 .adv_y
-	; ±Y: SMC CLC+ADC #32 / SEC+SBC #32. Map sealed — no OOB check.
+	; ±Y: SMC CLC+ADC #32 / SEC+SBC #32; branch-update tile_h on page cross.
 .smc_y_clc
 	clc
 	lda tile_l
 .smc_y_op1
 	adc #MAP_SIZE
 	sta tile_l
-	lda tile_h
-.smc_y_op2
-	adc #0
-	sta tile_h
-.smc_mapy
-	inc mapy
+.smc_y_br
+	bcc .smc_y_ok
+.smc_y_hi
+	inc tile_h
+.smc_y_ok
 	lda (tile_l),y			; Y held at 0
 	cmp cur_id
 	beq .ay_same
@@ -326,8 +329,7 @@ cast_column
 	lda sdy_h
 	adc ddy_h
 	sta sdy_h
-	; Y→.inner is always past ±127 (whole .adv_x sits in between), so
-	; both PROFILE builds use jmp. Not gated — short branch impossible.
+	; Y→.inner still spans all of .adv_x — keep jmp.
 	bcs .ay_done
 	jmp .inner
 .ay_done
