@@ -3081,6 +3081,26 @@
             "normal": true,
             "hard": true
           }
+        },
+        {
+          "type": "techcolumn",
+          "x": 60,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "techcolumn",
+          "x": 60,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
         }
       ]
     },
