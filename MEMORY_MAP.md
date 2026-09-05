@@ -152,8 +152,6 @@ Unchanged: `level_map`, `level_items`, sector tables, spawn, switch faces, stats
 | `$F7A0` | 200 | `SEC_VISITED` |
 | `$F868` | 200 | `SEC_WDARK` |
 | `$F930` | — | dpsounds + levelstats through `end_kernal` |
-| `$0178` | 40 | `COL_CLIP_OCC_ZL` (under-stack; closed-terminator Z) |
-| `$03C6` | 40 | `COL_CLIP_OCC_ZH` (after FX in cassette scrap) |
 
 ---
 

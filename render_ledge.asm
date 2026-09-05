@@ -41,8 +41,6 @@ ledge_col_flags
 ; floor screen Y. tmp4 = farCeilY; tmp5 = farFloorY when projected.
 ; ---------------------------------------------------------------------------
 paint_portal
-	jsr wall_colour_ns_ew
-.pg
 	ldx next_id
 	lda SEC_FLOOR,x
 	sta far_floor
@@ -63,6 +61,8 @@ paint_portal
 	bne .pp_lower			; Z=0 after untaken beq; always taken
 
 .pp_upper
+	; Only pay NS/EW colour when a ledge will paint
+	jsr wall_colour_ns_ew
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
@@ -99,6 +99,7 @@ paint_portal
 	rts
 
 .pp_lower
+	jsr wall_colour_ns_ew
 !if PROFILE = 1 {
 	ldy #PROF_LEDGE
 	jsr prof_add_bucket
@@ -119,18 +120,30 @@ paint_portal
 	cmp ybot
 	bcs .ppd
 	lda tmp5
-	jsr clamp_span
-	sta tmp1			; farFloorY clamped
+	cmp ytop
+	bcs .pp_l_f0
+	lda ytop
+	bcc .pp_l_f0c			; C=0 after untaken bcs
+.pp_l_f0
+	cmp ybot
+	bcc .pp_l_f0c
+	lda ybot
+.pp_l_f0c
+	sta fill_y0			; farFloorY clamped
 	lda span_b
-	jsr clamp_span
-	sta tmp2			; nearFloorY clamped (A already holds it)
-	cmp tmp1
+	cmp ytop
+	bcs .pp_l_f1
+	lda ytop
+	bcc .pp_l_f1c
+.pp_l_f1
+	cmp ybot
+	bcc .pp_l_f1c
+	lda ybot
+.pp_l_f1c
+	sta fill_y1			; nearFloorY clamped
+	cmp fill_y0
 	bcc .ppd
 	beq .ppd
-	ldy tmp1
-	sty fill_y0
-	ldy tmp2
-	sty fill_y1
 	ldx next_id
 	lda SEC_TYPE,x
 	and #ACT_MASK
@@ -146,7 +159,7 @@ paint_portal
 	jsr fill_span
 	; Open window becomes [ytop, farFloorY). Never yank ytop to nearFloorY —
 	; that closed stair portals early when the step straddled HORIZON.
-	lda tmp1
+	lda fill_y0
 	cmp ybot
 	bcs .ppd
 	sta ybot
@@ -157,18 +170,30 @@ paint_portal
 ; ---------------------------------------------------------------------------
 .pp_draw_u
 	lda span_a
-	jsr clamp_span
-	sta tmp1			; nearCeilY
+	cmp ytop
+	bcs .pdu_n0
+	lda ytop
+	bcc .pdu_n0c
+.pdu_n0
+	cmp ybot
+	bcc .pdu_n0c
+	lda ybot
+.pdu_n0c
+	sta fill_y0			; nearCeilY clamped
 	lda tmp4
-	jsr clamp_span
-	sta tmp2			; farCeilY (A already holds it)
-	cmp tmp1
+	cmp ytop
+	bcs .pdu_f0
+	lda ytop
+	bcc .pdu_f0c
+.pdu_f0
+	cmp ybot
+	bcc .pdu_f0c
+	lda ybot
+.pdu_f0c
+	sta fill_y1			; farCeilY clamped
+	cmp fill_y0
 	bcc .pdu_r
 	beq .pdu_r
-	ldy tmp1
-	sty fill_y0
-	ldy tmp2
-	sty fill_y1
 	ldx next_id
 	lda SEC_TYPE,x
 	and #ACT_MASK

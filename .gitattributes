@@ -1,0 +1,10 @@
+# Default behavior: auto-normalize text files to LF in repo
+* text=auto eol=lf
+
+# Explicitly ensure assembly and source files use LF
+*.asm text eol=lf
+
+# Ensure binary assets are never touched
+*.bin binary
+*.prg binary
+*.d64 binary

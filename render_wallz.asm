@@ -32,9 +32,9 @@ calc_wallz
 	sta wallz_l
 .czok0
 	; texstep = wallz >> TEXSTEP_SHIFT (TheKeep uses >>2); TEXSTEP_SHIFT=2 unrolled
-	lda wallz_l
-	ldx wallz_h
+	; X still = wallz_h (zero-fix left X=0). A after ora is wallz_l|h — reload lo.
 	stx texstep_h
+	lda wallz_l
 	lsr texstep_h
 	ror
 	lsr texstep_h

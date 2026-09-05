@@ -17,14 +17,10 @@
 ; S=side1∧ystep<0, W=side0∧xstep>0.
 ; ---------------------------------------------------------------------------
 
-; NESW Δ from solid → switch cell (indexed by solid face)
-sw_nb_dx
-	!byte 0, 1, 0, $ff			; N E S W
-sw_nb_dy
-	!byte $ff, 0, 1, 0
-
 ; ---------------------------------------------------------------------------
-; switch_face_match — C=0 if solid at mapx/mapy + hit face is a switch face
+; switch_face_match — C=0 if solid hit face is a switch face
+; DDA has stepped into the solid cell; cur_id is the sector we left (= the
+; neighbour on the hit face). Face dir still from side+step.
 ; ---------------------------------------------------------------------------
 switch_face_match
 	lda side
@@ -45,30 +41,7 @@ switch_face_match
 	lda #2				; S
 .sfm_got
 	sta tmp4
-	; Neighbour on that face = switch sector cell
-	tax
-	lda mapx
-	clc
-	adc sw_nb_dx,x
-	sta tmp0
-	cmp #MAP_SIZE
-	bcs .sfm_no
-	lda mapy
-	clc
-	adc sw_nb_dy,x
-	sta tmp1
-	cmp #MAP_SIZE
-	bcs .sfm_no
-	; sector id at (tmp0,tmp1) without clobbering mapx/mapy
-	ldy tmp1
-	lda maprowlo,y
-	clc
-	adc tmp0
-	sta ptr_l
-	lda maprowhi,y
-	sta ptr_h
-	ldy #0
-	lda (ptr_l),y
+	lda cur_id			; sector facing this solid
 	beq .sfm_no
 	sta tmp3
 	; fall through

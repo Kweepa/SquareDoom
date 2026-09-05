@@ -11,9 +11,8 @@
 ; are perpendicular distances (255/tile vs 512/tile), one constant scale.
 ; Closed (top>=bot): occlude if Z < want; Z == want ties fall back nearer.
 ;
-; During cast_column, clip_n (zp) holds the next byte offset; COL_CLIP_N and
-; COL_CLIP_OCC_* are written once at column end. Item draw uses OCC for an
-; O(1) behind-wall reject, then COL_CLIP_N + clip_col_find.
+; During cast_column, clip_n (zp) holds the next byte offset; COL_CLIP_N is
+; written once at column end. Item draw reads COL_CLIP_N + clip_col_find.
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
@@ -130,8 +129,8 @@ clip_col_push
 	rts
 
 ; ---------------------------------------------------------------------------
-; clip_col_commit — COL_CLIP_N[col] = clip_n/4; OCC = last closed Z or $FFFF
-; Requires clip_base still bound. Clobbers: A, X, Y
+; clip_col_commit — COL_CLIP_N[col] = clip_n / 4 (end of cast_column)
+; Clobbers: A, Y
 ; ---------------------------------------------------------------------------
 clip_col_commit
 	lda clip_n
@@ -139,32 +138,6 @@ clip_col_commit
 	lsr
 	ldy col
 	sta COL_CLIP_N,y
-	tax					; n
-	beq .ccc_open			; no entries → open-ended
-	dex					; last index
-	txa
-	asl
-	asl
-	tay					; Y = last×4
-	lda (clip_base_l),y		; top
-	iny
-	cmp (clip_base_l),y		; top >= bot → closed
-	iny					; → zl
-	bcs .ccc_closed
-	; open last entry — no hard occluder
-	ldy col
-.ccc_open
-	lda #$ff
-	sta COL_CLIP_OCC_ZL,y
-	sta COL_CLIP_OCC_ZH,y
-	rts
-.ccc_closed
-	lda (clip_base_l),y		; zl
-	iny
-	ldx col
-	sta COL_CLIP_OCC_ZL,x
-	lda (clip_base_l),y		; zh
-	sta COL_CLIP_OCC_ZH,x
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -175,22 +148,11 @@ clip_col_commit
 ;   open  → that aperture
 ;   empty → Z < want: occluded (miss); Z == want: quantization tie — the
 ;           sprite sits on that surface, use the previous (open) entry
-; Fast path: want > COL_CLIP_OCC → miss (closed terminator only; $FFFF = none)
 ; Exit: C=0 found, tmp0=top, tmp1=bot; C=1 miss/occluded
 ; Clobbers: tmp3,tmp4,tmp5, X, Y, A
 ; ---------------------------------------------------------------------------
 clip_col_find
 	ldy col
-	; O(1): behind closed wall if want > OCC
-	lda wz_x_h
-	cmp COL_CLIP_OCC_ZH,y
-	bcc .ccf_n			; want_h < occ_h → wall farther
-	bne .ccf_miss			; want_h > occ_h → behind
-	lda wz_x_l
-	cmp COL_CLIP_OCC_ZL,y
-	beq .ccf_n			; want == OCC → tie; linear find
-	bcs .ccf_miss			; want_l > occ_l → behind
-.ccf_n
 	lda COL_CLIP_N,y
 	bne .ccf_go
 .ccf_miss

@@ -657,13 +657,10 @@ function clipPush(clips, top, bot, z) {
 /**
  * clip_col_find — last entry with Z <= want. Open → aperture; closed with
  * Z < want → occluded; Z == want tie → previous open entry.
- * Mirrors COL_CLIP_OCC: want > last closed Z → miss without scanning.
  * @returns {{top:number,bot:number}|null}
  */
 function clipFind(clips, wantZ) {
   if (!clips.length) return null;
-  const last = clips[clips.length - 1];
-  if (last.top >= last.bot && wantZ > last.z + 1e-4) return null;
   let best = -1;
   let equal = false;
   for (let i = 0; i < clips.length; i++) {
