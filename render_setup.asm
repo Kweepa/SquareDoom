@@ -106,8 +106,14 @@ rebuild_col_rays
 	lda fixsech,y
 	sta COL_DDX_H,x
 	sta aux_h
+	; Fish factor once — both mid(dd×fish) muls share sq1..sq4
 	lda fishtab,x
-	jsr mul_16x8			; A=lo, X=hi
+	sta sq1_l
+	sta sq2_l
+	eor #$ff
+	sta sq3_l
+	sta sq4_l
+	jsr mul_16x8_ready		; A=lo, X=hi
 	ldy col
 	sta COL_DDWX_L,y
 	txa
@@ -132,8 +138,7 @@ rebuild_col_rays
 	lda fixsech,y
 	sta COL_DDY_H,x
 	sta aux_h
-	lda fishtab,x
-	jsr mul_16x8
+	jsr mul_16x8_ready		; sq* still = fish
 	ldy col
 	sta COL_DDWY_L,y
 	txa

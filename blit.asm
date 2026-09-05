@@ -1,7 +1,7 @@
 ; Auto-generated — compact interleaved colour RAM + screen blit
 ; Column loop; 25 rows unrolled. Source: col-major $e000 / $e400
 ; Dest: pattern $C000 + colour $D800 at $35; yield $34+cli/col
-; Row 24: always blit cols 8–31 (view); HUD cols 0–7/32–39 if hud_dirty
+; Row 24 always blit (FB keeps HUD sides); patbasehi = colbasehi+4
 !zone blit_fb
 
 blit_fb
@@ -12,8 +12,7 @@ blit_fb
 	sta pat_base_l
 	lda colbasehi,x
 	sta col_base_h
-	clc
-	adc #4
+	lda patbasehi,x
 	sta pat_base_h
 	lda #$35
 	sta $01
@@ -138,19 +137,10 @@ blit_fb
 	lda (pat_base_l),y
 	sta $c398,x
 	iny
-	cpx #8
-	bcc .hud_side
-	cpx #32
-	bcc .blit_r24
-.hud_side
-	lda hud_dirty
-	beq .hud_clean
-.blit_r24
 	lda (col_base_l),y
 	sta $dbc0,x
 	lda (pat_base_l),y
 	sta $c3c0,x
-.hud_clean
 	lda #$34
 	sta $01
 	cli
@@ -162,3 +152,8 @@ blit_fb
 	lda #0
 	sta hud_dirty
 	rts
+
+patbasehi
+	!byte $e4,$e4,$e4,$e4,$e4,$e4,$e4,$e4,$e4,$e4,$e4,$e5,$e5,$e5,$e5,$e5
+	!byte $e5,$e5,$e5,$e5,$e5,$e6,$e6,$e6,$e6,$e6,$e6,$e6,$e6,$e6,$e6,$e7
+	!byte $e7,$e7,$e7,$e7,$e7,$e7,$e7,$e7

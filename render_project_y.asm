@@ -156,7 +156,7 @@ project_y_sbc_eye
 
 ; ---------------------------------------------------------------------------
 ; project_y_lo — A = height → A = row; requires texstep_h = 0. Clobbers Y.
-; Shared by project_y_pair (not the scalar hot path — jsr tax).
+; Kept as scalar helper; project_y_pair inlines this for the dual lo path.
 ; ---------------------------------------------------------------------------
 project_y_lo
 	sec
@@ -198,20 +198,92 @@ project_y_lo
 ; ---------------------------------------------------------------------------
 ; project_y_pair — A = height0, Y = height1 → X = row0, A = row1
 ;
-; Shares one texstep_h test. Lo path: two project_y_lo calls. Hi path: two
-; scalar project_y. Uses tmp0/tmp2; must not touch tmp4/tmp5.
+; Shares one texstep_h test. Lo path: dual-inline of project_y_lo (shared
+; texstep_l index in tmp1). Hi path: two scalar project_y. Uses tmp0/tmp1/tmp2;
+; must not touch tmp4/tmp5.
 ; ---------------------------------------------------------------------------
 project_y_pair
 	sta tmp0				; height0
 	sty tmp2				; height1
 	lda texstep_h
-	bne .pyp_hi
-
+	beq .pyp_lo
+	jmp .pyp_hi
+.pyp_lo
+	lda texstep_l
+	sta tmp1				; shared table index
+	; ----- height0 -----
 	lda tmp0
-	jsr project_y_lo
+	sec
+	sbc eyeheight
+	beq .pyp0_eye
+	bmi .pyp0_dn
+	cmp #12
+	bcs .pyp0_up_edge
+	adc #>py_tab - 1
+	sta .pyp0_uld + 2
+	ldy tmp1
+.pyp0_uld
+	lda py_tab,y
+	eor #$ff
+	adc #HORIZON+1
+	bcs .pyp0_done
+.pyp0_up_edge
+	lda #0
+	beq .pyp0_done			; always
+.pyp0_eye
+	lda #HORIZON
+	bne .pyp0_done			; always (HORIZON≠0)
+.pyp0_dn
+	cmp #$100-11
+	bcc .pyp0_dn_edge
+	eor #$ff
+	adc #>py_tab - 1
+	sta .pyp0_dld + 2
+	ldy tmp1
+.pyp0_dld
+	lda py_tab,y
+	adc #HORIZON
+	jmp .pyp0_done
+.pyp0_dn_edge
+	lda #25
+.pyp0_done
 	sta tmp0				; row0
+	; ----- height1 -----
 	lda tmp2
-	jsr project_y_lo
+	sec
+	sbc eyeheight
+	beq .pyp1_eye
+	bmi .pyp1_dn
+	cmp #12
+	bcs .pyp1_up_edge
+	adc #>py_tab - 1
+	sta .pyp1_uld + 2
+	ldy tmp1
+.pyp1_uld
+	lda py_tab,y
+	eor #$ff
+	adc #HORIZON+1
+	bcs .pyp1_done
+.pyp1_up_edge
+	lda #0
+	beq .pyp1_done
+.pyp1_eye
+	lda #HORIZON
+	bne .pyp1_done
+.pyp1_dn
+	cmp #$100-11
+	bcc .pyp1_dn_edge
+	eor #$ff
+	adc #>py_tab - 1
+	sta .pyp1_dld + 2
+	ldy tmp1
+.pyp1_dld
+	lda py_tab,y
+	adc #HORIZON
+	jmp .pyp1_done
+.pyp1_dn_edge
+	lda #25
+.pyp1_done
 	ldx tmp0				; X = row0, A = row1
 !if PROFILE = 1 {
 	sta py_row

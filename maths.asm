@@ -71,6 +71,8 @@ mul_16x8
 	eor #$ff
 	sta sq3_l
 	sta sq4_l
+; Entry with sq1_l..sq4_l already set for the factor (e.g. same fish twice).
+mul_16x8_ready
 	ldy aux_l
 	sec
 	lda (sq1_l),y
