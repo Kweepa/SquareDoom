@@ -179,7 +179,8 @@ play_sound
 
 ; ------------------------------------------------------------------
 ; update_sfx — one PC speaker sample per call (CIA1 Timer B @ ~140 Hz)
-; Must not touch tmp0–tmp5 / other main-thread ZP. Voice 3 only.
+; IRQ already $01=$35. Must not touch tmp0–tmp5. Voice 3 only.
+; ADSR is set by play_sound; samples only poke freq + gate.
 ; ------------------------------------------------------------------
 update_sfx
 	lda sound_index
@@ -192,28 +193,22 @@ update_sfx
 	lda (sound_ptr_l),y
 	beq .sfx_silent
 	tax
-	jsr sfx_voice3_adsr
-	jsr io_push
 	lda pcsfreq_lo,x
 	sta $d40e
 	lda pcsfreq_hi,x
 	sta $d40f
 	lda #$81			; noise + gate
 	sta $d412
-	jmp io_pop
+	rts
 
 .sfx_silent
-	jsr io_push
 	lda #0
 	sta $d412
-	jmp io_pop
+	rts
 
 .sfx_stop
-	jsr io_push
 	lda #0
 	sta $d412
-	jsr io_pop
-
 	lda #$ff
 	sta sound_index
 	lda #0

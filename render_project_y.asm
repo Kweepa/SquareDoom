@@ -155,52 +155,11 @@ project_y_sbc_eye
 	rts
 
 ; ---------------------------------------------------------------------------
-; project_y_lo — A = height → A = row; requires texstep_h = 0. Clobbers Y.
-; Kept as scalar helper; project_y_pair inlines this for the dual lo path.
-; ---------------------------------------------------------------------------
-project_y_lo
-	sec
-	sbc eyeheight
-	beq .plo_eye
-	bmi .plo_dn
-	cmp #12
-	bcs .plo_up_edge
-	adc #>py_tab - 1
-	sta .plo_uld + 2
-	ldy texstep_l
-.plo_uld
-	lda py_tab,y
-	eor #$ff
-	adc #HORIZON+1
-	bcs .plo_out
-.plo_up_edge
-	lda #0
-.plo_out
-	rts
-.plo_eye
-	lda #HORIZON
-	rts
-.plo_dn
-	cmp #$100-11
-	bcc .plo_dn_edge
-	eor #$ff
-	adc #>py_tab - 1
-	sta .plo_dld + 2
-	ldy texstep_l
-.plo_dld
-	lda py_tab,y
-	adc #HORIZON
-	rts
-.plo_dn_edge
-	lda #25
-	rts
-
-; ---------------------------------------------------------------------------
 ; project_y_pair — A = height0, Y = height1 → X = row0, A = row1
 ;
-; Shares one texstep_h test. Lo path: dual-inline of project_y_lo (shared
-; texstep_l index in tmp1). Hi path: two scalar project_y. Uses tmp0/tmp1/tmp2;
-; must not touch tmp4/tmp5.
+; Shares one texstep_h test. Lo path: dual-inline of the old scalar lo lookup
+; (shared texstep_l index in tmp1). Hi path: two scalar project_y.
+; Uses tmp0/tmp1/tmp2; must not touch tmp4/tmp5.
 ; ---------------------------------------------------------------------------
 project_y_pair
 	sta tmp0				; height0

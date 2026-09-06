@@ -366,9 +366,15 @@ item_vis_push
 ; ---------------------------------------------------------------------------
 item_calc_depth
 	lda tmp0			; ix
-	sta tmp2
+	cmp playerx_h
+	bcs .icd_dx_ge
 	lda playerx_h
-	jsr item_uabs8		; |ix-px|
+	sec
+	sbc tmp0
+	jmp .icd_dx_abs
+.icd_dx_ge
+	sbc playerx_h			; C=1 from cmp
+.icd_dx_abs
 	cmp #ITEM_AXIS_MAX+1
 	bcc .icd_dx_ok
 	jmp .icd_bad
@@ -400,9 +406,15 @@ item_calc_depth
 	sta item_dx
 .icd_dy
 	lda tmp1			; iy
-	sta tmp2
+	cmp playery_h
+	bcs .icd_dy_ge
 	lda playery_h
-	jsr item_uabs8		; |iy-py|
+	sec
+	sbc tmp1
+	jmp .icd_dy_abs
+.icd_dy_ge
+	sbc playery_h			; C=1 from cmp
+.icd_dy_abs
 	cmp #ITEM_AXIS_MAX+1
 	bcc .icd_dy_ok
 	jmp .icd_bad
@@ -477,20 +489,6 @@ item_calc_depth
 	rts
 .icd_bad
 	sec
-	rts
-
-; |tmp2 - A| → A (unsigned world distance on 0..255 map)
-item_uabs8
-	sta tmp3
-	lda tmp2
-	cmp tmp3
-	bcs .iu_ge
-	lda tmp3
-	sec
-	sbc tmp2
-	rts
-.iu_ge
-	sbc tmp3
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -1307,12 +1305,8 @@ item_draw_clp_go
 	lda wallz_l
 	sta tmp5
 	jsr item_vdda_seed
-	ldy py_row
+	ldy py_row			; py_row < item_ybot (caller)
 .ids_rlp
-	cpy item_ybot
-	bcc .ids_row
-	jmp .id_cnx
-.ids_row
 	sty tmp4
 	lda acc_h				; bmp_y
 	cmp tmp5
@@ -1339,7 +1333,9 @@ item_draw_clp_go
 	sta acc_h
 	ldy tmp4
 	iny
-	jmp .ids_rlp
+	cpy item_ybot
+	bcc .ids_rlp
+	jmp .id_cnx
 
 ; --- Enemy column (U-DDA + hoisted invariants) ---
 .id_e32
@@ -1393,12 +1389,8 @@ item_draw_clp_go
 	lda wallz_l
 	sta tmp5
 	jsr item_vdda_seed
-	ldy py_row
+	ldy py_row			; py_row < item_ybot (caller)
 .id32_rlp
-	cpy item_ybot
-	bcc .id32_row
-	jmp .id_cnx
-.id32_row
 	sty tmp4
 	lda acc_h				; bmp_y
 	cmp tmp5
@@ -1424,7 +1416,9 @@ item_draw_clp_go
 	sta acc_h
 	ldy tmp4
 	iny
-	jmp .id32_rlp
+	cpy item_ybot
+	bcc .id32_rlp
+	jmp .id_cnx
 
 ; --- Item column (1:1; ptr -= near_fcol so Y indexes both tex and screen) ---
 .id_e8
@@ -1483,7 +1477,7 @@ item_draw_clp_go
 	lda ptr_h
 	adc #0
 	sta ptr_h
-	jmp .id8_loop
+	jmp .id8_enter
 .id8_psub
 	sec
 	lda ptr_l
@@ -1492,11 +1486,9 @@ item_draw_clp_go
 	lda ptr_h
 	sbc #0
 	sta ptr_h
-.id8_loop
-	ldy py_row
+.id8_enter
+	ldy py_row			; py_row < item_ybot (caller)
 .id_rlp
-	cpy item_ybot
-	bcs .id_cnx_jmp
 	lda (ptr_l),y
 	cmp #$ff				; $ff = clear (black $00 is opaque)
 	beq .id_skip
@@ -1505,8 +1497,8 @@ item_draw_clp_go
 	sta (pat_base_l),y
 .id_skip
 	iny
-	jmp .id_rlp
-.id_cnx_jmp
+	cpy item_ybot
+	bcc .id_rlp
 	jmp .id_cnx
 
 ; ---------------------------------------------------------------------------

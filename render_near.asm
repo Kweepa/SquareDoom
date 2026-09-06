@@ -14,20 +14,6 @@
 ; Flat fills are inlined with lda near_fpat (no jsr fill_span).
 ; ============================================================================
 
-; A = row → clamp into [ytop, ybot]; result in A. Macro-local @ labels.
-; Used by clamp_span (ledge); paint_near fuses clamp with fill decisions.
-!macro clamp_span_inline {
-	cmp ytop
-	bcs @cs1
-	lda ytop
-	bcc @cs2			; C=0 after untaken bcs; lda preserves C
-@cs1
-	cmp ybot
-	bcc @cs2
-	lda ybot
-@cs2
-}
-
 ; ---------------------------------------------------------------------------
 ; paint_near — fill near ceil/floor strips; update ytop/ybot and span_a/b
 ;
@@ -95,7 +81,9 @@ paint_near
 	cpy #12
 	bcs .pn_sky_hi
 	lda (sky_ptr_l),y
-	jsr sky_put
+	sta (col_base_l),y
+	lda #FLOOR_PAT_BASE
+	sta (pat_base_l),y
 	iny
 	cpy tmp1
 	bne .pn_sky_lp
@@ -106,7 +94,9 @@ paint_near
 	ldy #11
 	lda (sky_ptr_l),y
 	ldy tmp0
-	jsr sky_put
+	sta (col_base_l),y
+	lda #FLOOR_PAT_BASE
+	sta (pat_base_l),y
 	iny
 	cpy tmp1
 	bne .pn_sky_lp
@@ -186,12 +176,4 @@ refresh_near_spans
 !if PROFILE = 1 {
 	jsr prof_add_py_pair
 }
-	rts
-
-; ---------------------------------------------------------------------------
-; clamp_span — A = row → clamp into [ytop, ybot]; result in A
-; Used by render_ledge; paint_near fuses clamp via open-coded compares.
-; ---------------------------------------------------------------------------
-clamp_span
-	+clamp_span_inline
 	rts

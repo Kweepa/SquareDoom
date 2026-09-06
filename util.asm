@@ -3,8 +3,8 @@
 ; Map I/O in ($35), saving previous $01. Nested-safe with io_pop.
 ; Do not PHA $01: a subroutine RTS would pull that byte as the return PCL
 ; (setup_pistol's first jsr io_push returned to $6936 BRK in sprite data).
-; php/sei: Timer B update_sfx also io_push; a split ldx/stx io_depth walks
-; depth into GAME (snap: $A5 → sta $06C6) and later $FFFE dies.
+; php/sei: keep io_depth/io_stk atomic vs IRQ. A split ldx/stx walk once
+; smashed depth into GAME (snap: $A5 → sta $06C6) and later $FFFE died.
 io_depth	!byte 0
 io_stk		!byte 0, 0, 0, 0
 io_tmp_a	!byte 0
@@ -158,7 +158,7 @@ player_face_nesw
 
 ; Fill colour+pattern column: A = colour, ytop..ybot-1
 ; Clobbers X (colour kept in X across the dual-FB store).
-; Cyan (3) → sky_cols[sky_col][row] via sky_put (see fill_sky path).
+; Cyan (3) → sky_cols[sky_col][row], FLOOR_PAT_BASE UDG.
 fill_col_span
 	ldy ybot
 	sty fill_y1
@@ -207,7 +207,9 @@ fill_span
 	cpy #12
 	bcs .fs_sky_hi
 	lda (sky_ptr_l),y
-	jsr sky_put
+	sta (col_base_l),y
+	lda #FLOOR_PAT_BASE
+	sta (pat_base_l),y
 	iny
 .fs_sky_test
 	cpy fill_y1
@@ -218,16 +220,11 @@ fill_span
 	ldy #11
 	lda (sky_ptr_l),y
 	ldy tmp0
-	jsr sky_put
-	iny
-	jmp .fs_sky_test
-
-; A = sky colour, Y = FB row — colour from map, brightest floor dither UDG
-sky_put
 	sta (col_base_l),y
 	lda #FLOOR_PAT_BASE
 	sta (pat_base_l),y
-	rts
+	iny
+	jmp .fs_sky_test
 
 ; col_base = FRAMEBUFFER + col * 25; pat_base = LIGHTFRAME + col * 25
 ; (LIGHTFRAME hi = FRAMEBUFFER hi + 4)
@@ -241,52 +238,6 @@ set_col_base
 	clc
 	adc #4
 	sta pat_base_h
-	rts
-
-; sky_ptr = sky_cols + ((sky_col_base+col) mod 40) * 12
-; Used by rebuild_col_rays to patch render's col-0 pointer (then +12/col).
-; *12 is 16-bit (8-bit mul broke sky_col ≥ 22). Clobbers tmp0–tmp2.
-set_sky_ptr
-	lda sky_col_base
-	clc
-	adc col
-	cmp #40
-	bcc .ssp_col
-	sbc #40
-.ssp_col
-	tax				; sky_col 0..39
-	lda #0
-	sta tmp1
-	txa
-	asl
-	rol tmp1
-	asl
-	rol tmp1
-	asl
-	rol tmp1			; *8 → A/tmp1
-	sta tmp0
-	lda tmp1
-	sta tmp2			; *8 hi
-	lda #0
-	sta tmp1
-	txa
-	asl
-	rol tmp1
-	asl
-	rol tmp1			; *4 → A/tmp1
-	clc
-	adc tmp0
-	sta tmp0			; *12 lo
-	lda tmp1
-	adc tmp2
-	sta tmp1			; *12 hi
-	clc
-	lda tmp0
-	adc #<sky_cols
-	sta sky_ptr_l
-	lda tmp1
-	adc #>sky_cols
-	sta sky_ptr_h
 	rts
 
 ; wall_pat / fill_pat from SEC_WDARK[cur] + min(15, wallz_h).

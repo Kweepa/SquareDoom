@@ -87,7 +87,7 @@ function sinTable() {
   return out;
 }
 
-// Must match SCREENBUFFER in squaredoom.asm / genblit.js
+// Must match SCREENBUFFER in squaredoom.asm
 const SCREENBUFFER = 0xe000;
 // Must match squaredoom.asm: level_map first at MEM_LEVEL (32-byte aligned)
 const LEVEL_MAP = 0x96e0;

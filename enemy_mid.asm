@@ -329,13 +329,6 @@ obj_sector
 	sta mapy
 	jmp map_sector_id
 
-; sync player_sector
-cache_player_sector
-	jsr player_tile
-	jsr map_sector_id
-	sta player_sector
-	rts
-
 ; distance player ↔ current obj → enemy_dist
 calc_enemy_dist
 	jsr obj_xy
@@ -379,7 +372,8 @@ enemy_think
 	and #15
 	sta react_dt_rem
 	jsr hitscan_frame
-	jsr cache_player_sector
+	lda plr_id			; setup_player_tile; keep player_sector lag for weapon hi
+	sta player_sector
 	ldx #0
 .et_lp
 	lda MOBJ_ALLOC,x
@@ -391,9 +385,12 @@ enemy_think
 	; missile always thinks while allocated
 	cmp #MOBJINFO_IMPSHOT
 	beq .et_run
-	; corpses: no AI once fall has finished
+	; corpses: no AI once fall has stamped ITEM_CORPSE_TEX
 	lda MOBJ_HEALTH,x
 	bne .et_live
+	lda ITEM_CORPSE_TEX,x
+	cmp #$ff
+	bne .et_skip
 	ldy MOBJ_STATE,x
 	lda state_action,y
 	cmp #ACTION_FALL
@@ -642,6 +639,34 @@ p_try_move
 ; ---------------------------------------------------------------------------
 enemy_push_walls
 	jsr obj_xy
+	lda tmp0
+	and #7
+	cmp #2
+	bcc .epw_go			; west: local_x < 2
+	cmp #6
+	bcs .epw_go			; east: local_x >= 6
+	cmp #5
+	bne .epw_chk_y
+	ldx enemy_actor
+	lda MOBJ_XFRAC,x
+	cmp #$81
+	bcs .epw_go			; east: local 5 and frac >= $81
+.epw_chk_y
+	lda tmp1
+	and #7
+	cmp #2
+	bcc .epw_go			; north: local_y < 2
+	cmp #6
+	bcs .epw_go			; south: local_y >= 6
+	cmp #5
+	bne .epw_none
+	ldx enemy_actor
+	lda MOBJ_YFRAC,x
+	cmp #$81
+	bcs .epw_go			; south: local 5 and frac >= $81
+.epw_none
+	rts
+.epw_go
 	lda tmp0
 	lsr
 	lsr

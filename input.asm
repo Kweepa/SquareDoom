@@ -749,7 +749,8 @@ apply_move
 tile_blocked
 	beq .tb_yes
 	tax
-	jsr sec_action
+	lda SEC_TYPE,x
+	and #ACT_MASK
 	cmp #ACT_WINDOW
 	beq .tb_yes			; window: bodies stop, shots pass
 	lda SEC_CEIL,x
@@ -807,8 +808,27 @@ standing_blocked
 	jsr sector_at_map
 	jmp tile_blocked
 
-; Push player 1 world unit away from each adjacent blocking face
+; Push player 1 world unit away from each adjacent blocking face.
+; No snap is possible unless a local coord sits on a seam (0 or 7.x).
 push_walls
+	lda playerx_h
+	and #7
+	beq .pw_go			; west: local_x == 0
+	cmp #7
+	bne .pw_chk_y
+	lda playerx
+	bne .pw_go			; east: local_x == 7.x (not 7.0)
+.pw_chk_y
+	lda playery_h
+	and #7
+	beq .pw_go			; north: local_y == 0
+	cmp #7
+	bne .pw_none
+	lda playery
+	bne .pw_go			; south: local_y == 7.x (not 7.0)
+.pw_none
+	rts
+.pw_go
 	jsr player_tile
 	lda mapx
 	sta tmp4

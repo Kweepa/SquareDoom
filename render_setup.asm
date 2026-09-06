@@ -76,12 +76,41 @@ rebuild_col_rays
 	lsr
 	lsr				; byte-wrapped /8 → 0..31, matching old per-column math
 	sta sky_col_base
+	; sky_ptr = sky_cols + base*12 (col 0; base is 0..31 so no wrap)
 	lda #0
-	sta col
-	jsr set_sky_ptr			; col 0: sky_cols + base*12 (16-bit)
-	lda sky_ptr_l
+	sta tmp1
+	lda sky_col_base
+	tax
+	asl
+	rol tmp1
+	asl
+	rol tmp1
+	asl
+	rol tmp1			; *8 → A/tmp1
+	sta tmp0
+	lda tmp1
+	sta tmp2			; *8 hi
+	lda #0
+	sta tmp1
+	txa
+	asl
+	rol tmp1
+	asl
+	rol tmp1			; *4 → A/tmp1
+	clc
+	adc tmp0
+	sta tmp0			; *12 lo
+	lda tmp1
+	adc tmp2
+	sta tmp1			; *12 hi
+	clc
+	lda tmp0
+	adc #<sky_cols
+	sta sky_ptr_l
 	sta sky_ptr_init_l + 1
-	lda sky_ptr_h
+	lda tmp1
+	adc #>sky_cols
+	sta sky_ptr_h
 	sta sky_ptr_init_h + 1
 	lda #40
 	sec
