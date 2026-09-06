@@ -187,7 +187,7 @@ prof_now_h	= $53
 prof_dt_l	= $54
 prof_dt_h	= $55
 
-; Player tile/frac cached once per frame (columns restore mapx/mapy from these)
+; Player tile/frac cached once per frame (columns restore tile* from plr_tile_*)
 plr_mapx	= $56
 plr_mapy	= $57
 plr_id		= $58
@@ -197,7 +197,7 @@ fracx_inv	= $5d			; fracx ^ $FF (TheKeep +X/+Y distance factor)
 fracy_inv	= $5e
 last_playera	= $5f			; $FF = force rebuild_col_rays
 
-; COL_CLIP_ENTRIES + col*CLIP_COL_BYTES — set once per column (reset / bind)
+; COL_CLIP_ENTRIES + col*CLIP_COL_BYTES — inducted in render; items rebind
 clip_base_l	= $5b
 clip_base_h	= $5c
 

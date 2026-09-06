@@ -3,7 +3,7 @@
 ; ============================================================================
 ; render_wallu.asm — wall face U = frac at the tile-grid crossing
 ; ============================================================================
-; DDA keeps integer mapx/mapy (+ tile ptr), not fractional XY. At a painted
+; DDA keeps the tile ptr, not fractional XY. At a painted
 ; edge, recover the crossing frac on the non-hit axis (TheKeep hitcommon):
 ;
 ;   X-hit:  u8 = lo(sdx × fixcos[dyindex]) ± fracy

@@ -46,6 +46,8 @@ render
 }
 	jsr next_sector_seen
 	jsr setup_player_tile
+	ldx plr_id
+	jsr mark_seen			; once/frame; DDA still stamps entered sectors
 	; Ray cache depends only on look angle — rebuild when playera moves
 	lda playera
 	cmp last_playera
@@ -53,16 +55,71 @@ render
 	sta last_playera
 	jsr rebuild_col_rays
 .rays_ok
+	; Column 0 pointers; +25 / +CLIP_COL_BYTES / +12 after each cast.
+	; Items rebind via set_col_base / clip_col_bind (arbitrary columns).
+	lda colbaselo
+	sta col_base_l
+	sta pat_base_l
+	lda colbasehi
+	sta col_base_h
+	clc
+	adc #4
+	sta pat_base_h
+	lda clip_base_lo
+	sta clip_base_l
+	lda clip_base_hi
+	sta clip_base_h
+sky_ptr_init_l
+	lda #<sky_cols			; patched by rebuild_col_rays
+	sta sky_ptr_l
+sky_ptr_init_h
+	lda #>sky_cols
+	sta sky_ptr_h
 	lda #0
 	sta col
 .col_loop
-	jsr set_col_base		; SCREENBUFFER column base for fills
-	jsr set_sky_ptr			; sky_cols strip for cyan ceil/ledge
 	jsr cast_column
 	inc col
 	lda col
 	cmp #40
-	bcc .col_loop
+	bne .col_adv
+	jmp .cols_done
+.col_adv
+	clc
+	lda col_base_l
+	adc #25
+	sta col_base_l
+	sta pat_base_l
+	bcc .cb_ok
+	inc col_base_h
+	inc pat_base_h
+.cb_ok
+	clc
+	lda clip_base_l
+	adc #CLIP_COL_BYTES
+	sta clip_base_l
+	bcc .cl_ok
+	inc clip_base_h
+.cl_ok
+	lda col
+sky_wrap_cmp
+	cmp #40				; patched: 40 − sky_col_base
+	beq .sky_wrap
+	clc
+	lda sky_ptr_l
+	adc #12
+	sta sky_ptr_l
+	bcc .sky_ok
+	inc sky_ptr_h
+	jmp .sky_ok
+.sky_wrap
+	lda #<sky_cols
+	sta sky_ptr_l
+	lda #>sky_cols
+	sta sky_ptr_h
+.sky_ok
+	jmp .col_loop
+.cols_done
 	jsr render_items
 	jsr draw_info_msg
 	jsr draw_hud

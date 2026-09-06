@@ -30,21 +30,15 @@
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
-; cast_column — one screen column (col already set; col_base from set_col_base)
-;
-; Restores plr map/tile; builds sdx/sdy/wz; walks until clip closed, MAX_DDA,
-; or s overflow. Ends by flooding any leftover [ytop,ybot) with cur floor.
+; cast_column — one screen column (col already set; col_base / clip_base /
+; sky_ptr inducted in render). Restores plr tile pointer; builds sdx/sdy/wz;
+; walks until clip closed, MAX_DDA, or s overflow. Ends by flooding leftover
+; [ytop,ybot) with cur floor. mapx/mapy are not used during the march.
 ; ---------------------------------------------------------------------------
 cast_column
 !if PROFILE = 1 {
 	jsr prof_snap
 }
-	; Restore player cell — previous columns left tile* mutated
-	lda plr_mapx
-	sta mapx
-	lda plr_mapy
-	sta mapy
-
 	; Load this column's ray constants from rebuild_col_rays cache
 	ldy col
 	lda COL_DDX_L,y
@@ -122,14 +116,16 @@ cast_column
 	lda #$e6				; INC tile_h
 	sta tmp1
 	lda ystep
-	bpl .patch_y
+	bpl .chk_y
 	ldx #$38				; SEC
 	ldy #$e9				; SBC #
 	lda #$b0				; BCS
 	sta tmp0
 	lda #$c6				; DEC tile_h
 	sta tmp1
-.patch_y
+.chk_y
+	cpx .smc_y_clc			; live opcode tags the whole Y quartet
+	beq .cc_init
 	stx .smc_y_clc
 	sty .smc_y_op1
 	lda tmp0
@@ -167,13 +163,22 @@ cast_column
 	sta tile_l
 	lda plr_tile_h
 	sta tile_h
-	jsr clip_col_reset
-	ldx plr_id
-	jsr mark_seen
+	; clip_base already bound; seed entry 0 = {ytop,ybot, Z=0}
+	ldy #0
+	lda ytop
+	sta (clip_base_l),y
+	iny
+	lda ybot
+	sta (clip_base_l),y
+	iny
 	lda #0
+	sta (clip_base_l),y
 	sta wallz_l
-	sta wallz_h			; near clip at depth 0
-	jsr clip_col_push
+	iny
+	sta (clip_base_l),y
+	sta wallz_h
+	iny
+	sty clip_n			; 4
 !if PROFILE = 1 {
 	ldy #PROF_SETUP
 	jsr prof_add_bucket		; preamble counts as S
@@ -365,7 +370,11 @@ cast_column
 	jmp .inner
 
 .done
-	jsr clip_col_commit		; COL_CLIP_N ← clip_n/4 for item draw
+	lda clip_n
+	lsr
+	lsr
+	ldy col
+	sta COL_CLIP_N,y		; entry count for item draw
 !if PROFILE = 1 {
 	ldy #PROF_DDA
 	jsr prof_add_bucket

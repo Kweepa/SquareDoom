@@ -6638,6 +6638,86 @@
             "normal": true,
             "hard": true
           }
+        },
+        {
+          "type": "barrel",
+          "x": 76,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 100,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 124,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 132,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 132,
+          "y": 84,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 92,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 132,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 156,
+          "y": 196,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
         }
       ]
     },

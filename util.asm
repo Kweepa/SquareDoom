@@ -244,7 +244,7 @@ set_col_base
 	rts
 
 ; sky_ptr = sky_cols + ((sky_col_base+col) mod 40) * 12
-; sky_col_base=(playera*5/8) mod 40 is hoisted into rebuild_col_rays.
+; Used by rebuild_col_rays to patch render's col-0 pointer (then +12/col).
 ; *12 is 16-bit (8-bit mul broke sky_col ≥ 22). Clobbers tmp0–tmp2.
 set_sky_ptr
 	lda sky_col_base

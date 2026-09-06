@@ -15,8 +15,8 @@
 ; setup_player_tile — once per frame
 ;
 ; World 8.8 >> 3 → tile 8.8: map = high, frac = low (TheKeep first-hit).
-; Also frac*_inv for +axis. Caches plr_mapx/y, plr_id, plr_tile_* so each
-; column can restore after DDA mutates map*/tile*.
+; Also frac*_inv for +axis. Caches plr_mapx/y, plr_id, plr_tile_* once/frame.
+; Columns restore tile* after DDA mutates it; mapx/mapy are not marched.
 ; ---------------------------------------------------------------------------
 setup_player_tile
 	; tile 8.8 = world 8.8 / 8
@@ -64,8 +64,8 @@ setup_player_tile
 ; X = col, Y = secant index (mul_16x8 returns A=lo X=hi — reload col after).
 ; ---------------------------------------------------------------------------
 rebuild_col_rays
-	; Sky scroll depends on the same angle. Reduce its frame-wide base once;
-	; set_sky_ptr only adds the current column.
+	; Sky scroll depends on the same angle. Hoist the strip base and patch
+	; render's col-0 pointer + wrap column (induction adds 12 per column).
 	lda playera
 	sta tmp0
 	asl
@@ -76,6 +76,17 @@ rebuild_col_rays
 	lsr
 	lsr				; byte-wrapped /8 → 0..31, matching old per-column math
 	sta sky_col_base
+	lda #0
+	sta col
+	jsr set_sky_ptr			; col 0: sky_cols + base*12 (16-bit)
+	lda sky_ptr_l
+	sta sky_ptr_init_l + 1
+	lda sky_ptr_h
+	sta sky_ptr_init_h + 1
+	lda #40
+	sec
+	sbc sky_col_base		; 40 when base=0 (never matches col 1..39)
+	sta sky_wrap_cmp + 1
 
 	; base = playera − 64 (north alignment); per-col angle = angtab[col] + base
 	lda playera

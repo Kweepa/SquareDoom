@@ -12,7 +12,7 @@
 ; Closed (top>=bot): occlude if Z < want; Z == want ties fall back nearer.
 ;
 ; During cast_column, clip_n (zp) holds the next byte offset; COL_CLIP_N is
-; written once at column end. Item draw reads COL_CLIP_N + clip_col_find.
+; written once at column end. clip_base is inducted in render (items rebind).
 ; ============================================================================
 
 ; ---------------------------------------------------------------------------
@@ -84,16 +84,6 @@ clip_col_bind
 	sta clip_base_h
 	rts
 
-; ---------------------------------------------------------------------------
-; clip_col_reset — clip_n = 0; COL_CLIP_N[col] = 0; bind clip_base
-; ---------------------------------------------------------------------------
-clip_col_reset
-	ldy col
-	lda #0
-	sta COL_CLIP_N,y
-	sta clip_n
-	jmp clip_col_bind
-
 ; clip_base = COL_CLIP_ENTRIES + col * CLIP_COL_BYTES (contiguous under KERNAL)
 clip_base_lo
 !for .col, 1, 40 {
@@ -126,18 +116,6 @@ clip_col_push
 	iny
 	sty clip_n
 .ccp_full
-	rts
-
-; ---------------------------------------------------------------------------
-; clip_col_commit — COL_CLIP_N[col] = clip_n / 4 (end of cast_column)
-; Clobbers: A, Y
-; ---------------------------------------------------------------------------
-clip_col_commit
-	lda clip_n
-	lsr
-	lsr
-	ldy col
-	sta COL_CLIP_N,y
 	rts
 
 ; ---------------------------------------------------------------------------
