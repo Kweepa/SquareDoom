@@ -6111,7 +6111,7 @@
         },
         {
           "type": "soldier",
-          "x": 172,
+          "x": 188,
           "y": 228,
           "skills": {
             "easy": true,
@@ -6240,16 +6240,6 @@
           }
         },
         {
-          "type": "health",
-          "x": 68,
-          "y": 52,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "soldier",
           "x": 156,
           "y": 28,
@@ -6282,7 +6272,7 @@
         {
           "type": "soldier",
           "x": 28,
-          "y": 76,
+          "y": 84,
           "skills": {
             "easy": true,
             "normal": true,
@@ -6380,16 +6370,6 @@
           }
         },
         {
-          "type": "health",
-          "x": 52,
-          "y": 156,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
           "type": "imp",
           "x": 100,
           "y": 228,
@@ -6413,16 +6393,6 @@
           "type": "soldier",
           "x": 36,
           "y": 204,
-          "skills": {
-            "easy": true,
-            "normal": true,
-            "hard": true
-          }
-        },
-        {
-          "type": "greenarmor",
-          "x": 44,
-          "y": 140,
           "skills": {
             "easy": true,
             "normal": true,
@@ -6713,6 +6683,556 @@
           "type": "ammobox",
           "x": 156,
           "y": 196,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 180,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 188,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 196,
+          "y": 204,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 180,
+          "y": 228,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 172,
+          "y": 228,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 196,
+          "y": 244,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 100,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 132,
+          "y": 228,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 116,
+          "y": 228,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 156,
+          "y": 244,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 116,
+          "y": 212,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 68,
+          "y": 244,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 52,
+          "y": 220,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 36,
+          "y": 212,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "greenarmor",
+          "x": 44,
+          "y": 204,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 36,
+          "y": 196,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 36,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "ammobox",
+          "x": 68,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 12,
+          "y": 204,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 12,
+          "y": 188,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 12,
+          "y": 180,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 12,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 28,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 28,
+          "y": 140,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 12,
+          "y": 140,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 12,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 28,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 28,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "clip",
+          "x": 20,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 28,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 44,
+          "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 44,
+          "y": 140,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 44,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 52,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 76,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 84,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 84,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 68,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 68,
+          "y": 76,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 68,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 68,
+          "y": 60,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shellbox",
+          "x": 68,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 44,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 52,
+          "y": 52,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "armorbonus",
+          "x": 52,
+          "y": 44,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthbonus",
+          "x": 52,
+          "y": 68,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 60,
+          "y": 44,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "shells",
+          "x": 68,
+          "y": 28,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 76,
+          "y": 28,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "healthcrate",
+          "x": 68,
+          "y": 12,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "clip",
+          "x": 124,
+          "y": 36,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 148,
+          "y": 28,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 156,
+          "y": 44,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 140,
+          "y": 28,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 140,
+          "y": 44,
           "skills": {
             "easy": true,
             "normal": true,
