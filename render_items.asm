@@ -33,7 +33,7 @@ TEX_ANIMATE = 64
 ;   far_ceil = sprite H; last_near_ok = sprite W
 ;   near_fcol = unclamped sprite top (V map; fill_y0 may be clamped)
 ;   last_near_fcol = screen centre col
-;   last_near_ccol = sort index / draw scratch
+;   last_near_ccol = draw-order index / draw scratch
 ;   span_a = visible count during collect/sort
 ;   item_sin/cos = playera trig (once/frame); ITEM_SORT_* cache per visible
 ;   item_u / wish_x(ustep) / item_mip_base / item_mirror — enemy column DDA
@@ -597,30 +597,35 @@ smul_8x8
 .sm_ok
 	rts
 
-; aux_h:aux_l / A → A unsigned quot (8-bit)
+; aux_h:aux_l / A → A unsigned quot (8-bit; sat 255)
+; Restoring shift-subtract (16 iters) — replaces O(quot) subtraction loop.
 udiv16x8
 	sta tmp5
 	beq .ud_z
-	ldx #0
+	lda #0
+	sta tmp4				; remainder
+	ldx #16
 .ud_lp
-	lda aux_h
-	bne .ud_sub
-	lda aux_l
+	asl aux_l
+	rol aux_h
+	rol tmp4
+	lda tmp4
+	bcs .ud_ge			; rem ≥ 256
 	cmp tmp5
-	bcc .ud_done
-.ud_sub
-	sec
-	lda aux_l
-	sbc tmp5
-	sta aux_l
-	lda aux_h
-	sbc #0
-	sta aux_h
-	inx
+	bcc .ud_nx
+.ud_ge
+	sbc tmp5				; C=1 from bcs or cmp
+	sta tmp4
+	inc aux_l				; set quot bit shifted into aux
+.ud_nx
+	dex
 	bne .ud_lp
-	ldx #255
-.ud_done
-	txa
+	lda aux_h
+	beq .ud_ok
+	lda #255				; quot ≥ 256
+	rts
+.ud_ok
+	lda aux_l
 	rts
 .ud_z
 	lda #0
@@ -628,77 +633,59 @@ udiv16x8
 
 ; ---------------------------------------------------------------------------
 item_sort_depth
+	; Identity permutation; insertion-sort only moves ORDER bytes.
+	ldx #0
+.is_init
+	txa
+	sta ITEM_SORT_ORDER,x
+	inx
+	cpx span_a
+	bcc .is_init
 	ldx #1
 .is_o
 	cpx span_a
 	bcc .is_go
 	rts
 .is_go
-	lda ITEM_SORT_DEPTH,x
-	sta tmp0
-	lda ITEM_SORT_SLOT,x
-	sta tmp1
-	lda ITEM_SORT_SEC,x
-	sta tmp2
-	lda ITEM_SORT_DX,x
-	sta tmp3
-	lda ITEM_SORT_DY,x
-	sta tmp4
-	lda ITEM_SORT_WZ_L,x
-	sta tmp5
-	lda ITEM_SORT_WZ_H,x
-	sta aux_l
+	lda ITEM_SORT_ORDER,x
+	sta tmp1			; key = vis (collect) index
+	tay
+	lda ITEM_SORT_DEPTH,y
+	sta tmp0			; key depth
+	stx tmp3			; outer X
 	txa
 	tay
 .is_i
 	dey
-	lda ITEM_SORT_DEPTH,y
+	lda ITEM_SORT_ORDER,y
+	tax
+	lda ITEM_SORT_DEPTH,x
 	cmp tmp0
 	bcs .is_after
-	sta ITEM_SORT_DEPTH+1,y
-	lda ITEM_SORT_SLOT,y
-	sta ITEM_SORT_SLOT+1,y
-	lda ITEM_SORT_SEC,y
-	sta ITEM_SORT_SEC+1,y
-	lda ITEM_SORT_DX,y
-	sta ITEM_SORT_DX+1,y
-	lda ITEM_SORT_DY,y
-	sta ITEM_SORT_DY+1,y
-	lda ITEM_SORT_WZ_L,y
-	sta ITEM_SORT_WZ_L+1,y
-	lda ITEM_SORT_WZ_H,y
-	sta ITEM_SORT_WZ_H+1,y
+	txa
+	sta ITEM_SORT_ORDER+1,y
 	tya
 	bne .is_i
 	beq .is_put
 .is_after
 	iny
 .is_put
-	lda tmp0
-	sta ITEM_SORT_DEPTH,y
 	lda tmp1
-	sta ITEM_SORT_SLOT,y
-	lda tmp2
-	sta ITEM_SORT_SEC,y
-	lda tmp3
-	sta ITEM_SORT_DX,y
-	lda tmp4
-	sta ITEM_SORT_DY,y
-	lda tmp5
-	sta ITEM_SORT_WZ_L,y
-	lda aux_l
-	sta ITEM_SORT_WZ_H,y
+	sta ITEM_SORT_ORDER,y
+	ldx tmp3
 	inx
 	jmp .is_o
 
 ; ---------------------------------------------------------------------------
-; item_draw_one — last_near_ccol = vis index
-; Uses ITEM_SORT_* cache keyed by vis (collect already validated).
+; item_draw_one — last_near_ccol = draw-order index (0..n-1 after sort)
+; Uses ITEM_SORT_* cache keyed by collect order; ORDER selects far→near.
 ; ---------------------------------------------------------------------------
 item_draw_one
 	lda #$ff
 	sta aim_item
 	ldx last_near_ccol
+	lda ITEM_SORT_ORDER,x
+	tax
 	lda ITEM_SORT_DEPTH,x
 	sta wallz_h
 	lda ITEM_SORT_SLOT,x
@@ -716,6 +703,8 @@ item_draw_one
 	tax
 	jsr vis_mobj_type
 	ldx last_near_ccol
+	lda ITEM_SORT_ORDER,x
+	tax
 	lda ITEM_SORT_SEC,x
 	sta near_ceil
 	jmp .id_gotsec
@@ -726,6 +715,8 @@ item_draw_one
 	and #31
 	sta mapx
 	ldx last_near_ccol
+	lda ITEM_SORT_ORDER,x
+	tax
 	lda ITEM_SORT_SEC,x
 	sta mapy
 	jsr item_layer_id
@@ -1157,11 +1148,12 @@ item_draw_clp_go
 	lda item_mip_vshift,x
 .id_vshift_ready
 	sta item_vshift
-	; Live enemy or barrel: lock aim_item (vis index) for COL_AIM stamps
+	; Live enemy or barrel: lock aim_item (collect vis index) for COL_AIM stamps
 	lda wall_col
 	cmp #ITEM_TYPE_BARREL
 	bne .id_aim_en
-	lda last_near_ccol
+	ldx last_near_ccol
+	lda ITEM_SORT_ORDER,x
 	sta aim_item
 	jmp .id_clp_start
 .id_aim_en
@@ -1177,7 +1169,8 @@ item_draw_clp_go
 	lda MOBJ_INFO,x
 	cmp #MOBJINFO_IMPSHOT		; exclude missiles (baron = 4 is damageable)
 	bcs .id_clp_start
-	lda last_near_ccol
+	ldx last_near_ccol
+	lda ITEM_SORT_ORDER,x
 	sta aim_item
 .id_clp_start
 	; want16 = depth16 · 255/512 into wz_x — stack Z ≈ 255·perp tiles,

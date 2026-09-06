@@ -231,11 +231,12 @@ paint_portal
 
 ; ---------------------------------------------------------------------------
 ; wall_colour_ns_ew — side 0 → WALL_NS, side 1 → WALL_EW → wall_col
-; Requires WALL_EW = WALL_NS + 1 (side is always 0/1).
-; Callers must enter with C=0 (on_cell .edge via bcc; paint_portal from there).
+; Requires WALL_EW = WALL_NS + 1 (side is always 0/1). Clears C itself
+; (paint_portal .pp_lower arrives with C=1 from the floor compare).
 ; ---------------------------------------------------------------------------
 wall_colour_ns_ew
 	lda side
+	clc
 	adc #WALL_NS
 	sta wall_col
 	rts

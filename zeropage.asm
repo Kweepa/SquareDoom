@@ -316,6 +316,7 @@ ITEM_SORT_DY	= ITEM_SORT_DX + 48	; fracx = dy (signed)
 ITEM_SORT_WZ_L	= ITEM_SORT_DY + 48	; depth16 lo (512/tile)
 ITEM_SORT_WZ_H	= ITEM_SORT_WZ_L + 48	; depth16 hi
 ITEM_SORT_END	= ITEM_SORT_WZ_H + 48
+; ITEM_SORT_ORDER lives in cassette scrap (see below) — not in high BSS.
 
 ; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last two = missiles)
 MAX_MOBJ		= 32
@@ -341,9 +342,9 @@ MOBJ_X		= MOBJ_YFRAC + MAX_MOBJ	; world X integer
 MOBJ_Y		= MOBJ_X + MAX_MOBJ
 ITEM_CORPSE_TEX	= MOBJ_Y + MAX_MOBJ	; $FF live, else enemy spr idx / unused
 ; Per-column aim (filled far→near during item draw; nearer overwrites)
-COL_AIM_SLOT	= ITEM_CORPSE_TEX + MAX_MOBJ	; 40: vis index or $FF empty
+COL_AIM_SLOT	= ITEM_CORPSE_TEX + MAX_MOBJ	; 40: collect vis index or $FF empty
 COL_AIM_Z	= COL_AIM_SLOT + COL_NUM	; 40: depth (wallz_h) for melee range
-aim_item	= COL_AIM_Z + COL_NUM	; current vis index for aim ($FF none)
+aim_item	= COL_AIM_Z + COL_NUM	; collect vis index for aim ($FF none)
 MOBJ_END	= aim_item + 1
 
 ; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
@@ -394,6 +395,12 @@ roll_time_l	= CASS_BUF + 10
 roll_time_h	= CASS_BUF + 11
 roll_row	= CASS_BUF + 12		; row for active roll_in (not shared pr_row)
 CASS_LEVELSTATS_END = CASS_BUF + 13
+; Vis-list draw order (item_sort_depth); only live during render_items
+ITEM_SORT_ORDER	= CASS_LEVELSTATS_END	; 48 bytes
+CASS_ITEM_SORT_END = ITEM_SORT_ORDER + 48
+!if CASS_ITEM_SORT_END > CASS_BUF_END {
+	!error "ITEM_SORT_ORDER past cassette buffer"
+}
 !if CASS_LEVELSTATS_END > CASS_BUF_END {
 	!error "levelstats BSS past cassette buffer"
 }
@@ -522,9 +529,9 @@ SCRAP_UNDER_END		= SCRAP_UNDER + 120
 }
 
 ; ---------------------------------------------------------------------------
-; UI / IRQ / load BSS in cassette after levelstats (uninitialized; not in PRG)
+; UI / IRQ / load BSS in cassette after levelstats + ITEM_SORT_ORDER
 ; ---------------------------------------------------------------------------
-SCRAP_CASS		= CASS_LEVELSTATS_END
+SCRAP_CASS		= CASS_ITEM_SORT_END
 input_paused		= SCRAP_CASS
 irq_ifr			= SCRAP_CASS + 1
 music_tick		= SCRAP_CASS + 2
