@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M1",
+  "activeLevel": "E1M2",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -6071,8 +6071,8 @@
         },
         {
           "type": "barrel",
-          "x": 124,
-          "y": 148,
+          "x": 116,
+          "y": 156,
           "skills": {
             "easy": true,
             "normal": true,
@@ -6191,7 +6191,7 @@
         },
         {
           "type": "soldier",
-          "x": 220,
+          "x": 228,
           "y": 132,
           "skills": {
             "easy": true,
@@ -6211,8 +6211,8 @@
         },
         {
           "type": "barrel",
-          "x": 188,
-          "y": 132,
+          "x": 196,
+          "y": 116,
           "skills": {
             "easy": true,
             "normal": true,
@@ -6443,6 +6443,196 @@
           "type": "soulsphere",
           "x": 196,
           "y": 44,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 148,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "clip",
+          "x": 140,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 156,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 156,
+          "y": 100,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 148,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 140,
+          "y": 116,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 124,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 124,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 172,
+          "y": 164,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 180,
+          "y": 156,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 196,
+          "y": 148,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntgibs",
+          "x": 196,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gibs",
+          "x": 180,
+          "y": 108,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "clip",
+          "x": 228,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "health",
+          "x": 236,
+          "y": 92,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "gruntcorpse",
+          "x": 236,
+          "y": 140,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "barrel",
+          "x": 220,
+          "y": 132,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "clip",
+          "x": 236,
+          "y": 172,
+          "skills": {
+            "easy": true,
+            "normal": true,
+            "hard": true
+          }
+        },
+        {
+          "type": "clip",
+          "x": 228,
+          "y": 172,
           "skills": {
             "easy": true,
             "normal": true,
