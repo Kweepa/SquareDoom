@@ -235,7 +235,7 @@ export function isElevatorSector(sector) {
 
 /**
  * typeId = index (cook layer: 6-bit type | 2-bit skill code).
- * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 34+.
+ * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 36+.
  */
 export const ITEM_TYPES = [
   'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
@@ -244,8 +244,9 @@ export const ITEM_TYPES = [
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere',
   'radsuit',
-  // New placeables (21–31)
+  // Placeables (21–33)
   'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
+  'onerocket', 'boxofrockets',
   'candelabra', 'lightpost', 'gibs', 'gruntgibs', 'gruntcorpse',
   // Decor that stayed placeable
   'skullpile', 'techcolumn',
@@ -350,6 +351,7 @@ export const STAT_ITEM_TYPES = new Set([
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere', 'radsuit',
   'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
+  'onerocket', 'boxofrockets',
 ]);
 
 export function statItemCount(level) {

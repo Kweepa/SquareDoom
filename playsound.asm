@@ -1,9 +1,9 @@
-; Sound effects — Doom PC speaker envelopes on SID noise (pitch from pcsfreq_*).
+; Sound effects — Doom PC speaker envelopes on SID square (pitch from pcsfreq_*).
 ; Data/freq table: dpsounds.asm (from pcsounds/DP*.lmp via tools/gensounds.js).
 ;
 ; PC speaker Doom: each byte is a musical pitch 0..95 (0 = silence) held 1/140 s.
-; Full resolution via pcsfreq_* into SID voice 3 noise (music keeps voices 1–2).
-; CIA1 Timer B steps @ ~140 Hz.
+; Full resolution via pcsfreq_* into SID voice 3 pulse at 50% duty (square);
+; music keeps voices 1–2. CIA1 Timer B steps @ ~140 Hz.
 ;
 ; Music prepare redirects STA $D417/$D418 → sid_filt_shadow / sid_vol_shadow
 ; for SidTracker tunes only (flag at MUSIC_SIDTRACKER_FLAG = $9FFF).
@@ -53,7 +53,7 @@ sound_priorities
 ; sound_index / sound_priority…sid_merge_tmp — under-stack scrap (zeropage.asm)
 
 ; ------------------------------------------------------------------
-; play_sound_init — clear SID; voice 3 noise ready; idle vol = music_vol
+; play_sound_init — clear SID; voice 3 square ready; idle vol = music_vol
 ; ------------------------------------------------------------------
 play_sound_init
 	jsr io_push
@@ -76,10 +76,14 @@ play_sound_init
 	jsr music_apply_sid_shadows
 	jmp io_pop
 
-; Voice 3 ADSR for gated noise. io_push: play_sound runs at $01=$34,
-; and pistol_mid lives at $D400 (SID window).
+; Voice 3 pulse width + ADSR for gated square. io_push: play_sound runs
+; at $01=$34, and pistol_mid lives at $D400 (SID window).
 sfx_voice3_adsr
 	jsr io_push
+	lda #$00
+	sta $d410				; PW lo — 50% duty
+	lda #$08
+	sta $d411				; PW hi
 	lda #$00
 	sta $d413				; AD: instant
 	lda #$f0
@@ -197,7 +201,7 @@ update_sfx
 	sta $d40e
 	lda pcsfreq_hi,x
 	sta $d40f
-	lda #$81			; noise + gate
+	lda #$41			; pulse + gate (square)
 	sta $d412
 	rts
 

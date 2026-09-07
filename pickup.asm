@@ -58,9 +58,11 @@ ITEM_TYPE_CLIP = 23
 ITEM_TYPE_SHELLBOX = 24
 ITEM_TYPE_AMMOBOX = 25
 ITEM_TYPE_HEALTHCRATE = 26
-ITEM_TYPE_POSCORPSE = 34
+ITEM_TYPE_ONEROCKET = 27
+ITEM_TYPE_BOXOFROCKETS = 28
+ITEM_TYPE_POSCORPSE = 36
 ITEM_TYPE_EMPTY = $ff
-ITEM_TYPE_PICKUP_LAST = ITEM_TYPE_HEALTHCRATE
+ITEM_TYPE_PICKUP_LAST = ITEM_TYPE_BOXOFROCKETS
 
 HEALTH_BONUS = 1
 ARMOR_BONUS = 1
@@ -68,6 +70,8 @@ HEALTH_STIM = 10
 CLIP_ADD = 10
 AMMOBOX_ADD = 50
 SHELLBOX_ADD = 20
+ONEROCKET_ADD = 1
+BOXROCKETS_ADD = 5
 ARMOR_BONUS_MAX = 200
 
 ; ---------------------------------------------------------------------------
@@ -194,14 +198,14 @@ pickup_apply
 	!byte <.pa_pack, <.pa_red, <.pa_blue, <.pa_yellow
 	!byte <.pa_soulsphere, <.pa_radsuit
 	!byte <.pa_hbonus, <.pa_abonus, <.pa_clip, <.pa_shellbox
-	!byte <.pa_ammobox, <.pa_stim
+	!byte <.pa_ammobox, <.pa_stim, <.pa_onerocket, <.pa_boxrockets
 .pa_jmp_hi
 	!byte >.pa_health, >.pa_shells, >.pa_weapon, >.pa_weapon
 	!byte >.pa_weapon, >.pa_weapon, >.pa_garmor, >.pa_barmor
 	!byte >.pa_pack, >.pa_red, >.pa_blue, >.pa_yellow
 	!byte >.pa_soulsphere, >.pa_radsuit
 	!byte >.pa_hbonus, >.pa_abonus, >.pa_clip, >.pa_shellbox
-	!byte >.pa_ammobox, >.pa_stim
+	!byte >.pa_ammobox, >.pa_stim, >.pa_onerocket, >.pa_boxrockets
 
 .pa_health
 	lda health
@@ -484,6 +488,44 @@ pickup_apply
 .pa_stim_no
 	jmp .pa_no
 
+.pa_onerocket
+	ldy #2				; rockets pool
+	lda has_backpack
+	bne .pa_or_chk
+	lda ammo_max_base,y
+	bne .pa_or_cap
+.pa_or_chk
+	lda ammo_max_pack,y
+.pa_or_cap
+	cmp ammo_rockets
+	beq .pa_or_full
+	bcc .pa_or_full
+	lda #ONEROCKET_ADD
+	jsr add_ammo
+	lda #ITEM_TYPE_ONEROCKET
+	jmp pickup_message
+.pa_or_full
+	jmp .pa_no
+
+.pa_boxrockets
+	ldy #2
+	lda has_backpack
+	bne .pa_br_chk
+	lda ammo_max_base,y
+	bne .pa_br_cap
+.pa_br_chk
+	lda ammo_max_pack,y
+.pa_br_cap
+	cmp ammo_rockets
+	beq .pa_br_full
+	bcc .pa_br_full
+	lda #BOXROCKETS_ADD
+	jsr add_ammo
+	lda #ITEM_TYPE_BOXOFROCKETS
+	jmp pickup_message
+.pa_br_full
+	jmp .pa_no
+
 ; Pos corpse — +4 shells +10 bullets (always take)
 .pa_poscorpse
 	ldy #1
@@ -689,14 +731,14 @@ pickup_name_lo
 	!byte <name_backpack, <name_redcard, <name_bluecard, <name_yellowcard
 	!byte <name_soulsphere, <name_radsuit
 	!byte <name_hbonus, <name_abonus, <name_clip, <name_shellbox
-	!byte <name_ammobox, <name_stim
+	!byte <name_ammobox, <name_stim, <name_onerocket, <name_boxrockets
 pickup_name_hi
 	!byte >name_health, >name_ammo, >name_shotgun, >name_chaingun
 	!byte >name_chainsaw, >name_rocket, >name_garmor, >name_barmor
 	!byte >name_backpack, >name_redcard, >name_bluecard, >name_yellowcard
 	!byte >name_soulsphere, >name_radsuit
 	!byte >name_hbonus, >name_abonus, >name_clip, >name_shellbox
-	!byte >name_ammobox, >name_stim
+	!byte >name_ammobox, >name_stim, >name_onerocket, >name_boxrockets
 
 name_health
 	!scr "health"
@@ -724,6 +766,12 @@ name_abonus
 	!byte 0
 name_stim
 	!scr "health crate"
+	!byte 0
+name_onerocket
+	!scr "rocket"
+	!byte 0
+name_boxrockets
+	!scr "box of rockets"
 	!byte 0
 name_shotgun
 	!scr "shotgun"

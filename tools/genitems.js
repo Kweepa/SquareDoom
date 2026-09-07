@@ -21,6 +21,7 @@ const ITEM_TYPES = [
   'soulsphere',
   'radsuit',
   'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
+  'onerocket', 'boxofrockets',
   'candelabra', 'lightpost', 'gibs', 'gruntgibs', 'gruntcorpse',
   'skullpile', 'techcolumn',
   'poscorpse', 'impcorpse', 'demoncorpse', 'baroncorpse',
