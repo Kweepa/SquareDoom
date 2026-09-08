@@ -19,12 +19,15 @@ boot_start
 	sta $01
 	jsr $ff84				; IOINIT
 	lda $d011
-	and #%11101111				; DEN off until colour is in
+	and #%01101111				; DEN off; drop RST8 from the read
 	sta $d011
 	lda #0
 	sta $d020
 	sta $d015
 	sta $d01a
+	jsr $ff90				; $9D=0 — no SEARCHING into $0400 (MENU dest)
+	lda #1
+	sta $cc					; cursor off
 	cli
 
 	lda #7
@@ -84,6 +87,8 @@ load_sa1
 	ldy #1
 	jsr $ffba
 	lda #0
+	jsr $ff90				; $9D=0. Do not inherit A from SETLFS.
+	lda #0					; LOAD not VERIFY
 	jsr $ffd5
 	php
 	lda #1
@@ -188,6 +193,10 @@ stub_src
 	bcs boot_stub_fail
 } else {
 	cli
+	lda #0
+	jsr $ff90				; no SEARCHING/LOADING on $0400 (MENU dest)
+	lda #1
+	sta $cc
 	lda #4
 	ldx #<boot_stub_name
 	ldy #>boot_stub_name

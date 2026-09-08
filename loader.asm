@@ -152,21 +152,15 @@ LoadLevel
 }
 	jmp LoadPrg
 
-; reboot_game — IOINIT, KERNAL-load SQUAREDOOM, JMP $080d.
+!if USE_KRILL {
+	!source "kernal_prepare.asm"
+}
+
+; reboot_game — kernal_prepare, KERNAL-load SQUAREDOOM, JMP $080d.
 reboot_game
-	sei
-	lda #BANK_IO
-	sta $01
 	ldx #$ff
 	txs
-	jsr $ff84				; IOINIT — also tears down drive-side Krill
-	lda $d011
-	and #%11101111				; DEN off — IOINIT restores bank 0
-	sta $d011
-	lda #0
-	sta $d015
-	sta $d020
-	sta $d021
+	jsr kernal_prepare
 	lda #10
 	ldx #< .rg_name
 	ldy #> .rg_name
@@ -176,6 +170,8 @@ reboot_game
 	ldy #1
 	jsr $ffba				; SETLFS
 	lda #0
+	jsr $ff90				; $9D=0. Do not inherit A from SETLFS.
+	lda #0					; LOAD not VERIFY
 	jsr $ffd5				; LOAD squaredoom
 	bcs .rg_hang
 	jmp $080d				; boot_start
