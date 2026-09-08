@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M8",
+  "activeLevel": "E1M7",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -7308,11 +7308,11 @@
         "6": {
           "floorHeight": 11,
           "ceilingHeight": 18,
-          "trigger": "switch",
-          "singleShot": true,
-          "action": "raise_floor",
+          "trigger": "none",
+          "singleShot": false,
+          "action": "none",
           "tag": "",
-          "targetTag": "sludge_bridge",
+          "targetTag": "",
           "floorColor": 11,
           "ceilingColor": 11,
           "brightness": 15
@@ -9109,7 +9109,7 @@
           "floorHeight": 11,
           "ceilingHeight": 11,
           "trigger": "use",
-          "singleShot": true,
+          "singleShot": false,
           "action": "open_door",
           "tag": "",
           "targetTag": "",
@@ -9220,7 +9220,7 @@
           "singleShot": false,
           "action": "lower_floor",
           "tag": "",
-          "targetTag": "",
+          "targetTag": "lift_back",
           "floorColor": 11,
           "ceilingColor": 3,
           "brightness": 15
@@ -12353,7 +12353,7 @@
           "ceilingHeight": 18,
           "trigger": "none",
           "singleShot": false,
-          "action": "window",
+          "action": "none",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
@@ -16837,7 +16837,7 @@
         },
         "31": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
+          "ceilingHeight": 10,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -16849,7 +16849,7 @@
         },
         "32": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
+          "ceilingHeight": 20,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -16920,8 +16920,8 @@
           "brightness": 7
         },
         "38": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 16,
+          "ceilingHeight": 21,
           "trigger": "walk_into",
           "singleShot": true,
           "action": "secret",
@@ -16992,8 +16992,8 @@
           "brightness": 15
         },
         "44": {
-          "floorHeight": 10,
-          "ceilingHeight": 15,
+          "floorHeight": 16,
+          "ceilingHeight": 21,
           "trigger": "none",
           "singleShot": false,
           "action": "none",
@@ -17004,8 +17004,8 @@
           "brightness": 8
         },
         "45": {
-          "floorHeight": 10,
-          "ceilingHeight": 10,
+          "floorHeight": 16,
+          "ceilingHeight": 16,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -17244,8 +17244,8 @@
           "brightness": 8
         },
         "65": {
-          "floorHeight": 11,
-          "ceilingHeight": 14,
+          "floorHeight": 15,
+          "ceilingHeight": 18,
           "trigger": "none",
           "singleShot": false,
           "action": "window",
@@ -17989,7 +17989,7 @@
         },
         "127": {
           "floorHeight": 10,
-          "ceilingHeight": 15,
+          "ceilingHeight": 10,
           "trigger": "use",
           "singleShot": false,
           "action": "open_door",
@@ -22216,7 +22216,7 @@
         },
         "157": {
           "floorHeight": 6,
-          "ceilingHeight": 23,
+          "ceilingHeight": 21,
           "trigger": "switch",
           "singleShot": true,
           "action": "open_door_forever",
@@ -22493,8 +22493,8 @@
         "180": {
           "floorHeight": 12,
           "ceilingHeight": 17,
-          "trigger": "none",
-          "singleShot": false,
+          "trigger": "walk_into",
+          "singleShot": true,
           "action": "open_door_forever",
           "tag": "",
           "targetTag": "slime_tunnel",
@@ -26176,8 +26176,8 @@
           "brightness": 9
         },
         "98": {
-          "floorHeight": 8,
-          "ceilingHeight": 13,
+          "floorHeight": 13,
+          "ceilingHeight": 17,
           "trigger": "none",
           "singleShot": false,
           "action": "window",
@@ -26694,13 +26694,13 @@
         "141": {
           "floorHeight": 12,
           "ceilingHeight": 12,
-          "trigger": "none",
+          "trigger": "use",
           "singleShot": false,
-          "action": "none",
+          "action": "open_door",
           "tag": "",
           "targetTag": "",
           "floorColor": 11,
-          "ceilingColor": 2,
+          "ceilingColor": 12,
           "brightness": 15
         },
         "142": {
@@ -29305,7 +29305,7 @@
         {
           "type": "armorbonus",
           "x": 132,
-          "y": 188,
+          "y": 196,
           "skills": {
             "easy": true,
             "normal": true,
