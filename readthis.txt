@@ -2,11 +2,13 @@ The story so far
 
 You're a marine, one of earth's toughest, 
 trained for action and hardened in combat. 
-three years ago, you assaulted a superior 
+three years ago, you punched a superior 
 officer for ordering his men to fire on 
 civilians. he and his body cast were shipped to 
 pearl harbor, while you were shipped off to 
-mars. mars, home of the union aerospace corporation.
+mars.
+
+mars, home of the union aerospace corporation.
 ^
 The uac is a multi-planetary conglomerate with 
 radioactive waste facilities on mars and its 
