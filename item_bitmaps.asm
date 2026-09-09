@@ -375,16 +375,16 @@ item_spr_techcolumn_m2
 item_spr_techcolumn_m3
 	!byte $0c
 item_spr_poscorpse_m0
-	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0e,$02
-	!byte $ff,$ff,$ff,$ff,$ff,$0e,$0e,$0e,$ff,$ff,$ff,$ff,$06,$0e,$06,$ff
-	!byte $ff,$ff,$ff,$ff,$0e,$0e,$0e,$ff,$ff,$ff,$ff,$ff,$0e,$0e,$06,$02
-	!byte $ff,$ff,$ff,$ff,$0e,$0e,$02,$08,$ff,$ff,$ff,$ff,$06,$0e,$06,$ff
+	!byte $ff,$ff,$ff,$ff,$ff,$ff,$02,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$0c,$02
+	!byte $ff,$ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$0b,$0c,$0b,$ff
+	!byte $ff,$ff,$ff,$ff,$0c,$0c,$0c,$ff,$ff,$ff,$ff,$ff,$0c,$0c,$0b,$02
+	!byte $ff,$ff,$ff,$ff,$0c,$0c,$02,$08,$ff,$ff,$ff,$ff,$0b,$0c,$0b,$ff
 item_spr_poscorpse_m1
-	!byte $ff,$ff,$ff,$02,$ff,$ff,$0e,$06,$ff,$ff,$0e,$02,$ff,$ff,$0e,$06
+	!byte $ff,$ff,$ff,$02,$ff,$ff,$0c,$0b,$ff,$ff,$0c,$02,$ff,$ff,$0c,$0b
 item_spr_poscorpse_m2
-	!byte $ff,$0e,$ff,$0e
+	!byte $ff,$0c,$ff,$0c
 item_spr_poscorpse_m3
-	!byte $0e
+	!byte $0c
 item_spr_impcorpse_m0
 	!byte $ff,$ff,$ff,$ff,$ff,$ff,$0c,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$08,$08
 	!byte $ff,$ff,$ff,$0c,$ff,$08,$0c,$08,$ff,$ff,$ff,$ff,$08,$08,$09,$ff
