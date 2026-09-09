@@ -13,10 +13,16 @@ When the user reports a visual, raster, colour, or “blank screen” bug (or po
 
 ## How to read it
 
-VICE snapshot: 37-byte header, then modules (`16-byte name`, major, minor, `size` little-endian **including** the 22-byte module header).
+VICE snapshot: 37-byte file header (`VICE Snapshot File\x1a` + version + 16-byte machine name). **x64sc** (`C64SC`) then inserts a `VICE Version\x1a` blob — modules do **not** start at offset 37. Find modules by name (`MAINC64CPU`, `C64MEM`, …). Each module is `16-byte name`, major, minor, `size` little-endian **including** the 22-byte module header.
 
-- **`C64MEM`**: byte 0 of payload is `$01`; next **65536** bytes are DRAM (`$0000–$FFFF`). That is under-I/O RAM at `$D000`, not VIC registers.
-- **`VIC-II`** (name may be `VIC-II     `): use this for `$d011` / `$d016` / `$d018` / `$d020` / `$d021` / raster, not the RAM image.
+- **`C64MEM`** payload (after the 22-byte header), matching VICE `c64memsnapshot.c` — **not** a `$01` marker then RAM. Byte 0 is the 6510 port data (often `$34` = `BANK_RAM` in play). Skipping one byte as a prefix misaligns every address.
+  - byte 0: CPU port data (`$01`)
+  - byte 1: CPU port dir (`$00`)
+  - byte 2: EXROM
+  - byte 3: GAME
+  - bytes 4 .. 4+65535: DRAM `$0000–$FFFF` (under-I/O at `$D000`, not VIC registers)
+  - v0.1 extra pport-falloff bytes after RAM — ignore them
+- **`VIC-II`**: name may be `VIC-II` or `VIC-IISC`. Use this for `$d011` / `$d016` / `$d018` / `$d020` / `$d021` / raster, not the RAM image.
 
 Dump the regions that match the bug (do not dump all 64K):
 
