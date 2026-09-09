@@ -316,30 +316,31 @@ hitscan_process
 	lda #63
 .hp_fine
 	sta tmp0			; fine 0..63
-	; Pack into TheKeep `angle` (same ranges as rebuild_col_rays steps)
+	; Pack into TheKeep `angle` (same ranges as rebuild_col_rays steps).
+	; fine=0 is pure X, fine=63 is pure Y. NE/SW add fine; NW/SE subtract.
 	lda xstep
 	bmi .hp_xw
 	lda ystep
 	bmi .hp_se
-	; NE: angle = fine
+	; NE: angle = fine (0..63)
 	lda tmp0
 	jmp .hp_ang
 .hp_se
-	; SE: angle = fine - 64
-	lda tmp0
-	clc
-	adc #$c0
+	; SE: angle = -fine (0, 255..193)
+	lda #0
+	sec
+	sbc tmp0
 	jmp .hp_ang
 .hp_xw
 	lda ystep
 	bmi .hp_sw
-	; NW: angle = 64 + fine
-	lda tmp0
-	clc
-	adc #64
+	; NW: angle = $7F - fine (127..64)
+	lda #$7f
+	sec
+	sbc tmp0
 	jmp .hp_ang
 .hp_sw
-	; SW: angle = $80 + fine
+	; SW: angle = $80 + fine (128..191)
 	lda tmp0
 	clc
 	adc #$80
@@ -454,6 +455,20 @@ hitscan_process
 	clc
 	lda hs_z
 	adc hs_zs
+	sta hs_z
+	; Extra DDA steps must not climb past the target height (ceil block).
+	lda hs_zs
+	bmi .hp_zneg
+	lda hs_z1
+	cmp hs_z
+	bcs .hp_zlp			; z1 >= z
+	sta hs_z
+	jmp .hp_zlp
+.hp_zneg
+	lda hs_z
+	cmp hs_z1
+	bcs .hp_zlp			; z >= z1
+	lda hs_z1
 	sta hs_z
 	jmp .hp_zlp
 .hp_zdone

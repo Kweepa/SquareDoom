@@ -1103,12 +1103,16 @@ item_draw_clp_go
 	sta item_u_l
 	sta item_u_h
 .id_u_ok
-	; mirror flag (anim_frame abs — once/sprite, not per column)
+	; mirror flag (walk bob only — not pain/atk/fall)
 	lda #0
 	sta item_mirror
 	lda far_floor
 	and #TEX_ANIMATE
 	beq .id_mir_done
+	ldx item_slot
+	ldy MOBJ_STATE,x
+	lda state_action,y
+	bne .id_mir_done			; chase = 0
 	lda anim_frame
 	and #2
 	beq .id_mir_done

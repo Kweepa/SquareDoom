@@ -1,13 +1,13 @@
 !zone enemy
 
 ; ============================================================================
-; enemy_mid.asm — VicDoom p_enemy.c AI (possessed / imp / demon / caco + shot)
+; enemy.asm — VicDoom p_enemy.c AI (possessed / imp / demon / caco + shot)
 ; Think only when SEC_SEEN[sector] (after render). Always camera-facing.
-; E1M8 baron wipeout → forever floors lives in enemy_low.asm.
 ; Projectile flight → missile.asm.
 ; ============================================================================
 
 MELEERANGE = 4
+STANDOFF = 12			; no-melee stop (~1.5 tiles; Doom −192 map)
 DI_NODIR = 8
 TEX_ANIMATE = 64
 
@@ -80,6 +80,15 @@ ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
 FU_45 = 22
+; tryd* is speed*dir per ~64 ms. wish = (tryd * dt_ms) >>> 6 so Ultimate
+; (high fps) and stock C64 stay at the same world speed as the player.
+ENEMY_ANIM_MS = 250
+PAIN_MOVECNT = 16			; ~256 ms
+FALL_MOVECNT = 8			; ~128 ms
+ATK_WINDUP = 18				; ~10 tics FaceTarget before the shot
+ATK_MOVECNT = 14			; ~8 tics ATK pose after the shot
+ATK_REACT = 16				; ~256 ms after an attack before next melee/shot
+NEWDIR_RETRY = 8			; ~128 ms; blocked retarget / busy-slot delay
 
 ; Scratch (safe after render; column temps free)
 ; wish_* used for try deltas; save_* for rollback
@@ -87,7 +96,7 @@ FU_45 = 22
 ; ---------------------------------------------------------------------------
 ; Tables
 ; ---------------------------------------------------------------------------
-; Speeds used to build tryd*: pos/imp/demon/caco/baron = 3,4,6,5,4
+; Speeds used to build tryd*: pos/imp/demon/caco/baron = 3,4,4,5,4
 ; dirs N,NE,E,SE,S,SW,W,NW × (32,22,0,-22,-32,-22,0,22) and y permute
 mobj_pain_chance
 	!byte 2,3,4,5,$ff		; baron $ff = never flinch
@@ -128,10 +137,10 @@ opposite_dir
 diags_dir
 	!byte 3,1,5,7			; NW NE SW SE
 
-; speed[info] * dir component as signed 16-bit — indexed by info*8+dir
+; speed[info] * dir component as signed 16-bit per ~64 ms — indexed by info*8+dir
 trydx_lo
 	!byte $60,$42,$00,$be,$a0,$be,$00,$42,$80,$58,$00,$a8,$80,$a8,$00,$58
-	!byte $c0,$84,$00,$7c,$40,$7c,$00,$84,$a0,$6e,$00,$92,$60,$92,$00,$6e
+	!byte $80,$58,$00,$a8,$80,$a8,$00,$58,$a0,$6e,$00,$92,$60,$92,$00,$6e
 	!byte $80,$58,$00,$a8,$80,$a8,$00,$58
 trydx_hi
 	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00
@@ -139,7 +148,7 @@ trydx_hi
 	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00
 trydy_lo
 	!byte $00,$42,$60,$42,$00,$be,$a0,$be,$00,$58,$80,$58,$00,$a8,$80,$a8
-	!byte $00,$84,$c0,$84,$00,$7c,$40,$7c,$00,$6e,$a0,$6e,$00,$92,$60,$92
+	!byte $00,$58,$80,$58,$00,$a8,$80,$a8,$00,$6e,$a0,$6e,$00,$92,$60,$92
 	!byte $00,$58,$80,$58,$00,$a8,$80,$a8
 trydy_hi
 	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff
@@ -202,6 +211,8 @@ enemy_reset
 	bne .er_t
 	lda #0
 	sta anim_frame
+	sta anim_dt_acc
+	sta react_dt_rem
 	sta new_chase_dir_frame
 	sta pain_boost
 	sta barrel_events
@@ -355,22 +366,48 @@ goto_chase_state
 ; enemy_think — after render; SEC_SEEN gate
 ; ---------------------------------------------------------------------------
 enemy_think
-	inc anim_frame
 	lda #0
 	sta new_chase_dir_frame
-	; MOBJ_REACT is ms/16 — fold dt_ms into units for this frame
+	; MOBJ_REACT / MOBJ_MOVECNT are ms/16 — fold dt_ms into units.
+	; rem+dt is 16-bit: carry = +256 ms = +16 units (dt_ms caps at 255).
 	lda react_dt_rem
 	clc
 	adc dt_ms
 	sta tmp0
+	lda #0
+	adc #0				; 1 if wrapped
+	asl
+	asl
+	asl
+	asl				; 0 or 16
+	sta react_dt_units
+	lda tmp0
 	lsr
 	lsr
 	lsr
 	lsr
+	clc
+	adc react_dt_units
 	sta react_dt_units
 	lda tmp0
 	and #15
 	sta react_dt_rem
+	; walk mirror: at most one anim_frame tick per think (~250 ms → ~2 Hz flip)
+	lda anim_dt_acc
+	clc
+	adc dt_ms
+	bcc .et_anim_chk
+	clc
+	adc #256 - ENEMY_ANIM_MS	; wrapped sum − 250
+	inc anim_frame
+	jmp .et_anim_st
+.et_anim_chk
+	cmp #ENEMY_ANIM_MS
+	bcc .et_anim_st
+	sbc #ENEMY_ANIM_MS
+	inc anim_frame
+.et_anim_st
+	sta anim_dt_acc
 	jsr hitscan_frame
 	lda plr_id			; setup_player_tile; keep player_sector lag for weapon hi
 	sta player_sector
@@ -397,11 +434,11 @@ enemy_think
 	bne .et_skip
 	beq .et_run
 .et_live
-	; dying must finish even if sector not in view this frame
+	; Chase needs SEC_SEEN. Any other live action (atk/pain/fall/…)
+	; must finish even if the sector dropped out of the clip flood.
 	ldy MOBJ_STATE,x
 	lda state_action,y
-	cmp #ACTION_FALL
-	beq .et_run
+	bne .et_run
 	jsr obj_sector
 	sta enemy_sector
 	beq .et_nx
@@ -478,31 +515,46 @@ p_check_melee_range
 	clc
 	rts
 
-; if ((P_Random()>>2) < dist) return false; else true. C=1 ok
+; P_CheckMissileRange — Doom: dist = (approx<<4) - 64; no melee -= 128;
+; cap 200; P_Random() < dist → false. Negative after sub → always fire.
 p_check_missile_range_fixed
 	ldx enemy_actor
 	lda MOBJ_REACT,x
 	bne .pcm2_no
 	jsr p_check_sight
 	bcc .pcm2_no
+	lda enemy_dist
+	cmp #13				; 13*16 = 208 > 200 Doom
+	bcc .pcm2_sc
+	lda #12
+.pcm2_sc
+	asl
+	asl
+	asl
+	asl				; world → Doom map (4 wu = 64)
+	sec
+	sbc #64
+	bcc .pcm2_yes
+	sta tmp4
 	ldy enemy_info
 	lda mobj_melee_state,y
-	bmi .pcm2_d
-	lda enemy_dist
-	cmp #6
-	bcc .pcm2_no
-.pcm2_d
-	lda enemy_dist
-	cmp #51
-	bcc .pcm2_ok
-	lda #50
-.pcm2_ok
+	bpl .pcm2_cap			; has melee
+	lda tmp4
+	sec
+	sbc #128
+	bcc .pcm2_yes
+	sta tmp4
+.pcm2_cap
+	lda tmp4
+	cmp #201
+	bcc .pcm2_rnd
+	lda #200
+.pcm2_rnd
 	sta tmp4
 	jsr GetRandom8
-	lsr
-	lsr
 	cmp tmp4
-	bcc .pcm2_no			; rand>>2 < dist → no
+	bcc .pcm2_no			; random < dist → no
+.pcm2_yes
 	sec
 	rts
 .pcm2_no
@@ -845,33 +897,109 @@ p_move
 	lda enemy_dist
 	cmp #MELEERANGE
 	bcc .pm_ok_close
-	; wish = table[info*8+dir]
+	ldy MOBJ_INFO,x
+	lda mobj_melee_state,y
+	bpl .pm_wish			; claw/bite — close in
+	lda enemy_dist
+	cmp #STANDOFF
+	bcc .pm_ok_close
+.pm_wish
+	; wish = (table[info*8+dir] * dt_ms) >>> 6
 	lda MOBJ_INFO,x
 	asl
 	asl
 	asl
 	ora MOBJ_MOVEDIR,x
 	tay
-	lda trydx_lo,y
-	sta wish_x_l
-	lda trydx_hi,y
-	sta wish_x_h
-	lda trydy_lo,y
-	sta wish_y_l
-	lda trydy_hi,y
-	sta wish_y_h
+	jsr scale_enemy_wish
 	jmp p_try_move
 .pm_ok_close
 	sec
 	rts
 
+; Y = info*8+dir. wish_x/y = signed (tryd * dt_ms) >>> 6 (8.8).
+scale_enemy_wish
+	sty tmp4
+	lda trydx_lo,y
+	ldx trydx_hi,y
+	jsr scale_tryd
+	lda tmp0
+	sta wish_x_l
+	lda tmp1
+	sta wish_x_h
+	ldy tmp4
+	lda trydy_lo,y
+	ldx trydy_hi,y
+	jsr scale_tryd
+	lda tmp0
+	sta wish_y_l
+	lda tmp1
+	sta wish_y_h
+	rts
+
+; A=lo X=hi signed 16 (|mag|≤192) → tmp0/tmp1 = (val * dt_ms) >>> 6
+scale_tryd
+	sta tmp2
+	stx tmp3
+	lda tmp3
+	bpl .st_mul
+	sec
+	lda #0
+	sbc tmp2
+	sta tmp2
+.st_mul
+	ldy tmp2
+	lda dt_ms
+	jsr mul_8x8			; X=lo A=hi of |tryd|*dt
+	sta tmp1
+	stx tmp0
+	lsr tmp1
+	ror tmp0
+	lsr tmp1
+	ror tmp0
+	lsr tmp1
+	ror tmp0
+	lsr tmp1
+	ror tmp0
+	lsr tmp1
+	ror tmp0
+	lsr tmp1
+	ror tmp0
+	lda tmp3
+	bpl .st_done
+	sec
+	lda #0
+	sbc tmp0
+	sta tmp0
+	lda #0
+	sbc tmp1
+	sta tmp1
+.st_done
+	rts
+
+; X = enemy_actor. Subtract react_dt_units from MOBJ_MOVECNT.
+; C=1 still remaining, C=0 expired (MOVECNT=0).
+mobj_countdown
+	lda MOBJ_MOVECNT,x
+	beq .mc_exp
+	sec
+	sbc react_dt_units
+	beq .mc_z
+	bcc .mc_z
+	sta MOBJ_MOVECNT,x
+	sec
+	rts
+.mc_z
+	lda #0
+	sta MOBJ_MOVECNT,x
+.mc_exp
+	clc
+	rts
+
 p_try_walk
 	jsr p_move
 	bcc .ptw_no
-	jsr GetRandom8
-	and #3
-	clc
-	adc #3
+	jsr mobj_roll_movecnt
 	ldx enemy_actor
 	sta MOBJ_MOVECNT,x
 	sec
@@ -880,12 +1008,30 @@ p_try_walk
 	clc
 	rts
 
+; Doom P_TryWalk: movecount = P_Random()&15 A_Chase calls × ~128 ms → ms/16
+mobj_roll_movecnt
+	jsr GetRandom8
+	and #15
+	asl
+	asl
+	asl				; 0..120
+	bne .mrm_ok
+	lda #NEWDIR_RETRY		; min ~128 ms — 0 chained p_new_chase_dir
+.mrm_ok
+	rts
+
 ; ---------------------------------------------------------------------------
 ; P_NewChaseDir
 ; ---------------------------------------------------------------------------
 p_new_chase_dir
 	lda new_chase_dir_frame
 	beq .pncd_go
+	ldx enemy_actor
+	lda MOBJ_MOVECNT,x
+	bne .pncd_busy
+	lda #NEWDIR_RETRY		; ~128 ms — don't retry every think
+	sta MOBJ_MOVECNT,x
+.pncd_busy
 	rts
 .pncd_go
 	lda #1
@@ -1003,7 +1149,8 @@ p_new_chase_dir
 	and #7
 	ldx enemy_actor
 	sta MOBJ_MOVEDIR,x
-	lda #3
+	jsr mobj_roll_movecnt
+	ldx enemy_actor
 	sta MOBJ_MOVECNT,x
 .pncd_done
 	rts
@@ -1011,16 +1158,6 @@ p_new_chase_dir
 ; ---------------------------------------------------------------------------
 ; Actions
 ; ---------------------------------------------------------------------------
-; Post-attack cooldown: ~496–992 ms stored as ms/16 (31..62)
-set_mobj_react
-	jsr GetRandom8
-	and #31
-	clc
-	adc #31
-	ldx enemy_actor
-	sta MOBJ_REACT,x
-	rts
-
 a_chase
 	jsr calc_enemy_dist
 	ldx enemy_actor
@@ -1051,13 +1188,13 @@ a_chase
 	jsr p_check_melee_range
 	bcc .ac_missile
 	ldx enemy_actor
-	lda #0
+	lda #ATK_WINDUP
 	sta MOBJ_MOVECNT,x
 	ldy enemy_info
 	lda mobj_melee_state,y
 	sta MOBJ_STATE,x
 	lda MOBJ_FLAGS,x
-	ora #MF_JUSTATTACKED
+	ora #MF_JUSTATTACKED | MF_ATK_WINDUP
 	sta MOBJ_FLAGS,x
 	rts
 .ac_missile
@@ -1076,7 +1213,7 @@ a_chase
 	bne .ac_hs_try
 	lda hs_status
 	cmp #HS_PENDING
-	beq .ac_move			; waiting — keep walk chase
+	beq .ac_walk			; waiting — keep current dir
 	cmp #HS_CLEAR
 	beq .ac_hs_fire
 	cmp #HS_BLOCKED
@@ -1086,23 +1223,24 @@ a_chase
 	bcc .ac_move
 	ldx enemy_actor
 	jsr hitscan_request
-	bcs .ac_move			; another enemy already claimed this frame
+	bcs .ac_walk			; another enemy already claimed this frame
 	lda hs_status
 	cmp #HS_CLEAR
 	beq .ac_hs_fire
-	jmp .ac_move			; PENDING (or unexpected)
+	jmp .ac_walk			; PENDING
 .ac_hs_fire
 	ldy enemy_info
 	lda mobj_shoot_state,y
 	ldx enemy_actor
 	sta MOBJ_STATE,x
+	lda #ATK_WINDUP
+	sta MOBJ_MOVECNT,x
 	lda MOBJ_FLAGS,x
-	ora #MF_JUSTATTACKED
+	ora #MF_JUSTATTACKED | MF_ATK_WINDUP
 	sta MOBJ_FLAGS,x
 	rts
 .ac_hs_miss
 	jsr hitscan_release
-	jsr set_mobj_react
 	jmp .ac_move
 .ac_missile_direct
 	jsr p_check_missile_range_fixed
@@ -1111,16 +1249,24 @@ a_chase
 	lda mobj_shoot_state,y
 	ldx enemy_actor
 	sta MOBJ_STATE,x
+	lda #ATK_WINDUP
+	sta MOBJ_MOVECNT,x
 	lda MOBJ_FLAGS,x
-	ora #MF_JUSTATTACKED
+	ora #MF_JUSTATTACKED | MF_ATK_WINDUP
 	sta MOBJ_FLAGS,x
 	rts
 .ac_move
 	ldx enemy_actor
-	dec MOBJ_MOVECNT,x
-	bmi .ac_newdir
+	lda MOBJ_MOVECNT,x
+	beq .ac_newdir			; already 0 — shoot window was this think
+	jsr mobj_countdown		; may hit 0; still walk (old dec 1→0)
+.ac_walk
+	ldx enemy_actor
 	jsr p_move
 	bcs .ac_snd
+	ldx enemy_actor
+	lda MOBJ_MOVECNT,x
+	bne .ac_snd			; still in a walk window — keep heading
 .ac_newdir
 	jsr p_new_chase_dir
 .ac_snd
@@ -1132,21 +1278,20 @@ a_chase
 .ac_done
 	rts
 
-; Hold pain state for MOVECNT thinks (set in enemy_damage). Old path
+; Hold pain state for MOVECNT ms/16 (set in enemy_damage). Old path
 ; jumped to chase the same frame as the hit — pain never reached a render.
 a_flinch
 	ldx enemy_actor
 	lda MOBJ_HEALTH,x
 	beq .afl_dead			; 0 HP must not return to chase
 	lda MOBJ_MOVECNT,x
-	beq .afl_done
-	dec MOBJ_MOVECNT,x
-	beq .afl_done
-	rts
+	beq .afl_done			; timer finished last think — pose has rendered
+	jsr mobj_countdown
+	rts				; even if dt ate the rest this think, draw pain first
 .afl_done
 	jmp goto_chase_state
 .afl_dead
-	lda #2
+	lda #FALL_MOVECNT
 	sta MOBJ_MOVECNT,x
 	ldy enemy_info
 	lda mobj_death_state,y
@@ -1154,7 +1299,19 @@ a_flinch
 	rts
 
 ; Hitscan already CLEAR (chase only enters POSSHOOT then). Accuracy + damage.
+; MOVECNT windup (MF_ATK_WINDUP) then shot, then recover — Doom ATK1/ATK2.
 a_shoot
+	ldx enemy_actor
+	lda MOBJ_MOVECNT,x
+	beq .as_chase
+	jsr mobj_countdown
+	bcs .as_rts
+	lda MOBJ_FLAGS,x
+	and #MF_ATK_WINDUP
+	beq .as_chase
+	lda MOBJ_FLAGS,x
+	and #$ff - MF_ATK_WINDUP
+	sta MOBJ_FLAGS,x
 	lda #SOUND_PISTOL
 	jsr play_sound
 	jsr calc_enemy_dist
@@ -1180,13 +1337,28 @@ a_shoot
 	jsr damage_player
 .as_miss
 	jsr hitscan_release
-	jsr set_mobj_react
+	ldx enemy_actor
+	lda #ATK_MOVECNT
+	sta MOBJ_MOVECNT,x
+	lda #ATK_REACT
+	sta MOBJ_REACT,x
+.as_rts
+	rts
+.as_chase
 	jmp goto_chase_state
 
 a_melee
 	ldx enemy_actor
 	lda MOBJ_MOVECNT,x
-	bne .ame_done
+	beq .ame_done
+	jsr mobj_countdown
+	bcs .ame_rts
+	lda MOBJ_FLAGS,x
+	and #MF_ATK_WINDUP
+	beq .ame_done
+	lda MOBJ_FLAGS,x
+	and #$ff - MF_ATK_WINDUP
+	sta MOBJ_FLAGS,x
 	lda #SOUND_CLAW
 	jsr play_sound
 	jsr GetRandom8
@@ -1198,28 +1370,48 @@ a_melee
 	clc
 	adc tmp0
 	jsr damage_player
-	jsr set_mobj_react
 	ldx enemy_actor
-	inc MOBJ_MOVECNT,x
+	lda #ATK_MOVECNT
+	sta MOBJ_MOVECNT,x
+	lda #ATK_REACT
+	sta MOBJ_REACT,x
+.ame_rts
 	rts
 .ame_done
 	jmp goto_chase_state
 
 a_missile
+	ldx enemy_actor
+	lda MOBJ_MOVECNT,x
+	beq .ami_chase
+	jsr mobj_countdown
+	bcs .ami_rts
+	lda MOBJ_FLAGS,x
+	and #MF_ATK_WINDUP
+	beq .ami_chase
+	lda MOBJ_FLAGS,x
+	and #$ff - MF_ATK_WINDUP
+	sta MOBJ_FLAGS,x
 	lda MOBJ_ALLOC + MOBJ_MISSILE
-	bne .ami_react
+	bne .ami_pose
 	jsr spawn_enemy_missile
-.ami_react
-	jsr set_mobj_react
+.ami_pose
+	ldx enemy_actor
+	lda #ATK_MOVECNT
+	sta MOBJ_MOVECNT,x
+	lda #ATK_REACT
+	sta MOBJ_REACT,x
+.ami_rts
+	rts
+.ami_chase
 	jmp goto_chase_state
 
 a_fall
 	ldx enemy_actor
 	lda MOBJ_MOVECNT,x
-	beq .af_corpse			; already 0 — do not dec into $FF
-	dec MOBJ_MOVECNT,x
-	beq .af_corpse
-	jmp .af_done
+	beq .af_corpse			; timer finished last think — pose has rendered
+	jsr mobj_countdown
+	rts				; even if dt ate the rest this think, draw pain first
 .af_corpse
 	; Keep the mobj. pos/imp/demon/baron → item-atlas corpse tex;
 	; caco → 16×32 stub in ITEM_CORPSE_TEX.
@@ -1289,14 +1481,14 @@ enemy_damage
 	lda mobj_pain_state,y
 	ldx enemy_actor
 	sta MOBJ_STATE,x
-	lda #4				; ~4 thinks of pain before chase
+	lda #PAIN_MOVECNT		; ~256 ms of pain before chase
 	sta MOBJ_MOVECNT,x
 	rts
 .ed_kill
 	ldx enemy_actor
 	lda #0
 	sta MOBJ_HEALTH,x
-	lda #2
+	lda #FALL_MOVECNT
 	sta MOBJ_MOVECNT,x
 	inc num_kills
 	ldy enemy_info
@@ -1304,7 +1496,7 @@ enemy_damage
 	jsr play_sound			; preserves X/Y
 	lda mobj_death_state,y
 	sta MOBJ_STATE,x
-	; E1M8: last baron → lower forever floors (enemy_low.asm)
+	; E1M8: last baron → lower forever floors
 	jsr e1m8_baron_kill_hook
 .ed_rts
 	rts
@@ -1414,3 +1606,341 @@ TryDamageAtCol
 	bmi .tde_rts
 	sta tde_best_slot
 	jmp .tde_slot
+
+; ============================================================================
+; E1M8 boss death → forever floors; explosions (barrels + rockets)
+; ============================================================================
+
+BARREL_FUSE_TIME = 12			; ms/16 (~192 ms) until detonation
+EXPLOSION_TIME = 32			; ms/16 (~512 ms); +1 extra frame after timer
+EXPLOSION_SPLASH = 8			; world units (1 tile)
+
+; boss_* / barrel_events — cassette scrap BSS (zeropage.asm)
+
+; e1m8_baron_kill_hook — after any kill; if last baron on E1M8, lower floors
+e1m8_baron_kill_hook
+	lda enemy_info
+	cmp #MOBJINFO_BARON
+	bne .e1h_rts
+	lda level_num
+	cmp #8
+	bne .e1h_rts
+	; fall through
+; e1m8_check_barons_dead — if no live barons remain, lower forever floors
+e1m8_check_barons_dead
+	ldx #0
+.e1b_lp
+	lda MOBJ_ALLOC,x
+	beq .e1b_nx
+	lda MOBJ_INFO,x
+	cmp #MOBJINFO_BARON
+	bne .e1b_nx
+	lda MOBJ_HEALTH,x
+	bne .e1h_rts			; still one alive
+.e1b_nx
+	inx
+	cpx #MAX_MOBJ
+	bcc .e1b_lp
+	jmp boss_lower_forever_floors
+.e1h_rts
+	rts
+
+; boss_lower_forever_floors — lower every forever+none sector (self). Once/level.
+boss_lower_forever_floors
+	lda boss_floors_done
+	bne .blf_rts
+	lda #1
+	sta boss_floors_done
+	ldx #1
+.blf_lp
+	stx boss_scan_sec
+	jsr sec_trigger
+	cmp #TRIG_NONE
+	bne .blf_nx
+	ldx boss_scan_sec
+	jsr sec_action
+	cmp #ACT_LOWER_FLOOR_FOREVER
+	bne .blf_nx
+	ldx boss_scan_sec
+	stx tmp1
+	lda #0
+	sta elev_mode
+	jsr elevator_find_dest
+	sta elev_dest
+	ldx tmp1
+	jsr forever_adopt_nb
+	lda elev_dest
+	sta tmp2
+	jsr floor_forever_activate
+.blf_nx
+	ldx boss_scan_sec
+	cpx level_sector_max
+	bcs .blf_rts
+	inx
+	bne .blf_lp
+.blf_rts
+	rts
+
+; ---------------------------------------------------------------------------
+; FX overlay (cassette): fuse / explosion sprites, not the item layer
+; ---------------------------------------------------------------------------
+fx_clear
+	ldx #0
+	lda #0
+.fxc
+	sta FX_KIND,x
+	inx
+	cpx #FX_MAX
+	bcc .fxc
+	rts
+
+; mapx/mapy → C=0 X=index if an overlay occupies that tile
+fx_find
+	ldx #0
+.fxf
+	lda FX_KIND,x
+	beq .fxf_nx
+	lda FX_TX,x
+	cmp mapx
+	bne .fxf_nx
+	lda FX_TY,x
+	cmp mapy
+	bne .fxf_nx
+	clc
+	rts
+.fxf_nx
+	inx
+	cpx #FX_MAX
+	bcc .fxf
+	sec
+	rts
+
+fx_alloc
+	ldx #0
+.fxa
+	lda FX_KIND,x
+	beq .fxa_got
+	inx
+	cpx #FX_MAX
+	bcc .fxa
+	sec
+	rts
+.fxa_got
+	clc
+	rts
+
+; Light a barrel fuse at mapx/mapy (no-op if already fused / overlay full)
+fx_fuse_at
+	jsr fx_find
+	bcc .fxu_rts
+	jsr fx_alloc
+	bcs .fxu_rts
+	lda #FX_FUSE
+	sta FX_KIND,x
+	lda mapx
+	sta FX_TX,x
+	lda mapy
+	sta FX_TY,x
+	lda #BARREL_FUSE_TIME
+	sta FX_TIME,x
+	inc barrel_events
+.fxu_rts
+	rts
+
+; ---------------------------------------------------------------------------
+; explosion_near_mobj — X = mobj; C=0 if within EXPLOSION_SPLASH of save_xh/yh
+; ---------------------------------------------------------------------------
+explosion_near_mobj
+	lda MOBJ_X,x
+	sec
+	sbc save_xh
+	bcs .eny_ax
+	eor #$ff
+	adc #1
+.eny_ax
+	cmp #EXPLOSION_SPLASH+1
+	bcs .eny_out
+	lda MOBJ_Y,x
+	sec
+	sbc save_yh
+	bcs .eny_ay
+	eor #$ff
+	adc #1
+.eny_ay
+	cmp #EXPLOSION_SPLASH+1
+	rts
+.eny_out
+	sec
+	rts
+
+; ---------------------------------------------------------------------------
+; explode_tile — mapx/mapy = blast tile (barrel or rocket).
+; Overlay explosion sprite; splash enemies; fuse neighbour barrels (3×3).
+; ---------------------------------------------------------------------------
+explode_tile
+	jsr item_tile_xy
+	lda tmp0
+	sta save_xh
+	lda tmp1
+	sta save_yh
+	; drop barrel from the layer if present
+	jsr item_layer_id
+	cmp #ITEM_TYPE_BARREL
+	bne .bex_fx
+	lda #0
+	sta (ptr_l),y
+.bex_fx
+	; reuse overlay on this tile, else alloc
+	jsr fx_find
+	bcc .bex_set
+	jsr fx_alloc
+	bcs .bex_sfx			; full — still splash
+.bex_set
+	lda #FX_EXPL
+	sta FX_KIND,x
+	lda mapx
+	sta FX_TX,x
+	lda mapy
+	sta FX_TY,x
+	lda #EXPLOSION_TIME
+	sta FX_TIME,x
+	inc barrel_events
+.bex_sfx
+	lda #SOUND_BAREXP
+	jsr play_sound
+	ldx #0
+.bex_mobj
+	lda MOBJ_ALLOC,x
+	beq .bex_mn
+	lda MOBJ_INFO,x
+	cmp #MOBJINFO_IMPSHOT
+	bcs .bex_mn
+	jsr explosion_near_mobj
+	bcs .bex_mn
+	stx tmp5
+	jsr GetRandom8
+	and #31
+	clc
+	adc #16
+	ldx tmp5
+	jsr enemy_damage
+	ldx tmp5
+.bex_mn
+	inx
+	cpx #MOBJ_PLAYER_ROCKET
+	bcc .bex_mobj
+	; 3×3 layer neighbourhood (skip center)
+	lda mapx
+	sta tmp4
+	lda mapy
+	sta tmp5
+	lda tmp5
+	sec
+	sbc #1
+	sta mapy
+	ldy #3
+.bex_yy
+	lda tmp4
+	sec
+	sbc #1
+	sta mapx
+	ldx #3
+.bex_xx
+	lda mapx
+	cmp #MAP_SIZE
+	bcs .bex_xn
+	lda mapy
+	cmp #MAP_SIZE
+	bcs .bex_xn
+	lda mapx
+	cmp tmp4
+	bne .bex_chk
+	lda mapy
+	cmp tmp5
+	beq .bex_xn
+.bex_chk
+	stx tmp2
+	sty tmp3
+	jsr item_layer_id
+	cmp #ITEM_TYPE_BARREL
+	bne .bex_rst
+	jsr fx_fuse_at
+.bex_rst
+	ldx tmp2
+	ldy tmp3
+.bex_xn
+	inc mapx
+	dex
+	bne .bex_xx
+	inc mapy
+	dey
+	bne .bex_yy
+	lda tmp4
+	sta mapx
+	lda tmp5
+	sta mapy
+	rts
+
+; ---------------------------------------------------------------------------
+; barrel_update — overlay fuse countdown + explosion lifetime
+; ---------------------------------------------------------------------------
+barrel_update
+	lda barrel_events
+	bne .bu_go
+	rts
+.bu_go
+	ldx #0
+.bu_lp
+	lda FX_KIND,x
+	beq .bu_nx
+	cmp #FX_FUSE
+	beq .bu_fuse
+	cmp #FX_EXPL
+	bne .bu_nx
+	lda FX_TIME,x
+	beq .bu_expl_done		; timer already 0 — extra frame shown
+	jsr fx_countdown
+	bcs .bu_nx
+	jmp .bu_nx			; keep overlay one more displayed frame
+.bu_expl_done
+	lda #0
+	sta FX_KIND,x
+	dec barrel_events
+	jmp .bu_nx
+.bu_fuse
+	jsr fx_countdown
+	bcs .bu_nx
+	stx tmp2
+	lda FX_TX,x
+	sta mapx
+	lda FX_TY,x
+	sta mapy
+	lda #0
+	sta FX_KIND,x
+	dec barrel_events			; fuse consumed
+	jsr explode_tile
+	ldx tmp2
+.bu_nx
+	inx
+	cpx #FX_MAX
+	bcc .bu_lp
+	rts
+
+; X = overlay. Subtract react_dt_units from FX_TIME.
+; C=1 still remaining, C=0 expired.
+fx_countdown
+	lda FX_TIME,x
+	beq .fxc_exp
+	sec
+	sbc react_dt_units
+	beq .fxc_z
+	bcc .fxc_z
+	sta FX_TIME,x
+	sec
+	rts
+.fxc_z
+	lda #0
+	sta FX_TIME,x
+.fxc_exp
+	clc
+	rts

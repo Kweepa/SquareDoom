@@ -41,8 +41,6 @@ SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 !source "profil.asm"
 !source "render.asm"
 !source "blit.asm"
-; enemy boss-death floors ??? low for mid headroom
-!source "enemy_low.asm"
 !source "mapscreen.asm"
 !source "weapon.asm"
 !source "gameloop.asm"
@@ -50,7 +48,7 @@ SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 !source "playsound.asm"
 !source "process.asm"
 !source "player.asm"
-!source "enemy_mid.asm"
+!source "enemy.asm"
 !source "missile.asm"
 !source "hitscan.asm"
 !source "debug.asm"

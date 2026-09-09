@@ -334,10 +334,6 @@ spawn_enemy_missile
 	sta missile_z
 	lda #0
 	sta missile_zfrac
-	lda eyeheight
-	sec
-	sbc missile_z
-	sta tmp4				; dz (signed)
 	jsr obj_xy
 	lda playerx_h
 	sec
@@ -356,6 +352,19 @@ spawn_enemy_missile
 	lda #1
 .sem_dnz
 	sta span_a
+	; 3D divisor: max(xy, |eyeheight - missile_z|) so momz stays in ±64
+	lda eyeheight
+	sec
+	sbc missile_z
+	bpl .sem_adz
+	eor #$ff
+	clc
+	adc #1
+.sem_adz
+	cmp span_a
+	bcc .sem_span
+	sta span_a
+.sem_span
 	lda fracy
 	jsr missile_scale_mom
 	lda wish_x_l
@@ -368,7 +377,9 @@ spawn_enemy_missile
 	sta missile_momy_l
 	lda wish_x_h
 	sta missile_momy_h
-	lda tmp4
+	lda eyeheight
+	sec
+	sbc missile_z
 	jsr missile_scale_mom
 	lda wish_x_l
 	sta missile_momz_l

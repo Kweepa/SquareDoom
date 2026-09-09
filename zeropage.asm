@@ -326,13 +326,14 @@ VIS_LAYER	= $80			; ITEM_SORT_SLOT bit7 = layer tile (tx in 0..31)
 VIS_FX		= $c0			; bit7+bit6 = FX overlay (index in 0..15)
 MF_JUSTATTACKED	= 1
 MF_GUTS_TAKEN	= 2
+MF_ATK_WINDUP	= 4			; attack pose before the shot
 MF_PLASMA	= $10			; enemy missile draws as plasmaball
 
 MOBJ_ALLOC	= ITEM_SORT_END
 MOBJ_MOVEDIR	= MOBJ_ALLOC + MAX_MOBJ
 MOBJ_FLAGS	= MOBJ_MOVEDIR + MAX_MOBJ
 MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ	; attack cooldown in ms/16
-MOBJ_MOVECNT	= MOBJ_REACT + MAX_MOBJ
+MOBJ_MOVECNT	= MOBJ_REACT + MAX_MOBJ	; walk/pain/fall/atk in ms/16
 MOBJ_HEALTH	= MOBJ_MOVECNT + MAX_MOBJ
 MOBJ_INFO	= MOBJ_HEALTH + MAX_MOBJ	; 0=pos..4=baron, 5=impshot
 MOBJ_STATE	= MOBJ_INFO + MAX_MOBJ
@@ -585,7 +586,8 @@ barrel_events		= SCRAP_CASS + 57
 item_slot		= SCRAP_CASS + 58
 mouse_x			= SCRAP_CASS + 59	; last SID POTX ($d419); seed in input_irq_init
 mouse_turn		= SCRAP_CASS + 60	; signed POTX yaw this frame; IRQ add, main take
-SCRAP_CASS_END		= SCRAP_CASS + 61
+anim_dt_acc		= SCRAP_CASS + 61	; leftover ms for anim_frame (~64 ms/tick)
+SCRAP_CASS_END		= SCRAP_CASS + 62
 !if SCRAP_CASS_END > CASS_BUF_END {
 	!error "cassette scrap BSS past CASS_BUF_END"
 }

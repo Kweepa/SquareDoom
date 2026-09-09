@@ -131,7 +131,8 @@ gameloop_check_map
 .gcm_held
 	rts
 
-; 1000 column drips at max speed; no raster waits
+; 1000 column drips; ~20 per vsync → ~1 s wall-clock (not CPU-bound)
+MELT_DRIPS_PER_FRAME = 20
 melt_screen
 	cld				; GetRandom16 mod-40 uses SBC (must be binary)
 	lda #<1000
@@ -139,7 +140,13 @@ melt_screen
 	lda #>1000
 	sta melt_count + 1
 .ms_a
+	ldx #MELT_DRIPS_PER_FRAME
+.ms_batch
+	txa
+	pha
 	jsr melt_one_col
+	pla
+	tax
 	lda melt_count
 	bne .ms_lo
 	dec melt_count + 1
@@ -147,7 +154,12 @@ melt_screen
 	dec melt_count
 	lda melt_count
 	ora melt_count + 1
-	bne .ms_a
+	beq .ms_done
+	dex
+	bne .ms_batch
+	jsr wait_frame
+	jmp .ms_a
+.ms_done
 	rts
 
 ; Slide one random column down one row (all 25 rows); +40 addressing
