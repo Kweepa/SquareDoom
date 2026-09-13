@@ -53,7 +53,7 @@ import { ItemPalette } from './itemPalette.js?v=24';
 import { LevelList } from './levelList.js?v=24';
 import { TileEditor } from './tileEditor.js?v=28';
 import { ItemEditor } from './itemEditor.js?v=26';
-import { PreviewView } from './previewView.js?v=32';
+import { PreviewView } from './previewView.js?v=34';
 import { initShiftControls } from './shiftControls.js?v=24';
 import {
   allowStoredEpisodeFile,

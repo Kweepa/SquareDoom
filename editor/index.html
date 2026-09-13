@@ -618,7 +618,7 @@ const ITEM_IMAGE_DATA = {
   "impcorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAARUlEQVR4nGNkYGD4z4AHMOGTJE1BdXU1VgWMyG7oC9BEkXyrHYRQgC4JtwJkNEgSpPr4++twnSAA4oNNgOku2gBRgMwHAKf+GViuJK09AAAAAElFTkSuQmCC",
   "onerocket": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAQElEQVR4nGNgYGD4D8NHcgrhbBhmYoCCUHtUGgbgCvJ1CxlOPdmBKousAJskigJcgDQFZjIe2BX0BWiiCCL7BAB5ShLefMGwPgAAAABJRU5ErkJggg==",
   "plasmaball": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAaElEQVR4nGNgYGD4H7bG9z82GoRZGBgYGFaFbGYIW+PLkKmkysCwxhckBAYgMUaoarDkK0NdsITY+csM0+/dBmtkhBrJEBwcBNeJrIgJbjQawDABmxUwh8BdDsL7zxWh+AKkBqsXYTQAwmZMmlR1CYUAAAAASUVORK5CYII=",
-  "poscorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAATklEQVR4nGNkYGD4z4AHMOGTpI4CFmSOg2Evg4FNHJx/4cgiBkaYIwtyX2O3otHYAi4J0gGjBY/5wvn/G40t/hfkvgaZBMYgfl+AJpgNAHyXHuyOKpXCAAAAAElFTkSuQmCC",
+  "poscorpse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAVklEQVR4nGNkYGD4z4AHMOGTpI4CFmSOl5cXg6GhIZx//vx5BkaYI6urq7Gb0GhswfDLwxmuA2QCiDZ/+Y7hpLgQWPx/o7HF/+rqapBJYAzi9wVogtkAX1oehH7n+yQAAAAASUVORK5CYII=",
   "rocket": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAYklEQVR4nGNgYGD432hs8R8bDcKMUAZDo7EFA6/sR4bPj/lBXIb6syfAYoxQ1WBJwzpPsOT5pu1ghSBFYBNAKu1mW4ElYQCmiAlmNDrAMAGbFSAAdgPMQTC3wHTDAFYvwmgAxFpGP3DUHQUAAAAASUVORK5CYII="
 };
 
@@ -903,6 +903,8 @@ const LEGACY_SWITCH_COOK_TYPES = new Set([
 
 /** Types that allocate an mobj at level start (missile excluded). */
 const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
+/** Decor drawn 2× tall (same width) in preview + game. */
+const TALL_ITEM_TYPES = new Set(['candelabra', 'techcolumn']);
 
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 const EDITOR_ITEM_TYPES = [
@@ -3870,12 +3872,13 @@ class PreviewView {
       const screenX = view.w / 2 + (lateral / depth) * (view.w / 2) / TAN_HALF_FOV;
       const screenFloorY = view.horizon + ((eyeZ - floorZ) * view.proj) / depth;
       const sizeScale = ENEMY_TYPES.has(it.type) ? 1 : 0.5;
-      const spriteH = Math.max(1, (ITEM_WORLD_HEIGHT * view.proj * sizeScale) / depth);
+      const baseH = Math.max(1, (ITEM_WORLD_HEIGHT * view.proj * sizeScale) / depth);
+      const spriteH = TALL_ITEM_TYPES.has(it.type) ? baseH * 2 : baseH;
       const img = this.opts.images[it.type];
       const sprite = transparentSprite(img);
-      let spriteW = spriteH * 0.75;
+      let spriteW = baseH * 0.75;
       if (sprite) {
-        spriteW = spriteH * (sprite.width / sprite.height);
+        spriteW = baseH * (sprite.width / sprite.height);
       }
       const left = Math.round(screenX - spriteW / 2);
       const top = Math.round(screenFloorY - spriteH);

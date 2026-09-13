@@ -23,6 +23,8 @@ ITEM_TYPE_PLASMABALL = 42
 ITEM_TYPE_ROCKET = 43
 ITEM_TYPE_EXPLOSION = 44
 ITEM_TYPE_POSCORPSE = 36
+ITEM_TYPE_CANDELABRA = 29
+ITEM_TYPE_TECHCOLUMN = 35
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -759,6 +761,7 @@ item_draw_one
 .id_half
 	lda tmp0
 	lsr					; pickups: half-height
+	adc #0				; round so 64/z can land on 3, not only 2/4
 	bpl .id_h0
 .id_h0
 	cmp #1
@@ -787,27 +790,29 @@ item_draw_one
 	jmp .id_feet
 .id_w_sq
 	lda #0
-	sta far_floor			; 0 = item path (1:1 or stretch)
+	sta far_floor			; 0 = item path (DDA stretch)
 	lda wall_col
 	cmp #ITEM_TYPE_EXPLOSION
 	beq .id_large
-	; Items: pick mip from projected size, then draw 1:1 (never >8×8)
+	; W/H = projected 64/z (not mip W/H). Mip is floor LOD only.
 	lda far_ceil
-	ldx #0
-	cmp #8
-	bcs .id_item_mip			; ≥8 → mip0 (8×8)
-	ldx #1
-	cmp #4
-	bcs .id_item_mip			; ≥4 → mip1 (4×4)
-	ldx #2
-	cmp #2
-	bcs .id_item_mip			; ≥2 → mip2 (2×2)
-	ldx #3				; else mip3 (1×1)
-.id_item_mip
-	stx item_mip				; selected mip index (kept through feet/span)
-	lda item_mip_w,x
-	sta far_ceil			; screen H = mip H
-	sta last_near_ok			; screen W = mip W
+	sta last_near_ok
+	jsr item_mip_floor
+	lda wall_col
+	cmp #ITEM_TYPE_CANDELABRA
+	beq .id_tall
+	cmp #ITEM_TYPE_TECHCOLUMN
+	bne .id_feet
+.id_tall
+	lda last_near_ok
+	asl					; H = 2×W
+	bcs .id_tall_hsat
+	cmp #128
+	bcc .id_tall_hok
+.id_tall_hsat
+	lda #127
+.id_tall_hok
+	sta far_ceil
 	jmp .id_feet
 .id_large
 	; explosion: S = min(2*H, 16); mip from S; DDA stretch to S×S
@@ -819,18 +824,7 @@ item_draw_one
 .id_large_s
 	sta far_ceil
 	sta last_near_ok
-	ldx #0
-	cmp #8
-	bcs .id_large_mip			; ≥8 → mip0
-	ldx #1
-	cmp #4
-	bcs .id_large_mip			; ≥4 → mip1
-	ldx #2
-	cmp #2
-	bcs .id_large_mip			; ≥2 → mip2
-	ldx #3				; else mip3
-.id_large_mip
-	stx item_mip
+	jsr item_mip_floor
 	; fall through — screen W/H stay S
 .id_feet
 	; Feet: missiles use flight Z (hitscan-style height); else sector floor
@@ -992,10 +986,7 @@ item_draw_clp_go
 	sta item_mip_base_l
 	lda item_mip_base_hi,x
 	sta item_mip_base_h
-	lda wall_col
-	cmp #ITEM_TYPE_EXPLOSION
-	beq .id_item_stretch_setup
-	jmp .id_clp_no_recip
+	; Items always DDA-stretch (1:1 was snapping W/H to 8/4/2/1)
 .id_item_stretch_setup
 	; Same ustep/vstep as enemies; item mip base + $ff clear in column draw
 	ldx last_near_ok			; screen W (=S)
@@ -1221,13 +1212,7 @@ item_draw_clp_go
 	cmp item_ybot
 	bcc .id_spanok
 .id_cnx
-	; Advance U-DDA for enemies + stretch items (also on clip-miss columns)
-	lda far_floor
-	bne .id_cnx_uadv
-	lda wall_col
-	cmp #ITEM_TYPE_EXPLOSION
-	beq .id_cnx_uadv
-	bne .id_cnx_nou
+	; Advance U-DDA (enemies + items; also on clip-miss columns)
 .id_cnx_uadv
 	clc
 	lda item_u_l
@@ -1262,10 +1247,7 @@ item_draw_clp_go
 	beq .id_draw_item
 	jmp .id_e32
 .id_draw_item
-	lda wall_col
-	cmp #ITEM_TYPE_EXPLOSION
-	beq .id_e_stretch
-	jmp .id_e8
+	jmp .id_e_stretch
 
 ; --- Stretch item column (U/V DDA; item mips, $ff = clear) ---
 .id_e_stretch
@@ -1504,6 +1486,26 @@ item_draw_clp_go
 	cpy item_ybot
 	bcc .id_rlp
 	jmp .id_cnx
+
+; ---------------------------------------------------------------------------
+; item_mip_floor — A = screen W. Floor mip (LOD only; does not change W/H).
+; ≥8 mip0, ≥4 mip1, ≥2 mip2, else mip3.
+; Exit: item_mip set. Clobbers X. A preserved.
+; ---------------------------------------------------------------------------
+item_mip_floor
+	ldx #0				; mip0 8×8
+	cmp #8
+	bcs .imf_got
+	ldx #1				; mip1 4×4
+	cmp #4
+	bcs .imf_got
+	ldx #2				; mip2 2×2
+	cmp #2
+	bcs .imf_got
+	ldx #3				; mip3 1×1
+.imf_got
+	stx item_mip
+	rts
 
 ; ---------------------------------------------------------------------------
 ; item_vdda_texstep — A = mip_h; wish_y = recip[H]

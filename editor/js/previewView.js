@@ -1,6 +1,7 @@
 import {
   C64_HEX,
   ENEMY_TYPES,
+  TALL_ITEM_TYPES,
   MAP_SIZE,
   WORLD_PER_TILE,
   getCell,
@@ -286,12 +287,13 @@ export class PreviewView {
       const screenX = view.w / 2 + (lateral / depth) * (view.w / 2) / TAN_HALF_FOV;
       const screenFloorY = view.horizon + ((eyeZ - floorZ) * view.proj) / depth;
       const sizeScale = ENEMY_TYPES.has(it.type) ? 1 : 0.5;
-      const spriteH = Math.max(1, (ITEM_WORLD_HEIGHT * view.proj * sizeScale) / depth);
+      const baseH = Math.max(1, (ITEM_WORLD_HEIGHT * view.proj * sizeScale) / depth);
+      const spriteH = TALL_ITEM_TYPES.has(it.type) ? baseH * 2 : baseH;
       const img = this.opts.images[it.type];
       const sprite = transparentSprite(img);
-      let spriteW = spriteH * 0.75;
+      let spriteW = baseH * 0.75;
       if (sprite) {
-        spriteW = spriteH * (sprite.width / sprite.height);
+        spriteW = baseH * (sprite.width / sprite.height);
       }
       const left = Math.round(screenX - spriteW / 2);
       const top = Math.round(screenFloorY - spriteH);

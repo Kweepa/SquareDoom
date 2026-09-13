@@ -278,6 +278,8 @@ const LEGACY_SWITCH_COOK_TYPES = new Set([
 
 /** Types that allocate an mobj at level start (missile excluded). */
 export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
+/** Decor drawn 2× tall (same width) in preview + game. */
+export const TALL_ITEM_TYPES = new Set(['candelabra', 'techcolumn']);
 
 /** Palette + map placement (spawn is level.spawn; camera is editor-only). */
 export const EDITOR_ITEM_TYPES = [
