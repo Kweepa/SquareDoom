@@ -37,6 +37,7 @@ damage_player
 	beq .dp_rts			; already dead
 	lda god_mode
 	bne .dp_rts			; iddqd
+	jsr dp_scale_taken
 	lda #SOUND_OOF
 	jsr play_sound
 	lda #1
@@ -95,6 +96,34 @@ damage_player
 	lda #1
 	sta hud_dirty
 .dp_rts
+	rts
+
+; ---------------------------------------------------------------------------
+; dp_scale_taken — skill scaling of tmp0 (damage to player). Uses A only.
+; 0 (ITYTD) = x0.5 (min 1), 1 (HMP) = x1, 2 (UV) = x1.5 (cap 255)
+; ---------------------------------------------------------------------------
+dp_scale_taken
+	lda difficulty
+	beq .dst_easy
+	cmp #2
+	bne .dst_rts
+	lda tmp0
+	lsr
+	clc
+	adc tmp0
+	bcc .dst_st
+	lda #$ff
+.dst_st
+	sta tmp0
+.dst_rts
+	rts
+.dst_easy
+	lda tmp0
+	lsr
+	bne .dst_ez
+	lda #1
+.dst_ez
+	sta tmp0
 	rts
 
 ; ---------------------------------------------------------------------------

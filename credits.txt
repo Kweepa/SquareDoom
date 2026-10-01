@@ -10,14 +10,15 @@ by id software or zenimax.
 For non-commercial/fan use only.
 ^
 Title screen by paul docherty.
-sid music by ???.
-loader by krill / plush.
+fastloader by krill / plush.
 
 Developed using the acme assembler
 by marco baye.
 
 Tested using the vice emulator
 by andreas boose and the vice team.
+
+v1.00.0
 ^
 Doom was created by john carmack,
 john romero, dave taylor,

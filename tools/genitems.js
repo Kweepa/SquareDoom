@@ -14,7 +14,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const gfxDir = join(root, 'itemgraphics');
 
 const ITEM_TYPES = [
-  'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
+  'spawn', 'soldier', 'imp', 'pinky', 'baron', 'barrel',
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
@@ -33,7 +33,7 @@ const ITEM_TYPES = [
 
 /** No item atlas: spawn/enemies use other paths; switch is wall_switch.asm. */
 const SKIP_ITEM_ATLAS = new Set([
-  'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron',
+  'spawn', 'soldier', 'imp', 'pinky', 'baron',
   'switch',
 ]);
 

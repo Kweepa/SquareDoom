@@ -25,7 +25,6 @@ KEEP_EDITOR_ICONS = frozenset(
         "soldier",
         "imp",
         "pinky",
-        "caco",
         "baron",
         "cursor",
         "acid",

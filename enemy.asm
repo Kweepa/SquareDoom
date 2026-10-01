@@ -1,7 +1,7 @@
 !zone enemy
 
 ; ============================================================================
-; enemy.asm — VicDoom p_enemy.c AI (possessed / imp / demon / caco + shot)
+; enemy.asm — VicDoom p_enemy.c AI (possessed / imp / demon / baron + shot)
 ; Think only when SEC_SEEN[sector] (after render). Always camera-facing.
 ; Projectile flight → missile.asm.
 ; ============================================================================
@@ -14,9 +14,8 @@ TEX_ANIMATE = 64
 MOBJINFO_POS = 0
 MOBJINFO_IMP = 1
 MOBJINFO_DEMON = 2
-MOBJINFO_CACO = 3
-MOBJINFO_BARON = 4
-MOBJINFO_IMPSHOT = 5
+MOBJINFO_BARON = 3
+MOBJINFO_IMPSHOT = 4
 
 STATE_POSCHASE = 0
 STATE_POSPAIN = 1
@@ -31,17 +30,12 @@ STATE_DMNCHASE = 9
 STATE_DMNPAIN = 10
 STATE_DMNBITE = 11
 STATE_DMNFALL = 12
-STATE_CACCHASE = 13
-STATE_CACPAIN = 14
-STATE_CACBITE = 15
-STATE_CACMISSILE = 16
-STATE_CACFALL = 17
-STATE_BRNCHASE = 18
-STATE_BRNPAIN = 19
-STATE_BRNBITE = 20
-STATE_BRNMISSILE = 21
-STATE_BRNFALL = 22
-STATE_IMPSHOTFLY = 23
+STATE_BRNCHASE = 13
+STATE_BRNPAIN = 14
+STATE_BRNBITE = 15
+STATE_BRNMISSILE = 16
+STATE_BRNFALL = 17
+STATE_IMPSHOTFLY = 18
 
 ACTION_CHASE = 0
 ACTION_FLINCH = 1
@@ -64,18 +58,18 @@ ENEMY_TEX_BARON_WALK = 9
 ENEMY_TEX_BARON_ATK = 10
 
 ITEM_TYPE_ENEMY_FIRST = 1
-ITEM_TYPE_ENEMY_LAST = 5
+ITEM_TYPE_ENEMY_LAST = 4
 ITEM_TYPE_SOLDIER = 1
 ITEM_TYPE_IMP = 2
-ITEM_TYPE_BARREL = 6
-ITEM_TYPE_FIREBALL = 41
-ITEM_TYPE_POSCORPSE = 36
-ITEM_TYPE_IMPCORPSE = 37
-ITEM_TYPE_DEMONCORPSE = 38
-ITEM_TYPE_BARONCORPSE = 39
-ITEM_TYPE_PLASMABALL = 42
-ITEM_TYPE_ROCKET = 43
-ITEM_TYPE_EXPLOSION = 44
+ITEM_TYPE_BARREL = 5
+ITEM_TYPE_FIREBALL = 40
+ITEM_TYPE_POSCORPSE = 35
+ITEM_TYPE_IMPCORPSE = 36
+ITEM_TYPE_DEMONCORPSE = 37
+ITEM_TYPE_BARONCORPSE = 38
+ITEM_TYPE_PLASMABALL = 41
+ITEM_TYPE_ROCKET = 42
+ITEM_TYPE_EXPLOSION = 43
 ITEM_TYPE_EMPTY_E = $ff
 
 MIN_SPEED = 32
@@ -96,31 +90,30 @@ NEWDIR_RETRY = 8			; ~128 ms; blocked retarget / busy-slot delay
 ; ---------------------------------------------------------------------------
 ; Tables
 ; ---------------------------------------------------------------------------
-; Speeds used to build tryd*: pos/imp/demon/caco/baron = 3,4,4,5,4
+; Speeds used to build tryd*: pos/imp/demon/baron = 3,4,4,4
 ; dirs N,NE,E,SE,S,SW,W,NW × (32,22,0,-22,-32,-22,0,22) and y permute
 mobj_pain_chance
-	!byte 2,3,4,5,$ff		; baron $ff = never flinch
+	!byte 2,3,4,$ff			; baron $ff = never flinch
 mobj_spawn_health
-	!byte 20,30,60,99,150		; pos/imp/demon/caco/baron
+	!byte 20,30,60,255		; pos/imp/demon/baron
 mobj_chase_state
-	!byte STATE_POSCHASE, STATE_IMPCHASE, STATE_DMNCHASE, STATE_CACCHASE, STATE_BRNCHASE
+	!byte STATE_POSCHASE, STATE_IMPCHASE, STATE_DMNCHASE, STATE_BRNCHASE
 mobj_pain_state
-	!byte STATE_POSPAIN, STATE_IMPPAIN, STATE_DMNPAIN, STATE_CACPAIN, STATE_BRNPAIN
+	!byte STATE_POSPAIN, STATE_IMPPAIN, STATE_DMNPAIN, STATE_BRNPAIN
 mobj_melee_state
-	!byte $ff, STATE_IMPCLAW, STATE_DMNBITE, STATE_CACBITE, STATE_BRNBITE
+	!byte $ff, STATE_IMPCLAW, STATE_DMNBITE, STATE_BRNBITE
 mobj_shoot_state
-	!byte STATE_POSSHOOT, STATE_IMPMISSILE, $ff, STATE_CACMISSILE, STATE_BRNMISSILE
+	!byte STATE_POSSHOOT, STATE_IMPMISSILE, $ff, STATE_BRNMISSILE
 mobj_death_state
-	!byte STATE_POSFALL, STATE_IMPFALL, STATE_DMNFALL, STATE_CACFALL, STATE_BRNFALL
+	!byte STATE_POSFALL, STATE_IMPFALL, STATE_DMNFALL, STATE_BRNFALL
 mobj_death_sound
-	!byte SOUND_SGTDTH, SOUND_PLPAIN, SOUND_DMPAIN, SOUND_POPAIN, SOUND_DMPAIN
+	!byte SOUND_SGTDTH, SOUND_PLPAIN, SOUND_DMPAIN, SOUND_DMPAIN
 
-; Frames 0–2 pos, 3–5 imp, 6–8 demon, 9–10 baron (pain=walk). Caco still stub.
+; Frames 0–2 pos, 3–5 imp, 6–8 demon, 9–10 baron (pain=walk).
 state_texture
 	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_IMP_WALK, ENEMY_TEX_IMP_PAIN, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_ATK, ENEMY_TEX_IMP_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_DEMON_WALK, ENEMY_TEX_DEMON_PAIN, ENEMY_TEX_DEMON_ATK, ENEMY_TEX_DEMON_PAIN
-	!byte TEX_ANIMATE + ENEMY_TEX_WALK, ENEMY_TEX_PAIN, ENEMY_TEX_ATK, ENEMY_TEX_ATK, ENEMY_TEX_PAIN
 	!byte TEX_ANIMATE + ENEMY_TEX_BARON_WALK, ENEMY_TEX_BARON_WALK, ENEMY_TEX_BARON_ATK, ENEMY_TEX_BARON_ATK, ENEMY_TEX_BARON_WALK
 	!byte 0
 
@@ -128,7 +121,6 @@ state_action
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_SHOOT, ACTION_FALL
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_MISSILE, ACTION_FALL
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_FALL
-	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_MISSILE, ACTION_FALL
 	!byte ACTION_CHASE, ACTION_FLINCH, ACTION_MELEE, ACTION_MISSILE, ACTION_FALL
 	!byte ACTION_FLY
 
@@ -140,20 +132,16 @@ diags_dir
 ; speed[info] * dir component as signed 16-bit per ~64 ms — indexed by info*8+dir
 trydx_lo
 	!byte $60,$42,$00,$be,$a0,$be,$00,$42,$80,$58,$00,$a8,$80,$a8,$00,$58
-	!byte $80,$58,$00,$a8,$80,$a8,$00,$58,$a0,$6e,$00,$92,$60,$92,$00,$6e
-	!byte $80,$58,$00,$a8,$80,$a8,$00,$58
+	!byte $80,$58,$00,$a8,$80,$a8,$00,$58,$80,$58,$00,$a8,$80,$a8,$00,$58
 trydx_hi
 	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00
 	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00
-	!byte $00,$00,$00,$ff,$ff,$ff,$00,$00
 trydy_lo
 	!byte $00,$42,$60,$42,$00,$be,$a0,$be,$00,$58,$80,$58,$00,$a8,$80,$a8
-	!byte $00,$58,$80,$58,$00,$a8,$80,$a8,$00,$6e,$a0,$6e,$00,$92,$60,$92
-	!byte $00,$58,$80,$58,$00,$a8,$80,$a8
+	!byte $00,$58,$80,$58,$00,$a8,$80,$a8,$00,$58,$80,$58,$00,$a8,$80,$a8
 trydy_hi
 	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff
 	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff,$00,$00,$00,$00,$00,$ff,$ff,$ff
-	!byte $00,$00,$00,$00,$00,$ff,$ff,$ff
 
 ; ---------------------------------------------------------------------------
 ; Vars — under-stack scrap (zeropage.asm); missile/procket there too
@@ -221,7 +209,7 @@ enemy_reset
 	rts
 
 ; ---------------------------------------------------------------------------
-; enemy_alloc_all — copy layer types 1..5 to mobj at tile center; clear cells
+; enemy_alloc_all — copy layer types 1..4 to mobj at tile center; clear cells
 ; ---------------------------------------------------------------------------
 enemy_alloc_all
 	jsr enemy_reset
@@ -236,7 +224,7 @@ enemy_alloc_all
 	bcc .eaa_nx
 	cmp #ITEM_TYPE_ENEMY_LAST+1
 	bcs .eaa_nx
-	sta alloc_item_slot		; type 1..5
+	sta alloc_item_slot		; type 1..4
 	jsr alloc_mobj
 	bcs .eaa_nx			; full — leave the cell
 	jsr item_layer_ptr
@@ -255,7 +243,7 @@ enemy_alloc_all
 	rts
 
 ; ---------------------------------------------------------------------------
-; alloc_mobj — alloc_item_slot = type 1..5; XY from mapx/mapy. C=0 ok / C=1 fail
+; alloc_mobj — alloc_item_slot = type 1..4; XY from mapx/mapy. C=0 ok / C=1 fail
 ; ---------------------------------------------------------------------------
 alloc_mobj
 	ldx #0
@@ -1413,13 +1401,11 @@ a_fall
 	jsr mobj_countdown
 	rts				; even if dt ate the rest this think, draw pain first
 .af_corpse
-	; Keep the mobj. pos/imp/demon/baron → item-atlas corpse tex;
-	; caco → 16×32 stub in ITEM_CORPSE_TEX.
+	; Keep the mobj. pos/imp/demon/baron → item-atlas corpse tex.
 	lda MOBJ_INFO,x
 	cmp #MOBJINFO_BARON
 	beq .af_baron
-	cmp #MOBJINFO_CACO
-	bcs .af_stub			; caco / missile
+	bcs .af_stub			; missile
 	clc
 	adc #ITEM_TYPE_POSCORPSE	; 0→pos, 1→imp, 2→demon
 	sta ITEM_CORPSE_TEX,x
@@ -1442,6 +1428,17 @@ a_fall
 ; ---------------------------------------------------------------------------
 enemy_damage
 	sta damage_amount
+	lda difficulty
+	bne .ed_scaled			; HMP / UV: x1
+	lda damage_amount		; ITYTD: x1.5, cap 255
+	lsr
+	clc
+	adc damage_amount
+	bcc .ed_sc_st
+	lda #$ff
+.ed_sc_st
+	sta damage_amount
+.ed_scaled
 	lda MOBJ_ALLOC,x
 	beq .ed_rts
 	lda MOBJ_HEALTH,x
@@ -1504,14 +1501,14 @@ enemy_damage
 ; ---------------------------------------------------------------------------
 ; enemy_get_texture — X = mobj → A = tex (bit6=animate), C=1 if 16×32
 ; Live enemies use enemy_sprites. Dead pos/imp/demon/baron use item atlas
-; (ITEM_CORPSE_TEX = pos/imp/demon/baron atlas ids). Caco stub is a 16×32 frame index.
+; (ITEM_CORPSE_TEX = pos/imp/demon/baron atlas ids).
 ; ---------------------------------------------------------------------------
 enemy_get_texture
 	lda ITEM_CORPSE_TEX,x
 	cmp #$ff
 	beq .egt_live
 	cmp #ITEM_TYPE_POSCORPSE
-	bcc .egt_stub			; caco / other 16×32 corpse
+	bcc .egt_stub			; not an item-atlas corpse
 	; item-atlas corpse
 .egt_item8
 	lda #0

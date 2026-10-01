@@ -45,10 +45,6 @@ dpplpain
 	!byte 35, 66, 0, 67, 0, 67, 0, 67, 0, 67, 0, 67, 0, 64, 0, 61
 	!byte 0, 55, 0, 52, 0, 45, 0, 42, 0, 32, 0, 28, 0, 21, 0, 18
 	!byte 0, 15, 0, 15
-dppopain
-	!byte 38, 10, 21, 13, 22, 25, 25, 25, 35, 32, 38, 42, 45, 50, 49, 50
-	!byte 42, 45, 49, 49, 43, 44, 50, 39, 47, 46, 36, 41, 34, 32, 38, 25
-	!byte 29, 25, 13, 17, 5, 12, 9
 dpsgcock
 	!byte 34, 24, 27, 27, 37, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	!byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 28, 32, 39
@@ -85,7 +81,7 @@ dpbarexp
 ; Byte-identical effects share one payload without changing table lookup cost.
 dppunch = dpclaw
 
-; unique sound payload 792 bytes (60 deduplicated)
+; unique sound payload 753 bytes (60 deduplicated)
 sound_table
 	!word dpclaw
 	!word dpdmpain
@@ -96,7 +92,6 @@ sound_table
 	!word dpbgact
 	!word dppistol
 	!word dpplpain
-	!word dppopain
 	!word dpsgcock
 	!word dpsgtdth
 	!word dpshotgn

@@ -49,6 +49,7 @@ WIP_X_MAX	= 320
 WIP_Y_MIN	= 50
 WIP_Y_MAX	= 229
 WIP_SPR_EN_BIT	= %00000001
+SHOW_WIP_SPR	= 0			; 1 = bouncing alpha-version sprite
 glyph_lj	= $4400			; 96×8 lead-justified glyphs; below sprite RAM
 
 TEXT_COL	= 2			; red options
@@ -1579,7 +1580,11 @@ setup_wip_spr
 	lda #1
 	sta wip_dx
 	sta wip_dy
+!if SHOW_WIP_SPR {
 	lda #WIP_SPR_EN_BIT
+} else {
+	lda #0
+}
 	sta wip_spr_en
 	lda wip_x
 	sta $d000
@@ -2931,7 +2936,9 @@ wait_frame
 .wf_lo
 	lda $d011
 	bmi .wf_lo
+!if SHOW_WIP_SPR {
 	jsr update_wip_spr
+}
 	inc cursor_tick
 	lda cursor_tick
 	cmp #CURSOR_TICK_MAX		; ~2.5 Hz skull overlay (was 5 ticks)

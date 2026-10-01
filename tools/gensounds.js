@@ -12,7 +12,7 @@ const pcs = join(root, 'pcsounds');
 // Same order as VicDoom soundTable / ESound
 const EFFECTS = [
   'dpclaw', 'dpdmpain', 'dpdoropn', 'dpdorcls', 'dpitemup', 'dpoof',
-  'dpbgact', 'dppistol', 'dpplpain', 'dppopain', 'dpsgcock', 'dpsgtdth',
+  'dpbgact', 'dppistol', 'dpplpain', 'dpsgcock', 'dpsgtdth',
   'dpshotgn', 'dpstnmov', 'dpsawidl', 'dpsawful', 'dpsawhit', 'dppunch',
   'dpbarexp',
 ];

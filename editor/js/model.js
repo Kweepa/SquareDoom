@@ -235,16 +235,16 @@ export function isElevatorSector(sector) {
 
 /**
  * typeId = index (cook layer: 6-bit type | 2-bit skill code).
- * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 36+.
+ * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 35+.
  */
 export const ITEM_TYPES = [
-  'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
+  'spawn', 'soldier', 'imp', 'pinky', 'baron', 'barrel',
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere',
   'radsuit',
-  // Placeables (21–33)
+  // Placeables (20–32)
   'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
   'onerocket', 'boxofrockets',
   'candelabra', 'lightpost', 'gibs', 'gruntgibs', 'gruntcorpse',
@@ -277,7 +277,7 @@ const LEGACY_SWITCH_COOK_TYPES = new Set([
 ]);
 
 /** Types that allocate an mobj at level start (missile excluded). */
-export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
+export const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'baron']);
 /** Decor drawn 2× tall (same width) in preview + game. */
 export const TALL_ITEM_TYPES = new Set(['candelabra', 'techcolumn']);
 

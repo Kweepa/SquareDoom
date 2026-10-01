@@ -580,7 +580,6 @@ const ITEM_IMAGE_DATA = {
   "barrel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAVElEQVR4nGNkYGD4v/L/fAYQWLt2HZhGBowgBSCGl5cXhuS2bdsgCkg2wdDQkOH8+fNgE5hggvFbQxl4kpjBGCQJokEArgAZwCRRFGCzH+4GfI4EANgRIpYkBADSAAAAAElFTkSuQmCC",
   "bluearmor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAWElEQVR4nGMsyH39nwEKJkwWBdMFua9hQgwscBaaBAwwwXSBwNNLomCMbCLYBJigtB7EBGRFTMgSyAAmBlYA0oGsCMSGmQI3AdlYZA2MDAwMYG+i+wDmeADnmCTdevQWTwAAAABJRU5ErkJggg==",
   "bluecard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAARElEQVR4nGNkYGD4zwAFBbmvYUw4YEKXvHBkEQoNVgCTZE28iyKJYgJI8vd8ZdxWIJtgYBOHqQCbbqKsYAR5E5v3YAAA734a3EuH5M8AAAAASUVORK5CYII=",
-  "caco": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABl0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuNUmK/OAAAABKSURBVChTY2RgYPgPxAwVmkogCg46rt+Ds/8DJcEYqhiVD5PEpgAsBpNAVogshqIAZgWyVXAF6JIgPtQkOAPsSBTjoT6ES2BzMABmd1Ed8DzHkQAAAABJRU5ErkJggg==",
   "camera": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURQAAAAD//xtBqzAAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMTITAUd0AAAAuGVYSWZJSSoACAAAAAUAGgEFAAEAAABKAAAAGwEFAAEAAABSAAAAKAEDAAEAAAACAAAAMQECABEAAABaAAAAaYcEAAEAAABsAAAAAAAAAGAAAAABAAAAYAAAAAEAAABQYWludC5ORVQgNS4xLjEyAAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlgAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADZp5qVybcLXwAAACBJREFUGFdjYIADRkZGBgZGKAPEBjHAgigMuBREMRQAAASFAB9sgapfAAAAAElFTkSuQmCC",
   "candelabra": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAX0lEQVR4nGNgYGD4D8P7zxXB2TDMxMDAwLD/XBGIYmCdBxJD8EEArAAmcerJDhSFMAA2qi9A8/+RnEIwjWYNgoNFEuIGGDCT8UAxGu4GGIC5AauCIzmFYBP6AjRRFAAAL3wwNIemvbwAAAAASUVORK5CYII=",
   "chaingun": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAW0lEQVR4nGNkYGD4z4AHMOGThCv4//8/w6ZNm8ACIDYyzVhdXY1ihbm5OcPJkyfhNNwKkAA6aG1tZWACEWw79jKcb2zD7oZGYwsUHcg02A2NxhZgN9SfPYHVBACsXSOnN7oH5QAAAABJRU5ErkJggg==",
@@ -860,16 +859,16 @@ function isElevatorSector(sector) {
 
 /**
  * typeId = index (cook layer: 6-bit type | 2-bit skill code).
- * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 36+.
+ * Placeables stay ≤63; runtime-only (corpses / missiles / switch) sit at 35+.
  */
 const ITEM_TYPES = [
-  'spawn', 'soldier', 'imp', 'pinky', 'caco', 'baron', 'barrel',
+  'spawn', 'soldier', 'imp', 'pinky', 'baron', 'barrel',
   'health', 'shells', 'shotgun', 'chaingun', 'chainsaw', 'rocketlauncher',
   'greenarmor', 'bluearmor', 'backpack',
   'redcard', 'bluecard', 'yellowcard',
   'soulsphere',
   'radsuit',
-  // Placeables (21–33)
+  // Placeables (20–32)
   'healthbonus', 'armorbonus', 'clip', 'shellbox', 'ammobox', 'healthcrate',
   'onerocket', 'boxofrockets',
   'candelabra', 'lightpost', 'gibs', 'gruntgibs', 'gruntcorpse',
@@ -902,7 +901,7 @@ const LEGACY_SWITCH_COOK_TYPES = new Set([
 ]);
 
 /** Types that allocate an mobj at level start (missile excluded). */
-const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'caco', 'baron']);
+const ENEMY_TYPES = new Set(['soldier', 'imp', 'pinky', 'baron']);
 /** Decor drawn 2× tall (same width) in preview + game. */
 const TALL_ITEM_TYPES = new Set(['candelabra', 'techcolumn']);
 

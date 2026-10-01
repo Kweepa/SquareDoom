@@ -31,22 +31,21 @@ SOUND_OOF = 5
 SOUND_GURGLE = 6
 SOUND_PISTOL = 7
 SOUND_PLPAIN = 8
-SOUND_POPAIN = 9
-SOUND_SGCOCK = 10
-SOUND_SGTDTH = 11
-SOUND_SHOTGN = 12
-SOUND_STNMOV = 13
-SOUND_SAWIDL = 14
-SOUND_SAWFUL = 15
-SOUND_SAWHIT = 16
-SOUND_PUNCH = 17
-SOUND_BAREXP = 18
+SOUND_SGCOCK = 9
+SOUND_SGTDTH = 10
+SOUND_SHOTGN = 11
+SOUND_STNMOV = 12
+SOUND_SAWIDL = 13
+SOUND_SAWFUL = 14
+SOUND_SAWHIT = 15
+SOUND_PUNCH = 16
+SOUND_BAREXP = 17
 
 sound_priorities
 ; claw, dmpain, doropn, dorcls, itemup, oof
 	!byte 2,2,1,1,1,2
-; gurgle, pistol, plpain, popain, sgcock, sgtdth
-	!byte 0,2,2,2,2,2
+; gurgle, pistol, plpain, sgcock, sgtdth
+	!byte 0,2,2,2,2
 ; shotgn, stnmov, sawidl, sawful, sawhit, punch, barexp
 	!byte 2,0,0,1,2,2,2
 

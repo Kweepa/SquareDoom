@@ -413,10 +413,10 @@ spawn_enemy_missile
 	sta missile_life_h
 	lda enemy_info
 	cmp #MOBJINFO_IMP
-	bne .sem_caco
+	bne .sem_other
 	lda #10
 	bne .sem_hp
-.sem_caco
+.sem_other
 	lda #30
 .sem_hp
 	sta MOBJ_HEALTH,x
