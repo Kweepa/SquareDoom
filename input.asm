@@ -9,6 +9,8 @@
 ;   W forward, S back, A strafe left, D strafe right
 ; Facing matches editor: forward = (sin θ, −cos θ)
 ; 1351 Port 1: POTX sampled at TA IRQ entry (mux parked $7F); LMB = FIRE (PB4).
+; RMB = joy UP (PB0), latched as use only when mouse_en: PB0 is also keys 1/3/5,
+; so a right-click reads as all three. With the mouse off those stay weapon keys.
 ; Yaw delta accumulates in mouse_turn; gameloop applies it once before render.
 ; LMB pulls PB4 on every column, so F1 is ignored when SPACE-column PB4 is down.
 ;
@@ -212,6 +214,7 @@ input_irq
 	sta mouse_turn
 
 .irq_keys
+	ldy #0					; PB0 bits: 3 | 5 | 1 (1351 RMB = all three)
 
 	; J / K (PA4 = $EF)
 	lda #$ef
@@ -268,10 +271,11 @@ input_irq
 	sta in_back
 .irq_nos
 	txa
-	and #$01
+	and #$01				; 3 = shotgun (PB0); defer — may be RMB
 	bne .irq_no3
-	lda #1
-	sta in_wpn_shotgun
+	tya
+	ora #$01
+	tay
 .irq_no3
 	txa
 	and #$08				; 4 = minigun
@@ -292,10 +296,11 @@ input_irq
 	sta in_strafer
 .irq_nod
 	txa
-	and #$01				; 5 = rocket
+	and #$01				; 5 = rocket (PB0); defer — may be RMB
 	bne .irq_no5
-	lda #1
-	sta in_wpn_rocket
+	tya
+	ora #$02
+	tay
 .irq_no5
 
 	; 2 / SPACE / 1 (PA7 = $7F)
@@ -309,11 +314,39 @@ input_irq
 	sta in_wpn_pistol
 .irq_no2
 	txa
-	and #$01				; 1 = fist/chainsaw
+	and #$01				; 1 = fist/chainsaw (PB0); defer — may be RMB
 	bne .irq_no1
+	tya
+	ora #$04
+	tay
+.irq_no1
+	; 1351 RMB grounds PB0 on every column. Real 1/3/5 set one bit.
+	cpy #$07
+	bne .irq_pb0_keys
+	lda mouse_en
+	beq .irq_pb0_keys
+	lda #1
+	sta in_use
+	bne .irq_pb0_done			; A = 1
+.irq_pb0_keys
+	tya
+	and #$01
+	beq .irq_no_sg
+	lda #1
+	sta in_wpn_shotgun
+.irq_no_sg
+	tya
+	and #$02
+	beq .irq_no_rk
+	lda #1
+	sta in_wpn_rocket
+.irq_no_rk
+	tya
+	and #$04
+	beq .irq_pb0_done
 	lda #1
 	sta in_wpn_fist
-.irq_no1
+.irq_pb0_done
 	txa
 	and #$10				; SPACE / 1351 LMB (PB4)
 	bne .irq_nospc
