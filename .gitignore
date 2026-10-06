@@ -9,3 +9,4 @@ ref/
 !krill/*.prg
 
 .cursor/debug*
+vice_run.log

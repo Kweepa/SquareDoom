@@ -15,6 +15,10 @@ gameloop
 	jsr read_input
 	jsr gameloop_check_map
 	sei
+	lda mouse_turn
+	cmp #$80				; signed /2 of accumulated 1351 yaw
+	ror
+	sta mouse_turn
 	clc
 	lda playera
 	adc turn
