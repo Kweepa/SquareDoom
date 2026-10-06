@@ -52,6 +52,8 @@ python tools\gen_menu_logo_mcm.py
 if errorlevel 1 exit /b 1
 python tools\gen_splash.py
 if errorlevel 1 exit /b 1
+python tools\genmusic.py
+if errorlevel 1 exit /b 1
 "%ACME%" sprites_bank3.asm
 if errorlevel 1 exit /b 1
 "%ACME%" gfx.asm
@@ -106,7 +108,7 @@ if errorlevel 1 exit /b 1
 python tools\gen_vice_mon.py
 if errorlevel 1 exit /b 1
 
-echo Built boot.prg splashc.prg splash.prg menu.prg gfx.prg game.prg
+echo Built boot.prg splashc.prg splash.prg menu.prg gfx.prg game.prg mus1.prg mus2.prg
 echo Disks: squaredoom.d64 ^(KERNAL, default^) and squaredoom-krill.d64
 dir boot.prg
 dir splashc.prg

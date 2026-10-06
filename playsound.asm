@@ -52,7 +52,7 @@ sound_priorities
 ; sound_index / sound_priority…sid_merge_tmp — under-stack scrap (zeropage.asm)
 
 ; ------------------------------------------------------------------
-; play_sound_init — clear SID; voice 3 square ready; idle vol = music_vol
+; play_sound_init — clear SID; voice 3 square ready; idle vol = effects_vol
 ; ------------------------------------------------------------------
 play_sound_init
 	jsr io_push
@@ -115,7 +115,7 @@ music_apply_sid_shadows
 	lsr
 	jmp .mas_havev
 .mas_mvol
-	lda music_vol
+	lda effects_vol
 .mas_havev
 	sta sid_merge_tmp
 	lda sid_vol_shadow
@@ -135,7 +135,7 @@ music_apply_sid_shadows
 	lsr
 	jmp .mas_p_store
 .mas_p_mvol
-	lda music_vol
+	lda effects_vol
 .mas_p_store
 	sta $d418
 	jmp io_pop

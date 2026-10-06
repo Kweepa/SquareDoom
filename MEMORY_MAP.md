@@ -26,9 +26,9 @@ GFX is copied **while MENU owns `$0400`**. `game.prg` is one CPU image `$0400`â€
 | `$02A7` | `KRILL_STUB` (transient trampoline; leftover after GAME load) |
 | `$02F8` | `sid_filt_shadow` / `sid_vol_shadow` |
 | `$02FA` | `episode` |
-| `$02FB` | `music_vol` |
+| `$02FB` | `music_vol` (copy of `effects_vol`) |
 | `$02FC` | `level_num` |
-| `$02FD` | `effects_vol` |
+| `$02FD` | `effects_vol` (audio: menu music + SFX) |
 | `$02FE` | `game_complete` |
 | `$02FF` | `difficulty` |
 | `$81` | `mouse_en` (1351 Port 1; not `$38` / `sq3_h`) |

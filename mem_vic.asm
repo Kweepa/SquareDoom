@@ -72,6 +72,8 @@ LOCODE_BASE	= $0400			; MENU overlay, then game.prg ($0400–py_tab)
 GFX_STAGING	= $A000			; gfx.prg; MENU copy_vic copies sprites + charset
 
 ; Selectors below $0400 so they survive GAME load. Packed after SID shadows.
+; effects_vol is the Options audio slider (menu music + in-game SFX).
+; music_vol is stored with the same value so the idle SID level matches.
 episode		= $02fa
 music_vol	= $02fb
 level_num	= $02fc
@@ -81,6 +83,16 @@ difficulty	= $02ff
 ; 1351 Port 1 on/off (menu detect/toggle). Below $0400; not $38 (game sq3_h);
 ; not KERNAL/Krill ZP ($90+, $60–$64). Do not clear in input_irq_init.
 mouse_en	= $81
+
+; Menu music (mus1/mus2, tools/genmusic.py). MENU loads one tune to $9000;
+; GAME overwrites it. SidTracker64: init $9000, play $9003, ZP $f0-$f7.
+; Volume stub reads effects_vol. All three SID voices; no menu SFX while it plays.
+; Names are MENU_MUSIC_* so they do not collide with the in-game RTS stubs.
+MENU_MUSIC_BASE	= $9000
+MENU_MUSIC_INIT	= MENU_MUSIC_BASE
+MENU_MUSIC_PLAY	= MENU_MUSIC_BASE + 3
+MENU_MUSIC_ZP	= $f0
+MENU_MUSIC_ZP_N	= 8
 
 ; Menu hires (VIC bank 1). Game uses VIC_SCREEN in bank 3.
 ; Boot splash: splashc @ $4000 (matrix in place, colour staged $43E8), bitmap @ $6000.

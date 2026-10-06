@@ -1,6 +1,9 @@
 ; SquareDoom MENU overlay — load @ LOCODE_BASE ($0400), JMP from boot trampoline.
 ; Entry: +0 run_menu, +3 copy_vic. After start: load GFX, copy_vic, trampoline GAME.
-; Selectors at $02FA–$02FF survive GAME overwrite. SFX: CIA1 Timer A + menu playsound.
+; Selectors at $02FA–$02FF survive GAME overwrite.
+; Menu music: MUS1/MUS2 loaded from disk to $9000 (random at entry, Jukebox
+; switches), all 3 SID voices, CIA1 Timer A tick. Blips only if the load fails.
+; Assembled per disk: -DUSE_KRILL=1 uses loadraw, default uses KERNAL LOAD.
 !cpu 6502
 !to "menu.prg", cbm
 
@@ -74,6 +77,7 @@ NM_ORDER	= 256 - 3
 NM_CTRL		= 256 - 4
 NM_HELP		= 256 - 5
 NM_CREDITS	= 256 - 7
+NM_JUKE		= 256 - 8
 NM_QUIT		= 256 - 6
 
 UI_UP		= 1
@@ -187,6 +191,7 @@ copy_block_up
 	rts
 
 run_menu
+	jsr music_pick_load			; before SEI: KERNAL/Krill load, splash still up
 	sei
 	jsr init_font_tabs
 	jsr init_menu_vic
@@ -203,11 +208,11 @@ run_menu
 	sta menu_raster_en
 	lda #15
 	sta effects_vol
-	lda #10
 	sta music_vol
 	jsr copy_menu_sprites
 	jsr setup_wip_spr
 	jsr setup_logo_sprites
+	jsr sync_juke_title
 	jsr menu_sfx_init
 	jsr detect_mouse
 	jsr clear_screen_all
@@ -430,65 +435,49 @@ menu_esc
 
 menu_vol_input
 	lda menu_item
-	cmp #2
-	beq .mvi_mouse
-	cmp #2
-	bcs .mvi_o
-	lda #UI_RIGHT
-	and ui_pressed
-	bne .mvi_i
-	lda #UI_LEFT
-	and ui_pressed
-	beq .mvi_o
-	lda menu_item
-	bne .mvi_md
-	jmp vol_fx_dec
-.mvi_md
-	jmp vol_mus_dec
-.mvi_i
-	lda menu_item
-	bne .mvi_mi
-	jmp vol_fx_inc
-.mvi_mi
-	jmp vol_mus_inc
-.mvi_mouse
+	beq .mvi_vol
+	cmp #1
+	bne .mvi_o
 	lda #UI_RIGHT
 	ora #UI_LEFT
 	and ui_pressed
 	beq .mvi_o
 	jmp mouse_toggle
+.mvi_vol
+	lda #UI_RIGHT
+	and ui_pressed
+	bne vol_inc
+	lda #UI_LEFT
+	and ui_pressed
+	beq .mvi_o
+	jmp vol_dec
 .mvi_o
 	rts
 
-vol_fx_inc
+vol_inc
 	inc effects_vol
 	lda effects_vol
 	and #15
 	sta effects_vol
+	sta music_vol
+	ldx music_en
+	bne .vi_snd				; tune owns $d418 (filter + effects_vol)
 	sta $d418
+.vi_snd
 	jsr sfx_movegun1
 	jmp sync_redraw
-vol_fx_dec
+vol_dec
 	dec effects_vol
 	lda effects_vol
 	and #15
 	sta effects_vol
+	sta music_vol
+	ldx music_en
+	bne .vd_snd
 	sta $d418
+.vd_snd
 	jsr sfx_movegun1
 	jmp sync_redraw
-vol_mus_inc
-	inc music_vol
-	lda music_vol
-	and #15
-	sta music_vol
-	jsr sfx_movegun1
-	jmp sync_redraw
-vol_mus_dec
-	dec music_vol
-	lda music_vol
-	and #15
-	sta music_vol
-	jsr sfx_movegun1
 sync_redraw
 	jsr sync_vol_strings
 	jsr sync_mouse_string
@@ -552,19 +541,12 @@ str_mon		!scr "on "
 str_moff	!scr "off"
 
 sync_vol_strings
-	lda #<str_fx_vol
+	lda #<str_audio_vol
 	sta ptr_l
-	lda #>str_fx_vol
-	sta ptr_h
-	ldx #15
-	lda effects_vol
-	jsr write_vol2
-	lda #<str_mus_vol
-	sta ptr_l
-	lda #>str_mus_vol
+	lda #>str_audio_vol
 	sta ptr_h
 	ldx #13
-	lda music_vol
+	lda effects_vol
 	jmp write_vol2
 
 write_vol2
@@ -645,7 +627,7 @@ menu_select
 	cmp #3
 	bne .ms_stay
 	lda menu_item
-	cmp #2
+	cmp #1
 	bne .ms_stay
 	jsr mouse_toggle
 .ms_stay
@@ -664,6 +646,11 @@ menu_select
 	sta menu_item
 	lda tmp0
 	sta menu_id
+	cmp #4					; Jukebox: cursor starts on the playing track
+	bne .ms_nj
+	lda music_track
+	sta menu_item
+.ms_nj
 	jsr draw_menu
 	jmp .ms_st
 .ms_po
@@ -689,6 +676,14 @@ menu_select
 	beq .ms_crd
 	cmp #NM_QUIT
 	beq quit_to_basic
+	cmp #NM_JUKE
+	beq .ms_juke
+	jmp .ms_st
+.ms_juke
+	lda menu_item
+	cmp music_track
+	beq .ms_st				; already playing
+	jsr jukebox_select			; ends in draw_menu
 	jmp .ms_st
 .ms_ord
 	jsr sfx_shoot
@@ -739,15 +734,17 @@ quit_to_basic
 	cli
 	jmp ($a002)				; BASIC warm start
 
-; Root→eps/options/ctrl/help/credits/quit; E1→skill; E2-3→order; skill→start; options stay/back
+; Root→eps/options/ctrl/help/credits/jukebox; E1→skill; E2-3→order; skill→start;
+; options stay/back; jukebox tracks→NM_JUKE (item = track)
 next_menu
-	!byte 1, 3, NM_CTRL, NM_HELP, NM_CREDITS, NM_QUIT, 0, 0
+	!byte 1, 3, NM_CTRL, NM_HELP, NM_CREDITS, 4, 0, 0
 	!byte 2, NM_ORDER, NM_ORDER, NM_BACK, 0, 0, 0, 0
 	!byte NM_START, NM_START, NM_START, NM_BACK, 0, 0, 0, 0
-	!byte 3, 3, 3, NM_BACK, 0, 0, 0, 0
+	!byte 3, 3, NM_BACK, 0, 0, 0, 0, 0
+	!byte NM_JUKE, NM_JUKE, NM_BACK, 0, 0, 0, 0, 0
 
 menu_sizes
-	!byte 6, 4, 4, 4
+	!byte 6, 4, 4, 3, 3
 
 ; --- drawing ---------------------------------------------------------------
 draw_menu
@@ -779,11 +776,34 @@ draw_menu
 	bcc .dm_l
 
 	jsr draw_hint
+	jsr draw_track_credit
 	lda #1
 	sta cursor_spr_en
 	jmp menu_unblank
 
-; Title on TITLE_ROW (does not follow the option box)
+; Jukebox only: "Tracks by Mandy Kane" on the row under the option box.
+draw_track_credit
+	lda menu_id
+	cmp #4
+	beq .dtc
+	rts
+.dtc
+	lda #0
+	sta pr_scale
+	lda #COL_MAIN
+	sta cell_bg
+	lda #TEXT_COL
+	sta ui_text_col
+	lda box_top
+	clc
+	adc box_height
+	tax
+	lda #<str_track_credit
+	ldy #>str_track_credit
+	jmp print_centered
+
+; Title on TITLE_ROW (does not follow the option box).
+; Jukebox heading is 1× red; other sections stay 2× yellow.
 draw_section_title
 	lda #1
 	sta pr_scale
@@ -793,6 +813,14 @@ draw_section_title
 	lda #TITLE_COL
 	sta ui_text_col
 	ldy menu_id
+	cpy #4
+	bne .dst_col
+	inx					; Now playing sits one row lower
+	lda #0
+	sta pr_scale
+	lda #TEXT_COL
+	sta ui_text_col
+.dst_col
 	lda section_lo,y
 	pha
 	lda section_hi,y
@@ -985,12 +1013,14 @@ calc_box
 	adc #BOX_PAD
 	sta box_width
 	jsr clamp_box_width
-	; Vertically center box (2 rows per item + top/bottom gaps) above hint
+	; Vertically center box (2 rows per item + top/bottom gaps) above hint.
+	lda #BOX_VGAP
+	sta box_vgap
 	lda menu_size
 	asl					; ITEM_ROWS
 	clc
-	adc #BOX_VGAP
-	adc #BOX_VGAP
+	adc box_vgap
+	adc box_vgap
 	sta box_height
 	lda menu_id
 	beq .cb_main
@@ -1039,7 +1069,7 @@ draw_menu_item
 	asl					; ITEM_ROWS
 	clc
 	adc box_top
-	adc #BOX_VGAP
+	adc box_vgap
 	sta pr_row
 
 	lda #COL_BOX
@@ -1666,42 +1696,43 @@ mux_cursor_spr
 	sta $d010
 	rts
 
-; Raster IRQ late — WS / AD / RETURN on sprites 1–6 (WIP stays sprite 0).
+; Raster IRQ late — key caps on sprites 1–6 (WIP stays sprite 0).
+; Slots follow top-of-graphic Y: grey WS, white WS, grey AD, grey RETURN,
+; white AD, white RETURN. Same sprite Y; the bitmaps are padded differently.
 mux_hint_spr
 	lda hint_spr_en
 	bne .mh_go
 	rts
 .mh_go
-	ldx #0
-	lda #HINT_SPR_PTR0
-.mhp
-	sta SCREEN + $3f9,x
-	clc
-	adc #1
-	inx
-	cpx #HINT_SPR_COUNT
-	bne .mhp
-	lda #HINT_OVER_COL
-	sta $d028
-	sta $d02a
-	sta $d02c
+	lda #HINT_SPR_PTR0 + 1		; grey WS
+	sta SCREEN + $3f9
+	lda #HINT_SPR_PTR0 + 0		; white WS
+	sta SCREEN + $3fa
+	lda #HINT_SPR_PTR0 + 3		; grey AD
+	sta SCREEN + $3fb
+	lda #HINT_SPR_PTR0 + 5		; grey RETURN
+	sta SCREEN + $3fc
+	lda #HINT_SPR_PTR0 + 2		; white AD
+	sta SCREEN + $3fd
+	lda #HINT_SPR_PTR0 + 4		; white RETURN
+	sta SCREEN + $3fe
 	lda #HINT_KEY_COL
-	sta $d029
-	sta $d02b
-	sta $d02d
-	ldx #0
-	ldy #2
-.mhx
-	lda hint_spr_x,x
-	sta $d000,y
-	sta $d002,y
-	iny
-	iny
-	iny
-	iny
-	inx
-	cpx #3
-	bne .mhx
+	sta $d028			; grey WS
+	sta $d02a			; grey AD
+	sta $d02b			; grey RETURN
+	lda #HINT_OVER_COL
+	sta $d029			; white WS
+	sta $d02c			; white AD
+	sta $d02d			; white RETURN
+	lda hint_spr_x
+	sta $d002			; WS
+	sta $d004
+	lda hint_spr_x + 1
+	sta $d006			; AD
+	sta $d00a
+	lda hint_spr_x + 2
+	sta $d008			; RETURN
+	sta $d00c
 	lda #HINT_SPR_Y
 	sta $d003
 	sta $d005
@@ -3165,6 +3196,11 @@ cursor_frame	!byte 0
 cursor_tick	!byte 0
 menu_mux_phase	!byte 0
 menu_raster_en	!byte 0
+music_ok	!byte 0				; 1 = MUSn resident at $9000
+music_track	!byte 0				; 0..1 playing / selected
+music_en	!byte 0				; 1 = CIA tick calls MUSIC_PLAY
+music_due	!byte 0				; tick acked; play after hint sprites
+music_zp	!fill MENU_MUSIC_ZP_N, 0	; player's $f0-$f7 while the menu owns ZP
 hint_spr_x	!byte 0, 0, 0
 cursor_spr_x	!byte 0
 cursor_spr_y	!byte 0
@@ -3183,6 +3219,7 @@ box_top		!byte 0
 box_left	!byte 0
 box_width	!byte 0
 box_height	!byte 0
+box_vgap	!byte 0
 ui_keys		!byte 0
 ui_old		!byte 0
 ui_pressed	!byte 0
@@ -3235,13 +3272,16 @@ str_sound	!scr "Options",0
 str_control	!scr "Controls",0
 str_read_this	!scr "Read this!",0
 str_credits	!scr "Credits",0
+str_juke	!scr "Jukebox",0
 str_quit	!scr "Quit",0
 str_back	!scr "Back",0
+str_trk1	!scr "Track 1",0
+str_trk2	!scr "Track 2",0
+str_track_credit !scr "Tracks by Mandy Kane",0
 str_e1		!scr "Knee deep in the dead",0
 str_e2		!scr "The shores of hell",0
 str_e3		!scr "Inferno",0
-str_fx_vol	!scr "Effects volume 15",0
-str_mus_vol	!scr "Music volume 10",0
+str_audio_vol	!scr "Audio volume 15",0
 str_mouse	!scr "Mouse (port 1) off",0
 str_itytd	!scr "I'm too young to die",0
 str_hmp		!scr "Hurt me plenty",0
@@ -3251,31 +3291,36 @@ str_sec_main	!scr "SquareDoom",0
 str_sec_new	!scr "Which episode?",0
 str_sec_skill	!scr "Choose skill level",0
 str_sec_sound	!scr "Options",0
+str_sec_juke	!scr "Now playing: Track 1",0	; digit at +19 (sync_juke_title)
 
 section_lo
-	!byte <str_sec_main, <str_sec_new, <str_sec_skill, <str_sec_sound
+	!byte <str_sec_main, <str_sec_new, <str_sec_skill, <str_sec_sound, <str_sec_juke
 section_hi
-	!byte >str_sec_main, >str_sec_new, >str_sec_skill, >str_sec_sound
+	!byte >str_sec_main, >str_sec_new, >str_sec_skill, >str_sec_sound, >str_sec_juke
 
 !source "tmp/menu_text.asm"
 
 menu_str_lo
 	!byte <str_new_game, <str_sound, <str_control, <str_read_this
-	!byte <str_credits, <str_quit, 0, 0
+	!byte <str_credits, <str_juke, 0, 0
 	!byte <str_e1, <str_e2, <str_e3, <str_back
 	!byte 0, 0, 0, 0
 	!byte <str_itytd, <str_hmp, <str_uv, <str_back
 	!byte 0, 0, 0, 0
-	!byte <str_fx_vol, <str_mus_vol, <str_mouse, <str_back
+	!byte <str_audio_vol, <str_mouse, <str_back, 0
+	!byte 0, 0, 0, 0
+	!byte <str_trk1, <str_trk2, <str_back, 0
 	!byte 0, 0, 0, 0
 menu_str_hi
 	!byte >str_new_game, >str_sound, >str_control, >str_read_this
-	!byte >str_credits, >str_quit, 0, 0
+	!byte >str_credits, >str_juke, 0, 0
 	!byte >str_e1, >str_e2, >str_e3, >str_back
 	!byte 0, 0, 0, 0
 	!byte >str_itytd, >str_hmp, >str_uv, >str_back
 	!byte 0, 0, 0, 0
-	!byte >str_fx_vol, >str_mus_vol, >str_mouse, >str_back
+	!byte >str_audio_vol, >str_mouse, >str_back, 0
+	!byte 0, 0, 0, 0
+	!byte >str_trk1, >str_trk2, >str_back, 0
 	!byte 0, 0, 0, 0
 
 !source "tmp/menu_hint_spr.asm"
@@ -3285,6 +3330,7 @@ menu_str_hi
 !source "tmp/menufont.asm"
 !source "menu_playsound.asm"
 !source "menu_sfx.asm"
+!source "menu_music.asm"
 !source "menu_pcsounds.asm"
 !source "menu_pcsfreq.asm"
 

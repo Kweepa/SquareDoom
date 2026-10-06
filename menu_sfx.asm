@@ -1,4 +1,7 @@
-; Menu CIA1 Timer A (~50 Hz) → update_sfx. Raster IRQ: MCM logo band, then hires + cursor/hint.
+; Menu music + sprite mux. When a tune loaded, CIA1 Timer A (rate set by the
+; tune's init, 25..48 Hz) calls MUSIC_PLAY and all three SID voices belong to
+; it. Otherwise Timer A stays ~50 Hz for menu blips (voice 2).
+; Raster IRQ muxes the logo / cursor / hint sprites.
 ; Banks KERNAL out ($01=$35) so $fffe is live; boot restores $36 after menu.
 
 !zone menu_sfx
@@ -6,6 +9,7 @@
 SAMPLE_TA_LO	= <$4FFF
 SAMPLE_TA_HI	= >$4FFF
 
+; Needs: music_ok (mus file resident at $9000). Runs with I=1 on exit I=0.
 menu_sfx_init
 	sei
 	lda #$35
@@ -15,12 +19,38 @@ menu_sfx_init
 	lda $dc0d
 	lda #0
 	sta $d01a
+	sta music_en
+	sta music_due
 	lda $d019
 	sta $d019
+	ldx #$18
+	lda #0
+.msi_clr
+	sta $d400,x
+	dex
+	bpl .msi_clr
+	lda music_ok
+	beq .msi_sfx
+	lda effects_vol
+	and #15
+	sta $d418
+	; Player owns $f0-$f7 only while it runs; MUSIC_INIT programs $dc04/05.
+	jsr music_zp_swap
+	lda #0
+	jsr MENU_MUSIC_INIT
+	jsr music_zp_swap
+	lda #1
+	sta music_en
+	bne .msi_vec
+.msi_sfx
 	lda #SAMPLE_TA_LO
 	sta $dc04
 	lda #SAMPLE_TA_HI
 	sta $dc05
+	lda effects_vol
+	and #15
+	sta $d418
+.msi_vec
 	lda #<menu_sfx_irq
 	sta $fffe
 	lda #>menu_sfx_irq
@@ -42,15 +72,44 @@ menu_sfx_init
 	sta menu_raster_en
 	lda #$81
 	sta $dc0d
-	lda #$11
+	lda #$11				; start + force-load latch
 	sta $dc0e
 	lda #1
 	sta $d01a				; raster IRQ
+	lda music_en
+	bne .msi_go
 	jsr play_sound_init
+.msi_go
 	cli
 	rts
 
-; Stop raster mux and hide sprites; CIA Timer A stays for SFX.
+; Exchange player ZP state with the menu's $f0-$f7.
+music_zp_swap
+	ldx #MENU_MUSIC_ZP_N - 1
+.mzs
+	lda MENU_MUSIC_ZP,x
+	tay
+	lda music_zp,x
+	sta MENU_MUSIC_ZP,x
+	tya
+	sta music_zp,x
+	dex
+	bpl .mzs
+	rts
+
+; Caller holds I=1. Silence all three voices.
+music_stop
+	lda #0
+	sta music_en
+	sta $d404
+	sta $d40b
+	sta $d412
+	sta $d406
+	sta $d40d
+	sta $d414
+	rts
+
+; Stop raster mux and hide sprites; music silenced.
 ; $d019 raster still latches when $d012 matches even if $d01a=0 — CIA
 ; ticks would remux unless menu_raster_en is clear first.
 menu_raster_off
@@ -64,9 +123,12 @@ menu_raster_off
 	sta wip_spr_en
 	lda $d019
 	sta $d019
+	jsr music_stop
 	cli
 	rts
 
+; Leaves the state later KERNAL/Krill loads expect: CIA1 masked+stopped,
+; raster off, music silent, $01=$36, I=0.
 menu_sfx_done
 	jsr menu_raster_off
 	sei
@@ -75,7 +137,6 @@ menu_sfx_done
 	lda $dc0d
 	lda #0
 	sta $dc0e
-	sta $d40b
 	lda #$36
 	sta $01
 	cli
@@ -176,10 +237,31 @@ menu_sfx_irq
 	sta $d011
 	lda #MUX_LOGO_RASTER
 	sta $d012
+; CIA tick can land in the skull-to-hint gap and the play routine is
+; long enough to miss that split. Ack it anywhere; play only once the
+; hint sprites are in (phase 0, the stretch down to the logo raster).
 .msi_cia
 	lda $dc0d
 	and #1
+	beq .msi_due
+	lda #1
+	sta music_due
+.msi_due
+	lda menu_mux_phase
+	bne .msi_rti
+	lda music_due
 	beq .msi_rti
+	lda #0
+	sta music_due
+	lda music_en
+	beq .msi_blip
+	jsr music_zp_swap
+	cli					; play ~1.7k cycles; raster mux must preempt
+	jsr MENU_MUSIC_PLAY
+	sei
+	jsr music_zp_swap
+	jmp .msi_rti
+.msi_blip
 	jsr update_sfx
 .msi_rti
 	pla
