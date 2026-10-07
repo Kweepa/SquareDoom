@@ -4,6 +4,7 @@
 ;   J = turn left (PA4/PB2), L = turn right (PA5/PB2)
 ;   K = use (PA4/PB5) — open door
 ;   SPACE = fire (PA7/PB4); F1 = map (PA0/PB4)
+;   F5 = quick save (KERNAL disk only), F7 = quick load (PA0, PB6 / PB3)
 ;   W/A/S = PA1 column; D = PA2 column; 3 = shotgun (PA1/PB0)
 ;   2 = pistol (PA7/PB3); 4 = minigun (PA1/PB3); 5 = rocket (PA2/PB0)
 ;   W forward, S back, A strafe left, D strafe right
@@ -65,6 +66,8 @@ input_irq_init
 	sta in_use
 	sta in_fire
 	sta in_map
+	sta in_qsave
+	sta in_qload
 	sta in_wpn_fist
 	sta in_wpn_pistol
 	sta in_wpn_shotgun
@@ -354,11 +357,14 @@ input_irq
 	sta in_fire
 .irq_nospc
 
-	; F1 (PA0 = $FE, PB4) = map
-	; 1351 LMB pulls PB4 on every column — skip if SPACE column also saw PB4
+	; F1 (PA0 = $FE, PB4) = map. F7 (PB3) = quick load.
+	; F5 (PB6) = quick save on the KERNAL disk only (Krill cannot SAVE).
+	; 1351 LMB pulls PB4 on every column — skip if SPACE column also saw PB4.
+	; F5/F7 are not on PB4, so the mouse button does not ghost them.
 	lda #$fe
 	sta $dc00
 	lda $dc01
+	pha
 	and #$10
 	bne .irq_nof1
 	txa
@@ -367,6 +373,21 @@ input_irq
 	lda #1
 	sta in_map
 .irq_nof1
+	pla
+	tax
+!if USE_KRILL = 0 {
+	and #$40				; F5 quick save
+	bne .irq_nof5
+	lda #1
+	sta in_qsave
+.irq_nof5
+	txa
+}
+	and #$08				; F7 quick load
+	bne .irq_nof7
+	lda #1
+	sta in_qload
+.irq_nof7
 
 	jsr update_weapon_irq
 	lda health
