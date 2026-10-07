@@ -1,7 +1,7 @@
 {
   "format": "squaredoom-map",
   "version": 1,
-  "activeLevel": "E1M7",
+  "activeLevel": "E1M1",
   "levels": {
     "E1M1": {
       "name": "HANGAR",
@@ -28127,8 +28127,8 @@
         0
       ],
       "spawn": {
-        "x": 123.8133624026243,
-        "y": 13.163853117638828,
+        "x": 124,
+        "y": 12,
         "angle": 3.3519100709263814
       },
       "items": [
