@@ -56,6 +56,7 @@ SEC_TABLE_SIZE = 200		; index = sector id; [0] unused
 !source "pickup.asm"
 !source "cheats.asm"			; iddqd / idkfa / idclev (after pickup for INFO_*)
 !source "loader.asm"			; LoadPrg/LoadLevel/reboot_game
+!source "quicksave.asm"		; F5/F7 quick save and load
 !source "titleflow.asm"			; entering / summary / melt / mapscreen; menu is boot MENU.PRG
 ; Near flats + P + clip
 !source "render_near.asm"

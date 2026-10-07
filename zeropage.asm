@@ -105,6 +105,7 @@ armor		= $7d
 keys		= $7e			; bit0=red bit1=yellow bit2=blue
 hud_dirty	= $a8			; redraw HUD sides into FB; blit clears after HUD cols
 key_use		= $7f			; 1 = K held (use / open door)
+seen_gen	= $80			; SEC_SEEN generation. Not $98 (KERNAL open-file count).
 key_fire	= $84			; 1 = SPACE held (snapshot; HUD fire is IRQ)
 random8		= $82			; GetRandom8 state (Deathchase LCG)
 spr_en		= $83			; mirror of $d015 (write-only)
@@ -127,8 +128,8 @@ in_fwd		= $8f			; W
 ; Krill LoadPrg does not need this range. Survivors → $FB+.
 ; Do not place anything that must survive LOAD here. Survivors → $FB+.
 ; $99–$AE ok only under $01=$34/$35 after load (re-inited / transient).
+; $98 is the KERNAL open-file count. Leave it alone.
 sky_col_base	= $97			; (playera*5/8) mod 40; rebuilt with column rays
-seen_gen	= $98			; re-inited after level load; SEC_SEEN generation stamp
 in_wpn_pistol	= $99			; OR-latch: 2 held
 in_wpn_shotgun	= $9a			; OR-latch: 3 held
 key_wpn_pistol	= $9b
@@ -601,6 +602,10 @@ FX_TIME		= FX_TY + FX_MAX
 FX_END		= FX_TIME + FX_MAX
 FX_FUSE		= 1
 FX_EXPL		= 2
-!if FX_END > CASS_BUF_END {
-	!error "FX overlay past cassette buffer"
+; F5/F7 latches. Not in $90–$AF: KERNAL LOAD clobbers that ZP.
+in_qsave	= FX_END
+in_qload	= FX_END + 1
+QS_LATCH_END	= in_qload + 1
+!if QS_LATCH_END > CASS_BUF_END {
+	!error "quicksave latches past cassette buffer"
 }

@@ -7,4 +7,6 @@ fire^...........^ space or lmb
 switch weapon^...^ 12345
 
 toggle map^.....^ f1
+quick save^......^ f5
+quick load^......^ f7
 quit to menu^....^ run/stop

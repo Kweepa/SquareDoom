@@ -6,6 +6,7 @@ gameloop
 	beq .gl_play
 	jmp after_level_end
 .gl_play
+	jsr poll_quick_keys		; F5 save / F7 load; before the life/death split
 	lda health
 	beq .gl_dead
 	jsr gameloop_check_esc

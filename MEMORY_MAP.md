@@ -70,7 +70,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | 43–45 | `$AC00`–`$B7FF` | `py_tab` (12 pages, page-aligned for SMC). |
 | 46–47 | `$B800`–`$BFFF` | **SQTAB1–4** (runtime `init_sqtabs`; not loaded). |
 | 48 | `$C000`–`$C3FF` | **VIC screen**. Sprite pointers **`$C3F8`**. |
-| 49 | `$C400`–`$C7FF` | **Krill `loadraw`** `$C400`–`$C4EC` on the Krill disk; leftover `$C4ED`–`$C7FF` scrap. Unused RAM on the KERNAL disk. |
+| 49 | `$C400`–`$C7FF` | **Krill `loadraw`** `$C400`–`$C4EC` on the Krill disk. `$C4ED`–`$C7FF` is the quicksave pack (`QS`). F5 writes it on the KERNAL disk only. |
 | 50 | `$C800`–`$CBFF` | Weapon sprites (full blob from `gfx.prg` via MENU `copy_vic`). |
 | 51 | `$CC00`–`$CFFF` | Chainsaw / minigun A. |
 | 52 | `$D000`–`$D3FF` | Sprite DRAM (from `gfx.prg`, copied at `$01=$34`): rocket / shotgun / pistol. At `$35` these addresses are VIC registers. |
@@ -103,7 +103,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | `$B800`–`$BFFF` | SQTAB1–4 (runtime) |
 | `$C000`–`$C3FF` | VIC screen + sprite pointers `$C3F8` |
 | `$C400`–`$C4EC` | Krill resident on **`squaredoom-krill.d64`** only (`loadraw`) |
-| `$C4ED`–`$C7FF` | Scrap |
+| `$C4ED`–`$C7FF` | Quicksave pack (`QS`). F5 save is KERNAL-disk only; F7 loads on both. |
 | `$C800`–`$D7BF` | Weapon sprites (copied by MENU `copy_vic`, not by GAME) |
 | `$D800`–`$DB4F` | Charset DRAM (`$34`) / colour SRAM window (`$35`) |
 | `$E000`–`$F92F` | Play BSS (screen/pattern/clip/rays/procs/mobj/sector tables) |
