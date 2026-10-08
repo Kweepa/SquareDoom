@@ -70,7 +70,7 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | 43–45 | `$AC00`–`$B7FF` | `py_tab` (12 pages, page-aligned for SMC). |
 | 46–47 | `$B800`–`$BFFF` | **SQTAB1–4** (runtime `init_sqtabs`; not loaded). |
 | 48 | `$C000`–`$C3FF` | **VIC screen**. Sprite pointers **`$C3F8`**. |
-| 49 | `$C400`–`$C7FF` | **Krill `loadraw`** `$C400`–`$C4EC` on the Krill disk. `$C4ED`–`$C7FF` is the quicksave pack (`QS`). F5 writes it on the KERNAL disk only. |
+| 49 | `$C400`–`$C7FF` | **Krill `loadraw`** `$C400`–`$C4EC` on the Krill disk. `$C4ED`–`$C7F3` is the live quicksave image (`QS`). F5 writes it on the KERNAL disk only. |
 | 50 | `$C800`–`$CBFF` | Weapon sprites (full blob from `gfx.prg` via MENU `copy_vic`). |
 | 51 | `$CC00`–`$CFFF` | Chainsaw / minigun A. |
 | 52 | `$D000`–`$D3FF` | Sprite DRAM (from `gfx.prg`, copied at `$01=$34`): rocket / shotgun / pistol. At `$35` these addresses are VIC registers. |
@@ -80,8 +80,8 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | 56 | `$E000`–`$E3FF` | **`SCREENBUFFER`** (**1024**). Play colour backbuffer (entering / summary / melt / mapscreen / HUD). No menu overlay. |
 | 57 | `$E400`–`$E7FF` | **`PATTERNBUFFER`** (**1024**). |
 | 58–59 | `$E800`–`$EFFF` | **`COL_CLIP_N`**, contiguous clip columns, then ray cache from `$F0E8`. |
-| 60–61 | `$F000`–`$F7FF` | Ray cache, profiler, door processes, `SEC_SEEN`, item sort, mobj SoA, `SEC_FLATGRP`. |
-| 62 | `$F800`–`$FBFF` | `SEC_VISITED` / `SEC_WDARK`. Relocated **dpsounds** from `$F930`. |
+| 60–61 | `$F000`–`$F7FF` | Ray cache, profiler, `SEC_SEEN`, item sort, aim, `SEC_FLATGRP`, `SEC_WDARK`. Mobj and doors live in the quicksave image. |
+| 62 | `$F800`–`$FBFF` | Relocated **dpsounds** (from `$F698`) and the start of levelstats. |
 | 63 | `$FC00`–`$FFFF` | `sound_table`, **levelstats**. Hardware vectors `$FFFA`–`$FFFF`. |
 
 ---
@@ -103,11 +103,11 @@ Sizes are noted when a region does **not** fill the whole 1K page. Ranges are in
 | `$B800`–`$BFFF` | SQTAB1–4 (runtime) |
 | `$C000`–`$C3FF` | VIC screen + sprite pointers `$C3F8` |
 | `$C400`–`$C4EC` | Krill resident on **`squaredoom-krill.d64`** only (`loadraw`) |
-| `$C4ED`–`$C7FF` | Quicksave pack (`QS`). F5 save is KERNAL-disk only; F7 loads on both. |
+| `$C4ED`–`$C7F3` | Live quicksave image (`QS`). F5 save is KERNAL-disk only; F7 loads on both. |
 | `$C800`–`$D7BF` | Weapon sprites (copied by MENU `copy_vic`, not by GAME) |
 | `$D800`–`$DB4F` | Charset DRAM (`$34`) / colour SRAM window (`$35`) |
-| `$E000`–`$F92F` | Play BSS (screen/pattern/clip/rays/procs/mobj/sector tables) |
-| `$F930`–`$FF8B` | dpsounds + levelstats |
+| `$E000`–`$F697` | Play BSS (screen/pattern/clip/rays/seen/sort/aim/flat/dark) |
+| `$F698`–`$FFB5` | dpsounds + levelstats |
 | `$FFFA`–`$FFFF` | Vectors |
 
 ---
@@ -144,14 +144,12 @@ Unchanged: `level_map`, `level_items`, sector tables, spawn, switch faces, stats
 | `$E828` | 2240 | clip (40 × 56, contiguous) |
 | `$F0E8` | 400 | column ray cache |
 | `$F278` | 39 | `PROF_BSS` |
-| `$F29F` | 48 | `PROC_*` |
-| `$F2CF` | 200 | `SEC_SEEN` |
-| `$F397` | 336 | `ITEM_SORT_*` |
-| `$F4E7` | 497 | `MOBJ_*` + aim |
-| `$F6D8` | 200 | `SEC_FLATGRP` |
-| `$F7A0` | 200 | `SEC_VISITED` |
-| `$F868` | 200 | `SEC_WDARK` |
-| `$F930` | — | dpsounds + levelstats through `end_kernal` |
+| `$F29F` | 200 | `SEC_SEEN` |
+| `$F367` | 336 | `ITEM_SORT_*` |
+| `$F4B7` | 81 | aim columns |
+| `$F508` | 200 | `SEC_FLATGRP` |
+| `$F5D0` | 200 | `SEC_WDARK` |
+| `$F698` | — | dpsounds + levelstats through `end_kernal` |
 
 ---
 

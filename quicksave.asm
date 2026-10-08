@@ -1,38 +1,14 @@
 ; F5 quick save / F7 quick load. Two files on the game disk:
-;   QS — packed player / mobj / door procs / FX / automap fog at $C4ED
-;   QL — live level window at $96E0 (LEVEL_BYTES), saved in place
+;   QS — live state at $C4ED (header, 13-byte ZP hole, scalars, procs,
+;        mobj, FX, automap fog). Saved in place.
+;   QL — live level window at $96E0 (LEVEL_BYTES), saved in place.
 ; Save is KERNAL $FFD8 only (USE_KRILL=0). Krill's resident loader cannot
 ; write files without a much larger block, so the Krill disk has F7 load
 ; (loadraw) and no F5. SAVE runs at $01=$36 so the level tail under BASIC
 ; ($A000–$A470) is RAM. No IOINIT. A missing QS leaves the game running
-; (red border).
+; (red border). A present file that fails verification has already
+; overwritten live mobs, so the current level is reloaded.
 !zone quicksave
-
-QS_PACK		= $c4ed
-QS_LIMIT	= $c800
-QS_VERSION	= 1
-QS_HDR_LEN	= 7
-QS_MAGIC	= QS_PACK
-QS_VER		= QS_PACK + 4
-QS_CSUM		= QS_PACK + 5			; 16-bit sum, wraps
-QS_BODY		= QS_PACK + QS_HDR_LEN
-QS_SCALAR_N	= 34				; episode..barrel, see qs_plr_tab
-QS_POSE_N	= 6
-QS_POSE		= QS_BODY + QS_SCALAR_N
-QS_MOBJ		= QS_POSE + QS_POSE_N
-QS_MOBJ_LEN	= ITEM_CORPSE_TEX + MAX_MOBJ - MOBJ_ALLOC
-QS_PROC		= QS_MOBJ + QS_MOBJ_LEN
-QS_PROC_LEN	= PROC_END - PROC_KIND
-QS_FX		= QS_PROC + QS_PROC_LEN
-QS_FX_LEN	= FX_END - FX_KIND
-QS_VIS		= QS_FX + QS_FX_LEN
-QS_VIS_LEN	= SEC_VISITED_END - SEC_VISITED
-QS_END		= QS_VIS + QS_VIS_LEN
-QS_BLK_N	= 24				; 4 records × 6 bytes
-
-!if QS_END > QS_LIMIT {
-	!error "QS pack overlaps sprites at $C800; end=$", QS_END
-}
 
 ; Snapshot latches. F5 wins when both are set. Krill: F7 only.
 poll_quick_keys
@@ -85,7 +61,7 @@ quick_save
 	lda #BANK_RAM			; SAVE may have used KERNAL ZP
 	sta $01
 	lda #1
-	jsr qs_scalars
+	jsr qs_zp_xfer
 	lda #$ff				; KERNAL clobbers sky_col_base
 	sta last_playera
 	jsr qs_recover_hw
@@ -111,7 +87,7 @@ quick_load
 	sta $01
 	sei
 	jsr qs_verify_hdr
-	bcs qs_fail
+	bcs .qsl_reload			; file landed on live state
 	ldx #<ql_dos_name
 	ldy #>ql_dos_name
 	jsr qs_load_file
@@ -122,9 +98,7 @@ quick_load
 	jsr qs_verify
 	bcs .qsl_reload
 	lda #1
-	jsr qs_xfer_blocks		; mobj, doors, FX, automap fog
-	lda #1
-	jsr qs_scalars
+	jsr qs_zp_xfer			; hole → player / episode bytes
 	jsr qs_after_load
 	jsr qs_recover_hw
 	lda #0
@@ -135,7 +109,7 @@ quick_load
 	clc
 	rts
 .qsl_reload
-	jsr LoadLevel			; QL already overwrote the live map
+	jsr LoadLevel			; live state and/or the map already overwritten
 	bcs qs_fail
 	jsr start_level
 	jmp qs_fail
@@ -339,13 +313,11 @@ qs_load_file
 }
 
 ; ---------------------------------------------------------------------------
-; Pack / unpack. Caller is at $01=$34 (level tail and under-KERNAL BSS are RAM).
+; Fill the header. Live arrays are already the save image. $01=$34.
 !if USE_KRILL = 0 {
 qs_pack
 	lda #0
-	jsr qs_xfer_blocks
-	lda #0
-	jsr qs_scalars
+	jsr qs_zp_xfer
 	lda #'S'
 	sta QS_MAGIC
 	lda #'D'
@@ -454,136 +426,29 @@ qs_sum
 .qss_done
 	rts
 
-; A=0 pack (live → blob), A=1 unpack. Four contiguous ranges.
-qs_xfer_blocks
-	sta tmp5
-	ldx #0
-.qxb
-	lda qs_blk,x
-	sta aux_l
-	inx
-	lda qs_blk,x
-	sta aux_h
-	inx
-	lda qs_blk,x
-	sta ptr_l
-	inx
-	lda qs_blk,x
-	sta ptr_h
-	inx
-	lda qs_blk,x
-	sta tmp2
-	inx
-	lda qs_blk,x
-	sta tmp3
-	inx
-	stx tmp4
-	lda tmp5
-	beq .qxb_go
-	lda aux_l
-	ldy ptr_l
-	sta ptr_l
-	sty aux_l
-	lda aux_h
-	ldy ptr_h
-	sta ptr_h
-	sty aux_h
-.qxb_go
-	jsr qs_memcpy
-	ldx tmp4
-	cpx #QS_BLK_N
-	bcc .qxb
-	rts
-
-; (aux) → (ptr), tmp2/tmp3 = length. Preserves X, tmp4, tmp5.
-qs_memcpy
-.qm_lp
-	lda tmp2
-	ora tmp3
-	beq .qm_done
-	ldy #0
-	lda (aux_l),y
-	sta (ptr_l),y
-	inc aux_l
-	bne .qm_ah
-	inc aux_h
-.qm_ah
-	inc ptr_l
-	bne .qm_ph
-	inc ptr_h
-.qm_ph
-	lda tmp2
-	bne .qm_nl
-	dec tmp3
-.qm_nl
-	dec tmp2
-	jmp .qm_lp
-.qm_done
-	rts
-
-; A=0 store scalars into the blob, A=1 load them back. Pose included.
-qs_scalars
+; A=0 copy the 13 fixed bytes into the hole. A=1 copy them back.
+; Player xy/angle, health/armor/keys, backpack, weapon, episode/level/difficulty.
+qs_zp_xfer
 	sta tmp4
-	lda #<qs_plr_tab
-	sta aux_l
-	lda #>qs_plr_tab
-	sta aux_h
-	lda #<QS_BODY
-	sta ptr_l
-	lda #>QS_BODY
-	sta ptr_h
-	lda #QS_SCALAR_N
-	sta tmp5
-	jsr qs_xfer_list
-	lda #<qs_pose_tab
-	sta aux_l
-	lda #>qs_pose_tab
-	sta aux_h
-	lda #<QS_POSE
-	sta ptr_l
-	lda #>QS_POSE
-	sta ptr_h
-	lda #QS_POSE_N
-	sta tmp5
-	jmp qs_xfer_list
-
-; aux = word table, ptr = blob cursor, tmp5 = entry count, tmp4 = 0 store / 1 load.
-qs_xfer_list
 	ldx #0
-.qxl
-	cpx tmp5
-	beq .qxl_done
-	ldy #0
-	lda (aux_l),y
+.qz
+	lda qs_zp_lo,x
 	sta tmp2
-	iny
-	lda (aux_l),y
+	lda qs_zp_hi,x
 	sta tmp3
 	ldy #0
 	lda tmp4
-	bne .qxl_load
+	bne .qz_load
 	lda (tmp2),y
-	sta (ptr_l),y
-	jmp .qxl_adv
-.qxl_load
-	lda (ptr_l),y
+	sta QS_ZP,x
+	jmp .qz_next
+.qz_load
+	lda QS_ZP,x
 	sta (tmp2),y
-.qxl_adv
-	inc ptr_l
-	bne .qxl_ph
-	inc ptr_h
-.qxl_ph
-	inc aux_l
-	bne .qxl_a1
-	inc aux_h
-.qxl_a1
-	inc aux_l
-	bne .qxl_a2
-	inc aux_h
-.qxl_a2
+.qz_next
 	inx
-	jmp .qxl
-.qxl_done
+	cpx #QS_ZP_N
+	bne .qz
 	rts
 
 ; After a good load. Missiles in the air are dropped (velocities are not saved).
@@ -598,23 +463,23 @@ qs_after_load
 	sta radsuit_ms + 1
 	pla
 	sta radsuit_ms
+	ldx #5				; switch_weapon zeros the live pose
+.qsal_push
+	lda wpn_pose,x
+	pha
+	dex
+	bpl .qsal_push
 	ldx cur_weapon
 	lda #$ff
 	sta cur_weapon
-	jsr switch_weapon		; SMC + sprites; zeros pose
-	lda #1
-	sta tmp4
-	lda #<qs_pose_tab
-	sta aux_l
-	lda #>qs_pose_tab
-	sta aux_h
-	lda #<QS_POSE
-	sta ptr_l
-	lda #>QS_POSE
-	sta ptr_h
-	lda #QS_POSE_N
-	sta tmp5
-	jsr qs_xfer_list
+	jsr switch_weapon		; SMC + sprites
+	ldx #0
+.qsal_pop
+	pla
+	sta wpn_pose,x
+	inx
+	cpx #6
+	bne .qsal_pop
 	lda #0
 	sta MOBJ_ALLOC + MOBJ_PLAYER_ROCKET
 	sta MOBJ_ALLOC + MOBJ_MISSILE
@@ -642,35 +507,14 @@ qs_scratch_ql
 	!text "S0:QL"
 }
 
-; live addr, blob addr, length. Pack copies live → blob.
-qs_blk
-	!word MOBJ_ALLOC, QS_MOBJ, QS_MOBJ_LEN
-	!word PROC_KIND, QS_PROC, QS_PROC_LEN
-	!word FX_KIND, QS_FX, QS_FX_LEN
-	!word SEC_VISITED, QS_VIS, QS_VIS_LEN
-
-qs_plr_tab
-	!word episode, level_num, difficulty
-	!word playerx, playerx_h, playery, playery_h, playera
-	!word health, armor, keys, has_backpack, cur_weapon
-	!word ammo_bullets, ammo_shells, ammo_rockets, combat_armor, owned_weapons
-	!word hurt_flash, death_ms, death_ms + 1, radsuit_ms, radsuit_ms + 1
-	!word god_mode, player_prev_sec
-	!word num_kills, num_items_got, num_secrets_got
-	!word map_time_ms, map_time_ms + 1, map_time_sec, map_time_sec + 1
-	!word boss_floors_done, barrel_events
-qs_plr_tab_end
-
-qs_pose_tab
-	!word wpn_pose, wpn_off_y, wpn_pose_ticks, wpn_flash_ticks, wpn_fire_ticks, recoil_step
-qs_pose_tab_end
-
-!if qs_plr_tab - qs_blk != QS_BLK_N {
-	!error "QS block table length"
-}
-!if qs_plr_tab_end - qs_plr_tab != QS_SCALAR_N * 2 {
-	!error "QS scalar table length"
-}
-!if qs_pose_tab_end - qs_pose_tab != QS_POSE_N * 2 {
-	!error "QS pose table length"
+qs_zp_lo
+	!byte <playerx, <playerx_h, <playery, <playery_h, <playera
+	!byte <health, <armor, <keys, <has_backpack, <cur_weapon
+	!byte <episode, <level_num, <difficulty
+qs_zp_hi
+	!byte >playerx, >playerx_h, >playery, >playery_h, >playera
+	!byte >health, >armor, >keys, >has_backpack, >cur_weapon
+	!byte >episode, >level_num, >difficulty
+!if qs_zp_hi - qs_zp_lo != QS_ZP_N {
+	!error "QS zp table length"
 }

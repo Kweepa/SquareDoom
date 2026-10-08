@@ -18,7 +18,7 @@ DOOR_MODE_10S = 2
 DOOR_MODE_30S = 3
 MOTION_STEP_MS = 128			; 1 height unit per 128 ms
 
-; player_prev_sec / elev_* / trig_* / key_use_was — under-stack scrap (zeropage.asm)
+; elev_* / trig_* / key_use_was — under-stack scrap. player_prev_sec is in the quicksave block.
 
 ELEV_RECLOSE_5S_MS = 5000
 ELEV_RECLOSE_15S_MS = 15000

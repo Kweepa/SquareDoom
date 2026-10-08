@@ -286,6 +286,46 @@ PROF_BSS	= COL_END		; CIA cascade / PROFILE buckets (must be ≥ COL_END)
 PROF_BSS_SIZE	= $27			; 7×3 buckets + frame/cascade + py counters
 PROF_END	= PROF_BSS + PROF_BSS_SIZE
 
+; Saved play state, in place at $C4ED (KERNAL-visible; Krill resident
+; ends at $C4EC, sprites start at $C800). Header, then a hole for the
+; 13 bytes that stay put, then live scalars and the four arrays.
+QS_PACK		= $c4ed
+QS_LIMIT	= $c800
+QS_HDR_LEN	= 7
+QS_MAGIC	= QS_PACK
+QS_VER		= QS_PACK + 4
+QS_CSUM		= QS_PACK + 5			; 16-bit sum, wraps
+QS_ZP		= QS_PACK + QS_HDR_LEN		; copies, not the live bytes
+QS_ZP_N		= 13
+QS_BODY		= QS_ZP				; checksum starts here
+QS_LIVE		= QS_ZP + QS_ZP_N
+QS_VERSION	= 2
+
+num_kills	= QS_LIVE
+num_items_got	= QS_LIVE + 1
+num_secrets_got	= QS_LIVE + 2
+map_time_ms	= QS_LIVE + 3			; 2 bytes
+map_time_sec	= QS_LIVE + 5			; 2 bytes
+god_mode	= QS_LIVE + 7
+player_prev_sec	= QS_LIVE + 8
+boss_floors_done = QS_LIVE + 9
+barrel_events	= QS_LIVE + 10
+ammo_bullets	= QS_LIVE + 11			; +shells +rockets contiguous for ,y
+ammo_shells	= QS_LIVE + 12
+ammo_rockets	= QS_LIVE + 13
+combat_armor	= QS_LIVE + 14
+owned_weapons	= QS_LIVE + 15
+hurt_flash	= QS_LIVE + 16
+death_ms	= QS_LIVE + 17			; 2 bytes
+radsuit_ms	= QS_LIVE + 19			; 2 bytes
+wpn_pose	= QS_LIVE + 21			; POSE_IDLE/FIRE/RECOIL/COCK
+wpn_off_y	= QS_LIVE + 22			; signed HUD Y delta (pistol/rocket)
+wpn_pose_ticks	= QS_LIVE + 23
+wpn_flash_ticks	= QS_LIVE + 24
+wpn_fire_ticks	= QS_LIVE + 25			; shot repeat cooldown
+recoil_step	= QS_LIVE + 26			; rocket grenade keyframe 0..2
+QS_SCALARS_END	= QS_LIVE + 27
+
 ; Door / sector processes (SoA, max 8)
 PROC_NUM	= 8
 PROC_FREE	= 0
@@ -295,16 +335,61 @@ PROC_LOWER_CEIL	= 3
 PROC_RAISE_FLOOR = 4
 PROC_LOWER_FLOOR = 5
 
-PROC_KIND	= PROF_END		; 0 = free
-PROC_A		= PROC_KIND + PROC_NUM	; sector id
-PROC_B		= PROC_A + PROC_NUM	; target height / next kind
-PROC_C		= PROC_B + PROC_NUM	; timer/accum lo
-PROC_D		= PROC_C + PROC_NUM	; timer/accum hi
-PROC_E		= PROC_D + PROC_NUM	; return height when timer → RAISE/LOWER_FLOOR
+PROC_KIND	= QS_SCALARS_END		; 0 = free
+PROC_A		= PROC_KIND + PROC_NUM		; sector id
+PROC_B		= PROC_A + PROC_NUM		; target height / next kind
+PROC_C		= PROC_B + PROC_NUM		; timer/accum lo
+PROC_D		= PROC_C + PROC_NUM		; timer/accum hi
+PROC_E		= PROC_D + PROC_NUM		; return height when timer → RAISE/LOWER_FLOOR
 PROC_END	= PROC_E + PROC_NUM
 
+; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last two = missiles)
+MAX_MOBJ		= 32
+MOBJ_PLAYER_ROCKET = MAX_MOBJ - 2
+MOBJ_MISSILE	= MAX_MOBJ - 1
+VIS_LAYER	= $80			; ITEM_SORT_SLOT bit7 = layer tile (tx in 0..31)
+VIS_FX		= $c0			; bit7+bit6 = FX overlay (index in 0..15)
+MF_JUSTATTACKED	= 1
+MF_GUTS_TAKEN	= 2
+MF_ATK_WINDUP	= 4			; attack pose before the shot
+MF_PLASMA	= $10			; enemy missile draws as plasmaball
+
+MOBJ_ALLOC	= PROC_END
+MOBJ_MOVEDIR	= MOBJ_ALLOC + MAX_MOBJ
+MOBJ_FLAGS	= MOBJ_MOVEDIR + MAX_MOBJ
+MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ	; attack cooldown in ms/16
+MOBJ_MOVECNT	= MOBJ_REACT + MAX_MOBJ	; walk/pain/fall/atk in ms/16
+MOBJ_HEALTH	= MOBJ_MOVECNT + MAX_MOBJ
+MOBJ_INFO	= MOBJ_HEALTH + MAX_MOBJ	; 0=pos..3=baron, 4=impshot
+MOBJ_STATE	= MOBJ_INFO + MAX_MOBJ
+MOBJ_XFRAC	= MOBJ_STATE + MAX_MOBJ
+MOBJ_YFRAC	= MOBJ_XFRAC + MAX_MOBJ
+MOBJ_X		= MOBJ_YFRAC + MAX_MOBJ	; world X integer
+MOBJ_Y		= MOBJ_X + MAX_MOBJ
+ITEM_CORPSE_TEX	= MOBJ_Y + MAX_MOBJ	; $FF live, else enemy spr idx / unused
+QS_MOBJ_END	= ITEM_CORPSE_TEX + MAX_MOBJ
+
+; Barrel fuse / explosion overlay (tile + timer; not the item layer)
+FX_MAX		= 16
+FX_KIND		= QS_MOBJ_END			; 0=free, 1=fuse, 2=explosion
+FX_TX		= FX_KIND + FX_MAX
+FX_TY		= FX_TX + FX_MAX
+FX_TIME		= FX_TY + FX_MAX
+FX_END		= FX_TIME + FX_MAX
+FX_FUSE		= 1
+FX_EXPL		= 2
+
+; Persistent automap fog: ever marked by mark_seen this level
+SEC_VISITED	= FX_END			; SEC_TABLE_SIZE bytes, index = sector id
+SEC_VISITED_END	= SEC_VISITED + SEC_TABLE_SIZE
+QS_END		= SEC_VISITED_END
+!if QS_END > QS_LIMIT {
+	!error "quicksave block overlaps sprites at $C800; end=$", QS_END
+}
+
+; Unsaved high BSS (under KERNAL). Derived tables and render scratch.
 ; Per-frame sector visibility (entry == seen_gen means seen this frame)
-SEC_SEEN	= PROC_END		; SEC_TABLE_SIZE bytes, index = sector id
+SEC_SEEN	= PROF_END		; SEC_TABLE_SIZE bytes, index = sector id
 SEC_SEEN_END	= SEC_SEEN + SEC_TABLE_SIZE
 
 ; Item render sort + collect cache (index = vis 0..n-1)
@@ -319,43 +404,14 @@ ITEM_SORT_WZ_H	= ITEM_SORT_WZ_L + 48	; depth16 hi
 ITEM_SORT_END	= ITEM_SORT_WZ_H + 48
 ; ITEM_SORT_ORDER lives in cassette scrap (see below) — not in high BSS.
 
-; Enemy mobj SoA (VicDoom-style; index 0..MAX_MOBJ-1; last two = missiles)
-MAX_MOBJ		= 32
-MOBJ_PLAYER_ROCKET = MAX_MOBJ - 2
-MOBJ_MISSILE	= MAX_MOBJ - 1
-VIS_LAYER	= $80			; ITEM_SORT_SLOT bit7 = layer tile (tx in 0..31)
-VIS_FX		= $c0			; bit7+bit6 = FX overlay (index in 0..15)
-MF_JUSTATTACKED	= 1
-MF_GUTS_TAKEN	= 2
-MF_ATK_WINDUP	= 4			; attack pose before the shot
-MF_PLASMA	= $10			; enemy missile draws as plasmaball
-
-MOBJ_ALLOC	= ITEM_SORT_END
-MOBJ_MOVEDIR	= MOBJ_ALLOC + MAX_MOBJ
-MOBJ_FLAGS	= MOBJ_MOVEDIR + MAX_MOBJ
-MOBJ_REACT	= MOBJ_FLAGS + MAX_MOBJ	; attack cooldown in ms/16
-MOBJ_MOVECNT	= MOBJ_REACT + MAX_MOBJ	; walk/pain/fall/atk in ms/16
-MOBJ_HEALTH	= MOBJ_MOVECNT + MAX_MOBJ
-MOBJ_INFO	= MOBJ_HEALTH + MAX_MOBJ	; 0=pos..3=baron, 4=impshot
-MOBJ_STATE	= MOBJ_INFO + MAX_MOBJ
-MOBJ_XFRAC	= MOBJ_STATE + MAX_MOBJ
-MOBJ_YFRAC	= MOBJ_XFRAC + MAX_MOBJ
-MOBJ_X		= MOBJ_YFRAC + MAX_MOBJ	; world X integer
-MOBJ_Y		= MOBJ_X + MAX_MOBJ
-ITEM_CORPSE_TEX	= MOBJ_Y + MAX_MOBJ	; $FF live, else enemy spr idx / unused
 ; Per-column aim (filled far→near during item draw; nearer overwrites)
-COL_AIM_SLOT	= ITEM_CORPSE_TEX + MAX_MOBJ	; 40: collect vis index or $FF empty
+COL_AIM_SLOT	= ITEM_SORT_END		; 40: collect vis index or $FF empty
 COL_AIM_Z	= COL_AIM_SLOT + COL_NUM	; 40: depth (wallz_h) for melee range
 aim_item	= COL_AIM_Z + COL_NUM	; collect vis index for aim ($FF none)
-MOBJ_END	= aim_item + 1
 
 ; Per-sector flat group id (identical floor/ceil/fcol/ccol → same id)
-SEC_FLATGRP	= MOBJ_END		; SEC_TABLE_SIZE bytes, index = sector id
+SEC_FLATGRP	= aim_item + 1		; SEC_TABLE_SIZE bytes, index = sector id
 SEC_FLATGRP_END	= SEC_FLATGRP + SEC_TABLE_SIZE
-
-; Persistent automap fog: ever marked by mark_seen this level
-SEC_VISITED	= SEC_FLATGRP_END	; SEC_TABLE_SIZE bytes, index = sector id
-SEC_VISITED_END	= SEC_VISITED + SEC_TABLE_SIZE
 
 ; SidTracker music player ZP (sidreloc -k keeps these; do not reuse)
 music_zp0	= $f0
@@ -372,7 +428,7 @@ music_zp7	= $f7
 
 
 ; Per-sector wall darken for set_wall_pat (from SEC_BRIGHT; $FF = full bright)
-SEC_WDARK	= SEC_VISITED_END	; SEC_TABLE_SIZE bytes, index = sector id
+SEC_WDARK	= SEC_FLATGRP_END	; SEC_TABLE_SIZE bytes, index = sector id
 SEC_WDARK_END	= SEC_WDARK + SEC_TABLE_SIZE
 ; Switch faces are cooked into level_data (level_switch_*) — not BSS.
 
@@ -385,12 +441,8 @@ UNDER_STACK_END	= $01a0
 CASS_BUF	= $033c
 CASS_BUF_END	= $03fc
 
-; Level-stats counters / roll-in temps (zeroed by init_level_stats)
-num_kills	= CASS_BUF
-num_items_got	= CASS_BUF + 1
-num_secrets_got	= CASS_BUF + 2
-map_time_ms	= CASS_BUF + 3		; 2 bytes
-map_time_sec	= CASS_BUF + 5		; 2 bytes
+; Roll-in temps. Kill/item/secret/time counters live in the quicksave block.
+; Cassette bytes 0..6 are the hole those counters left.
 roll_target	= CASS_BUF + 7
 roll_cur	= CASS_BUF + 8		; 2 bytes
 roll_time_l	= CASS_BUF + 10
@@ -476,7 +528,7 @@ saw_blade_frame		= SCRAP_UNDER + 61
 saw_blade_div		= SCRAP_UNDER + 62
 saw_running		= SCRAP_UNDER + 63
 mg_frame		= SCRAP_UNDER + 64
-player_prev_sec		= SCRAP_UNDER + 65
+; +65 was player_prev_sec (quicksave block)
 elev_mode		= SCRAP_UNDER + 66
 elev_reclose		= SCRAP_UNDER + 67
 elev_found		= SCRAP_UNDER + 68
@@ -491,19 +543,13 @@ trig_sec		= SCRAP_UNDER + 76
 trig_chain		= SCRAP_UNDER + 77
 key_use_was		= SCRAP_UNDER + 78
 info_kind		= SCRAP_UNDER + 79
-ammo_bullets		= SCRAP_UNDER + 80		; +shells +rockets contiguous for ,y
-ammo_shells		= SCRAP_UNDER + 81
-ammo_rockets		= SCRAP_UNDER + 82
-combat_armor		= SCRAP_UNDER + 83
-owned_weapons		= SCRAP_UNDER + 84
-hurt_flash		= SCRAP_UNDER + 85
-death_ms		= SCRAP_UNDER + 86		; 2 bytes
+; +80..+87 ammo / armor / weapons / hurt_flash / death_ms (quicksave block)
 flash_sec		= SCRAP_UNDER + 88		; 2 bytes
 flash_base		= SCRAP_UNDER + 90		; 2 bytes
 flash_lit		= SCRAP_UNDER + 92
 flash_ms		= SCRAP_UNDER + 93		; 2 bytes
 dmg_ms			= SCRAP_UNDER + 95		; 2 bytes
-radsuit_ms		= SCRAP_UNDER + 97		; 2 bytes
+; +97..+98 was radsuit_ms (quicksave block)
 sound_index		= SCRAP_UNDER + 99
 sound_priority		= SCRAP_UNDER + 100
 sound_count		= SCRAP_UNDER + 101
@@ -518,12 +564,7 @@ map_pl_row		= SCRAP_UNDER + 109
 map_pl_col		= SCRAP_UNDER + 110
 react_dt_rem		= SCRAP_UNDER + 111	; leftover ms for MOBJ_REACT (ms/16)
 react_dt_units		= SCRAP_UNDER + 112	; ms/16 elapsed this enemy_think
-wpn_pose		= SCRAP_UNDER + 113	; POSE_IDLE/FIRE/RECOIL/COCK
-wpn_off_y		= SCRAP_UNDER + 114	; signed HUD Y delta (pistol/rocket)
-wpn_pose_ticks		= SCRAP_UNDER + 115
-wpn_flash_ticks		= SCRAP_UNDER + 116
-wpn_fire_ticks		= SCRAP_UNDER + 117	; shot repeat cooldown
-recoil_step		= SCRAP_UNDER + 118	; rocket grenade keyframe 0..2
+; +113..+118 weapon pose (quicksave block)
 wpn_shot_req		= SCRAP_UNDER + 119	; pending world-shots (IRQ inc, main take)
 SCRAP_UNDER_END		= SCRAP_UNDER + 120
 !if SCRAP_UNDER_END > UNDER_STACK_END {
@@ -550,7 +591,7 @@ key_wpn_rocket		= SCRAP_CASS + 12
 ui_keys			= SCRAP_CASS + 13
 ui_old			= SCRAP_CASS + 14
 ui_pressed		= SCRAP_CASS + 15
-god_mode		= SCRAP_CASS + 16
+; +16 was god_mode (quicksave block)
 clev			= SCRAP_CASS + 17
 cheat_phase		= SCRAP_CASS + 18
 cheat_dqd		= SCRAP_CASS + 19
@@ -581,9 +622,8 @@ load_name_l		= SCRAP_CASS + 51
 load_name_h		= SCRAP_CASS + 52
 load_jiffy0		= SCRAP_CASS + 53
 load_do_pad		= SCRAP_CASS + 54
-boss_floors_done	= SCRAP_CASS + 55
+; +55 boss_floors_done, +57 barrel_events (quicksave block)
 boss_scan_sec		= SCRAP_CASS + 56
-barrel_events		= SCRAP_CASS + 57
 item_slot		= SCRAP_CASS + 58
 mouse_x			= SCRAP_CASS + 59	; last SID POTX ($d419); seed in input_irq_init
 mouse_turn		= SCRAP_CASS + 60	; signed POTX yaw this frame; IRQ add, main take
@@ -593,18 +633,10 @@ SCRAP_CASS_END		= SCRAP_CASS + 62
 	!error "cassette scrap BSS past CASS_BUF_END"
 }
 
-; Barrel fuse / explosion overlay (tile + timer; not the item layer)
-FX_MAX		= 16
-FX_KIND		= SCRAP_CASS_END		; 0=free, 1=fuse, 2=explosion
-FX_TX		= FX_KIND + FX_MAX
-FX_TY		= FX_TX + FX_MAX
-FX_TIME		= FX_TY + FX_MAX
-FX_END		= FX_TIME + FX_MAX
-FX_FUSE		= 1
-FX_EXPL		= 2
 ; F5/F7 latches. Not in $90–$AF: KERNAL LOAD clobbers that ZP.
-in_qsave	= FX_END
-in_qload	= FX_END + 1
+; FX lives in the quicksave block, so these stay at the cassette tail.
+in_qsave	= SCRAP_CASS_END
+in_qload	= SCRAP_CASS_END + 1
 QS_LATCH_END	= in_qload + 1
 !if QS_LATCH_END > CASS_BUF_END {
 	!error "quicksave latches past cassette buffer"
