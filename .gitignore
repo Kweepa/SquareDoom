@@ -7,7 +7,7 @@ ref/
 *.lbl
 *.prg
 !krill/*.prg
-levels/
+levels/*.bin
 
 .cursor/debug*
 vice_run.log
