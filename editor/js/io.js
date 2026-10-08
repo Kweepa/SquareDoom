@@ -61,6 +61,11 @@ import {
   buildSwitchFaceBindings,
 } from './model.js';
 
+/** Placed decor omitted from the item layer. Editor JSON keeps them. */
+const COOK_SKIP_TYPES = new Set(['gibs', 'gruntgibs', 'gruntcorpse']);
+/** Placed decor written as lightpost. Editor JSON keeps the original type. */
+const COOK_AS_LIGHTPOST = new Set(['candelabra', 'techcolumn', 'skullpile']);
+
 /** Pack editor skill checkboxes → 2-bit cook code (see file header). */
 export function packSkillCode(skills) {
   const e = skills?.easy !== false;
@@ -388,13 +393,15 @@ export function cookLevel(level) {
 
   const layer = new Uint8Array(MAP_CELLS);
   for (const it of level.items.filter((it) => isGameItem(it.type))) {
+    if (COOK_SKIP_TYPES.has(it.type)) continue;
     const s = snapToTileCenter(it.x, it.y);
-    const typeId = ITEM_TYPES.indexOf(it.type);
+    const cookType = COOK_AS_LIGHTPOST.has(it.type) ? 'lightpost' : it.type;
+    const typeId = ITEM_TYPES.indexOf(cookType);
     if (typeId < 1 || typeId > MAX_COOK_TYPE_ID) continue;
     const code = packSkillCode(it.skills);
     const idx = s.ty * 32 + s.tx;
     if (layer[idx]) {
-      warnings.push(`Tile ${s.tx},${s.ty}: last-wins (${it.type} overwrites)`);
+      warnings.push(`Tile ${s.tx},${s.ty}: last-wins (${cookType} overwrites)`);
     }
     layer[idx] = (typeId & 0x3f) | ((code & 3) << 6);
   }
