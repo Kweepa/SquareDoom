@@ -12,6 +12,7 @@ start_level
 	jsr enemy_alloc_all
 	jsr init_level_stats
 	jsr init_hud_state
+	jsr weapon_raise_begin
 	lda #$ff
 	sta last_playera			; force rebuild_col_rays
 	jsr build_sec_flatgrp

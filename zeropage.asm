@@ -528,7 +528,7 @@ saw_blade_frame		= SCRAP_UNDER + 61
 saw_blade_div		= SCRAP_UNDER + 62
 saw_running		= SCRAP_UNDER + 63
 mg_frame		= SCRAP_UNDER + 64
-; +65 was player_prev_sec (quicksave block)
+wpn_raise		= SCRAP_UNDER + 65		; level-start Y drop; 0 = idle
 elev_mode		= SCRAP_UNDER + 66
 elev_reclose		= SCRAP_UNDER + 67
 elev_found		= SCRAP_UNDER + 68

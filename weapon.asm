@@ -31,6 +31,8 @@ PISTOL_FIRE_TICKS = 15			; 300 ms
 PISTOL_RECOIL_TICKS = 8			; 160 ms (~150)
 SG_COCK_TICKS = 30			; 600 ms
 SAW_RUN_DY = 8
+WPN_RAISE0 = 96				; level-start drop; clamps every layer to Y=255
+WPN_RAISE_STEP = 8			; 50 Hz → 12 ticks, ~240 ms
 PISTOL_FIRE_DY = $fc			; −4
 PISTOL_RECOIL_DY = $fa			; −6
 
@@ -70,6 +72,13 @@ wpn_damage_lo
 wpn_damage_hi
 	!byte >damage_fist, >damage_chainsaw, >damage_pistol, >damage_shotgun
 	!byte >damage_pistol, >spawn_player_rocket
+; Same weapon order. Level-start raise reads these (8 bytes each).
+wpn_y_lo
+	!byte <fist_spr_y, <chainsaw_spr_y, <pistol_spr_y, <shotgun_spr_y
+	!byte <minigun_spr_y, <rocket_spr_y
+wpn_y_hi
+	!byte >fist_spr_y, >chainsaw_spr_y, >pistol_spr_y, >shotgun_spr_y
+	!byte >minigun_spr_y, >rocket_spr_y
 
 ; SMC stubs — +1/+2 patched by switch_weapon
 wpn_setup
@@ -227,6 +236,7 @@ switch_weapon
 	sta wpn_fire_ticks
 	sta recoil_step
 	sta wpn_shot_req
+	sta wpn_raise
 	lda #1
 	sta hud_dirty
 	php
@@ -246,6 +256,26 @@ init_weapon
 	sta cur_weapon			; force setup
 	ldx #2				; pistol
 	jmp switch_weapon
+
+; Level start: park every layer at the bottom border, then the 50 Hz IRQ
+; walks wpn_raise down to 0. Hidden until the first blit, so the slide
+; starts when the gun is actually on screen. Sprite Y is 8-bit — clamp
+; at 255 instead of wrapping the lower layers onto the top.
+weapon_raise_begin
+	lda #0
+	sta wpn_pose
+	sta wpn_off_y
+	sta wpn_pose_ticks
+	sta wpn_flash_ticks
+	lda #WPN_RAISE0
+	sta wpn_raise
+	php
+	sei
+	jsr io_push
+	jsr .irq_raise_apply
+	jsr io_pop
+	plp
+	rts
 
 ; Hide HUD weapon sprites (menus / intermission)
 hide_weapon
@@ -710,6 +740,16 @@ update_weapon_irq
 	beq .uwi_rts
 	lda health
 	beq .uwi_rts
+	lda wpn_raise
+	beq .uwi_live
+	sec
+	sbc #WPN_RAISE_STEP
+	bcs .uwi_raise
+	lda #0
+.uwi_raise
+	sta wpn_raise
+	jmp .irq_raise_apply
+.uwi_live
 	lda wpn_fire_ticks
 	beq .uwi_space
 	dec wpn_fire_ticks
@@ -734,6 +774,31 @@ update_weapon_irq
 	jsr .irq_tick_flash
 	jmp .irq_tick_pose
 .uwi_rts
+	rts
+
+; I/O already in. cur_weapon selects the Y table. wpn_raise added, clamp $ff.
+.irq_raise_apply
+	ldx cur_weapon
+	lda wpn_y_lo,x
+	sta .iry_lda + 1
+	lda wpn_y_hi,x
+	sta .iry_lda + 2
+	ldx #0
+	ldy #0
+.iry
+.iry_lda
+	lda $ffff,x
+	clc
+	adc wpn_raise
+	bcc .iry_ok
+	lda #$ff
+.iry_ok
+	sta $d001,y
+	iny
+	iny
+	inx
+	cpx #8
+	bcc .iry
 	rts
 
 .irq_fire_released
