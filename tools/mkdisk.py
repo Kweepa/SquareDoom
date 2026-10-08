@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a SquareDoom d64: boot (autostart name squaredoom), splash, overlays, levels.
 
-Default (KERNAL): splashc, splash, mus1, mus2, menu, gfx, game. Boot and later loads use
+Default (KERNAL): splashc, splash, mus1..mus4, menu, gfx, game. Boot and later loads use
 $FFD5. --krill: also packs krill/loader.prg + install.prg; that boot JSR installs
 and every later load is loadraw. GAME is $0400 through py_tab ($B800).
 Levels load at $96E0.
@@ -28,6 +28,8 @@ DISK_PRGS_KERNAL = [
 	("splash", "splash.prg"),
 	("mus1", "mus1.prg"),
 	("mus2", "mus2.prg"),
+	("mus3", "mus3.prg"),
+	("mus4", "mus4.prg"),
 	("menu", "menu.prg"),
 	("gfx", "gfx.prg"),
 	("game", "game.prg"),
@@ -39,6 +41,8 @@ DISK_PRGS_KRILL = [
 	("install", "krill/install.prg"),
 	("mus1", "mus1.prg"),
 	("mus2", "mus2.prg"),
+	("mus3", "mus3.prg"),
+	("mus4", "mus4.prg"),
 	("menu", "menu.prg"),
 	("gfx", "gfx.prg"),
 	("game", "game.prg"),

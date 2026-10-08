@@ -84,15 +84,16 @@ difficulty	= $02ff
 ; not KERNAL/Krill ZP ($90+, $60–$64). Do not clear in input_irq_init.
 mouse_en	= $81
 
-; Menu music (mus1/mus2, tools/genmusic.py). MENU loads one tune to $9000;
-; GAME overwrites it. SidTracker64: init $9000, play $9003, ZP $f0-$f7.
-; Volume stub reads effects_vol. All three SID voices; no menu SFX while it plays.
+; Menu music (mus1..mus4, tools/genmusic.py). MENU loads one tune to $9000;
+; GAME overwrites it. init $9000, play $9003. SidTracker uses ZP $f0-$f7;
+; At Doom's Gate uses $fe/$ff. The menu swaps $f0-$ff around PLAY.
+; Volume patch reads effects_vol. All three SID voices; no menu SFX while it plays.
 ; Names are MENU_MUSIC_* so they do not collide with the in-game RTS stubs.
 MENU_MUSIC_BASE	= $9000
 MENU_MUSIC_INIT	= MENU_MUSIC_BASE
 MENU_MUSIC_PLAY	= MENU_MUSIC_BASE + 3
 MENU_MUSIC_ZP	= $f0
-MENU_MUSIC_ZP_N	= 8
+MENU_MUSIC_ZP_N	= 16			; $f0-$ff
 
 ; Menu hires (VIC bank 1). Game uses VIC_SCREEN in bank 3.
 ; Boot splash: splashc @ $4000 (matrix in place, colour staged $43E8), bitmap @ $6000.

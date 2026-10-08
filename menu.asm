@@ -1,7 +1,7 @@
 ; SquareDoom MENU overlay — load @ LOCODE_BASE ($0400), JMP from boot trampoline.
 ; Entry: +0 run_menu, +3 copy_vic. After start: load GFX, copy_vic, trampoline GAME.
 ; Selectors at $02FA–$02FF survive GAME overwrite.
-; Menu music: MUS1/MUS2 loaded from disk to $9000 (random at entry, Jukebox
+; Menu music: MUS1..MUS4 loaded from disk to $9000 (random at entry, Jukebox
 ; switches), all 3 SID voices, CIA1 Timer A tick. Blips only if the load fails.
 ; Assembled per disk: -DUSE_KRILL=1 uses loadraw, default uses KERNAL LOAD.
 !cpu 6502
@@ -409,14 +409,16 @@ menu_move_down
 	jsr update_selection
 	jmp sfx_movegun2
 
-; Repaint only old + new rows (no clear / full redraw)
+; Repaint only old + new rows (no clear / full redraw).
+; Jukebox credit follows the highlight, so refresh that line too.
 update_selection
 	ldx menu_prev
 	stx tmp4
 	jsr draw_menu_item
 	ldx menu_item
 	stx tmp4
-	jmp draw_menu_item
+	jsr draw_menu_item
+	jmp draw_track_credit
 
 menu_esc
 	jsr sfx_esc
@@ -741,10 +743,10 @@ next_menu
 	!byte 2, NM_ORDER, NM_ORDER, NM_BACK, 0, 0, 0, 0
 	!byte NM_START, NM_START, NM_START, NM_BACK, 0, 0, 0, 0
 	!byte 3, 3, NM_BACK, 0, 0, 0, 0, 0
-	!byte NM_JUKE, NM_JUKE, NM_BACK, 0, 0, 0, 0, 0
+	!byte NM_JUKE, NM_JUKE, NM_JUKE, NM_JUKE, NM_BACK, 0, 0, 0
 
 menu_sizes
-	!byte 6, 4, 4, 3, 3
+	!byte 6, 4, 4, 3, 5
 
 ; --- drawing ---------------------------------------------------------------
 draw_menu
@@ -781,25 +783,59 @@ draw_menu
 	sta cursor_spr_en
 	jmp menu_unblank
 
-; Jukebox only: "Tracks by Mandy Kane" on the row under the option box.
+; Jukebox only: "Track by <author>" on the row under the option box.
+; Highlighted track picks the author; Back follows the playing track.
 draw_track_credit
 	lda menu_id
 	cmp #4
 	beq .dtc
 	rts
 .dtc
+	lda box_top
+	clc
+	adc box_height
+	tax
+	lda #0
+	jsr bmp_cell_addr		; blank the row; names differ in width
+	ldy #0
+.dtc_b
+	jsr bmp_blank_cell_y
+	iny
+	cpy #32
+	bcc .dtc_b
+	inc ptr_h			; next 8 cells (32*8 = 256)
+	ldy #0
+.dtc_b2
+	jsr bmp_blank_cell_y
+	iny
+	cpy #8
+	bcc .dtc_b2
 	lda #0
 	sta pr_scale
 	lda #COL_MAIN
 	sta cell_bg
 	lda #TEXT_COL
 	sta ui_text_col
+	lda menu_item
+	cmp #4				; Back
+	bne .dtc_who
+	lda music_track
+.dtc_who
+	cmp #3				; At Doom's Gate
+	bcc .dtc_mk
+	lda #<str_credit_ns
+	ldy #>str_credit_ns
+	jmp .dtc_pr
+.dtc_mk
+	lda #<str_credit_mk
+	ldy #>str_credit_mk
+.dtc_pr
+	pha					; string lo; row math would wipe A
 	lda box_top
 	clc
 	adc box_height
 	tax
-	lda #<str_track_credit
-	ldy #>str_track_credit
+	pla
 	jmp print_centered
 
 ; Title on TITLE_ROW (does not follow the option box).
@@ -953,9 +989,15 @@ hint_print_px
 	sta pr_scale
 	jmp print_go
 
-; box_top, box_left, box_width, box_height from menu strings (2× items)
+; box_top, box_left, box_width, box_height from menu strings.
+; Jukebox items are 1×; every other menu is 2×.
 calc_box
 	lda #1
+	ldx menu_id
+	cpx #4
+	bne .cb_sc
+	lda #0
+.cb_sc
 	sta pr_scale
 	lda #0
 	sta pix_max_l
@@ -1013,11 +1055,14 @@ calc_box
 	adc #BOX_PAD
 	sta box_width
 	jsr clamp_box_width
-	; Vertically center box (2 rows per item + top/bottom gaps) above hint.
+	; Vertically center box (rows per item + top/bottom gaps) above hint.
 	lda #BOX_VGAP
 	sta box_vgap
 	lda menu_size
-	asl					; ITEM_ROWS
+	ldx pr_scale
+	beq .cb_h1
+	asl					; 2× items
+.cb_h1
 	clc
 	adc box_vgap
 	adc box_vgap
@@ -1042,6 +1087,11 @@ calc_box
 	sta box_top
 .cb_ok
 	dec box_top			; options one row up; titles stay on TITLE_ROW
+	lda menu_id
+	cmp #4
+	bne .cb_rts
+	dec box_top			; jukebox list one more row up
+.cb_rts
 	rts
 
 ; Width>40 → full screen; else center.
@@ -1064,9 +1114,17 @@ clamp_box_width
 
 draw_menu_item
 	lda #1
+	ldx menu_id
+	cpx #4
+	bne .di_sc
+	lda #0				; jukebox: one row, single-size glyphs
+.di_sc
 	sta pr_scale
 	lda tmp4
-	asl					; ITEM_ROWS
+	ldx pr_scale
+	beq .di_row
+	asl					; 2× items take two rows
+.di_row
 	clc
 	adc box_top
 	adc box_vgap
@@ -1085,6 +1143,8 @@ draw_menu_item
 	iny
 	cpy box_width
 	bcc .di_clr
+	lda pr_scale
+	beq .di_one			; 1× item is a single row
 	lda ptr_l
 	clc
 	adc #<320
@@ -1098,6 +1158,7 @@ draw_menu_item
 	iny
 	cpy box_width
 	bcc .di_clr2
+.di_one
 
 	lda tmp4
 	cmp menu_item
@@ -1124,6 +1185,12 @@ draw_menu_item
 	asl
 	clc
 	adc #49
+	ldx menu_id
+	cpx #4
+	bne .di_sy
+	sec
+	sbc #5				; jukebox skull sits higher
+.di_sy
 	sta cursor_spr_y
 .di_g
 	lda menu_id
@@ -3197,10 +3264,10 @@ cursor_tick	!byte 0
 menu_mux_phase	!byte 0
 menu_raster_en	!byte 0
 music_ok	!byte 0				; 1 = MUSn resident at $9000
-music_track	!byte 0				; 0..1 playing / selected
+music_track	!byte 0				; 0..3 playing / selected
 music_en	!byte 0				; 1 = CIA tick calls MUSIC_PLAY
 music_due	!byte 0				; tick acked; play after hint sprites
-music_zp	!fill MENU_MUSIC_ZP_N, 0	; player's $f0-$f7 while the menu owns ZP
+music_zp	!fill MENU_MUSIC_ZP_N, 0	; player's $f0-$ff while the menu owns ZP
 hint_spr_x	!byte 0, 0, 0
 cursor_spr_x	!byte 0
 cursor_spr_y	!byte 0
@@ -3277,7 +3344,10 @@ str_quit	!scr "Quit",0
 str_back	!scr "Back",0
 str_trk1	!scr "Track 1",0
 str_trk2	!scr "Track 2",0
-str_track_credit !scr "Tracks by Mandy Kane",0
+str_trk3	!scr "Track 3",0
+str_gate	!scr "At Doom's Gate",0
+str_credit_mk	!scr "Track by Mandy Kane",0
+str_credit_ns	!scr "Track by Nordischsound",0
 str_e1		!scr "Knee deep in the dead",0
 str_e2		!scr "The shores of hell",0
 str_e3		!scr "Inferno",0
@@ -3292,6 +3362,7 @@ str_sec_new	!scr "Which episode?",0
 str_sec_skill	!scr "Choose skill level",0
 str_sec_sound	!scr "Options",0
 str_sec_juke	!scr "Now playing: Track 1",0	; digit at +19 (sync_juke_title)
+str_sec_gate	!scr "Now playing: At Doom's Gate",0
 
 section_lo
 	!byte <str_sec_main, <str_sec_new, <str_sec_skill, <str_sec_sound, <str_sec_juke
@@ -3309,8 +3380,8 @@ menu_str_lo
 	!byte 0, 0, 0, 0
 	!byte <str_audio_vol, <str_mouse, <str_back, 0
 	!byte 0, 0, 0, 0
-	!byte <str_trk1, <str_trk2, <str_back, 0
-	!byte 0, 0, 0, 0
+	!byte <str_trk1, <str_trk2, <str_trk3, <str_gate
+	!byte <str_back, 0, 0, 0
 menu_str_hi
 	!byte >str_new_game, >str_sound, >str_control, >str_read_this
 	!byte >str_credits, >str_juke, 0, 0
@@ -3320,8 +3391,8 @@ menu_str_hi
 	!byte 0, 0, 0, 0
 	!byte >str_audio_vol, >str_mouse, >str_back, 0
 	!byte 0, 0, 0, 0
-	!byte >str_trk1, >str_trk2, >str_back, 0
-	!byte 0, 0, 0, 0
+	!byte >str_trk1, >str_trk2, >str_trk3, >str_gate
+	!byte >str_back, 0, 0, 0
 
 !source "tmp/menu_hint_spr.asm"
 !source "tmp/menu_cursor_spr.asm"

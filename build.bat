@@ -108,7 +108,7 @@ if errorlevel 1 exit /b 1
 python tools\gen_vice_mon.py
 if errorlevel 1 exit /b 1
 
-echo Built boot.prg splashc.prg splash.prg menu.prg gfx.prg game.prg mus1.prg mus2.prg
+echo Built boot.prg splashc.prg splash.prg menu.prg gfx.prg game.prg mus1.prg mus2.prg mus3.prg mus4.prg
 echo Disks: squaredoom.d64 ^(KERNAL, default^) and squaredoom-krill.d64
 dir boot.prg
 dir splashc.prg

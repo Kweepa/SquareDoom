@@ -1,6 +1,7 @@
-; Menu music + sprite mux. When a tune loaded, CIA1 Timer A (rate set by the
-; tune's init, 25..48 Hz) calls MUSIC_PLAY and all three SID voices belong to
-; it. Otherwise Timer A stays ~50 Hz for menu blips (voice 2).
+; Menu music + sprite mux. When a tune loaded, CIA1 Timer A calls MUSIC_PLAY
+; and all three SID voices belong to it. SidTracker init sets the rate
+; (25..48 Hz). At Doom's Gate is 50 Hz and the latch is loaded after init.
+; Otherwise Timer A stays ~50 Hz for menu blips (voice 2).
 ; Raster IRQ muxes the logo / cursor / hint sprites.
 ; Banks KERNAL out ($01=$35) so $fffe is live; boot restores $36 after menu.
 
@@ -34,11 +35,20 @@ menu_sfx_init
 	lda effects_vol
 	and #15
 	sta $d418
-	; Player owns $f0-$f7 only while it runs; MUSIC_INIT programs $dc04/05.
+	; Player ZP is restored only while it runs. SidTracker init programs
+	; $dc04/05. At Doom's Gate (track 3) is a 50 Hz player and does not.
 	jsr music_zp_swap
 	lda #0
 	jsr MENU_MUSIC_INIT
 	jsr music_zp_swap
+	lda music_track
+	cmp #3
+	bne .msi_rate
+	lda #SAMPLE_TA_LO
+	sta $dc04
+	lda #SAMPLE_TA_HI
+	sta $dc05
+.msi_rate
 	lda #1
 	sta music_en
 	bne .msi_vec
@@ -83,7 +93,7 @@ menu_sfx_init
 	cli
 	rts
 
-; Exchange player ZP state with the menu's $f0-$f7.
+; Exchange player ZP state with the menu's $f0-$ff.
 music_zp_swap
 	ldx #MENU_MUSIC_ZP_N - 1
 .mzs

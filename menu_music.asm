@@ -1,6 +1,7 @@
-; Menu music loader + Jukebox switch. MUS1/MUS2 (tools/genmusic.py) load at
+; Menu music loader + Jukebox switch. MUS1..MUS4 (tools/genmusic.py) load at
 ; MENU_MUSIC_BASE ($9000) from disk. Krill vs KERNAL is chosen at assemble time
-; (build.bat assembles menu.asm once per disk).
+; (build.bat assembles menu.asm once per disk). Track 3 is Nordischsound
+; (50 Hz); 0..2 are SidTracker and program the CIA themselves.
 
 !zone menu_music
 
@@ -9,11 +10,11 @@
 music_pick_load
 	lda $a2					; jiffy clock lo
 	eor $dc04				; free-running KERNAL timer A lo
-	and #1					; track 0..1
+	and #3					; track 0..3
 	sta music_track
 	; fall through
 
-; A = track 0..1 → MUSn at $9000. Leaves $01=$36, I=0.
+; A = track 0..3 → MUSn at $9000. Leaves $01=$36, I=0.
 ; music_ok = 1 when the file loaded.
 music_load
 	clc
@@ -61,7 +62,7 @@ music_load
 	sta $dd00
 	rts
 
-; A = track 0..1, menu IRQs live. Silences, reloads, restarts, repaints.
+; A = track 0..3, menu IRQs live. Silences, reloads, restarts, repaints.
 jukebox_select
 	sta music_track
 	lda wip_spr_en
@@ -76,12 +77,24 @@ jukebox_select
 	jsr sync_juke_title
 	jmp draw_menu
 
-; "Now playing: Track N" heading of the Jukebox menu. Digit at +19.
+; Jukebox heading follows the playing track. Mandy Kane keeps
+; "Now playing: Track N" (digit at +19). At Doom's Gate has its own string.
 sync_juke_title
 	lda music_track
+	cmp #3
+	bcs .sj_gate
 	clc
 	adc #'1'
 	sta str_sec_juke + 19
+	lda #<str_sec_juke
+	ldy #>str_sec_juke
+	jmp .sj_set
+.sj_gate
+	lda #<str_sec_gate
+	ldy #>str_sec_gate
+.sj_set
+	sta section_lo + 4
+	sty section_hi + 4
 	rts
 
 music_name	!text "MUS1", 0
