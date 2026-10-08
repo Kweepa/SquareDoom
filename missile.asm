@@ -15,10 +15,10 @@ PROJ_NUDGE_MS = 25		; spawn look-ahead (clears player center)
 
 ; ---------------------------------------------------------------------------
 ; proj_scale_vel — A = sintab amp; vel_ms set → tmp0/tmp1 at 2 tiles/sec
-; (walk scale_vel is 1 tile/sec; ASL doubles).
+; (walk scale_vel is 1 tile/sec; ASL doubles). Step ms skips the walk turbo.
 ; ---------------------------------------------------------------------------
 proj_scale_vel
-	jsr scale_vel
+	jsr scale_vel_step
 	asl tmp0
 	rol tmp1
 	rts

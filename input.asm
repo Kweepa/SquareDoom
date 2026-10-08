@@ -29,6 +29,7 @@
 ; scales turn/wish by those times (not full-frame dt_ms):
 ;   turn 90°/sec = 64 angle/sec → turn_acc += vel_ms<<6, deliver >>10
 ;   move 1 tile/sec = 8 world/sec → delta_8_8 = (sintab * vel_ms) >> 5
+;   dt<80ms scales that hold by (144-clamp(dt,16,80))/64, so 2x at <=16ms
 ; sintab AMP=64; identity: sin=64, dt=1024 → 2048 = 8.0 world.
 ;
 ; Use/fire/map: OR-latch if held on any sample this frame.
@@ -654,7 +655,15 @@ wish_add_y
 	rts
 
 ; A = signed unit → tmp0/tmp1 = (A * vel_ms) >>> 5 (arithmetic)
+; Frame under 80ms: vel' = (vel * m) >> 6, m = 144-clamp(dt,16,80), then the >>5.
+; scale_vel_step skips the frame boost (projectile step ms).
 scale_vel
+	clc
+	bcc scale_vel_body
+scale_vel_step
+	sec
+scale_vel_body
+	php
 	sta tmp2
 	bpl .sv_abs
 	eor #$ff
@@ -662,7 +671,14 @@ scale_vel
 	adc #1
 .sv_abs
 	tay
+	plp
+	bcs .sv_plain
+	lda dt_ms
+	cmp #80
+	bcc .sv_turbo
+.sv_plain
 	lda vel_ms
+.sv_mul
 	jsr mul_8x8				; X=lo A=hi
 	sta tmp1
 	stx tmp0
@@ -693,6 +709,27 @@ scale_vel
 	sta tmp1
 .sv_done
 	rts
+.sv_turbo
+	sty tmp5				; |sintab|; mul_8x8 uses Y
+	cmp #16
+	bcs .sv_dt
+	lda #16
+.sv_dt
+	eor #$ff
+	sec
+	adc #144				; m = 144 - clamp(dt,16,80)
+	ldy vel_ms
+	jsr mul_8x8
+	stx tmp0
+	ldx #6
+.sv_sh
+	lsr
+	ror tmp0
+	dex
+	bne .sv_sh
+	lda tmp0
+	ldy tmp5
+	jmp .sv_mul
 
 neg_a
 	eor #$ff
