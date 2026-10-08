@@ -23,8 +23,9 @@ ITEM_TYPE_PLASMABALL = 41
 ITEM_TYPE_ROCKET = 42
 ITEM_TYPE_EXPLOSION = 43
 ITEM_TYPE_POSCORPSE = 35
-ITEM_TYPE_CANDELABRA = 28
-ITEM_TYPE_TECHCOLUMN = 34
+; Double-height decor is not cooked (candelabra / techcolumn → lightpost).
+;ITEM_TYPE_CANDELABRA = 28
+;ITEM_TYPE_TECHCOLUMN = 34
 TEX_ANIMATE = 64
 
 ; Scratch after column loop (column temps free):
@@ -800,22 +801,23 @@ item_draw_one
 	lda far_ceil
 	sta last_near_ok
 	jsr item_mip_floor
-	lda wall_col
-	cmp #ITEM_TYPE_CANDELABRA
-	beq .id_tall
-	cmp #ITEM_TYPE_TECHCOLUMN
-	bne .id_feet
-.id_tall
-	lda last_near_ok
-	asl					; H = 2×W
-	bcs .id_tall_hsat
-	cmp #128
-	bcc .id_tall_hok
-.id_tall_hsat
-	lda #127
-.id_tall_hok
-	sta far_ceil
 	jmp .id_feet
+;	lda wall_col
+;	cmp #ITEM_TYPE_CANDELABRA
+;	beq .id_tall
+;	cmp #ITEM_TYPE_TECHCOLUMN
+;	bne .id_feet
+;.id_tall
+;	lda last_near_ok
+;	asl					; H = 2×W
+;	bcs .id_tall_hsat
+;	cmp #128
+;	bcc .id_tall_hok
+;.id_tall_hsat
+;	lda #127
+;.id_tall_hok
+;	sta far_ceil
+;	jmp .id_feet
 .id_large
 	; explosion: S = min(2*H, 16); mip from S; DDA stretch to S×S
 	lda far_ceil
